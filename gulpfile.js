@@ -45,25 +45,25 @@ gulp.task('styles', function () {
             ]
         }))
         .pipe($.sourcemaps.write())
-        .pipe(gulp.dest('dest/wp-content/themes/super/css'))
+        .pipe(gulp.dest('dest/wp-content/themes/beezup/css'))
         .pipe($.size({title: 'styles'}));
 });
 
 gulp.task('fonts', function() {
     return gulp.src('src/fonts/**/*')
-        .pipe(gulp.dest('dest/wp-content/themes/super/fonts'))
+        .pipe(gulp.dest('dest/wp-content/themes/beezup/fonts'))
         .pipe($.size({ title: 'fonts' }));
 });
 
 gulp.task('img', function() {
     return gulp.src('src/img/**/*')
-        .pipe(gulp.dest('dest/wp-content/themes/super/img'))
+        .pipe(gulp.dest('dest/wp-content/themes/beezup/img'))
         .pipe($.size({ title: 'img' }));
 });
 
 gulp.task('layoutImg', function() {
     return gulp.src('src/layoutImg/**/*')
-        .pipe(gulp.dest('dest/wp-content/themes/super/layoutImg'))
+        .pipe(gulp.dest('dest/wp-content/themes/beezup/layoutImg'))
         .pipe($.size({ title: 'layoutImg' }));
 });
 
@@ -76,25 +76,25 @@ gulp.task('js', function () {
         .pipe(source('main.js'))
         .pipe(buffer())
         .pipe($.uglify())
-        .pipe(gulp.dest('dest/wp-content/themes/super/js'));
+        .pipe(gulp.dest('dest/wp-content/themes/beezup/js'));
 });
 
 
 gulp.task('theme', function() {
     return gulp.src('src/theme/**/*')
-        .pipe(gulp.dest('dest/wp-content/themes/super'))
+        .pipe(gulp.dest('dest/wp-content/themes/beezup'))
         .pipe($.size({title: 'theme'}));
 });
 
 
 gulp.task('sitemap', function () {
-    gulp.src('dest/wp-content/themes/super/**/*.html', {
+    gulp.src('dest/wp-content/themes/beezup/**/*.html', {
             read: false
         })
         .pipe(sitemap({
             siteUrl: 'http://www.beezup.fr'
         }))
-        .pipe(gulp.dest('dest/wp-content/themes/super'));
+        .pipe(gulp.dest('dest/wp-content/themes/beezup'));
 });
 
 gulp.task('robots', function() {
@@ -110,21 +110,21 @@ gulp.task('htaccess', function() {
 
 
 gulp.task('watch', function () {
-    
+
     browserSync({
         notify: false,
         proxy: 'localhost'
     });
-    
+
 
     $.watch('src/scss/**/*', function(){
         gulp.start(['styles'], reload);
     });
-    
+
     $.watch('src/theme/**/*', function(){
         gulp.start(['theme'], reload);
     });
-    
+
     $.watch('src/fonts/**/*', function(){
         gulp.start(['fonts'], reload);
     });
@@ -137,7 +137,7 @@ gulp.task('watch', function () {
     $.watch('src/js/**/*', function(){
         gulp.start(['js'], reload);
     });
-    
+
     $.watch('src/robots.txt', function(){
         gulp.start(['robots'], reload);
     });
