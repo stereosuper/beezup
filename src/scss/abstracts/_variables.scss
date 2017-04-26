@@ -11,8 +11,16 @@ $transition: 0.3s ease-in-out;
 
 
 // Fonts
-// $font: 'font', sans-serif;
-
+$fira: 'fira', sans-serif;
+$fira-italic: 'fira-italic', $fira;
+$fira-book: 'fira-book', $fira;
+$fira-book-italic: 'fira-book-italic', $fira-italic;
+$fira-medium: 'fira-medium', $fira-book;
+$fira-medium-italic: 'fira-medium-italic', $fira-book-italic;
+$fira-semibold: 'fira-semibold', $fira-medium;
+$fira-semibold-italic: 'fira-semibold-italic', $fira-medium-italic;
+$fira-bold: 'fira-bold', $fira-semibold;
+$fira-bold-italic: 'fira-bold-italic', $fira-semibold-italic;
 
 // Mediaqueries
 $retina: 'only screen and (-webkit-min-device-pixel-ratio: 1.5), only screen and (min-resolution: 144dpi)';
