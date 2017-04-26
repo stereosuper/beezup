@@ -82,7 +82,21 @@ $table_prefix  = 'beez_';
  *
  * @link https://codex.wordpress.org/Debugging_in_WordPress
  */
-define('WP_DEBUG', false);
+define('WP_DEBUG', true);
+
+define('WP_POST_REVISIONS', 5);
+define('EMPTY_TRASH_DAYS', 10);
+define('WP_AUTO_UPDATE_CORE', true);
+define('DISALLOW_FILE_EDIT', true);
+define('DISALLOW_UNFILTERED_HTML', true);
+
+define('WP_ALLOW_MULTISITE', TRUE);
+define('MULTISITE', true);
+define('SUBDOMAIN_INSTALL', false);
+define('DOMAIN_CURRENT_SITE', 'localhost');
+define('PATH_CURRENT_SITE', '/');
+define('SITE_ID_CURRENT_SITE', 1);
+define('BLOG_ID_CURRENT_SITE', 1);
 
 /* C’est tout, ne touchez pas à ce qui suit ! */
 
