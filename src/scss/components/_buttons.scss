@@ -1,1 +1,14 @@
 /* Buttons */
+a{
+    &.btn{
+        display: inline-block;
+        padding: 14px 30px;
+        background: $secondary;
+        color: $white;
+        font-family: $fira-medium;
+        font-size: 1.4rem;
+        text-transform: uppercase;
+        text-decoration: none;
+        letter-spacing: 2px;
+    }
+}
