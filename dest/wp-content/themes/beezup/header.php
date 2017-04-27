@@ -1,5 +1,7 @@
 <!DOCTYPE html>
+
 <html <?php language_attributes(); ?> class='no-js'>
+	
 	<head>
 		<meta charset='utf-8'>
 		<meta name='viewport' content='width=device-width,initial-scale=1'>
@@ -14,11 +16,13 @@
 
 		<header role='banner'>
 
+			<a href='<?php echo home_url('/'); ?>' title='<?php bloginfo( 'name' ); ?>' rel='home'><?php bloginfo( 'name' ); ?></a>
+
 			<nav role='navigation'>
 				<?php wp_nav_menu( array( 'theme_location' => 'primary', 'container' => false, 'menu_class' => 'menu-main' ) ); ?>
 			</nav>
 
-			<a href='<?php echo home_url('/'); ?>' title='<?php bloginfo( 'name' ); ?>' rel='home'><?php bloginfo( 'name' ); ?></a>
+			<button data-appointlet-organization='beezup' data-appointlet-service='32290'>Démo & Contact</button>
 
 		</header>
 
