@@ -15,75 +15,75 @@ Header unset ETag
 FileETag None
 
 # Cache-Control Headers
-<Ifmodule mod_headers.c>
-Header set vary "Accept-Encoding"
-Header append vary "User-Agent"
-Header append Cache-Control "public"
-Header append Connection "Keep-Alive"
-Header append Keep-Alive "timeout=5, max=100"
-<FilesMatch "\.(ico|jpe?g|png|gif|swf|gz|ttf|svg|eot|woff|pdf|mp4|mpeg|avi|svg|woff2)$">
-Header set Cache-Control "max-age=31536000"
-</FilesMatch>
-<filesmatch "\.(css|js)$">
- Header set Cache-Control "max-age=604800, public"
- </filesmatch>
-<filesmatch "\.(html|htm)$">
-Header set Cache-Control "max-age=7200, must-revalidate"
-</filesmatch>
-<filesmatch "\.(pl|php|cgi|spl|scgi|fcgi)$">
-Header unset Cache-Control
-</filesmatch>
-</IfModule>
+# <Ifmodule mod_headers.c>
+# Header set vary "Accept-Encoding"
+# Header append vary "User-Agent"
+# Header append Cache-Control "public"
+# Header append Connection "Keep-Alive"
+# Header append Keep-Alive "timeout=5, max=100"
+# <FilesMatch "\.(ico|jpe?g|png|gif|swf|gz|ttf|svg|eot|woff|pdf|mp4|mpeg|avi|svg|woff2)$">
+# Header set Cache-Control "max-age=31536000"
+# </FilesMatch>
+# <filesmatch "\.(css|js)$">
+#  Header set Cache-Control "max-age=604800, public"
+#  </filesmatch>
+# <filesmatch "\.(html|htm)$">
+# Header set Cache-Control "max-age=7200, must-revalidate"
+# </filesmatch>
+# <filesmatch "\.(pl|php|cgi|spl|scgi|fcgi)$">
+# Header unset Cache-Control
+# </filesmatch>
+# </IfModule>
 
 # Expires headers (for better cache control)
-<IfModule mod_expires.c>
-ExpiresActive on
+# <IfModule mod_expires.c>
+# ExpiresActive on
 
-# Perhaps better to whitelist expires rules? Perhaps.
-ExpiresDefault                          "access plus 1 month"
+# # Perhaps better to whitelist expires rules? Perhaps.
+# ExpiresDefault                          "access plus 1 month"
 
-# cache.appcache needs re-requests in FF 3.6 (thanks Remy ~Introducing HTML5)
-ExpiresByType text/cache-manifest       "access plus 0 seconds"
+# # cache.appcache needs re-requests in FF 3.6 (thanks Remy ~Introducing HTML5)
+# ExpiresByType text/cache-manifest       "access plus 0 seconds"
 
-# Your document html
-ExpiresByType text/html                 "access plus 0 seconds"
+# # Your document html
+# ExpiresByType text/html                 "access plus 0 seconds"
 
-# Data
-ExpiresByType text/xml                  "access plus 0 seconds"
-ExpiresByType application/xml           "access plus 0 seconds"
-ExpiresByType application/json          "access plus 0 seconds"
+# # Data
+# ExpiresByType text/xml                  "access plus 0 seconds"
+# ExpiresByType application/xml           "access plus 0 seconds"
+# ExpiresByType application/json          "access plus 0 seconds"
 
-# Feed
-ExpiresByType application/rss+xml       "access plus 1 hour"
-ExpiresByType application/atom+xml      "access plus 1 hour"
+# # Feed
+# ExpiresByType application/rss+xml       "access plus 1 hour"
+# ExpiresByType application/atom+xml      "access plus 1 hour"
 
-# Favicon (cannot be renamed)
-ExpiresByType image/x-icon              "access plus 1 week"
+# # Favicon (cannot be renamed)
+# ExpiresByType image/x-icon              "access plus 1 week"
 
-# Media: images, video, audio
-ExpiresByType image/gif                 "access plus 1 month"
-ExpiresByType image/png                 "access plus 1 month"
-ExpiresByType image/jpeg                "access plus 1 month"
-ExpiresByType video/ogg                 "access plus 1 month"
-ExpiresByType audio/ogg                 "access plus 1 month"
-ExpiresByType video/mp4                 "access plus 1 month"
-ExpiresByType video/webm                "access plus 1 month"
+# # Media: images, video, audio
+# ExpiresByType image/gif                 "access plus 1 month"
+# ExpiresByType image/png                 "access plus 1 month"
+# ExpiresByType image/jpeg                "access plus 1 month"
+# ExpiresByType video/ogg                 "access plus 1 month"
+# ExpiresByType audio/ogg                 "access plus 1 month"
+# ExpiresByType video/mp4                 "access plus 1 month"
+# ExpiresByType video/webm                "access plus 1 month"
 
-# HTC files  (css3pie)
-ExpiresByType text/x-component          "access plus 1 month"
+# # HTC files  (css3pie)
+# ExpiresByType text/x-component          "access plus 1 month"
 
-# Webfonts
-ExpiresByType application/x-font-ttf    "access plus 1 month"
-ExpiresByType font/opentype             "access plus 1 month"
-ExpiresByType application/x-font-woff   "access plus 1 month"
-ExpiresByType application/x-font-woff2  "access plus 1 month"
-ExpiresByType image/svg+xml             "access plus 1 month"
-ExpiresByType application/vnd.ms-fontobject "access plus 1 month"
+# # Webfonts
+# ExpiresByType application/x-font-ttf    "access plus 1 month"
+# ExpiresByType font/opentype             "access plus 1 month"
+# ExpiresByType application/x-font-woff   "access plus 1 month"
+# ExpiresByType application/x-font-woff2  "access plus 1 month"
+# ExpiresByType image/svg+xml             "access plus 1 month"
+# ExpiresByType application/vnd.ms-fontobject "access plus 1 month"
 
-# CSS and JavaScript
-ExpiresByType text/css                  "access plus 1 year"
-ExpiresByType application/javascript    "access plus 1 year"
-</IfModule>
+# # CSS and JavaScript
+# ExpiresByType text/css                  "access plus 1 year"
+# ExpiresByType application/javascript    "access plus 1 year"
+# </IfModule>
 
 # Gzip compression
 <IfModule mod_deflate.c>
@@ -187,3 +187,20 @@ AddType video/webm webm
 
 php_value upload_max_filesize 50M
 php_value post_max_size 50M
+
+# BEGIN WordPress
+RewriteEngine On
+RewriteBase /
+RewriteRule ^index\.php$ - [L]
+
+# add a trailing slash to /wp-admin
+RewriteRule ^([_0-9a-zA-Z-]+/)?wp-admin$ $1wp-admin/ [R=301,L]
+
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+RewriteRule ^([_0-9a-zA-Z-]+/)?(wp-(content|admin|includes).*) $2 [L]
+RewriteRule ^([_0-9a-zA-Z-]+/)?(.*\.php)$ $2 [L]
+RewriteRule . index.php [L]
+
+# END WordPress
