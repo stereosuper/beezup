@@ -1,7 +1,17 @@
 /* Grid */
 
 .container{
-    max-width: 1200px;
+    max-width: 1180px;
+    padding: 0 $gutter*2;
+    margin: 0 auto;
+}
+.container-medium{
+    max-width: 980px;
+    padding: 0 $gutter*2;
+    margin: 0 auto;
+}
+.container-small{
+    max-width: 780px;
     padding: 0 $gutter*2;
     margin: 0 auto;
 }

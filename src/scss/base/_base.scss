@@ -78,14 +78,82 @@ i, em{
 }
 
 blockquote{
-    margin: 1em 40px;
+    position: relative;
+    margin: 4em 0;
+    padding: 0;
+    &:before{
+        content: '“';
+        position: absolute;
+        top: -0.2em;
+        left: -0.2em;
+        font-size: 3.8em;
+        color: $primary;
+    }
+    &:after{
+        content: '';
+        display: block;
+        width: 2px;
+        height: 2px;
+        position: absolute;
+        top: -13px;
+        left: -16px;
+        border-radius: 50%;
+        background: $primary;
+    }
+    p{
+        margin: 0;
+        font-family: $fira-book-italic;
+        color: $grey;
+        &::first-letter{
+            margin-left: 15px;
+        }
+        &:before{
+            content: '';
+            display: block;
+            width: 2px;
+            height: 2px;
+            position: absolute;
+            top: -8px;
+            left: -18px;
+            border-radius: 50%;
+            background: $primary;
+        }
+        &:after{
+            content: '';
+            display: block;
+            width: 3px;
+            height: 3px;
+            position: absolute;
+            top: -7px;
+            left: -14px;
+            border-radius: 50%;
+            background: $primary;
+        }
+    }
 }
 
 ol, ul{
+    list-style-type: none;
     padding: 0;
     margin: 1em 0;
 }
 ul{
+    > li{
+        position: relative;
+        margin: 4px 0;
+        padding: 0 0 0 15px;
+        &:before{
+            content: '';
+            display: block;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: $secondary;
+            position: absolute;
+            top: 8px;
+            left: 1px; 
+        }
+    }
     ul{
         padding: 0 0 0 25px;
         margin: 1em 0;
@@ -94,9 +162,16 @@ ul{
 ol{
     counter-reset: ol-counter;
     > li{
+        position: relative;
         counter-increment: ol-counter;
+        padding: 0 0 0 15px;
         &:before{
             content: counter(ol-counter)'.';
+            color: $secondary;
+            position: absolute;
+            top: 0;
+            left: 0;
+            font-family: $fira-medium;
         }
     }
     ol{
@@ -130,8 +205,28 @@ dd{
 }
 
 img{
-    max-width: 100%;
+    display: block;
+    max-width: calc(100% + 200px);
     height: auto;
+    margin: 20px 0 20px -100px;
+    &.aligncenter{
+        margin-left: auto;
+        margin-right: auto;
+    }
+    &.alignleft, &.alignright{
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+    &.alignleft{
+        float: left;
+        margin-right: $gutter*2;
+        margin-left: -100px;
+    }
+    &.alignright{
+        float: right;
+        margin-left: $gutter*2;
+        margin-right: -100px;
+    }
 }
 
 code, pre{
