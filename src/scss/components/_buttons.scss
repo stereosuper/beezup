@@ -11,4 +11,17 @@ a{
         text-decoration: none;
         letter-spacing: 2px;
     }
+    &.btn-arrow{
+        position: relative;
+        padding: 0 18px 0 0;
+        .icon-arrow-right{
+            display: block;
+            position: absolute;
+            top: 50%;
+            right: 0;
+            width: 10px;
+            height: 8px;
+            transform: translate3d(0, -50%, 0);
+        }
+    }
 }
