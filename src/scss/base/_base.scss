@@ -301,14 +301,16 @@ a{
     }
     &.link-arrow {
         position: relative;
-        .icon{
+        &:after{
+            content: '';
+            background-image: url('../layoutImg/arrow-right.svg');
+            background-repeat: no-repeat;
             display: block;
             position: absolute;
-            top: 50%;
+            top: 10px;
             right: -20px;
             width: 10px;
             height: 8px;
-            transform: translate3d(0, -50%, 0);
         }
     }
 }

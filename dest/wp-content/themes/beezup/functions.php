@@ -123,7 +123,12 @@ function beezup_mce_before_init( $styles ){
             'title' => 'Star',
             'selector' => 'blockquote',
             'classes' => 'star'
-        )
+        ),
+        array(
+            'title' => 'Lien fléché',
+            'selector' => 'a',
+            'classes' => 'link-arrow'
+        ),
     );
     $styles['style_formats'] = json_encode( $style_formats );
     // Remove h1 and code
