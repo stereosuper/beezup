@@ -107,8 +107,25 @@ function beezup_right_now_custom_post() {
 }
 add_action( 'dashboard_glance_items', 'beezup_right_now_custom_post' );
 
+function beezup_button($buttons){
+   array_unshift($buttons, 'styleselect');
+   return $buttons;
+}
+add_filter('mce_buttons_2', 'beezup_button');
+function beezup_init_editor_styles(){
+   add_editor_style();
+}
+add_action('after_setup_theme', 'beezup_init_editor_styles');
 // Customize a bit the wysiwyg editor
 function beezup_mce_before_init( $styles ){
+    $style_formats = array(
+        array(
+            'title' => 'Star',
+            'selector' => 'blockquote',
+            'classes' => 'star'
+        )
+    );
+    $styles['style_formats'] = json_encode( $style_formats );
     // Remove h1 and code
     $styles['block_formats'] = 'Paragraph=p;Heading 2=h2;Heading 3=h3;Heading 4=h4;Heading 5=h5;Heading 6=h6';
     // Let only the colors you want
