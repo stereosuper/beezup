@@ -266,6 +266,9 @@ img{
         margin-left: $gutter*2;
         margin-right: -100px;
     }
+    &.wide {
+        width: calc(100% + 200px);
+    }
 }
 
 code, pre{
@@ -305,10 +308,9 @@ a{
             content: '';
             background-image: url('../layoutImg/arrow-right.svg');
             background-repeat: no-repeat;
-            display: block;
-            position: absolute;
-            top: 10px;
-            right: -20px;
+            display: inline-block;
+            position: relative;
+            right: -10px;
             width: 10px;
             height: 8px;
         }

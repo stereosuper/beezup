@@ -125,6 +125,11 @@ function beezup_mce_before_init( $styles ){
             'classes' => 'star'
         ),
         array(
+            'title' => 'Image pleine largeur',
+            'selector' => 'img',
+            'classes' => 'wide'
+        ),
+        array(
             'title' => 'Lien fléché',
             'selector' => 'a',
             'classes' => 'link-arrow'
