@@ -11,6 +11,10 @@
     background: $secondary;
     color: $white;
     text-decoration: none;
+    &:hover, &:focus{
+        background: $primary;
+        color: $white;
+    }
 }
 
 .btn-arrow{

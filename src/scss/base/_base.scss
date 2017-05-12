@@ -271,7 +271,7 @@ a{
     text-decoration: underline;
     transition: $transition;
     &:focus, &:hover{
-
+        color: $primary;
     }
     &:focus{
         outline: 0;
