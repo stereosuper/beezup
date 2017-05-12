@@ -12,7 +12,7 @@
 }
 
 html{
-    font-size: 62.5%; /* sets the base font to 10px for easier math */
+    font-size: 62.5%;
 }
 
 body{
@@ -29,26 +29,26 @@ h1, h2{
 }
 
 h1{
-    font-size: 4.5rem;
     margin: 2.45em 0 3em;
+    font-size: 4.5rem;
     text-align: center;
 }
 
 h2{
-    font-size: 2.2rem;
     margin: 2.3em 0 0.9em;
+    font-size: 2.2rem;
 }
 
 h3{
+    margin: 1.8em 0 1.1em;
     font-family: $fira-medium;
     font-size: 1.8rem;
-    margin: 1.8em 0 1.1em;
 }
 
 h4{
+    margin: 1em 0 0;
     font-family: $fira;
     font-size: 1.6rem;
-    margin: 1em 0 0;
     color: $primary;
     + p{
         margin-top: 0;
@@ -56,13 +56,13 @@ h4{
 }
 
 h5{
-    font-size: 2rem;
     margin: 1.67em 0;
+    font-size: 2rem;
 }
 
 h6{
-    font-size: 1.8rem;
     margin: 2.33em 0;
+    font-size: 1.8rem;
 }
 
 p{
@@ -70,17 +70,19 @@ p{
 }
 
 b, strong{
-
+    font-family: $fira-bold;
+    font-weight: 400;
 }
 
 i, em{
-
+    font-family: $fira-italic;
+    font-style: normal;
 }
 
 blockquote{
+    padding: 2em 5.5em;
     position: relative;
     margin: 4em 0;
-    padding: 2em 5.5em;
     background: rgba($primary, 0.09);
     &:before{
         content: '“';
@@ -92,7 +94,6 @@ blockquote{
     }
     &:after{
         content: '';
-        display: block;
         width: 2px;
         height: 2px;
         position: absolute;
@@ -105,38 +106,33 @@ blockquote{
         margin: 0;
         font-family: $fira-book-italic;
         color: $grey;
-        &:before{
+        &:before, &:after{
             content: '';
-            display: block;
+            position: absolute;
+            border-radius: 50%;
+            background: $primary;
+        }
+        &:before{
             width: 2px;
             height: 2px;
-            position: absolute;
             top: 29px;
             left: 24px;
-            border-radius: 50%;
-            background: $primary;
         }
         &:after{
-            content: '';
-            display: block;
             width: 3px;
             height: 3px;
-            position: absolute;
             top: 32px;
             left: 30px;
-            border-radius: 50%;
-            background: $primary;
         }
     }
-    &.star {
+    &.star{
         &:before{
             content: '';
-            background-image: url('../layoutImg/star.svg');
-            background-repeat: no-repeat;
             width: 24px;
             height: 22px;
             top: 36px;
             left: 38px;
+            background: url('../layoutImg/star.svg') no-repeat;
         }
     }
 }
@@ -146,36 +142,35 @@ ol, ul{
     padding: 0;
     margin: 1em 0;
 }
+li{
+    position: relative;
+    &:before, &:after{
+        content: '';
+        position: absolute;
+    }
+    &:after{
+        width: 16px;
+        height: 6px;
+        top: 7px;
+        left: -56px;
+        background: url('../layoutImg/puce.svg') no-repeat;
+    }
+    &:nth-child(even){
+        &:after{
+            transform: scale(1, -1);
+        }
+    }
+}
 ul{
     > li{
-        position: relative;
         margin: 4px 0;
-        &:nth-child(even){
-            &:after{
-                transform: scale(1, -1);
-            }
-        }
-        &:after {
-            content: '';
-            display: block;
-            background-image: url('../layoutImg/puce.svg');
-            background-repeat: no-repeat;
-            width: 16px;
-            height: 6px;
-            position: absolute;
-            top: 7px;
-            left: -56px;
-        }
         &:before{
-            content: '';
-            display: block;
             width: 5px;
             height: 5px;
-            border-radius: 50%;
-            background: $secondary;
-            position: absolute;
             top: 8px;
             left: -34px; 
+            border-radius: 50%;
+            background: $secondary;
         }
     }
     ul{
@@ -186,31 +181,16 @@ ul{
 ol{
     counter-reset: ol-counter;
     > li{
-        position: relative;
         counter-increment: ol-counter;
-        &:nth-child(even){
-            &:after{
-                transform: scale(1, -1);
-            }
-        }
-        &:after {
-            content: '';
-            display: block;
-            background-image: url('../layoutImg/puce.svg');
-            background-repeat: no-repeat;
-            width: 16px;
-            height: 6px;
-            position: absolute;
+        &:after{
             top: 9px;
-            left: -56px;
         }
         &:before{
             content: counter(ol-counter)'.';
-            color: $secondary;
-            position: absolute;
             top: 0;
             left: -35px;
             font-family: $fira-medium;
+            color: $secondary;
         }
     }
     ol{
@@ -303,13 +283,12 @@ a{
         position: relative;
         &:after{
             content: '';
-            background-image: url('../layoutImg/arrow-right.svg');
-            background-repeat: no-repeat;
             display: inline-block;
-            position: relative;
-            right: -10px;
             width: 10px;
             height: 8px;
+            position: relative;
+            right: -10px;
+            background: url('../layoutImg/arrow-right.svg') no-repeat;
         }
     }
 }
@@ -377,19 +356,19 @@ a{
 
 
 @media (max-width: $desktop-small){
-    img {
+    img{
         &.alignleft, &.alignright{
             float: none;
             margin: 15px auto;
         }
-        &.wide {
+        &.wide{
             width: 100vw;
             margin: 20px 0 20px calc((100vw - 100%)/-2);
         }
     }
 
-    .container-small {
-        li {
+    .container-small{
+        li{
             padding: 0 0 0 72px;
             &:after {
                 left: 0;

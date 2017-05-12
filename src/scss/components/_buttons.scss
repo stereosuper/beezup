@@ -1,40 +1,27 @@
 /* Buttons */
-a{
-    &.btn{
-        display: inline-block;
-        padding: 14px 30px;
-        background: $secondary;
-        color: $white;
-        font-family: $fira-medium;
-        font-size: 1.4rem;
-        text-transform: uppercase;
-        text-decoration: none;
-        letter-spacing: 2px;
-    }
-    &.btn-arrow{
-        position: relative;
-        padding: 0 18px 0 0;
-        .icon-arrow-right{
-            display: block;
-            position: absolute;
-            top: 50%;
-            right: 0;
-            width: 10px;
-            height: 8px;
-            transform: translate3d(0, -50%, 0);
-        }
-    }
+
+.btn{
+    display: inline-block;
+    padding: 15px 34px;
+    font-family: $fira-semibold;
+    font-size: 1.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    line-height: 1;
+    background: $secondary;
+    color: $white;
+    text-decoration: none;
 }
-button{
-    border: 0;
-    &.btn {
-        font-family: $fira-semibold;
-        letter-spacing: 1px;
-        width: 115px;
-        height: 45px;
-        color: $white;
-        background: $secondary;
-        font-size: 1.4rem;
-        text-transform: uppercase;
+
+.btn-arrow{
+    padding: 0 18px 0 0;
+    position: relative;
+    .icon-arrow-right{
+        position: absolute;
+        top: 50%;
+        right: 0;
+        width: 10px;
+        height: 8px;
+        transform: translate3d(0, -50%, 0);
     }
 }
