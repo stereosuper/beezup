@@ -1,14 +1,13 @@
         </main>
 
 
-        <footer role='contentinfo'>
-            <?php echo get_template_part( 'includes/newsletter' ); ?>
+        <footer role='contentinfo' class='footer'>
+            <div class='container'>
+                <?php echo get_template_part( 'includes/newsletter' ); ?>
+            </div>
         </footer>
-
-
-        <?php wp_footer(); ?>
         
-        <svg style='position: absolute; width: 0; height: 0; overflow: hidden;' version='1.1' xmlns='http://www.w3.org/2000/svg'>
+        <svg style='position: absolute; width: 0; height: 0; overflow: hidden;' xmlns='http://www.w3.org/2000/svg'>
             <defs>
                 <symbol id='icon-arrow-right' viewBox='0 0 43 32'>
                     <title>arrow-right</title>
@@ -24,6 +23,9 @@
                 </symbol>
             </defs>
         </svg>
+
+
+        <?php wp_footer(); ?>
 
 
         <!-- SendinBlue Ajax Form validation -->
