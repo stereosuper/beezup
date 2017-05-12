@@ -15,38 +15,3 @@
     padding: 0 $gutter*2;
     margin: 0 auto;
 }
-
-@media (max-width: $desktop-small){
-    .container-small {
-        img {
-            &:not(.wide){
-                max-width: 100%;
-            }
-            &.alignleft, &.alignright{
-                float: none;
-                margin: 15px auto;
-            }
-        }
-        li {
-            padding: 0 0 0 72px;
-            &:after {
-                left: 0;
-            }
-            &:before{
-                left: 38px; 
-            }
-        }
-    }
-}
-
-@media (max-width: 920px){
-    .container-small {
-        img {
-            &.wide {
-                max-width: none;
-                width: 100vw;
-                margin: 20px 0 20px calc((100vw - 100%)/-2);
-            }
-        }
-    }
-}

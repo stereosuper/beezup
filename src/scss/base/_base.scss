@@ -245,29 +245,26 @@ dd{
 
 img{
     display: block;
-    max-width: calc(100% + 200px);
+    max-width: 100%;
     height: auto;
-    margin: 20px 0 20px -100px;
-    &.aligncenter{
-        margin-left: auto;
-        margin-right: auto;
+    &.alignone{
+        margin: 20px 0;
     }
-    &.alignleft, &.alignright{
-        margin-top: 15px;
-        margin-bottom: 15px;
+    &.aligncenter{
+        margin: 20px auto;
     }
     &.alignleft{
         float: left;
-        margin-right: $gutter*2;
-        margin-left: -100px;
+        margin: 15px $gutter*2 15px -100px;
     }
     &.alignright{
         float: right;
-        margin-left: $gutter*2;
-        margin-right: -100px;
+        margin: 15px -100px 15px $gutter*2;
     }
-    &.wide {
+    &.wide{
         width: calc(100% + 200px);
+        max-width: none;
+        margin: 20px 0 20px -100px;
     }
 }
 
@@ -374,6 +371,32 @@ a{
         background-position: 50% 50%;
         img{ // hide image if object fit is not supported - opacity to 0 for the link area
             opacity: 0;
+        }
+    }
+}
+
+
+@media (max-width: $desktop-small){
+    img {
+        &.alignleft, &.alignright{
+            float: none;
+            margin: 15px auto;
+        }
+        &.wide {
+            width: 100vw;
+            margin: 20px 0 20px calc((100vw - 100%)/-2);
+        }
+    }
+
+    .container-small {
+        li {
+            padding: 0 0 0 72px;
+            &:after {
+                left: 0;
+            }
+            &:before{
+                left: 38px; 
+            }
         }
     }
 }

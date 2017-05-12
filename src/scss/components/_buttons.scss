@@ -25,3 +25,16 @@ a{
         }
     }
 }
+button{
+    border: 0;
+    &.btn {
+        font-family: $fira-semibold;
+        letter-spacing: 1px;
+        width: 115px;
+        height: 45px;
+        color: $white;
+        background: $secondary;
+        font-size: 1.4rem;
+        text-transform: uppercase;
+    }
+}
