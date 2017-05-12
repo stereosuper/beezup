@@ -6,8 +6,13 @@
 
 			<article>
 					
-				<h1><?php the_title(); ?></h1>
-				<div class="postMeta">
+				<h1>
+					<?php the_title(); ?>
+					<?php if(get_field('title2')){ ?>
+						<span><?php the_field('title2'); ?></span>
+					<?php } ?>
+				</h1>
+				<div>
 					<?php echo get_the_date(); ?>
 				</div>
 						
