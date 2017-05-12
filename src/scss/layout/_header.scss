@@ -1,5 +1,5 @@
 /* Header */
-header {
+header{
     width: 100%;
     overflow: hidden;
 }
@@ -8,22 +8,22 @@ header {
     width: 1180px;
     margin: 0 auto;
     display: flex;
-    .wrapper-logo {
+    .wrapper-logo{
         width: 270px;
         padding: 20px 0;
     }
-    li {
-        &:before, &:after {
+    li{
+        &:before, &:after{
             content: none;
         }
     }
-    .nav {
+    .nav{
         display: flex;
         flex: 1;
         flex-direction: column;
     }
 }
-.container-menu-head {
+.container-menu-head{
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -33,12 +33,12 @@ header {
     color: $white;
     font-size: 1.4rem;
     background-color: $primary;
-    a {
+    a{
         color: $white;
         font-family: $fira-medium;
         text-decoration: none;
     }
-    li {
+    li{
         display: inline-block;
         margin: 0 0 0 2em;
         .icon {
@@ -68,7 +68,7 @@ header {
     position: relative;
     z-index: 3;
 }
-.menu-main {
+.menu-main{
     li {
         display: inline-block;
         margin: 0 26px;
