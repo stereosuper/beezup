@@ -14,13 +14,11 @@
             <div class='sib-container'>
                 <input type='hidden' name='req_hid' id='req_hid' value=''>
                 <div class='view-messages'></div>
-                <div class='primary-group email-group forms-builder-group ui-sortable'>
-                    <div class='row mandatory-email'>
-                        <div class='lbl-tinyltr'>Votre adresse email</div>
-                        <input type='text' name='email' id='email' value=''>
-                    </div>
-                </div>
-                <button class='button editable' type='submit' data-editfield='subscribe'>Go</button>
+                <div class='row mandatory-email field'>
+                    <input type='text' name='email' id='email'>
+                    <label for='email'>Votre adresse email</label>
+                </div> 
+                <button class='btn-secondary' type='submit'>OK</button>
             </div>
         </form>
     </div>

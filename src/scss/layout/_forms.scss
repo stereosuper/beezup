@@ -18,10 +18,28 @@ input, textarea, select, button{
   	}
 }
 
+input, textarea, label{
+    font-family: $fira-italic;
+    color: $grey;
+}
+
 input, textarea{
+    width: 220px;
+    max-width: 100%;
+    padding: 10px 15px;
+    border: 1px solid rgba($primary, 0.4);
+    background: $white;
   	&:-webkit-autofill{
-      	box-shadow: 0 0 0 1000px #fff inset;
+      	box-shadow: 0 0 0 1000px rgba($primary, 0.4) inset;
   	}
+    &:focus{
+        border-color: rgba($primary, 0.8);
+    }
+    &:focus, &.on{
+        + label{
+            opacity: 0;
+        }
+    }
     &:invalid{
         // FF red borders
         box-shadow: none;
@@ -46,4 +64,15 @@ select{
 
 button{
     border: 0;
+}
+
+.field{
+    position: relative;
+    > label{
+        position: absolute;
+        top: 10px;
+        left: 15px;
+        pointer-events: none;
+        transition: 0.1s ease-in-out;
+    }
 }

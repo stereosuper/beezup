@@ -50,4 +50,4 @@
 			</div>
 		</header>
 
-		<main role='main'>
+		<main role='main' class='main'>
