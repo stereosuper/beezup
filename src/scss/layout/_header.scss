@@ -93,24 +93,48 @@
 }
 
 .mlp-lang-switcher{
-    ul {
-        display: flex;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    &.open {
+        .other-language-items {
+            transform: translate(0 , 0);
+        }
+        .current-language-nav-item{
+            position: relative;
+            top: 1px;
+            font-family: $fira;
+            color: $black;
+        }
+        .icon-arrow-down {
+            transform: rotate(-90deg);
+            fill: $black;
+            transition: $transition;
+        }
     }
-    // li {
-
-    //     &:first-child{
-    //         order: 2;
-    //     }
-    //     &:nth-child(2){
-    //         order: 3;
-    //     }
-    //     &:nth-child(3){
-    //         order: 4;
-    //     }
-    //     &:last-child{
-    //         order: 1;
-    //     }
-    // }
+    .current-language-nav-item{
+        background: $primary;
+        position: relative;
+        cursor: pointer;
+        z-index: 2;
+        transition: color $transition;
+    }
+    .icon-arrow-down{
+        width: 8px;
+        margin: 0 8px;
+        transform: rotate(0deg);
+        transition: transform $transition;
+    }
+    li {
+        margin: 0 8px 0 0;
+    }
+    .other-language-items {
+        display: flex;
+        margin: 0;
+        transform: translate(-100% , 0);
+        position: relative;
+        transition: $transition;
+    }
 }
 
 @media (max-width: 1210px)  {
