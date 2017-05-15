@@ -151,11 +151,30 @@ function beezup_mce_before_init( $styles ){
 }
 add_filter( 'tiny_mce_before_init', 'beezup_mce_before_init' );
 
+// Add Options Page
+if( function_exists('acf_add_options_page') ){
+    $optionsMainPage = acf_add_options_page( array(
+        'position'   => 2,
+        'page_title' => 'Theme General Options',
+        'menu_title' => 'Theme Options',
+        'redirect'   => false
+    ) );
+
+    // acf_add_options_sub_page( array(
+    //     'page_title'    => 'Footer Settings',
+    //     'menu_title'    => 'Footer',
+    //     'parent_slug'   => $optionsMainPage['menu_slug'],
+    // ) );
+}
+
+
 /*-----------------------------------------------------------------------------------*/
 /* Menus
 /*-----------------------------------------------------------------------------------*/
 register_nav_menus( array(
     'primary' => 'Primary Menu',
+    'secondary' => 'Secondary Menu',
+     'footer' => 'Footer Menu'
 ) );
 
 // Cleanup WP Menu html
@@ -199,12 +218,12 @@ function beezup_unregister_default_widgets(){
     unregister_widget( 'WP_Nav_Menu_Widget' );
 }
 add_action( 'widgets_init', 'beezup_unregister_default_widgets' );
+
+
 /*-----------------------------------------------------------------------------------*/
 /* MLP Language Switcher
 /*-----------------------------------------------------------------------------------*/
-
-function beezup_mlp_navigation()
-{
+function beezup_mlp_navigation(){
     $api = apply_filters( 'mlp_language_api', NULL );
     /** @var Mlp_Language_Api_Interface $api */
     if ( ! is_a( $api, 'Mlp_Language_Api_Interface' ) ) {
@@ -241,10 +260,10 @@ function beezup_mlp_navigation()
         );
     }
     ksort( $items );
-    $before = '<div class="mlp-lang-switcher"><ul>';
-    $after = '</ul></div>';
+    $before = '<div class="mlp-lang-switcher" id="header-lang-switcher">';
+    $after = '</div>';
 
-    $output = array();
+    $otherLangItems = array();
 
     foreach ( $items as $site_id => $item ) {
         $text = $item[ 'name' ];
@@ -252,25 +271,21 @@ function beezup_mlp_navigation()
         $img = '';
 
         if ( get_current_blog_id() === $site_id ) {
-            $itemOutput = '<li class="current-language-nav-item"><a class="current-language-item" href="">' . $img . esc_html( $text ) . '</a></li>';
-            array_unshift($output, $itemOutput);
+            $currentLangItem = '<span id="current-language" class="current-language-nav-item"><span class="current-language-item">' . $img . esc_html( $text ) . '</span><svg class="icon icon-arrow-down"><use xlink:href="#icon-arrow-down"></use></svg></span>';
         } else {
-            $itemOutput = sprintf(
+            $otherLangItem = sprintf(
                 '<li><a rel="alternate" hreflang="%1$s" href="%2$s">%3$s%4$s</a></li>',
                 esc_attr( $item['http'] ),
                 esc_url( $item[ 'url' ] ),
                 $img,
                 esc_html( $text )
             );
-            array_push($output, $itemOutput);
+            array_push($otherLangItems, $otherLangItem);
         }
     }
 
-    return $before . join( '', $output ) . $after;
+    return $before . $currentLangItem . '<ul class="other-language-items">' . join( '', $otherLangItems ) . '</ul>' . $after;
 }
-
-
-
 
 /*-----------------------------------------------------------------------------------*/
 /* Enqueue Styles and Scripts
@@ -280,13 +295,13 @@ function beezup_defer_attr($tag, $handle){
     $scriptsToDefer = array('beezup-scripts', 'sendinblue-scripts', 'appointlet-scripts');
    
     foreach( $scriptsToDefer as $script ){
-        if( $script !== $handle ){
+        if( $script === $handle ){
             return str_replace( ' src', ' defer src', $tag );
         }
     }
     return $tag;
 }
-add_filter('script_loader_tag', 'beezup_defer_attr', 10, 2);
+add_filter( 'script_loader_tag', 'beezup_defer_attr', 10, 2 );
 
 // Register and enqueue styles and scripts
 function beezup_scripts(){

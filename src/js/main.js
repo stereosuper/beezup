@@ -26,6 +26,10 @@ $(function(){
 
 
     checkInputs($('form'));
+    $('#current-language').on('click', function () {
+        console.log('click');
+        $('#header-lang-switcher').toggleClass('open'); 
+    });
 
     $(window).on('resize', throttle(function(){
         requestAnimFrame(resizeHandler);
