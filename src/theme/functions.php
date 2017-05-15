@@ -151,11 +151,29 @@ function beezup_mce_before_init( $styles ){
 }
 add_filter( 'tiny_mce_before_init', 'beezup_mce_before_init' );
 
+// Add Options Page
+if( function_exists('acf_add_options_page') ){
+    $optionsMainPage = acf_add_options_page( array(
+        'position'   => 2,
+        'page_title' => 'Theme General Options',
+        'menu_title' => 'Theme Options',
+        'redirect'   => false
+    ) );
+
+    // acf_add_options_sub_page( array(
+    //     'page_title'    => 'Footer Settings',
+    //     'menu_title'    => 'Footer',
+    //     'parent_slug'   => $optionsMainPage['menu_slug'],
+    // ) );
+}
+
+
 /*-----------------------------------------------------------------------------------*/
 /* Menus
 /*-----------------------------------------------------------------------------------*/
 register_nav_menus( array(
     'primary' => 'Primary Menu',
+    'secondary' => 'Secondary Menu',
 ) );
 
 // Cleanup WP Menu html
@@ -209,13 +227,13 @@ function beezup_defer_attr($tag, $handle){
     $scriptsToDefer = array('beezup-scripts', 'sendinblue-scripts', 'appointlet-scripts');
    
     foreach( $scriptsToDefer as $script ){
-        if( $script !== $handle ){
+        if( $script === $handle ){
             return str_replace( ' src', ' defer src', $tag );
         }
     }
     return $tag;
 }
-add_filter('script_loader_tag', 'beezup_defer_attr', 10, 2);
+add_filter( 'script_loader_tag', 'beezup_defer_attr', 10, 2 );
 
 // Register and enqueue styles and scripts
 function beezup_scripts(){
