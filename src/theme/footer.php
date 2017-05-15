@@ -2,42 +2,79 @@
 
 
         <footer role='contentinfo' class='footer'>
-            <div class='container'>
-                <?php the_field('aboutTitle', 'options'); ?>
-                <?php the_field('aboutText', 'options'); ?>
-                <?php if(get_field('aboutLink', 'options') && get_field('aboutLinkText', 'options')){ ?>
-                    <a href='<?php the_field('aboutLink', 'options'); ?>' title='<?php the_field('aboutLinkText', 'options'); ?>' class='link-arrow'><?php the_field('aboutLinkText', 'options'); ?></a>
-                <?php } ?>
+            <div class='top-footer'>
+                <div class='container'>
+                    <div class='wrapper-about'>
+                        <h3><?php the_field('aboutTitle', 'options'); ?></h3>
+                        <?php the_field('aboutText', 'options'); ?>
+                        <?php if(get_field('aboutLink', 'options') && get_field('aboutLinkText', 'options')){ ?>
+                            <a href='<?php the_field('aboutLink', 'options'); ?>' title='<?php the_field('aboutLinkText', 'options'); ?>' class='link-arrow'><?php the_field('aboutLinkText', 'options'); ?></a>
+                        <?php } ?>
+                    </div>
 
-                <?php the_field('linksTitle', 'options'); ?>
-                <?php wp_nav_menu( array('theme_location' => 'secondary') ); ?>
+                    <div class='wrapper-links'>
+                        <h3><?php the_field('linksTitle', 'options'); ?></h3>
+                        <?php wp_nav_menu( array('theme_location' => 'secondary') ); ?>
+                    </div>
 
-                <?php the_field('socialTitle', 'options'); ?>
-                <?php if(get_field('twitter', 'options')){ ?>
-                    <a href='<?php the_field('twitter', 'options'); ?>' title='<?php _e('Follow us on', 'Beezup'); ?> Twitter' class='btn-secondary' target='_blank'><?php _e('Follow us on', 'Beezup'); ?> Twitter</a>
-                <?php } ?>
-                <?php if(get_field('linkedin', 'options')){ ?>
-                    <a href='<?php the_field('linkedin', 'options'); ?>' title='<?php _e('Follow us on', 'Beezup'); ?> LinkedIn' class='btn-secondary' target='_blank'><?php _e('Follow us on', 'Beezup'); ?> LinkedIn</a>
-                <?php } ?>
-                <?php if(get_field('facebook', 'options')){ ?>
-                    <a href='<?php the_field('facebook', 'options'); ?>' title='<?php _e('Follow us on', 'Beezup'); ?> Facebook' class='btn-secondary' target='_blank'><?php _e('Follow us on', 'Beezup'); ?> Facebook</a>
-                <?php } ?>
-                <?php if(get_field('google', 'options')){ ?>
-                    <a href='<?php the_field('google', 'options'); ?>' title='<?php _e('Follow us on', 'Beezup'); ?> Google +' class='btn-secondary' target='_blank'><?php _e('Follow us on', 'Beezup'); ?> Google +</a>
-                <?php } ?>
+                    <div class='wrapper-social-newsletter'>
+                        <h3><?php the_field('socialTitle', 'options'); ?></h3>
+                        <ul class='social'>
+                            <?php if(get_field('twitter', 'options')){ ?>
+                                <li>
+                                    <a href='<?php the_field('twitter', 'options'); ?>' title='<?php _e('Follow us on', 'Beezup'); ?> Twitter' class='btn-secondary' target='_blank'><span><?php _e('Follow us on', 'Beezup'); ?> Twitter</span><svg class='icon icon-twitter'><use xlink:href='#icon-twitter'></use></svg></a>
+                                </li>
+                            <?php } ?>
+                            <?php if(get_field('linkedin', 'options')){ ?>
+                                <li>
+                                    <a href='<?php the_field('linkedin', 'options'); ?>' title='<?php _e('Follow us on', 'Beezup'); ?> LinkedIn' class='btn-secondary' target='_blank'><span><?php _e('Follow us on', 'Beezup'); ?> LinkedIn</span><svg class='icon icon-linkedin'><use xlink:href='#icon-linkedin'></use></svg></a>
+                                </li>
+                            <?php } ?>
+                            <?php if(get_field('facebook', 'options')){ ?>
+                                <li>
+                                    <a href='<?php the_field('facebook', 'options'); ?>' title='<?php _e('Follow us on', 'Beezup'); ?> Facebook' class='btn-secondary' target='_blank'><span><?php _e('Follow us on', 'Beezup'); ?> Facebook</span><svg class='icon icon-facebook'><use xlink:href='#icon-facebook'></use></svg></a>
+                                </li>
+                            <?php } ?>
+                            <?php if(get_field('google', 'options')){ ?>
+                                <li>
+                                    <a href='<?php the_field('google', 'options'); ?>' title='<?php _e('Follow us on', 'Beezup'); ?> Google +' class='btn-secondary' target='_blank'><span><?php _e('Follow us on', 'Beezup'); ?> Google +</span><svg class='icon icon-google-plus'><use xlink:href='#icon-google-plus'></use></svg></a>
+                                </li>
+                            <?php } ?>
+                        </ul>
+                        
+                        
 
-                <?php the_field('newsltterTitle', 'options'); ?>
-                <?php get_template_part( 'includes/newsletter' ); ?>
+                        <h3><?php the_field('newsletterTitle', 'options'); ?></h3>
+                        <?php get_template_part( 'includes/newsletter' ); ?>
+                    </div>
+                </div>
             </div>
-
-             <div class='container'>
-                <?php wp_nav_menu( array('theme_location' => 'footer') ); ?>
+            <div class='bottom-footer'>
+                <div class='container'>
+                    <?php wp_nav_menu( array('theme_location' => 'footer') ); ?>
+                </div>
             </div>
         </footer>
         
         
         <svg style='position:absolute;width:0;height:0;overflow:hidden' xmlns='http://www.w3.org/2000/svg'>
             <defs>
+                <symbol id='icon-linkedin' viewBox='0 0 24 28'>
+                    <title>linkedin</title>
+                    <path d='M5.453 9.766v15.484h-5.156v-15.484h5.156zM5.781 4.984c0.016 1.484-1.109 2.672-2.906 2.672v0h-0.031c-1.734 0-2.844-1.188-2.844-2.672 0-1.516 1.156-2.672 2.906-2.672 1.766 0 2.859 1.156 2.875 2.672zM24 16.375v8.875h-5.141v-8.281c0-2.078-0.75-3.5-2.609-3.5-1.422 0-2.266 0.953-2.641 1.875-0.125 0.344-0.172 0.797-0.172 1.266v8.641h-5.141c0.063-14.031 0-15.484 0-15.484h5.141v2.25h-0.031c0.672-1.062 1.891-2.609 4.672-2.609 3.391 0 5.922 2.219 5.922 6.969z'></path>
+                </symbol>
+                <symbol id='icon-google-plus' viewBox='0 0 36 28'>
+                    <title>google-plus</title>
+                    <path d='M22.453 14.266c0 6.547-4.391 11.188-11 11.188-6.328 0-11.453-5.125-11.453-11.453s5.125-11.453 11.453-11.453c3.094 0 5.672 1.125 7.672 3l-3.109 2.984c-0.844-0.812-2.328-1.766-4.562-1.766-3.906 0-7.094 3.234-7.094 7.234s3.187 7.234 7.094 7.234c4.531 0 6.234-3.266 6.5-4.937h-6.5v-3.938h10.813c0.109 0.578 0.187 1.156 0.187 1.906zM36 12.359v3.281h-3.266v3.266h-3.281v-3.266h-3.266v-3.281h3.266v-3.266h3.281v3.266h3.266z'></path>
+                </symbol>
+                <symbol id='icon-facebook' viewBox='0 0 16 28'>
+                    <title>facebook</title>
+                    <path d='M14.984 0.187v4.125h-2.453c-1.922 0-2.281 0.922-2.281 2.25v2.953h4.578l-0.609 4.625h-3.969v11.859h-4.781v-11.859h-3.984v-4.625h3.984v-3.406c0-3.953 2.422-6.109 5.953-6.109 1.687 0 3.141 0.125 3.563 0.187z'></path>
+                </symbol>
+                <symbol id='icon-twitter' viewBox='0 0 26 28'>
+                    <title>twitter</title>
+                    <path d='M25.312 6.375c-0.688 1-1.547 1.891-2.531 2.609 0.016 0.219 0.016 0.438 0.016 0.656 0 6.672-5.078 14.359-14.359 14.359-2.859 0-5.516-0.828-7.75-2.266 0.406 0.047 0.797 0.063 1.219 0.063 2.359 0 4.531-0.797 6.266-2.156-2.219-0.047-4.078-1.5-4.719-3.5 0.313 0.047 0.625 0.078 0.953 0.078 0.453 0 0.906-0.063 1.328-0.172-2.312-0.469-4.047-2.5-4.047-4.953v-0.063c0.672 0.375 1.453 0.609 2.281 0.641-1.359-0.906-2.25-2.453-2.25-4.203 0-0.938 0.25-1.797 0.688-2.547 2.484 3.062 6.219 5.063 10.406 5.281-0.078-0.375-0.125-0.766-0.125-1.156 0-2.781 2.25-5.047 5.047-5.047 1.453 0 2.766 0.609 3.687 1.594 1.141-0.219 2.234-0.641 3.203-1.219-0.375 1.172-1.172 2.156-2.219 2.781 1.016-0.109 2-0.391 2.906-0.781z'></path>
+                </symbol>
                 <symbol id='icon-arrow-right' viewBox='0 0 43 32'>
                     <title>Right</title>
                     <path d='M41.775 14.507l-13.966-13.748c-0.357-0.478-0.922-0.784-1.557-0.784s-1.2 0.306-1.554 0.779c-0.485 0.353-0.794 0.913-0.794 1.546s0.309 1.192 0.785 1.537l10.151 10.102h-32.649c-0.018-0.001-0.040-0.001-0.062-0.001-0.583 0-1.111 0.236-1.493 0.617-0.403 0.38-0.654 0.917-0.654 1.513 0 0.001 0 0.003 0 0.004 0 0.003-0 0.006-0 0.010 0 1.199 0.972 2.171 2.171 2.171 0.013 0 0.027-0 0.040-0l32.648 0-10.145 10.003c-0.489 0.363-0.803 0.939-0.803 1.588s0.314 1.225 0.798 1.584c0.431 0.358 0.984 0.573 1.587 0.573 0.009 0 0.018-0 0.026-0 0.018 0.001 0.040 0.001 0.062 0.001 0.559 0 1.067-0.217 1.445-0.571l13.965-13.747c0.489-0.363 0.803-0.939 0.803-1.588s-0.314-1.225-0.798-1.584l-0.005-0.004z'/>
