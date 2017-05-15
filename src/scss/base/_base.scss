@@ -360,6 +360,11 @@ a{
     }
 }
 
+.block-full{
+    background: $primary;
+    color: $white;
+}
+
 
 @media (max-width: $desktop-small){
     img{
