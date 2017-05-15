@@ -21,6 +21,8 @@ add_theme_support( 'html5', array(
 add_theme_support( 'post-thumbnails' );
 add_theme_support( 'title-tag' );
 
+remove_post_type_support( 'post', 'editor' );
+
 // Admin bar
 show_admin_bar(false);
 
@@ -167,6 +169,25 @@ if( function_exists('acf_add_options_page') ){
     // ) );
 }
 
+// Hide wysiwyg
+function beezup_hide_wysiwyg($post_id){
+    if( is_admin() ){
+        $currentTemplate = get_page_template_slug($post_id);
+
+        $excludedTemplates = array(
+            'page.php', 'single.php'
+        );
+
+        if( in_array($currentTemplate, $excludedTemplates) ) {
+            /* remove editor from pages */
+            remove_post_type_support('page');
+            /* if needed, add posts or CPTs to remove the editor on */
+            // remove_post_type_support('post', 'editor');
+            // remove_post_type_support('movies', 'editor');
+        }
+    }
+}
+add_action('init', 'beezup_hide_wysiwyg');
 
 /*-----------------------------------------------------------------------------------*/
 /* Menus

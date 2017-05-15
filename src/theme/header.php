@@ -35,7 +35,7 @@
 							<?php if( get_field('contactLink', 'options') && get_field('contactLinkText', 'options') ){ ?>
 								<li>
 									<a href='<?php the_field('contactLink', 'options'); ?>'>
-										<svg class="icon icon-envelop"><use xlink:href="#icon-envelop"></use></svg>
+										<svg class='icon icon-envelop'><use xlink:href='#icon-envelop'></use></svg>
 										<?php the_field('contactLinkText', 'options'); ?>
 									</a>
 								</li>
@@ -43,7 +43,7 @@
 							<?php if( get_field('connectLink', 'options') && get_field('connectLinkText', 'options') ){ ?>
 								<li>
 									<a href='<?php the_field('connectLink', 'options'); ?>'>
-										<svg class="icon icon-user"><use xlink:href="#icon-user"></use></svg>
+										<svg class='icon icon-user'><use xlink:href='#icon-user'></use></svg>
 										<?php the_field('connectLinkText', 'options'); ?>
 									</a>
 								</li>
