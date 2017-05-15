@@ -43,3 +43,24 @@
         transform: translate3d(0, -50%, 0);
     }
 }
+
+.link-arrow{
+    position: relative;
+    &:after{
+        content: '';
+        display: inline-block;
+        width: 10px;
+        height: 8px;
+        position: relative;
+        right: -10px;
+        background: url('../layoutImg/arrow-right.svg') no-repeat;
+        transition: $transition;
+    }
+    &:hover, &:focus{
+        color: $secondary;
+        opacity: 0.6;
+        &:after{
+            transform: translate3d(5px, 0, 0);
+        }
+    }
+}

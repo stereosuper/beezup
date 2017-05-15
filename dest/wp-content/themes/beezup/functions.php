@@ -174,7 +174,7 @@ if( function_exists('acf_add_options_page') ){
 register_nav_menus( array(
     'primary' => 'Primary Menu',
     'secondary' => 'Secondary Menu',
-     'footer' => 'Footer Menu'
+    'footer' => 'Footer Menu'
 ) );
 
 // Cleanup WP Menu html
