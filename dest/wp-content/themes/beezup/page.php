@@ -3,6 +3,10 @@
 <?php if ( have_posts() ) : the_post(); ?>
 	
 	<div class='container-small'>
+		<?php if( function_exists('yoast_breadcrumb') ){
+			yoast_breadcrumb();
+		} ?>
+
 		<h1>
 			<?php the_title(); ?>
 			<?php if( get_field('title2') ){ ?>
