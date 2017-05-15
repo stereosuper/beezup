@@ -199,16 +199,46 @@ add_action( 'widgets_init', 'beezup_unregister_default_widgets' );
 /*-----------------------------------------------------------------------------------*/
 /* Enqueue Styles and Scripts
 /*-----------------------------------------------------------------------------------*/
+// Add defer attr to scripts
+function beezup_defer_attr($tag, $handle){
+    $scriptsToDefer = array('beezup-scripts', 'sendinblue-scripts', 'appointlet-scripts');
+   
+    foreach( $scriptsToDefer as $script ){
+        if( $script !== $handle ){
+            return str_replace(' src', ' defer src', $tag);
+        }
+    }
+    return $tag;
+}
+add_filter('script_loader_tag', 'beezup_defer_attr', 10, 2);
+
+// Register and enqueue styles and scripts
 function beezup_scripts(){
-    // header
+    // CSS
 	wp_enqueue_style( 'beezup-style', get_template_directory_uri() . '/css/main.css', array(), BEEZUP_VERSION );
 
-	// footer
-	wp_deregister_script('jquery');
-	wp_enqueue_script( 'beezup-scripts', get_template_directory_uri() . '/js/main.js', array(), BEEZUP_VERSION, true );
-
+	// JS
+	wp_deregister_script( 'jquery' );
     wp_deregister_script( 'wp-embed' );
+	
+    wp_register_script( 'beezup-scripts', get_template_directory_uri() . '/js/main.js', array(), BEEZUP_VERSION, true );
+    wp_register_script( 'sendinblue-scripts', 'https://my.sendinblue.com/public/theme/version4/assets/js/src/subscribe-validate.js', array(), 1489660964, true );
+    wp_register_script( 'appointlet-scripts', 'https://d35xd5ovpwtfyi.cloudfront.net/loader/loader.min.js', array(), null, true );
+    
+    wp_enqueue_script( 'beezup-scripts');
+    wp_enqueue_script( 'sendinblue-scripts');
+    wp_enqueue_script( 'appointlet-scripts');
+    
 }
 add_action( 'wp_enqueue_scripts', 'beezup_scripts' );
+
+// Add inline scripts to wp-footer
+function beezup_footer(){ ?>
+    <!-- SendinBlue Ajax Form validation -->
+    <script>
+        var sib_prefix = 'sib', sib_dateformat = 'dd-mm-yyyy';
+    </script>
+<?php }
+add_action( 'wp_footer', 'beezup_footer');
 
 ?>
