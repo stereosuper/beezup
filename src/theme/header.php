@@ -30,7 +30,7 @@
 
 				<div class='nav'>	
 					<div class='container-menu-head'>
-						<?php mlp_show_linked_elements( array('show_current_blog' => TRUE) ); ?>
+						<?php echo beezup_mlp_navigation(); ?>
 						<ul class='menu-head'>
 							<li>
 								<a href='#'><svg class="icon icon-envelop"><use xlink:href="#icon-envelop"></use></svg>Contact</a>
