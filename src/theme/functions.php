@@ -199,6 +199,77 @@ function beezup_unregister_default_widgets(){
     unregister_widget( 'WP_Nav_Menu_Widget' );
 }
 add_action( 'widgets_init', 'beezup_unregister_default_widgets' );
+/*-----------------------------------------------------------------------------------*/
+/* MLP Language Switcher
+/*-----------------------------------------------------------------------------------*/
+
+function beezup_mlp_navigation()
+{
+    $api = apply_filters( 'mlp_language_api', NULL );
+    /** @var Mlp_Language_Api_Interface $api */
+    if ( ! is_a( $api, 'Mlp_Language_Api_Interface' ) ) {
+        return '';
+    }
+
+    $translations_args = array(
+        'strict'       => FALSE,
+        'include_base' => TRUE,
+    );
+
+    $translations = $api->get_translations( $translations_args );
+    if ( empty( $translations ) ) {
+        return '';
+    }
+
+    $items = array();
+
+    /** @var Mlp_Translation_Interface $translation */
+    foreach ( $translations as $site_id => $translation ) {
+        $url = $translation->get_remote_url();
+        if ( empty( $url ) ) {
+            continue;
+        }
+
+        $language = $translation->get_language();
+
+        $items[ $site_id ] = array(
+            'url'      => $url,
+            'http'     => $language->get_name( 'http' ),
+            'name'     => $language->get_name( 'text' ),
+            'priority' => $language->get_priority(),
+            'icon'     => (string) $translation->get_icon_url(),
+        );
+    }
+    ksort( $items );
+    $before = '<div class="mlp-lang-switcher"><ul>';
+    $after = '</ul></div>';
+
+    $output = array();
+
+    foreach ( $items as $site_id => $item ) {
+        $text = $item[ 'name' ];
+
+        $img = '';
+
+        if ( get_current_blog_id() === $site_id ) {
+            $itemOutput = '<li class="current-language-nav-item"><a class="current-language-item" href="">' . $img . esc_html( $text ) . '</a></li>';
+            array_unshift($output, $itemOutput);
+        } else {
+            $itemOutput = sprintf(
+                '<li><a rel="alternate" hreflang="%1$s" href="%2$s">%3$s%4$s</a></li>',
+                esc_attr( $item['http'] ),
+                esc_url( $item[ 'url' ] ),
+                $img,
+                esc_html( $text )
+            );
+            array_push($output, $itemOutput);
+        }
+    }
+
+    return $before . join( '', $output ) . $after;
+}
+
+
 
 
 /*-----------------------------------------------------------------------------------*/
