@@ -3,7 +3,35 @@
 
         <footer role='contentinfo' class='footer'>
             <div class='container'>
+                <?php the_field('aboutTitle', 'options'); ?>
+                <?php the_field('aboutText', 'options'); ?>
+                <?php if(get_field('aboutLink', 'options') && get_field('aboutLinkText', 'options')){ ?>
+                    <a href='<?php the_field('aboutLink', 'options'); ?>' title='<?php the_field('aboutLinkText', 'options'); ?>' class='link-arrow'><?php the_field('aboutLinkText', 'options'); ?></a>
+                <?php } ?>
+
+                <?php the_field('linksTitle', 'options'); ?>
+                <?php wp_nav_menu( array('theme_location' => 'secondary') ); ?>
+
+                <?php the_field('socialTitle', 'options'); ?>
+                <?php if(get_field('twitter', 'options')){ ?>
+                    <a href='<?php the_field('twitter', 'options'); ?>' title='<?php _e('Follow us on', 'Beezup'); ?> Twitter' class='btn-secondary' target='_blank'><?php _e('Follow us on', 'Beezup'); ?> Twitter</a>
+                <?php } ?>
+                <?php if(get_field('linkedin', 'options')){ ?>
+                    <a href='<?php the_field('linkedin', 'options'); ?>' title='<?php _e('Follow us on', 'Beezup'); ?> LinkedIn' class='btn-secondary' target='_blank'><?php _e('Follow us on', 'Beezup'); ?> LinkedIn</a>
+                <?php } ?>
+                <?php if(get_field('facebook', 'options')){ ?>
+                    <a href='<?php the_field('facebook', 'options'); ?>' title='<?php _e('Follow us on', 'Beezup'); ?> Facebook' class='btn-secondary' target='_blank'><?php _e('Follow us on', 'Beezup'); ?> Facebook</a>
+                <?php } ?>
+                <?php if(get_field('google', 'options')){ ?>
+                    <a href='<?php the_field('google', 'options'); ?>' title='<?php _e('Follow us on', 'Beezup'); ?> Google +' class='btn-secondary' target='_blank'><?php _e('Follow us on', 'Beezup'); ?> Google +</a>
+                <?php } ?>
+
+                <?php the_field('newsltterTitle', 'options'); ?>
                 <?php get_template_part( 'includes/newsletter' ); ?>
+            </div>
+
+             <div class='container'>
+                <?php wp_nav_menu( array('theme_location' => 'footer') ); ?>
             </div>
         </footer>
         

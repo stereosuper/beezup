@@ -285,18 +285,6 @@ a{
     &:active{
         filter: saturate(200%);
     }
-    &.link-arrow {
-        position: relative;
-        &:after{
-            content: '';
-            display: inline-block;
-            width: 10px;
-            height: 8px;
-            position: relative;
-            right: -10px;
-            background: url('../layoutImg/arrow-right.svg') no-repeat;
-        }
-    }
 }
 
 

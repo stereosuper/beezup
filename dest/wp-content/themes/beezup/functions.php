@@ -174,6 +174,7 @@ if( function_exists('acf_add_options_page') ){
 register_nav_menus( array(
     'primary' => 'Primary Menu',
     'secondary' => 'Secondary Menu',
+    'footer' => 'Footer Menu'
 ) );
 
 // Cleanup WP Menu html
@@ -217,12 +218,12 @@ function beezup_unregister_default_widgets(){
     unregister_widget( 'WP_Nav_Menu_Widget' );
 }
 add_action( 'widgets_init', 'beezup_unregister_default_widgets' );
+
+
 /*-----------------------------------------------------------------------------------*/
 /* MLP Language Switcher
 /*-----------------------------------------------------------------------------------*/
-
-function beezup_mlp_navigation()
-{
+function beezup_mlp_navigation(){
     $api = apply_filters( 'mlp_language_api', NULL );
     /** @var Mlp_Language_Api_Interface $api */
     if ( ! is_a( $api, 'Mlp_Language_Api_Interface' ) ) {
@@ -286,9 +287,6 @@ function beezup_mlp_navigation()
 
     return $before . join( '', $output ) . $after;
 }
-
-
-
 
 /*-----------------------------------------------------------------------------------*/
 /* Enqueue Styles and Scripts
