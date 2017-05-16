@@ -8,17 +8,43 @@
     a{
         color: $white;
     }
+    .link-arrow{
+        &:after{
+            background-image: url('../layoutImg/arrow-right-white.svg');
+        }
+    }
     .top-footer{
         padding: 20px 0 45px;
         background: $primary;
         color: $white;
+        .container{
+            display: flex;
+        }
     }
     .bottom-footer{
         padding: 30px 0;
         background: $purple-dark;
-    }
-    .container{
-        display: flex;
+        text-align: center;
+        font-size: 1rem;
+        ul{
+            display: block;
+            >li{
+                display: inline-block;
+                margin: 0 8px;
+                &:before, &:after{
+                    display: none;
+                }
+            }
+        }
+        p, a{
+            color: rgba($white, 0.5);
+        }
+        a{
+            text-decoration: none;
+            &:hover, &:focus{
+                color: $white;
+            }
+        }
     }
     .wrapper-about{
         margin-right: 125px;
@@ -37,7 +63,7 @@
                 }
             }
             a{
-                font-family: $fira-medium;
+                font-family: $fira-bold;
                 text-decoration: none;
             }
         }
@@ -45,11 +71,37 @@
     .wrapper-social-newsletter{
         flex: 0 0 270px;
     }
+    .container-newsletter{
+        display: flex;
+    }
     .social{
+        display: inline-block;
+        position: relative;
+        &:before, &:after{
+            content: '';
+            display: block;
+            position: absolute;
+            background-position: 0 0;
+            background-repeat: no-repeat;
+        }
+        &:before{
+            width: 26px;
+            height: 22px;
+            bottom: -10px;
+            left: -32px;
+            background-image: url('../layoutImg/bees-left-white.svg');
+        }
+        &:after{
+            width: 30px;
+            height: 18px;
+            top: -7px;
+            right: -28px;
+            background-image: url('../layoutImg/bees-right-white.svg');
+        }
         >li{
             display: inline-block;
             vertical-align: top;
-            margin: 10px 10px 0 0;
+            margin: 0 10px 0 0;
             &:before, &:after{
                 display: none;
             }
@@ -74,6 +126,39 @@
                 overflow: hidden;
                 position: absolute;
             }
+        }
+    }
+}
+
+@media (max-width: $desktop){
+    .footer{
+        .wrapper-about{
+            margin-right: 50px;
+        }
+    }
+}
+@media (max-width: $desktop-small){
+    .footer{
+        .top-footer{
+            .container{
+                flex-wrap: wrap;
+            }
+        }
+        .wrapper-about{
+            width: 100%;
+            margin-right: 0;
+        }
+    }
+}
+@media (max-width: $phone){
+    .footer{
+        .top-footer{
+            .container{
+                display: block;
+            }
+        }
+        .wrapper-links{
+            margin-right: 0;
         }
     }
 }
