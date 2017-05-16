@@ -11,6 +11,8 @@
 				<span><?php the_field('title2'); ?></span>
 			<?php } ?>
 		</h1>
+
+		<span><?php _e('Add on', 'beezup'); ?> <?php echo get_the_date(); ?></span>
 	</section>
 		
 	<?php

@@ -124,6 +124,11 @@ add_action( 'after_setup_theme', 'beezup_init_editor_styles' );
 function beezup_mce_before_init( $styles ){
     $style_formats = array(
         array(
+            'title' => 'Texte plus gros',
+            'selector' => 'p',
+            'classes' => 'big'
+        ),
+        array(
             'title' => 'Bloc étoile',
             'selector' => 'blockquote',
             'classes' => 'star'

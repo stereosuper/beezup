@@ -76,6 +76,9 @@ h6{
 
 p{
     margin: 1em 0;
+    &.big{
+        font-size: 1.8rem;
+    }
 }
 
 b, strong{
