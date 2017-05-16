@@ -8,6 +8,8 @@ get_header(); ?>
 <?php if ( have_posts() ) : the_post(); ?>
 	
 	<section class='container'>
+        <?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb(); } ?>
+        
 		<h1 class='title-black'>
 			<?php the_title(); ?>
 			<?php if( get_field('title2') ){ ?>
@@ -90,6 +92,8 @@ get_header(); ?>
             </section>
         <?php } ?>
     </div>
+
+    <?php get_template_part('includes/free-links'); ?>
 
 <?php else : ?>
 
