@@ -1,0 +1,26 @@
+.list-picto{
+    display: flex;
+    >li{
+        color: $text;
+        width: 25%;
+        padding: 0 15px;
+        text-align: center;
+        &:before, &:after{
+            display: none;
+        }
+    }
+    .icon{
+        display: block;
+        fill: $white;
+        height: 52px;
+        width: 100%;
+    }
+    h3{
+        margin: 1.4em 0 1.1em;
+    }
+    strong{
+        display: block;
+        font-size: 4.5rem;
+        line-height: 1;
+    }
+}

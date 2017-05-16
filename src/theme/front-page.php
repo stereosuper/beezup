@@ -51,12 +51,14 @@ get_header(); ?>
 	
 	<section class='block-full'>
 		<?php if( have_rows('numbers') ){ ?>
-			<ul class='container'>
+			<ul class='container list-picto'>
 				<?php while( have_rows('numbers') ){ the_row(); ?>
 					<li>
 						<svg class='icon <?php the_sub_field('icon'); ?>'><use xlink:href='#<?php the_sub_field('icon'); ?>'></use></svg>
-						<?php the_sub_field('number'); ?>
-						<?php the_sub_field('text'); ?>
+						<h3>
+							<strong><?php the_sub_field('number'); ?></strong>
+							<?php the_sub_field('text'); ?>
+						</h3>
 						<?php if( get_sub_field('linkText') && get_sub_field('link') ){ ?>
 							<a href='<?php the_sub_field('link'); ?>' title='<?php the_sub_field('linkText'); ?>' class='link-arrow'>
 								<?php the_sub_field('linkText'); ?>
