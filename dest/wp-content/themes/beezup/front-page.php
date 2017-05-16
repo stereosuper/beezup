@@ -127,7 +127,7 @@ get_header(); ?>
 							<?php echo get_the_date(); ?>
 							<?php the_post_thumbnail('large'); ?>
 							<h3><?php the_title(); ?></h3>
-							<span><?php _e('Lire la suite', 'beezup'); ?></span>
+							<span class='link-arrow'><?php _e('Lire la suite', 'beezup'); ?></span>
 						</a>
 					</li>
 				<?php } ?>
