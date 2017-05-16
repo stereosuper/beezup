@@ -185,7 +185,7 @@ register_nav_menus( array(
 
 // Cleanup WP Menu html
 function beezup_css_attributes_filter($var){
-    return is_array( $var ) ? array_intersect( $var, array('current-menu-item', 'current_page_parent') ) : '';
+    return is_array( $var ) ? array_intersect( $var, array('current-menu-item', 'current_page_parent', 'hide-desktop') ) : '';
 }
 add_filter( 'nav_menu_css_class', 'beezup_css_attributes_filter' );
 

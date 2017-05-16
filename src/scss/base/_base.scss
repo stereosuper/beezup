@@ -91,18 +91,13 @@ i, em{
     font-style: normal;
 }
 
-blockquote{
+blockquote, .star{
     padding: 2em 5.5em;
     position: relative;
     margin: 4em 0;
     background: rgba($primary, 0.09);
     &:before{
-        content: '“';
         position: absolute;
-        top: 12px;
-        left: 29px;
-        font-size: 5em;
-        color: $primary;
     }
     &:after{
         content: '';
@@ -137,15 +132,24 @@ blockquote{
             left: 30px;
         }
     }
-    &.star{
-        &:before{
-            content: '';
-            width: 24px;
-            height: 22px;
-            top: 36px;
-            left: 38px;
-            background: url('../layoutImg/star.svg') no-repeat;
-        }
+}
+blockquote{
+    &:before{
+        content: '“';
+        top: 12px;
+        left: 29px;
+        font-size: 5em;
+        color: $primary;
+    }
+}
+.star{
+    &:before{
+        content: '';
+        width: 24px;
+        height: 22px;
+        top: 36px;
+        left: 38px;
+        background: url('../layoutImg/star.svg') no-repeat;
     }
 }
 
@@ -366,6 +370,10 @@ a{
     }
 }
 
+.hide-desktop{
+    display: none !important;
+}
+
 
 @media (max-width: $desktop-small){
     img{
@@ -389,6 +397,10 @@ a{
                 left: 38px; 
             }
         }
+    }
+
+    .hide-desktop{
+        display: initial !important;
     }
 }
 
