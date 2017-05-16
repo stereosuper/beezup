@@ -75,13 +75,13 @@ get_header(); ?>
 		
 		<?php the_field('academyText'); ?>
 
-		<?php if( have_rows('people') ){ ?>
+		<?php if( have_rows('people', 'options') ){ ?>
 			<ul>
-				<?php while( have_rows('people') ){ the_row(); ?>
+				<?php while( have_rows('people', 'options') ){ the_row(); ?>
 					<li>
-						<?php the_sub_field('name'); ?>
-						<?php the_sub_field('job'); ?>
-						<?php echo wp_get_attachment_image( get_sub_field('photo'), 'full' ); ?>
+						<?php the_sub_field('name', 'options'); ?>
+						<?php the_sub_field('job', 'options'); ?>
+						<?php echo wp_get_attachment_image( get_sub_field('photo', 'options'), 'full' ); ?>
 					</li>
 				<?php } ?>
 			</ul>
