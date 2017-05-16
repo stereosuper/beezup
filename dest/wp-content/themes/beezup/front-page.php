@@ -8,12 +8,12 @@ get_header(); ?>
 <?php if ( have_posts() ) : the_post(); ?>
 	
 	<section class='container'>
-		<h1>
+		<h2 class='h1'>
 			<?php the_title(); ?>
 			<?php if( get_field('title2') ){ ?>
 				<span><?php the_field('title2'); ?></span>
 			<?php } ?>
-		</h1>
+		</h2>
 
 		<?php if( get_field('headerBtn') ){ ?>
 			<a href='#flux' class='btn' title='<?php _e('Gestion du flux e-commerce - BeezUP', 'beezup'); ?>'><?php the_field('headerBtn'); ?></a>
@@ -22,12 +22,12 @@ get_header(); ?>
 		<?php the_post_thumbnail( 'full' ); ?>
 
 		<?php if( get_field('title') ){ ?>
-			<h2 class='h1' id='flux'>
+			<h1>
 				<?php the_field('title'); ?>
 				<?php if( get_field('titleBlack') ){ ?>
 					<span><?php the_field('titleBlack'); ?></span>
 				<?php } ?>
-			</h2>
+			</h1>
 		<?php } ?>
 
 		<?php the_field('headerText'); ?>
@@ -124,9 +124,10 @@ get_header(); ?>
 				<?php while( $lastPosts->have_posts() ){ $lastPosts->the_post(); ?>
 					<li>
 						<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>'>
-							<h3><?php the_title(); ?></h3>
+							<?php echo get_the_date(); ?>
 							<?php the_post_thumbnail('large'); ?>
-							<?php the_excerpt(); ?>
+							<h3><?php the_title(); ?></h3>
+							<span><?php _e('Lire la suite', 'beezup'); ?></span>
 						</a>
 					</li>
 				<?php } ?>
