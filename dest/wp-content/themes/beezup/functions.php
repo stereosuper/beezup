@@ -284,7 +284,7 @@ function beezup_mlp_navigation(){
         }
     }
 
-    return $before . $currentLangItem . '<ul class="other-language-items">' . join( '', $otherLangItems ) . '</ul>' . $after;
+    return $before . $currentLangItem . '<ul id="otherLanguage" class="other-language-items">' . join( '', $otherLangItems ) . '</ul>' . $after;
 }
 
 /*-----------------------------------------------------------------------------------*/
