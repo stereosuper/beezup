@@ -130,7 +130,7 @@ function beezup_mce_before_init( $styles ){
         ),
         array(
             'title' => 'Bloc étoile',
-            'selector' => 'blockquote',
+            'selector' => 'p',
             'classes' => 'star'
         ),
         array(
@@ -300,7 +300,7 @@ function beezup_mlp_navigation(){
         }
     }
 
-    return $before . $currentLangItem . '<ul class="other-language-items">' . join( '', $otherLangItems ) . '</ul>' . $after;
+    return $before . $currentLangItem . '<ul id="otherLanguage" class="other-language-items">' . join( '', $otherLangItems ) . '</ul>' . $after;
 }
 
 
