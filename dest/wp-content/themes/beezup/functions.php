@@ -125,7 +125,7 @@ function beezup_mce_before_init( $styles ){
     $style_formats = array(
         array(
             'title' => 'Bloc étoile',
-            'selector' => 'blockquote',
+            'selector' => 'p',
             'classes' => 'star'
         ),
         array(
