@@ -11,6 +11,8 @@
 				<span><?php the_field('title2'); ?></span>
 			<?php } ?>
 		</h1>
+
+		<span><?php _e('Add on', 'beezup'); ?> <?php echo get_the_date(); ?></span>
 	</section>
 		
 	<?php
@@ -27,7 +29,13 @@
 		}
 	?>
 
-	<?php get_template_part('includes/free-links'); ?>
+	<div class='container-small'>
+		<ul><?php wp_list_categories( array('title_li' => '') ); ?></ul>
+
+		<?php get_template_part( 'includes/demo' ); ?>
+		
+		<?php get_template_part( 'includes/free-links' ); ?>
+	</div>
 
 <?php else : ?>
 

@@ -124,8 +124,13 @@ add_action( 'after_setup_theme', 'beezup_init_editor_styles' );
 function beezup_mce_before_init( $styles ){
     $style_formats = array(
         array(
+            'title' => 'Texte plus gros',
+            'selector' => 'p',
+            'classes' => 'big'
+        ),
+        array(
             'title' => 'Bloc étoile',
-            'selector' => 'blockquote',
+            'selector' => 'p',
             'classes' => 'star'
         ),
         array(
@@ -169,26 +174,6 @@ if( function_exists('acf_add_options_page') ){
     // ) );
 }
 
-// Hide wysiwyg
-function beezup_hide_wysiwyg($post_id){
-    if( is_admin() ){
-        $currentTemplate = get_page_template_slug($post_id);
-
-        $excludedTemplates = array(
-            'page.php', 'single.php'
-        );
-
-        if( in_array($currentTemplate, $excludedTemplates) ) {
-            /* remove editor from pages */
-            remove_post_type_support('page');
-            /* if needed, add posts or CPTs to remove the editor on */
-            // remove_post_type_support('post', 'editor');
-            // remove_post_type_support('movies', 'editor');
-        }
-    }
-}
-add_action('init', 'beezup_hide_wysiwyg');
-
 /*-----------------------------------------------------------------------------------*/
 /* Menus
 /*-----------------------------------------------------------------------------------*/
@@ -200,7 +185,7 @@ register_nav_menus( array(
 
 // Cleanup WP Menu html
 function beezup_css_attributes_filter($var){
-    return is_array( $var ) ? array_intersect( $var, array('current-menu-item', 'current_page_parent') ) : '';
+    return is_array( $var ) ? array_intersect( $var, array('current-menu-item', 'current_page_parent', 'hide-desktop') ) : '';
 }
 add_filter( 'nav_menu_css_class', 'beezup_css_attributes_filter' );
 
@@ -242,12 +227,23 @@ add_action( 'widgets_init', 'beezup_unregister_default_widgets' );
 
 
 /*-----------------------------------------------------------------------------------*/
+/* Blog
+/*-----------------------------------------------------------------------------------*/
+function beezup_search_filter($query){
+    if($query->is_main_query() && $query->is_search){
+        $query->set('post_type', 'post');
+    }
+    return $query;
+}
+add_filter( 'pre_get_posts', 'beezup_search_filter' );
+
+
+/*-----------------------------------------------------------------------------------*/
 /* MLP Language Switcher
 /*-----------------------------------------------------------------------------------*/
 function beezup_mlp_navigation(){
     $api = apply_filters( 'mlp_language_api', NULL );
-    /** @var Mlp_Language_Api_Interface $api */
-    if ( ! is_a( $api, 'Mlp_Language_Api_Interface' ) ) {
+    if( ! is_a( $api, 'Mlp_Language_Api_Interface' ) ){
         return '';
     }
 
@@ -257,16 +253,15 @@ function beezup_mlp_navigation(){
     );
 
     $translations = $api->get_translations( $translations_args );
-    if ( empty( $translations ) ) {
+    if( empty( $translations ) ){
         return '';
     }
 
     $items = array();
 
-    /** @var Mlp_Translation_Interface $translation */
-    foreach ( $translations as $site_id => $translation ) {
+    foreach( $translations as $site_id => $translation ){
         $url = $translation->get_remote_url();
-        if ( empty( $url ) ) {
+        if( empty( $url ) ){
             continue;
         }
 
@@ -286,14 +281,14 @@ function beezup_mlp_navigation(){
 
     $otherLangItems = array();
 
-    foreach ( $items as $site_id => $item ) {
+    foreach( $items as $site_id => $item ){
         $text = $item[ 'name' ];
 
         $img = '';
 
-        if ( get_current_blog_id() === $site_id ) {
+        if( get_current_blog_id() === $site_id ){
             $currentLangItem = '<span id="current-language" class="current-language-nav-item"><span class="current-language-item">' . $img . esc_html( $text ) . '</span><svg class="icon icon-arrow-down"><use xlink:href="#icon-arrow-down"></use></svg></span>';
-        } else {
+        }else{
             $otherLangItem = sprintf(
                 '<li><a rel="alternate" hreflang="%1$s" href="%2$s">%3$s%4$s</a></li>',
                 esc_attr( $item['http'] ),
@@ -305,8 +300,9 @@ function beezup_mlp_navigation(){
         }
     }
 
-    return $before . $currentLangItem . '<ul class="other-language-items">' . join( '', $otherLangItems ) . '</ul>' . $after;
+    return $before . $currentLangItem . '<ul id="otherLanguage" class="other-language-items">' . join( '', $otherLangItems ) . '</ul>' . $after;
 }
+
 
 /*-----------------------------------------------------------------------------------*/
 /* Enqueue Styles and Scripts
