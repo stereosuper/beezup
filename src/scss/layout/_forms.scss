@@ -27,7 +27,9 @@ input, textarea{
     width: 220px;
     max-width: 100%;
     padding: 10px 15px;
-    border: 1px solid rgba($primary, 0.4);
+    border-top: 1px solid rgba($primary, 0.4);
+    border-bottom: 1px solid rgba($primary, 0.4);
+    border-left: 1px solid rgba($primary, 0.4);
     background: $white;
   	&:-webkit-autofill{
       	box-shadow: 0 0 0 1000px rgba($primary, 0.4) inset;

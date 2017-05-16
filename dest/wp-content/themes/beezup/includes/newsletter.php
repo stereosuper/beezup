@@ -14,11 +14,13 @@
             <div class='sib-container'>
                 <input type='hidden' name='req_hid' id='req_hid' value=''>
                 <div class='view-messages'></div>
-                <div class='row mandatory-email field'>
-                    <input type='text' name='email' id='email'>
-                    <label for='email'>Votre adresse email</label>
-                </div> 
-                <button class='btn-secondary' type='submit'>OK</button>
+                <div class='container-newsletter'>
+                    <div class='row mandatory-email field'>
+                        <input type='text' name='email' id='email'>
+                        <label for='email'>Votre adresse email</label>
+                    </div> 
+                    <button class='btn-secondary' type='submit'>OK</button>
+                </div>
             </div>
         </form>
     </div>
