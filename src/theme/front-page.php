@@ -8,26 +8,26 @@ get_header(); ?>
 <?php if ( have_posts() ) : the_post(); ?>
 	
 	<section class='container'>
-		<h1>
+		<h2 class='h1'>
 			<?php the_title(); ?>
 			<?php if( get_field('title2') ){ ?>
 				<span><?php the_field('title2'); ?></span>
 			<?php } ?>
-		</h1>
+		</h2>
 
 		<?php if( get_field('headerBtn') ){ ?>
-			<button class='btn'><?php the_field('headerBtn'); ?></button>
+			<a href='#flux' class='btn' title='<?php _e('Gestion du flux e-commerce - BeezUP', 'beezup'); ?>'><?php the_field('headerBtn'); ?></a>
 		<?php } ?>
 
 		<?php the_post_thumbnail( 'full' ); ?>
 
 		<?php if( get_field('title') ){ ?>
-			<h2 class='h1'>
+			<h1>
 				<?php the_field('title'); ?>
 				<?php if( get_field('titleBlack') ){ ?>
 					<span><?php the_field('titleBlack'); ?></span>
 				<?php } ?>
-			</h2>
+			</h1>
 		<?php } ?>
 
 		<?php the_field('headerText'); ?>
@@ -42,7 +42,7 @@ get_header(); ?>
 			<ol>
 				<?php while( have_rows('anchors') ){ the_row(); ?>
 					<li>
-						<a href='<?php the_sub_field('lien'); ?>'><?php the_sub_field('texte'); ?></a>
+						<a href='<?php the_sub_field('lien'); ?>' title='<?php the_sub_field('texte'); ?>'><?php the_sub_field('texte'); ?></a>
 					</li>
 				<?php } ?>
 			</ol>
@@ -58,7 +58,7 @@ get_header(); ?>
 						<?php the_sub_field('number'); ?>
 						<?php the_sub_field('text'); ?>
 						<?php if( get_sub_field('linkText') && get_sub_field('link') ){ ?>
-							<a href='<?php the_sub_field('link'); ?>' class='link-arrow'>
+							<a href='<?php the_sub_field('link'); ?>' title='<?php the_sub_field('linkText'); ?>' class='link-arrow'>
 								<?php the_sub_field('linkText'); ?>
 							</a>
 						<?php } ?>
@@ -75,13 +75,13 @@ get_header(); ?>
 		
 		<?php the_field('academyText'); ?>
 
-		<?php if( have_rows('people') ){ ?>
+		<?php if( have_rows('people', 'options') ){ ?>
 			<ul>
-				<?php while( have_rows('people') ){ the_row(); ?>
+				<?php while( have_rows('people', 'options') ){ the_row(); ?>
 					<li>
-						<?php the_sub_field('name'); ?>
-						<?php the_sub_field('job'); ?>
-						<?php echo wp_get_attachment_image( get_sub_field('photo'), 'full' ); ?>
+						<?php the_sub_field('name', 'options'); ?>
+						<?php the_sub_field('job', 'options'); ?>
+						<?php echo wp_get_attachment_image( get_sub_field('photo', 'options'), 'full' ); ?>
 					</li>
 				<?php } ?>
 			</ul>
@@ -123,14 +123,19 @@ get_header(); ?>
 			<ul>
 				<?php while( $lastPosts->have_posts() ){ $lastPosts->the_post(); ?>
 					<li>
-						<h3><?php the_title(); ?></h3>
-						<?php the_post_thumbnail('large'); ?>
-						<?php the_excerpt(); ?>
+						<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>'>
+							<?php echo get_the_date(); ?>
+							<?php the_post_thumbnail('large'); ?>
+							<h3><?php the_title(); ?></h3>
+							<span><?php _e('Lire la suite', 'beezup'); ?></span>
+						</a>
 					</li>
 				<?php } ?>
 			</ul>
 		</section>
 	<?php } wp_reset_query(); ?>
+
+	<?php get_template_part('includes/free-links'); ?>
 
 <?php else : ?>
 
