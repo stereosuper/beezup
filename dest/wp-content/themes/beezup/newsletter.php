@@ -14,6 +14,7 @@
             <div class='sib-container'>
                 <input type='hidden' name='req_hid' id='req_hid' value=''>
                 <div class='view-messages'></div>
+                <div class=''>
                 <div class='primary-group email-group forms-builder-group ui-sortable' style=>
                     <div class='row mandatory-email'>
                         <div class='lbl-tinyltr'>Votre adresse email</div>
@@ -21,6 +22,7 @@
                     </div>
                 </div>
                 <button class='button editable' type='submit' data-editfield='subscribe'>Go</button>
+                </div>
             </div>
         </form>
     </div>
