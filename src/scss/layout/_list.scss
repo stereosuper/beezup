@@ -94,3 +94,17 @@
         }
     }
 }
+.list-articles{
+    display: flex;
+    >li{
+        width: calc(33.3333333% - #{$gutter});
+        margin: 0;
+        text-align: center;
+        &:before, &:after{
+            display: none;
+        }
+    }
+    a{
+        text-decoration: none;
+    }
+}

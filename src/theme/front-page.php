@@ -115,27 +115,33 @@ get_header(); ?>
 	</section>
 
 	<section class='container'>
-		<?php if( get_field('networkTitle') ){ ?>
-			<h2 class='h1'><?php the_field('networkTitle'); ?></h2>
-		<?php } ?>
-
-		<?php the_field('networkText'); ?>
-
-		<?php echo wp_get_attachment_image( get_field('networkImg'), 'full' ); ?>
+		<div class='wrapper-blocks-half'>
+			<div class='block-half block-txt'>
+				<svg class='icon icon-globe'><use xlink:href='#icon-globe'></use></svg>
+				<?php if( get_field('networkTitle') ){ ?>
+					<h2 class='h1'><?php the_field('networkTitle'); ?></h2>
+				<?php } ?>
+				<?php the_field('networkText'); ?>
+			</div>
+			<div class='block-half'>
+				<?php echo wp_get_attachment_image( get_field('networkImg'), 'full' ); ?>
+			</div>
+		</div>
 	</section>
 
 	<?php $lastPosts = new WP_Query( array('posts_per_page' => 3) ); ?>
 	<?php if( $lastPosts->have_posts() ){ ?>
 		<section class='container'>
+			<svg class='icon icon-blog'><use xlink:href='#icon-blog'></use></svg>
 			<?php if( get_field('blogTitle') ){ ?>
 				<h2 class='h1'><?php the_field('blogTitle'); ?></h2>
 			<?php } ?>
 
-			<ul>
+			<ul class='list-articles'>
 				<?php while( $lastPosts->have_posts() ){ $lastPosts->the_post(); ?>
 					<li>
 						<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>'>
-							<?php echo get_the_date(); ?>
+							<time class='article-date'><?php echo get_the_date(); ?></time>
 							<?php the_post_thumbnail('large'); ?>
 							<h3><?php the_title(); ?></h3>
 							<span class='link-arrow'><?php _e('Lire la suite', 'beezup'); ?></span>

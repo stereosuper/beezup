@@ -2,7 +2,7 @@
     display: flex;
     justify-content: space-between;
     >li{
-        width: calc(33.3333333% - 15px);
+        width: calc(33.3333333% - #{$gutter});
         height: 365px;
         padding: 25px;
         font-size: 1.4rem;
