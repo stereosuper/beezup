@@ -21,10 +21,12 @@
     'layout/forms',
     'layout/header',
     'layout/footer',
-    'layout/list';
+    'layout/list',
+    'layout/blocks-half';
 
 @import
-    'components/buttons';
+    'components/buttons',
+    'components/members';
 
 @import
     'pages/home';
