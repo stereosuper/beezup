@@ -16,7 +16,7 @@
 
 	<body <?php body_class(); ?>>
 
-		<header role='banner' class='header'>
+		<header id='header' role='banner' class='header'>
 			<div class='container'>
 				
 				<div class='wrapper-logo'>
@@ -29,27 +29,31 @@
 					</a>
 				</div>
 
+				<button id='btn-menu' class='btn-menu' type='button'><span></span></button>
 				<div class='nav'>	
 					<div id='container-menu-head' class='container-menu-head'>
-						<?php echo beezup_mlp_navigation(); ?>
-						<ul id='menu-head' class='menu-head'>
-							<?php if( get_field('contactLink', 'options') && get_field('contactLinkText', 'options') ){ ?>
-								<li class="head-contact">
-									<a href='<?php the_field('contactLink', 'options'); ?>'>
-										<svg class='icon icon-envelop'><use xlink:href='#icon-envelop'></use></svg>
-										<span><?php the_field('contactLinkText', 'options'); ?></span>
-									</a>
-								</li>
-							<?php } ?>
-							<?php if( get_field('connectLink', 'options') && get_field('connectLinkText', 'options') ){ ?>
-								<li class="head-connect">
-									<a href='<?php the_field('connectLink', 'options'); ?>'>
-										<svg class='icon icon-user'><use xlink:href='#icon-user'></use></svg>
-										<span><?php the_field('connectLinkText', 'options'); ?></span>
-									</a>
-								</li>
-							<?php } ?>
-						</ul>
+						<button id='btn-menu-close' class='btn-menu-close' type='button'></button>
+						<div id='wrapper-menu-head' class='wrapper-menu-head'>
+							<?php echo beezup_mlp_navigation(); ?>
+							<ul id='menu-head' class='menu-head'>
+								<?php if( get_field('contactLink', 'options') && get_field('contactLinkText', 'options') ){ ?>
+									<li class="head-contact">
+										<a href='<?php the_field('contactLink', 'options'); ?>'>
+											<svg class='icon icon-envelop'><use xlink:href='#icon-envelop'></use></svg>
+											<span><?php the_field('contactLinkText', 'options'); ?></span>
+										</a>
+									</li>
+								<?php } ?>
+								<?php if( get_field('connectLink', 'options') && get_field('connectLinkText', 'options') ){ ?>
+									<li class="head-connect">
+										<a href='<?php the_field('connectLink', 'options'); ?>'>
+											<svg class='icon icon-user'><use xlink:href='#icon-user'></use></svg>
+											<span><?php the_field('connectLinkText', 'options'); ?></span>
+										</a>
+									</li>
+								<?php } ?>
+							</ul>
+						</div>
 					</div>
 					
 					<div class='container-menu-main'>
@@ -57,6 +61,7 @@
 						<button class='btn' data-appointlet-organization='beezup' data-appointlet-service='32290'><?php _e('Demo', 'Beezup'); ?></button>
 					</div>
 				</div>
+				<div class='bg-mobile-nav'></div>
 
 			</div>
 		</header>
