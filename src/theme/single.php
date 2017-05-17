@@ -33,6 +33,8 @@
 		<ul><?php wp_list_categories( array('title_li' => '') ); ?></ul>
 
 		<?php get_template_part( 'includes/demo' ); ?>
+
+		<?php get_template_part( 'includes/related' ); ?>
 		
 		<?php get_template_part( 'includes/free-links' ); ?>
 	</div>

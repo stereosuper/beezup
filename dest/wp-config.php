@@ -90,7 +90,7 @@ define('WP_AUTO_UPDATE_CORE', true);
 define('DISALLOW_FILE_EDIT', true);
 define('DISALLOW_UNFILTERED_HTML', true);
 
-define('WP_ALLOW_MULTISITE', TRUE);
+define('WP_ALLOW_MULTISITE', true);
 define('MULTISITE', true);
 define('SUBDOMAIN_INSTALL', false);
 define('DOMAIN_CURRENT_SITE', 'localhost');
