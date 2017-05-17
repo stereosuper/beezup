@@ -301,6 +301,10 @@ a{
 
 /******* CLASSES GENERALES  *******/
 
+.no-scroll{
+    overflow: hidden;
+}
+
 .hidden{
     display: none !important;
 }

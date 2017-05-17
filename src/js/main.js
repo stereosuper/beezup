@@ -28,6 +28,11 @@ $(function(){
         langSwitcher.clickOnLanguage(windowWidth);
     });
 
+    $('#btn-menu, #btn-menu-close').on('click', function () {
+        $('#header').toggleClass('deployed'); 
+        $('body').toggleClass('no-scroll')
+    });
+
     checkInputs($('form'));
     langSwitcher.checkLangState(windowWidth);
 

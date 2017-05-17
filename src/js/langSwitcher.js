@@ -16,10 +16,10 @@ var checkLangState = function (windowWidth) {
         TweenLite.to(eltsToMove, 0.3, { y: '0px' });
     } else {
         if (!langOpen) {
-            TweenLite.to(eltsToMove, 0.3, { y: langHeight+'px' });
+            TweenLite.to(eltsToMove, 0.3, { y: langHeight + 'px' });
         } else {
             TweenLite.to(eltsToMove, 0.3, { y: '0px' });
-        }    
+        }
     }
 }    
 
@@ -28,10 +28,10 @@ var clickOnLanguage = function (windowWidth) {
     containerMenuHead.toggleClass('open');
     if (windowWidth <= 960) {
         if (langOpen) {
-            TweenLite.to(eltsToMove, 0.3, { y: langHeight+'px' });
+            TweenLite.to(eltsToMove, 0.3, { y: langHeight + 'px' });
         } else {
             TweenLite.to(eltsToMove, 0.3, { y: '0px' });
-        }    
+        }
     }
     langOpen = !langOpen;
 }
