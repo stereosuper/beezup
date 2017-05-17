@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="38" height="15" viewBox="0 0 38 15">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #fff;
+        fill-rule: evenodd;
+      }
+    </style>
+  </defs>
+  <path id="bees-horizontal.svg" class="cls-1" d="M484,2518a2,2,0,1,1-2,2A2,2,0,0,1,484,2518Zm5-4a1,1,0,1,1-1,1A1,1,0,0,1,489,2514Zm-10-7a1,1,0,1,1-1,1A1,1,0,0,1,479,2507Zm20,11a1,1,0,1,1-1,1A1,1,0,0,1,499,2518Zm-6-8a2,2,0,1,1-2,2A2,2,0,0,1,493,2510Zm-24,4a1,1,0,1,1-1,1A1,1,0,0,1,469,2514Zm36-4a1,1,0,1,1-1,1A1,1,0,0,1,505,2510Z" transform="translate(-468 -2507)"/>
+</svg>
