@@ -7,7 +7,7 @@ get_header(); ?>
 
 <?php if ( have_posts() ) : the_post(); ?>
 	
-	<section class='container'>
+	<section class='container intro'>
         <?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb(); } ?>
         
 		<h1 class='title-black'>
@@ -23,23 +23,23 @@ get_header(); ?>
 	</section>
 
     <section class='block-full'>
-        <div class='container'>
+        <div class='container container-benefits'>
             <?php if( have_rows('benefits') ){ ?>
-                <ul>
+                <ul class='benefits'>
                     <?php while( have_rows('benefits') ){ the_row(); ?>
                         <li>
                             <svg class='icon <?php the_sub_field('icon'); ?>'><use xlink:href='#<?php the_sub_field('icon'); ?>'></use></svg>
-                            <?php the_sub_field('text'); ?>
+                            <span><?php the_sub_field('text'); ?></span>
                         </li>
                     <?php } ?>
                 </ul>
             <?php } ?>
 
             <?php if( have_rows('sections') ){ ?>
-                <ol>
+                <ol class='list-menu'>
                     <?php while( have_rows('sections') ){ the_row(); ?>
                         <li>
-                            <a href='#<?php the_sub_field('anchor'); ?>' title='<?php the_sub_field('title'); ?>'><?php the_sub_field('title'); ?></a>
+                            <a class='link-arrow' href='#<?php the_sub_field('anchor'); ?>' title='<?php the_sub_field('title'); ?>'><?php the_sub_field('title'); ?></a>
                         </li>
                     <?php } ?>
                 </ol>
@@ -49,11 +49,12 @@ get_header(); ?>
 
     <div class='container'>
         <?php if( have_rows('sections') ){ ?>
+            <?php $i = 01; ?>
             <?php while( have_rows('sections') ){ the_row(); ?>
                 
                 <section id='<?php the_sub_field('anchor'); ?>'>
                     <?php if( get_sub_field('title') ){ ?>
-                        <h2 class='h1'><?php the_sub_field('title'); ?></h2>
+                        <h2 class='h1'><span class='number-index'><?php echo sprintf('%02d', $i) ?></span><p><?php the_sub_field('title'); ?></p></h2>
                     <?php } ?>
                     
                     <?php if( have_rows('subSections') ){ ?>
@@ -77,7 +78,7 @@ get_header(); ?>
                     <?php } ?>
                 </section>
 
-            <?php } ?>
+            <?php $i++; } ?>
         <?php } ?>
 
         <?php if( get_field('bottomText') ){ ?>
