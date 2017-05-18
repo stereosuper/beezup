@@ -49,15 +49,6 @@ add_filter( 'emoji_svg_url', '__return_false' );
 remove_action( 'wp_head', 'rest_output_link_wp_head' );
 remove_action( 'wp_head', 'wp_oembed_add_discovery_links' );
 
-// remove comment author class
-function beezup_remove_comment_author_class( $classes ){
-	foreach( $classes as $key => $class ){
-		if( strstr($class, 'comment-author-') ) unset( $classes[$key] );
-	}
-	return $classes;
-}
-add_filter( 'comment_class' , 'beezup_remove_comment_author_class' );
-
 // remove login errors
 add_filter( 'login_errors', create_function('$a', "return null;") );
 
@@ -95,7 +86,7 @@ function beezup_mime_types($mimes){
 add_filter( 'upload_mimes', 'beezup_mime_types' );
 
 // Custom posts in the dashboard
-function beezup_right_now_custom_post() {
+function beezup_right_now_custom_post(){
     $post_types = get_post_types( array( '_builtin' => false ) , 'objects' , 'and' );
     foreach( $post_types as $post_type ){
         $cpt_name = $post_type->name;
