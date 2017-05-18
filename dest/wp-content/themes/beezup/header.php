@@ -14,7 +14,7 @@
 		<script>document.getElementsByTagName('html')[0].className = 'js';</script>
 	</head>
 
-	<body <?php body_class(); ?>>
+	<body <?php body_class('wrapper-sticky'); ?>>
 
 		<header id='header' role='banner' class='header'>
 			<div class='container'>
@@ -58,7 +58,7 @@
 					
 					<div class='container-menu-main'>
 						<?php wp_nav_menu( array( 'theme_location' => 'primary', 'container' => 'nav', 'menu_class' => 'menu-main' ) ); ?>
-						<button class='btn' data-appointlet-organization='beezup' data-appointlet-service='32290'><?php _e('Demo', 'Beezup'); ?></button>
+						<button id='btn-demo' class='btn' data-appointlet-organization='beezup' data-appointlet-service='32290'><?php _e('Demo', 'Beezup'); ?></button>
 					</div>
 				</div>
 				<div class='bg-mobile-nav'></div>

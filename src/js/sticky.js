@@ -21,7 +21,6 @@ module.exports = function(stickyElt, position){
         }else {
             stickyElt.removeClass('sticky').css('top', stickyElt.data('initialPos'));
         }
-        console.log(stickyElt.data('offsetTop'));
     }
 
     function resizeHandler() {
@@ -31,7 +30,6 @@ module.exports = function(stickyElt, position){
         });
 
     }
-
 
 
     stickyElt.data({
