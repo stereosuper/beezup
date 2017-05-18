@@ -384,6 +384,18 @@ a{
     display: none !important;
 }
 
+.sticky {
+    position: fixed !important;
+}
+
+.sticky-stuck {
+    position: absolute;
+}
+
+.wrapper-sticky {
+    position: relative;
+}
+
 
 @media (max-width: $desktop-small){
     img{

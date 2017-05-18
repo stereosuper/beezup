@@ -13,6 +13,7 @@ $(function(){
     var throttle = require('./throttle.js');
     var checkInputs = require('./checkInputs.js');
     var langSwitcher = require('./langSwitcher.js');
+    var sticky = require('./sticky.js');
 
     var body = $('body');
     // window.outerWidth returns the window width including the scroll, but it's not working with $(window).outerWidth
@@ -30,11 +31,13 @@ $(function(){
 
     $('#btn-menu, #btn-menu-close').on('click', function () {
         $('#header').toggleClass('deployed'); 
-        $('body').toggleClass('no-scroll')
+        body.toggleClass('no-scroll');
     });
 
     checkInputs($('form'));
     langSwitcher.checkLangState(windowWidth);
+
+    sticky($('#btn-demo'), 15);
 
     $(window).on('resize', throttle(function(){
         requestAnimFrame(resizeHandler);
