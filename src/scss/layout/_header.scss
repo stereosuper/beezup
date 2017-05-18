@@ -121,7 +121,11 @@
     margin: 30px 0 0;
     z-index: 3;
     >.btn{
+        backface-visibility: hidden;
         right: calc((100vw - 1150px)/2);
+        &.sticky{
+            z-index: 12;
+        }
     }
 }
 
@@ -446,24 +450,23 @@
             transition: $transition 0.4s;
         }
     }
-}
-
-@media (max-height: 750px){
-    .menu-main{
-      li {
-          margin: 15px 0;
-      }  
-    }
-    .container-menu-main{
-        >.btn{
-            margin: 20px 0 0;
+    @media (max-height: 750px){
+        .menu-main{
+          li {
+              margin: 15px 0;
+          }  
         }
-    }
-    .menu-main{
-        .current-menu-item{
-            a {
-                &:before{
-                    bottom: -8px;
+        .container-menu-main{
+            >.btn{
+                margin: 20px 0 0;
+            }
+        }
+        .menu-main{
+            .current-menu-item{
+                a {
+                    &:before{
+                        bottom: -8px;
+                    }
                 }
             }
         }
