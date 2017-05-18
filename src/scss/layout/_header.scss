@@ -122,7 +122,7 @@
     z-index: 3;
     >.btn{
         backface-visibility: hidden;
-        right: calc((100vw - 1150px)/2);
+        right: calc((100% - 1150px)/2);
         &.sticky{
             z-index: 12;
         }

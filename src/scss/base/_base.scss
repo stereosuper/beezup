@@ -22,6 +22,8 @@ body{
     color: $text;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background: url('../layoutImg/quadrillage.png') no-repeat;
+    background-position: 50% 30px;
 }
 
 h1, h2{
