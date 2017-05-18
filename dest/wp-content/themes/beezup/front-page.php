@@ -71,34 +71,43 @@ get_header(); ?>
 	</section>
 	
 	<section class='container'>
-		<?php if( get_field('academyTitle') ){ ?>
-			<h2 class='h1'><?php the_field('academyTitle'); ?></h2>
-		<?php } ?>
-		
-		<?php the_field('academyText'); ?>
-
-		<?php if( have_rows('people', 'options') ){ ?>
-			<ul>
-				<?php while( have_rows('people', 'options') ){ the_row(); ?>
-					<li>
-						<?php the_sub_field('name', 'options'); ?>
-						<?php the_sub_field('job', 'options'); ?>
-						<?php echo wp_get_attachment_image( get_sub_field('photo', 'options'), 'full' ); ?>
-					</li>
+		<div class='wrapper-blocks-half'>
+			<div class='block-half'>
+				<?php if( have_rows('people', 'options') ){ ?>
+					<ul class='members'>
+						<?php while( have_rows('people', 'options') ){ the_row(); ?>
+							<li>
+								<span class='name'><?php the_sub_field('name', 'options'); ?></span>
+								<span class='job '><?php the_sub_field('job', 'options'); ?></span>
+								<?php echo wp_get_attachment_image( get_sub_field('photo', 'options'), 'full' ); ?>
+							</li>
+						<?php } ?>
+					</ul>
 				<?php } ?>
-			</ul>
-		<?php } ?>
+			</div>
+			<div class='block-half block-txt'>
+				<svg class='icon icon-academy'><use xlink:href='#icon-academy'></use></svg>
+				<?php if( get_field('academyTitle') ){ ?>
+					<h2 class='h1'><?php the_field('academyTitle'); ?></h2>
+				<?php } ?>
+				<?php the_field('academyText'); ?>
+			</div>
+		</div>
 	</section>
 
 	<section class='block-full'>
 		<?php if( have_rows('quotes') ){ ?>
-			<ul class='container'>
+			<ul class='container list-quotes'>
 				<?php while( have_rows('quotes') ){ the_row(); ?>
 					<li>
-						<blockquote><?php the_sub_field('quote'); ?></blockquote>
-						<?php the_sub_field('author'); ?>
-						<?php the_sub_field('job'); ?>
-						<?php echo wp_get_attachment_image( get_sub_field('logo'), 'medium' ); ?>
+						<div class='wrapper-txt'>
+							<blockquote><?php the_sub_field('quote'); ?></blockquote>
+							<span class='bq-author'><?php the_sub_field('author'); ?></span>
+							<span class='bq-job'><?php the_sub_field('job'); ?></span>
+						</div>
+						<div class='wrapper-logo'>
+							<?php echo wp_get_attachment_image( get_sub_field('logo'), 'medium' ); ?>
+						</div>
 					</li>
 				<?php } ?>
 			</ul>
@@ -106,29 +115,35 @@ get_header(); ?>
 	</section>
 
 	<section class='container'>
-		<?php if( get_field('networkTitle') ){ ?>
-			<h2 class='h1'><?php the_field('networkTitle'); ?></h2>
-		<?php } ?>
-
-		<?php the_field('networkText'); ?>
-
-		<?php echo wp_get_attachment_image( get_field('networkImg'), 'full' ); ?>
+		<div class='wrapper-blocks-half'>
+			<div class='block-half block-txt'>
+				<svg class='icon icon-globe'><use xlink:href='#icon-globe'></use></svg>
+				<?php if( get_field('networkTitle') ){ ?>
+					<h2 class='h1'><?php the_field('networkTitle'); ?></h2>
+				<?php } ?>
+				<?php the_field('networkText'); ?>
+			</div>
+			<div class='block-half'>
+				<?php echo wp_get_attachment_image( get_field('networkImg'), 'full' ); ?>
+			</div>
+		</div>
 	</section>
 
 	<?php $lastPosts = new WP_Query( array('posts_per_page' => 3) ); ?>
 	<?php if( $lastPosts->have_posts() ){ ?>
 		<section class='container'>
+			<svg class='icon icon-blog'><use xlink:href='#icon-blog'></use></svg>
 			<?php if( get_field('blogTitle') ){ ?>
 				<h2 class='h1'><?php the_field('blogTitle'); ?></h2>
 			<?php } ?>
 
-			<ul>
+			<ul class='list-articles'>
 				<?php while( $lastPosts->have_posts() ){ $lastPosts->the_post(); ?>
 					<li>
 						<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>'>
-							<?php echo get_the_date(); ?>
-							<?php the_post_thumbnail('large'); ?>
-							<h3><?php the_title(); ?></h3>
+							<time class='article-date'><?php echo get_the_date(); ?></time>
+							<span class='article-image' style="background-image: url(<?php echo the_post_thumbnail_url('large'); ?>);"></span>
+							<h3 class='article-title'><?php the_title(); ?></h3>
 							<span class='link-arrow'><?php _e('Lire la suite', 'beezup'); ?></span>
 						</a>
 					</li>

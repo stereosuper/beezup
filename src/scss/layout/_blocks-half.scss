@@ -1,0 +1,24 @@
+.wrapper-blocks-half{
+    display: flex;
+    padding: 130px 0;
+    justify-content: space-between;
+}
+.block-half{
+    width: 50%;
+    text-align: center;
+    &.block-txt{
+        width: 41.6666666667%;
+    }
+    .h1{
+        margin: 0 0 0.8em;
+    }
+    .icon{
+        fill: $primary;
+        width: 100%;
+        height: 40px;
+        margin-bottom: 20px;
+        &.icon-globe{
+            height: 50px;
+        }
+    }
+}

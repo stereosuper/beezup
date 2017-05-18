@@ -1,0 +1,36 @@
+.members{
+    display: flex;
+    justify-content: space-between;
+    >li{
+        width: calc(33.3333333% - #{$gutter});
+        height: 365px;
+        padding: 25px;
+        font-size: 1.4rem;
+        &:before, &:after{
+            display: none;
+        }
+        &:nth-child(1){
+            background: $secondary;
+        }
+        &:nth-child(2){
+            margin-top: 80px;
+            background: $primary;
+        }
+        &:nth-child(3){
+            margin-top: 45px;
+            background: $secondary;
+        }
+    }
+    .name, .job{
+        display: block;
+    }
+    .name{
+        margin-bottom: 5px;
+        font-family: $fira-medium-italic;
+        color: $text;
+    }
+    .job{
+        font-family: $fira-medium;
+        color: $white;
+    }
+}
