@@ -5,14 +5,14 @@ Template Name: Réseaux
 
 $apiUrl = 'https://api.beezup.com/v2/public/';
 
-$country = isset( $_GET['country'] ) ? $_GET['country'] : '';
+$country = isset( $_POST['country'] ) ? $_POST['country'] : '';
 $currentUrl = $country ? 'channels/' . $country : 'channels/USA';
 
-$dataChannelsIndex = wp_remote_get( $apiUrl . 'lov/www_ChannelCountry' );
-$dataCurrentChannel = wp_remote_get( $apiUrl . $currentUrl );
+$dataChannelsIndex = wp_safe_remote_get( $apiUrl . 'lov/www_ChannelCountry' );
+$dataCurrentChannel = wp_safe_remote_get( $apiUrl . $currentUrl );
 
-$channelsIndex = $dataChannelsIndex['response']['code'] === 200 ? json_decode( $dataChannelsIndex['body'] ) : false;
-$currentChannel = $dataCurrentChannel['response']['code'] === 200 ? json_decode( $dataCurrentChannel['body'] ) : false;
+$channelsIndex = is_wp_error( $dataChannelsIndex ) ? false : json_decode( $dataChannelsIndex['body'] );
+$currentChannel = is_wp_error( $dataCurrentChannel ) ? false : json_decode( $dataCurrentChannel['body'] );
 
 
 get_header(); ?>
@@ -38,7 +38,7 @@ get_header(); ?>
         <?php the_post_thumbnail( 'full' ); ?>
 
         <?php if( $channelsIndex ){ ?>
-            <form action='<?php the_permalink(); ?>' method='GET'>
+            <form action='<?php the_permalink(); ?>' method='POST'>
                 <select name='country'>
                     <?php foreach( $channelsIndex->items as $channel ){ ?>
                         <?php $code = $channel->codeIdentifier; ?>

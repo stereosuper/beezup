@@ -20,7 +20,7 @@ $mail = isset($_POST['email-contact']) ? strip_tags(stripslashes($_POST['email-c
 $msg = isset($_POST['message']) ? strip_tags(stripslashes($_POST['message'])) : '';
 $spamUrl = isset($_POST['url']) ? strip_tags(stripslashes($_POST['url'])) : '';
 
-// $mailto = get_field('emailList', 'options');
+// $mailto = get_field('emails', 'options');
 $mailto = 'shwarp@live.fr';
 
 if( isset($_POST['submit']) ){
@@ -114,73 +114,69 @@ get_header(); ?>
 	</section>
 
     <section class='container'>
-        <?php if(!$success) : ?>
-            <?php if($error){ ?>
+        <?php if( $error && $errorSend ){ ?>
+            <p class='form-error'>
+                <?php echo $errorSend; ?>
+            </p>
+        <?php } ?>
+        
+        <?php if( $success ){ ?>
+            <p class='form-success'>
+                <?php _e('Thank you for your message ! We’ll get back to you soon.', 'beezup'); ?>
+            </p>
+        <?php } ?>
+
+        <form method='post' action='<?php the_permalink(); ?>'>
+            <div class='<?php if($errorLastname) echo 'error'; ?>'>
+                <label for='last_name'><?php _e('Last Name', 'beezup'); ?></label>
+                <input type='text' name='last_name' id='last_name' value='<?php echo $lastname; ?>' required>
+                <?php if($errorLastname) echo '<span>'. $errorLastname .'</span>'; ?>
+            </div>
+
+            <div class='<?php if($errorFirstname) echo 'error'; ?>'>
+                <label for='first_name'><?php _e('First Name', 'beezup'); ?></label>
+                <input type='text' name='first_name' id='first_name' value='<?php echo $firstname; ?>' required>
+                <?php if($errorFirstname) echo '<span>'. $errorFirstname .'</span>'; ?>
+            </div>
+
+            <div>
+                <label for='website'><?php _e('E-commerce(s) website(s)', 'beezup'); ?> <i>(<?php _e('optionnal', 'beezup'); ?>)</i></label>
+                <input type='url' name='website' id='webiste' value='<?php echo $website; ?>'>
+            </div>
+
+            <div class='<?php if($errorPhone) echo 'error'; ?>'>
+                <label for='tel'><?php _e('Phone', 'beezup'); ?></label>
+                <input type='tel' name='tel' id='tel' value='<?php echo $phone; ?>' required>
+                <?php if($errorPhone) echo '<span>'. $errorPhone .'</span>'; ?>
+            </div>
+
+            <div class='<?php if($errorMail) echo 'error'; ?>'>
+                <label for='email'><?php _e('Email', 'beezup'); ?></label>
+                <input type='email' name='email-contact' id='email' value='<?php echo $mail; ?>' required>
+                <?php if($errorMail) echo '<span>'. $errorMail .'</span>'; ?>
+            </div>
+
+            <div class='<?php if($errorMsg) echo 'error'; ?>'>
+                <label for='message'><?php _e('Message', 'beezup'); ?></label>
+                <textarea name='message' id='message' required><?php echo $msg; ?></textarea>
+                <?php if($errorMsg) echo '<span>'. $errorMsg .'</span>'; ?>
+            </div>
+
+            <div class='hidden'>
+                <input type='url' name='url2' id='url2' value='<?php echo $spamUrl; ?>'>
+                <label for='url2'><?php _e('Please leave this field empty', 'beezup'); ?></label>
+            </div>
+
+            <?php if( $error && !$errorSend ){ ?>
                 <p class='form-error'>
-                    <?php
-                        if($errorSend){
-                            echo $errorSend;
-                        }else{
-                            echo __("The form countains some errors, please check the highlighted fields", 'beezup') . ':';
-                        }
-                    ?>
+                    <?php _e('Please fill all the required fields', 'beezup'); ?>
                 </p>
             <?php } ?>
-            
-            <form method='post' action='<?php the_permalink(); ?>'>
-                <div class='<?php if($errorLastname) echo 'error'; ?>'>
-                    <label for='last_name'><?php _e('Last Name', 'beezup'); ?></label>
-                    <input type='text' name='last_name' id='last_name' value='<?php echo $lastname; ?>' required>
-                    <?php if($errorLastname) echo '<span>'. $errorLastname .'</span>'; ?>
-                </div>
-                
-                <div class='<?php if($errorFirstname) echo 'error'; ?>'>
-                    <label for='first_name'><?php _e('First Name', 'beezup'); ?></label>
-                    <input type='text' name='first_name' id='first_name' value='<?php echo $firstname; ?>' required>
-                    <?php if($errorFirstname) echo '<span>'. $errorFirstname .'</span>'; ?>
-                </div>
 
-                <div>
-                    <label for='website'><?php _e('E-commerce(s) website(s)', 'beezup'); ?> <i>(<?php _e('optionnal', 'beezup'); ?>)</i></label>
-                    <input type='url' name='website' id='webiste' value='<?php echo $website; ?>'>
-                </div>
-
-                <div class='<?php if($errorPhone) echo 'error'; ?>'>
-                    <label for='tel'><?php _e('Phone', 'beezup'); ?></label>
-                    <input type='tel' name='tel' id='tel' value='<?php echo $phone; ?>' required>
-                    <?php if($errorPhone) echo '<span>'. $errorPhone .'</span>'; ?>
-                </div>
-                
-                <div class='<?php if($errorMail) echo 'error'; ?>'>
-                    <label for='email'><?php _e('Email', 'beezup'); ?></label>
-                    <input type='email' name='email-contact' id='email' value='<?php echo $mail; ?>' required>
-                    <?php if($errorMail) echo '<span>'. $errorMail .'</span>'; ?>
-                </div>
-
-                <div class='<?php if($errorMsg) echo 'error'; ?>'>
-                    <label for='message'><?php _e('Message', 'beezup'); ?></label>
-                    <textarea name='message' id='message' required><?php echo $msg; ?></textarea>
-                    <?php if($errorMsg) echo '<span>'. $errorMsg .'</span>'; ?>
-                </div>
-
-                <div class='hidden'>
-                    <input type='url' name='url2' id='url2' value='<?php echo $spamUrl; ?>'>
-                    <label for='url2'><?php _e('Please leave this field empty', 'beezup'); ?></label>
-                </div>
-
-                <button class='btn-arrow' type='submit' name='submit' for='form-contact'>
-                    <?php _e('Submit', 'beezup'); ?>
-                </button>
-            </form>
-        <?php else : ?>
-            <div class='bloc-success'>
-                <h2><?php _e('Thank you', 'beezup'); ?></h2>
-                <p>
-                    <?php _e('Thank you for your message.', 'beezup'); ?><br>
-                    <?php _e('We’ll get back to you soon.', 'beezup'); ?>
-                </p>
-            </div>
-        <?php endif; ?>
+            <button class='btn-arrow' type='submit' name='submit' for='form-contact'>
+                <?php _e('Submit', 'beezup'); ?>
+            </button>
+        </form>
 
         <?php if( have_rows('people', 'options') ){ ?>
             <ul>
