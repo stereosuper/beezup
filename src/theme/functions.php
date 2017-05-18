@@ -176,8 +176,8 @@ if( function_exists('acf_add_options_page') ){
 
 // Add tags in acf fields
 function beezup_acf_load_value( $value, $field, $post_id ){
-    $value = str_replace('[small]', '<span class="small">', $value);
-    $value = str_replace('[/small]', '</span>', $value);
+    $value = str_replace( '[small]', '<span class="small">', str_replace( '[/small]', '</span>', $value ) );
+    $value = str_replace( '[blue]', '<span class="blue">', str_replace( '[/blue]', '</span>', $value ) );
     return $value;
 }
 add_filter('acf/load_value', 'beezup_acf_load_value', 10, 3);
