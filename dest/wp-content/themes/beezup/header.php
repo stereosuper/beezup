@@ -7,7 +7,7 @@
 		<meta name='viewport' content='width=device-width,initial-scale=1'>
 		<meta name='format-detection' content='telephone=no'>
 
-		<link rel='alternate' type='application/rss+xml' title='BeezUP Feed' href='<?php echo get_bloginfo('rss2_url') ?>'>
+		<link rel='alternate' type='application/rss+xml' title='BeezUP Feed' href='<?php bloginfo('rss2_url'); ?>'>
 
 		<?php wp_head(); ?>
 
