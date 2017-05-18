@@ -3,16 +3,34 @@
 Template Name: Réseaux
 */
 
+function sortByName($a, $b){
+    return strcmp($a->name, $b->name);
+}
+
 $apiUrl = 'https://api.beezup.com/v2/public/';
 
 $country = isset( $_POST['country'] ) ? $_POST['country'] : '';
-$currentUrl = $country ? 'channels/' . $country : 'channels/USA';
+// $currentUrl = $country ? 'channels/' . $country : 'channels/USA';
 
 $dataChannelsIndex = wp_safe_remote_get( $apiUrl . 'lov/www_ChannelCountry' );
-$dataCurrentChannel = wp_safe_remote_get( $apiUrl . $currentUrl );
+// $dataCurrentChannel = wp_safe_remote_get( $apiUrl . $currentUrl );
 
 $channelsIndex = is_wp_error( $dataChannelsIndex ) ? false : json_decode( $dataChannelsIndex['body'] );
-$currentChannel = is_wp_error( $dataCurrentChannel ) ? false : json_decode( $dataCurrentChannel['body'] );
+// $currentChannel = is_wp_error( $dataCurrentChannel ) ? false : json_decode( $dataCurrentChannel['body'] );
+$allChannels = [];
+$allChannelsTogether = [];
+
+if( $channelsIndex ){
+    foreach( $channelsIndex->items as $channel ){
+        $code = $channel->codeIdentifier;
+        $allChannels[$code] = wp_safe_remote_get( $apiUrl . 'channels/' . $code );
+        $allChannels[$code] = is_wp_error( $allChannels[$code] ) ? false : json_decode( $allChannels[$code]['body'] );
+        $allChannelsTogether = array_merge( $allChannelsTogether, $allChannels[$code]->channels );
+    }
+}
+
+usort($allChannelsTogether, 'sortByName');
+// print_r($allChannelsTogether);
 
 
 get_header(); ?>
@@ -54,16 +72,20 @@ get_header(); ?>
 	</section>
 
     <section class='container'>
-        <?php if( $currentChannel ){ ?>
+        <?php if( $allChannels ){ ?>
             <ul>
-                <?php foreach($currentChannel->channels as $partner){ ?>
-                    <?php $name = $partner->name; ?>
-                    <li>
-                        <a href='<?php echo $partner->homeUrl; ?>' title='<?php echo $name; ?>' target='_blank'>
-                            <?php echo $name; ?>
-                            <img src='<?php echo $partner->logoUrl; ?>' alt='<?php echo $name; ?>'>
-                        </a>
-                    </li>
+                <?php foreach( $allChannels as $currentChannel ){ ?>
+                    <?php if( $currentChannel ){ ?>
+                        <?php foreach( $currentChannel->channels as $partner ){ ?>
+                            <?php $name = $partner->name; ?>
+                            <li>
+                                <a href='<?php echo $partner->homeUrl; ?>' title='<?php echo $name; ?>' target='_blank'>
+                                    <?php echo $name; ?>
+                                    <img src='<?php echo $partner->logoUrl; ?>' alt='<?php echo $name; ?>'>
+                                </a>
+                            </li>
+                        <?php } ?>
+                    <?php } ?>
                 <?php } ?>
             </ul>
         <?php }else{ ?>
