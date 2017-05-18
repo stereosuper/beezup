@@ -20,7 +20,7 @@ $mail = isset($_POST['email-contact']) ? strip_tags(stripslashes($_POST['email-c
 $msg = isset($_POST['message']) ? strip_tags(stripslashes($_POST['message'])) : '';
 $spamUrl = isset($_POST['url']) ? strip_tags(stripslashes($_POST['url'])) : '';
 
-// $mailto = get_field('emailList', 'options');
+// $mailto = get_field('emails', 'options');
 $mailto = 'shwarp@live.fr';
 
 if( isset($_POST['submit']) ){
