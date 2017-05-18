@@ -106,5 +106,8 @@
     }
     a{
         text-decoration: none;
+        .link-arrow{
+            text-decoration: underline;
+        }
     }
 }
