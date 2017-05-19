@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 21.0.2, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 445.5 408" style="enable-background:new 0 0 445.5 408;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:#FFFFFF;stroke:#C6DDEB;stroke-linejoin:round;stroke-miterlimit:10;}
+	.st1{opacity:0.12;fill:#009EE6;}
+	.st2{fill:#FBFDFE;stroke:#C6DDEB;stroke-linejoin:round;stroke-miterlimit:10;}
+	.st3{fill:#EFF6FA;stroke:#C6DDEB;stroke-linejoin:round;stroke-miterlimit:10;}
+	.st4{fill:#009AE1;}
+	.st5{font-family:'FiraSans-Medium';}
+	.st6{font-size:20.7507px;}
+	.st7{fill:#CD1087;}
+	.st8{fill:#E90094;stroke:#C6DDEB;stroke-miterlimit:10;}
+	.st9{fill:#FFFFFF;}
+	.st10{font-size:32.3302px;}
+	.st11{opacity:0.4;fill:none;stroke:#FFFFFF;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;}
+	.st12{opacity:0.4;}
+	.st13{fill:none;stroke:#009EE6;stroke-miterlimit:10;}
+	.st14{fill:#FFFFFF;stroke:#C6DDEB;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;}
+	.st15{font-size:21.1939px;}
+</style>
+<g id="jean">
+	<polygon class="st0" points="206.6,156.3 86.8,67.9 138.5,30.1 258.3,118.5 	"/>
+	<polygon class="st1" points="206.6,232.3 86.8,143.9 138.5,106.1 258.3,194.5 	"/>
+	<polygon class="st2" points="206.6,156.3 258.3,118.5 258.3,132.8 206.6,170.6 	"/>
+	<polygon class="st3" points="206.6,170.6 86.8,82.1 86.8,67.9 206.6,156.3 	"/>
+	<text transform="matrix(0.8 0.6 -0.8 0.6 146.7042 80.5506)" class="st4 st5 st6">JEANS</text>
+</g>
+<g id="connecteur">
+	<path class="st7" d="M226.3,176.5v-18.1h-40.7v18.1c-0.1,1.7,0.5,3.5,2.1,4.6l11.7,8.8c3.9,2.9,9.2,2.9,13.1,0l11.7-8.8
+		C225.8,180,226.5,178.2,226.3,176.5z"/>
+	<path class="st8" d="M199.2,171.4l-11-8.2c-3.2-2.4-3.2-7.1,0-9.5l13.1-9.8c2.6-2,6.3-2,8.9,0l13.1,9.8c3.2,2.4,3.2,7.1,0,9.5
+		l-11,8.2C208.5,174.3,203.1,174.3,199.2,171.4z"/>
+	<text transform="matrix(0.8 -0.6 0.8 0.6 208.394 168.921)" class="st9 st5 st10">+</text>
+	
+		<ellipse transform="matrix(4.771020e-02 -0.9989 0.9989 4.771020e-02 31.2743 385.8106)" class="st8" cx="218" cy="176.5" rx="3.7" ry="3.1"/>
+</g>
+<g id="tuyau">
+	<path class="st11" d="M218.8,176.6l1.9,1.3c1.8,1.2,3.6,3.4,5.1,5.7c4,6.2,6,13.4,6.2,20.8l0.2,11.4c0,0.5,0,0.9,0.1,1.4
+		c0.6,8,4.9,15.2,11.4,19.9l3.5,2.6"/>
+	<g class="st12">
+		<path class="st13" d="M247.2,241.7c-0.4,0-0.8-0.1-1.2-0.4l-3.5-2.6c-7.2-5.2-11.6-13-12.3-21.4c0-0.5-0.1-1-0.1-1.5l-0.2-11.4
+			c-0.2-7.2-2.2-14-5.9-19.7c-1.6-2.5-3.1-4.2-4.5-5.1l-1.9-1.3c-0.9-0.6-1.2-1.9-0.5-2.8c0.6-0.9,1.9-1.2,2.8-0.5l1.9,1.3
+			c1.9,1.3,3.8,3.4,5.7,6.3c4.1,6.3,6.3,13.9,6.5,21.8l0.2,11.4c0,0.4,0,0.9,0.1,1.3c0.5,7.2,4.4,14,10.6,18.5l3.5,2.6
+			c0.9,0.6,1.1,1.9,0.4,2.8C248.5,241.4,247.8,241.7,247.2,241.7z"/>
+	</g>
+</g>
+<g id="blue">
+	<polygon class="st1" points="202.2,238.9 81.1,149.1 28,188 149.2,277.6 	"/>
+	<path class="st0" d="M185.6,167.4c0-2.4,0-4.2,0-7c-0.5-4.6,2.5-6.6,2.5-6.6L81.1,73.1L28,112l121.2,89.6l41.6-30.4L185.6,167.4z"
+		/>
+	<polygon class="st14" points="149.3,201.6 190.8,171.2 190.8,185.5 149.3,215.8 	"/>
+	<polygon class="st3" points="149.3,215.8 28,126.3 28,112 149.3,201.6 	"/>
+	<text transform="matrix(0.8 0.6 -0.8 0.6 92.7042 128.8839)" class="st4 st5 st6">BLUE</text>
+</g>
+<g id="Calque_4">
+	<polygon id="ombre" class="st1" points="361.4,378 230.3,281.2 282,243.4 413.1,340.2 	"/>
+	<polygon class="st0" points="357.9,348.5 226.7,251.7 278.4,213.9 409.6,310.7 	"/>
+	<polygon class="st2" points="357.9,348.5 409.6,310.7 409.6,324.9 357.9,362.7 	"/>
+	<polygon class="st3" points="357.9,362.7 226.7,265.9 226.7,251.7 357.9,348.5 	"/>
+	<text transform="matrix(0.8 0.6 -0.8 0.6 267.5396 253.5888)" class="st5 st15">BLUE JEANS</text>
+</g>
+</svg>

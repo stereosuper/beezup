@@ -88,6 +88,8 @@
         box-shadow: -1px 10px 122px 0px rgba(0, 63, 97, 0.14); 
         img{
             position: absolute;
+            max-width: 80%;
+            max-height: 80%;
             top: 50%;
             left: 50%;
             transform: translate3d(-50%, -50%, 0);
