@@ -2,6 +2,7 @@
     display: flex;
     justify-content: space-between;
     >li{
+        position: relative;
         width: calc(33.3333333% - #{$gutter});
         height: 365px;
         padding: 25px;
@@ -9,20 +10,26 @@
         &:before, &:after{
             display: none;
         }
-        &:nth-child(1){
-            background: $secondary;
-        }
         &:nth-child(2){
             margin-top: 80px;
-            background: $primary;
         }
         &:nth-child(3){
             margin-top: 45px;
-            background: $secondary;
         }
+    }
+    .photo{
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        background-repeat: no-repeat;
+        background-position: 100% 100%;
+        background-size: cover;
     }
     .name, .job{
         display: block;
+        position: relative;
     }
     .name{
         margin-bottom: 5px;
