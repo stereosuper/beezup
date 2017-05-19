@@ -1,0 +1,37 @@
+.side-links{
+    ul{
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        &:before, &:after{
+            content: '';
+            width: 23px;
+            height: 36px;
+            background: url('../layoutImg/puce-alt-pink.svg') no-repeat;
+            position: relative;
+            left: 5px;
+            margin: 5px 0;
+        }
+        &:after{
+            transform: scale(1, -1);
+        }
+    }
+    li{
+        display: inline-block;
+        border: 2px solid $secondary;
+        &:before, &:after{
+            content: none;
+        }
+    }
+    a {
+        text-align: center;
+        display: inline-block;
+        padding: 4px 0 0;
+        width: 40px;
+        height: 40px;
+        background: $secondary;
+        color: $white;
+        text-decoration: none;
+        font-size: 2rem;
+    }
+}
