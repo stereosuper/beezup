@@ -123,7 +123,7 @@ get_header(); ?>
 				<?php } ?>
 				<?php the_field('networkText'); ?>
 			</div>
-			<div class='block-half'>
+			<div class='block-half big-img'>
 				<?php echo wp_get_attachment_image( get_field('networkImg'), 'full' ); ?>
 			</div>
 		</div>
