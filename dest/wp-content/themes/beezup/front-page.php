@@ -77,9 +77,9 @@ get_header(); ?>
 					<ul class='members'>
 						<?php while( have_rows('people', 'options') ){ the_row(); ?>
 							<li>
+								<span class='photo' style="background-image: url(<?php echo wp_get_attachment_image_url( get_sub_field('photo', 'options'), 'full' ); ?>);"></span>
 								<span class='name'><?php the_sub_field('name', 'options'); ?></span>
 								<span class='job '><?php the_sub_field('job', 'options'); ?></span>
-								<?php echo wp_get_attachment_image( get_sub_field('photo', 'options'), 'full' ); ?>
 							</li>
 						<?php } ?>
 					</ul>
@@ -123,7 +123,7 @@ get_header(); ?>
 				<?php } ?>
 				<?php the_field('networkText'); ?>
 			</div>
-			<div class='block-half'>
+			<div class='block-half big-img'>
 				<?php echo wp_get_attachment_image( get_field('networkImg'), 'full' ); ?>
 			</div>
 		</div>

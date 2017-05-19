@@ -83,26 +83,10 @@ gulp.task('theme', function() {
         .pipe($.size({title: 'theme'}));
 });
 
-
-gulp.task('sitemap', function () {
-    gulp.src('dest/wp-content/themes/beezup/**/*.html', {
-            read: false
-        })
-        .pipe(sitemap({
-            siteUrl: 'http://www.beezup.fr'
-        }))
-        .pipe(gulp.dest('dest/wp-content/themes/beezup'));
-});
-
-gulp.task('robots', function() {
-    return gulp.src('src/robots.txt')
-        .pipe(gulp.dest('dest/'))
-        .pipe($.size({ title: 'robots' }));
-});
-gulp.task('htaccess', function() {
-    return gulp.src('src/.htaccess')
-        .pipe(gulp.dest('dest/'))
-        .pipe($.size({ title: 'htaccess' }));
+gulp.task('root', function() {
+    return gulp.src('src/*.*')
+        .pipe(gulp.dest('dest'))
+        .pipe($.size({title: 'root'}));
 });
 
 
@@ -135,14 +119,11 @@ gulp.task('watch', function () {
         gulp.start(['js'], reload);
     });
 
-    $.watch('src/robots.txt', function(){
-        gulp.start(['robots'], reload);
-    });
-    $.watch('src/.htaccess', function(){
-        gulp.start(['htaccess'], reload);
+    $.watch('src/**', function(){
+        gulp.start(['root'], reload);
     });
 });
 
 
-gulp.task('start', ['styles', 'theme', 'fonts', 'img', 'layoutImg', 'js', 'robots', 'htaccess', 'sitemap']);
+gulp.task('start', ['styles', 'theme', 'fonts', 'img', 'layoutImg', 'js', 'root']);
 

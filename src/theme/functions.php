@@ -1,6 +1,30 @@
 <?php
 
 define( 'BEEZUP_VERSION', 1.0 );
+define( 'BEEZUP_API_URL', 'https://api.beezup.com/v2/public/' );
+
+
+/*-----------------------------------------------------------------------------------*/
+/* Get BeezUP API data for networks pages
+/*-----------------------------------------------------------------------------------*/
+function beezup_get_data_transient($transientName, $url){
+    $transient = get_transient( $transientName );
+
+    if( $transient ){
+        $result = $transient;
+    }else{
+        $data = wp_safe_remote_get( BEEZUP_API_URL . $url );
+        $result = is_wp_error( $data ) ? false : json_decode( $data['body'] );
+        
+        if( $result ){
+            set_transient( $transientName, $result, MONTH_IN_SECONDS );
+        }else{
+            $result = false;
+        }
+    }
+
+    return $result;
+}
 
 
 /*-----------------------------------------------------------------------------------*/
@@ -31,6 +55,11 @@ function beezup_unregister_tags(){
     unregister_taxonomy_for_object_type('post_tag', 'post');
 }
 add_action( 'init', 'beezup_unregister_tags' );
+
+// Sort object in an array by their name properties
+function beezup_sort_by_name($a, $b){
+    return strcmp($a->name, $b->name);
+}
 
 
 /*-----------------------------------------------------------------------------------*/
