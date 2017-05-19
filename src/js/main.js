@@ -29,7 +29,7 @@ $(function(){
         langSwitcher.clickOnLanguage(windowWidth);
     });
 
-    $('#btn-menu, #btn-menu-close').on('click', function () {
+    $('#btnMenu, #btnMenuClose, #bgMobile').on('click', function () {
         $('#header').toggleClass('deployed'); 
         body.toggleClass('no-scroll');
     });
@@ -37,7 +37,8 @@ $(function(){
     checkInputs($('form'));
     langSwitcher.checkLangState(windowWidth);
 
-    sticky($('#btn-demo'), 15);
+    sticky($('#btnDemo'), 15);
+    sticky($('#sideLinksNav'), 415);
 
     $(window).on('resize', throttle(function(){
         requestAnimFrame(resizeHandler);

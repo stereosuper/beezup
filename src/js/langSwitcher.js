@@ -4,10 +4,10 @@ var $ = require('jquery-slim');
 require('gsap/CSSPlugin');
 var TweenLite = require('gsap/TweenLite');
 
-var containerMenuHead = $('#container-menu-head');
+var containerMenuHead = $('#containerMenuHead');
 var langOpen = false;
 var langHeight;
-var eltsToMove = [$('#header-lang-switcher'), $('#menu-head')];
+var eltsToMove = [$('#header-lang-switcher'), $('#menuHead')];
 var listLang = $('#otherLanguage');
 
 var checkLangState = function (windowWidth) {

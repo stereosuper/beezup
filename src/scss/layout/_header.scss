@@ -45,22 +45,19 @@
         background: $primary;
         transition: 0.2s ease-in-out 0.55s;
     }
-    &:before{
+    &:before, &:after{
         content: '';
         width: 27px;
         height: 4px;
         position: absolute;
         right: 0;
-        top : 0;
+    }
+    &:before{
+        top: 0;
         background: $primary;
         transition: 0.2s ease-in-out 0.6s;
     }
     &:after{
-        content: '';
-        width: 27px;
-        height: 4px;
-        position: absolute;
-        right: 0;
         bottom: 0;
         background: $black;
         transition: 0.2s ease-in-out 0.5s;
@@ -123,9 +120,6 @@
     >.btn{
         backface-visibility: hidden;
         right: calc((100% - 1150px)/2);
-        &.sticky{
-            z-index: 12;
-        }
     }
 }
 
@@ -187,10 +181,10 @@
         top: 0;
     }
     &:before{
-        transform: translate(0, 6px) rotate(45deg) ;
+        transform: translate(0, 6px) rotate(45deg);
     }
     &:after{
-        transform: translate(0, 6px) rotate(-45deg) ;
+        transform: translate(0, 6px) rotate(-45deg);
     }
 }
 
@@ -442,7 +436,6 @@
         }
         &:before{
             @include lightGradient(50vh, -338px, rgba(38, 173, 245, 0.8));
-            transform: translateY(-50%);
             height: 100vh;
             width: 100vh;
             margin-top: 0;
