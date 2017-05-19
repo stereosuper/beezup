@@ -8,6 +8,14 @@
     text-align: center;
     &.block-txt{
         width: 41.6666666667%;
+        padding-top: 40px;
+    }
+    &.big-img{
+        img{
+            max-width: none;
+            width: calc(100% + 60px);
+            margin-left: -60px;
+        }
     }
     .h1{
         margin: 0 0 0.8em;
