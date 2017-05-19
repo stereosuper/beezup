@@ -3,34 +3,29 @@
 Template Name: Réseaux
 */
 
-function sortByName($a, $b){
-    return strcmp($a->name, $b->name);
-}
+$fieldLang = get_field('lang', 'options');
+$defaultCountry = $fieldLang ? $fieldLang : 'FRA';
+$country = isset( $_POST['country'] ) ? $_POST['country'] : $defaultCountry;
 
-$apiUrl = 'https://api.beezup.com/v2/public/';
+$channelsIndex = beezup_get_data_transient( 'channels_index', 'lov/www_ChannelCountry' );
 
-$country = isset( $_POST['country'] ) ? $_POST['country'] : '';
-// $currentUrl = $country ? 'channels/' . $country : 'channels/USA';
-
-$dataChannelsIndex = wp_safe_remote_get( $apiUrl . 'lov/www_ChannelCountry' );
-// $dataCurrentChannel = wp_safe_remote_get( $apiUrl . $currentUrl );
-
-$channelsIndex = is_wp_error( $dataChannelsIndex ) ? false : json_decode( $dataChannelsIndex['body'] );
-// $currentChannel = is_wp_error( $dataCurrentChannel ) ? false : json_decode( $dataCurrentChannel['body'] );
 $allChannels = [];
-$allChannelsTogether = [];
+// $allChannelsTogether = [];
 
 if( $channelsIndex ){
     foreach( $channelsIndex->items as $channel ){
         $code = $channel->codeIdentifier;
-        $allChannels[$code] = wp_safe_remote_get( $apiUrl . 'channels/' . $code );
-        $allChannels[$code] = is_wp_error( $allChannels[$code] ) ? false : json_decode( $allChannels[$code]['body'] );
-        $allChannelsTogether = array_merge( $allChannelsTogether, $allChannels[$code]->channels );
+        $allChannels[$code] = beezup_get_data_transient( 'channels_' . $code, 'channels/' . $code );
+        // $allChannelsTogether = array_merge( $allChannelsTogether, $allChannels[$code]->channels );
     }
 }
 
-usort($allChannelsTogether, 'sortByName');
-// print_r($allChannelsTogether);
+// usort($allChannelsTogether, 'beezup_sort_by_name');
+
+if($allChannels[$country]->channels){
+    $channelsToDisplay = $allChannels[$country]->channels;
+    usort($channelsToDisplay, 'beezup_sort_by_name');
+}
 
 
 get_header(); ?>
@@ -72,20 +67,16 @@ get_header(); ?>
 	</section>
 
     <section class='container'>
-        <?php if( $allChannels ){ ?>
+        <?php if( $channelsToDisplay ){ ?>
             <ul>
-                <?php foreach( $allChannels as $currentChannel ){ ?>
-                    <?php if( $currentChannel ){ ?>
-                        <?php foreach( $currentChannel->channels as $partner ){ ?>
-                            <?php $name = $partner->name; ?>
-                            <li>
-                                <a href='<?php echo $partner->homeUrl; ?>' title='<?php echo $name; ?>' target='_blank'>
-                                    <?php echo $name; ?>
-                                    <img src='<?php echo $partner->logoUrl; ?>' alt='<?php echo $name; ?>'>
-                                </a>
-                            </li>
-                        <?php } ?>
-                    <?php } ?>
+                <?php foreach( $channelsToDisplay as $partner ){ ?>
+                    <?php $name = $partner->name; ?>
+                    <li>
+                        <a href='<?php echo $partner->homeUrl; ?>' title='<?php echo $name; ?>' target='_blank'>
+                            <?php echo $name; ?>
+                            <img src='<?php echo $partner->logoUrl; ?>' alt='<?php echo $name; ?>'>
+                        </a>
+                    </li>
                 <?php } ?>
             </ul>
         <?php }else{ ?>
