@@ -18,6 +18,8 @@ function beezup_get_data_transient($transientName, $url){
         
         if( $result ){
             set_transient( $transientName, $result, MONTH_IN_SECONDS );
+        }else{
+            $result = false;
         }
     }
 

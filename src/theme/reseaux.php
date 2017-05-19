@@ -8,25 +8,20 @@ $defaultCountry = $fieldLang ? $fieldLang : 'FRA';
 $country = isset( $_POST['country'] ) ? $_POST['country'] : $defaultCountry;
 
 $channelsIndex = beezup_get_data_transient( 'channels_index', 'lov/www_ChannelCountry' );
-
-$allChannels = [];
-// $allChannelsTogether = [];
+$channelsTypeIndex = beezup_get_data_transient( 'channels_type_index', 'lov/ChannelType' );
+$channelsByType = get_transient('channels_by_type');
 
 if( $channelsIndex ){
     foreach( $channelsIndex->items as $channel ){
         $code = $channel->codeIdentifier;
         $allChannels[$code] = beezup_get_data_transient( 'channels_' . $code, 'channels/' . $code );
-        // $allChannelsTogether = array_merge( $allChannelsTogether, $allChannels[$code]->channels );
     }
 }
 
-// usort($allChannelsTogether, 'beezup_sort_by_name');
-
-if($allChannels[$country]->channels){
+if( $allChannels[$country]->channels ){
     $channelsToDisplay = $allChannels[$country]->channels;
     usort($channelsToDisplay, 'beezup_sort_by_name');
 }
-
 
 get_header(); ?>
 
