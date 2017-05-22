@@ -3,6 +3,7 @@
     >li{
         color: $text;
         width: 25%;
+        margin: 0;
         padding: 0 15px;
         text-align: center;
         &:before, &:after{
@@ -110,6 +111,46 @@
         text-decoration: none;
         .link-arrow{
             text-decoration: underline;
+        }
+    }
+}
+
+@media (max-width: $desktop){
+    .list-picto{
+        h3{
+            font-size: 1.6rem;
+        }
+        strong{
+            font-size: 4rem;
+        }
+        a{
+            font-size: 1.4rem;
+        }
+    }
+}
+@media (max-width: $desktop-small){
+    .list-picto{
+        flex-wrap: wrap;
+        >li{
+            width: 50%;
+            &:nth-child(1), &:nth-child(2){
+                margin-bottom: 60px;
+            }
+        }
+    }
+}
+@media (max-width: $phone){
+    .list-picto{
+        display: block;
+        >li{
+            width: 100%;
+            margin-bottom: 50px;
+            &:nth-child(1), &:nth-child(2){
+                margin-bottom: 50px;
+            }
+            &:last-child{
+                margin-bottom: 0;
+            }
         }
     }
 }
