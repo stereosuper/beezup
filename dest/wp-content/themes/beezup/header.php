@@ -68,4 +68,4 @@
 			</div>
 		</header>
 
-		<main role='main' class='main'>
+		<main role='main' class='main wrapper-sticky'>
