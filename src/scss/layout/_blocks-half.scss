@@ -6,8 +6,11 @@
 .block-half{
     width: 50%;
     text-align: center;
+    max-width: 550px;
+    margin: 0 auto;
     &.block-txt{
         width: 41.6666666667%;
+        max-width: none;
         padding-top: 40px;
     }
     &.big-img{
@@ -27,6 +30,25 @@
         margin-bottom: 20px;
         &.icon-globe{
             height: 50px;
+        }
+    }
+}
+
+@media (max-width: $desktop-small){
+    .wrapper-blocks-half{
+        flex-wrap: wrap;
+        padding: 50px 0;
+    }
+    .block-half{
+        width: 100%;
+        &.block-txt{
+            order: 1;
+            width: 100%;
+            margin-bottom: 50px;
+            padding-top: 0;
+        }
+        &.block-visu{
+            order: 2;
         }
     }
 }

@@ -22,6 +22,12 @@
         &:before, &:after{
             content: none;
         }
+        &.active{
+            a {
+                color: $secondary;
+                background: $white,
+            }
+        }
     }
     a {
         text-align: center;
@@ -33,5 +39,6 @@
         color: $white;
         text-decoration: none;
         font-size: 2rem;
+        transition: $transition;
     }
 }

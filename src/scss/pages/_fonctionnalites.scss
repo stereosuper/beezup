@@ -40,10 +40,20 @@
     .intro{
         margin: 0 auto 125px;
     }
+    .section-benefits{
+        position: relative;
+        z-index: 3;
+    }
     .side-links{
         position: absolute;
-        right: 0;
-        top: 650px;
+        right: calc((100% - 1150px)/2);
+        top: -450px;
+        z-index: 2;
+        transform: translate(0,0);
+        //transition: $transition;
+        &.sticky, &.sticky-stuck{
+            //transform: translate(0,-50%);
+        }
     }
 }
 
