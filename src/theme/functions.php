@@ -7,23 +7,35 @@ define( 'BEEZUP_API_URL', 'https://api.beezup.com/v2/public/' );
 /*-----------------------------------------------------------------------------------*/
 /* Get BeezUP API data for networks pages
 /*-----------------------------------------------------------------------------------*/
-function beezup_get_data_transient($transientName, $url){
-    $transient = get_transient( $transientName );
+function beezup_get_data_transient($transientName, $url, $args = array()){
+    $transient = get_site_transient( $transientName );
+    if( $transient ) return $transient;
+    
+    $args['accept-encoding'] = 'gzip';
+    $data = wp_safe_remote_get( BEEZUP_API_URL . $url, $args );
+    if( is_wp_error( $data ) ) return;
 
-    if( $transient ){
-        $result = $transient;
-    }else{
-        $data = wp_safe_remote_get( BEEZUP_API_URL . $url );
-        $result = is_wp_error( $data ) ? false : json_decode( $data['body'] );
-        
-        if( $result ){
-            set_transient( $transientName, $result, MONTH_IN_SECONDS );
-        }else{
-            $result = false;
+    $result = wp_remote_retrieve_body( $data );
+    if( is_wp_error( $result ) ) return;
+
+    $result = json_decode( $result );
+    set_site_transient( $transientName, $result, MONTH_IN_SECONDS );
+    return $result;
+}
+
+
+function beezup_get_channels_by_type($channelsTypeIndex, $channelsForOneLang){
+    if( !property_exists($channelsTypeIndex, 'items') || !property_exists($channelsForOneLang, 'channels')) continue;
+    
+    foreach( $channelsForOneLang->channels as $channel ){
+        foreach( $channelsTypeIndex->items as $type ){
+            if( !property_exists($channel, 'types') ) return;
+            if( $channel->types[0] !== $type->codeIdentifier ) continue;
+            $channelsByTypeForOneLang[$type->codeIdentifier][] = $channel;
         }
     }
 
-    return $result;
+    return $channelsByTypeForOneLang;
 }
 
 
