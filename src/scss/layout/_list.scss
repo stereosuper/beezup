@@ -82,11 +82,16 @@
     .wrapper-logo{
         display: block;
         position: relative;
-        width: 242px;
-        height: 172px;
+        width: 100%;
+        max-width: 242px;
         margin: 40px auto 0;
         background: $white;
-        box-shadow: -1px 10px 122px 0px rgba(0, 63, 97, 0.14); 
+        box-shadow: -1px 10px 122px 0px rgba(0, 63, 97, 0.14);
+        &:before{
+            content: '';
+            display: block;
+            padding-bottom: 70%;
+        }
         img{
             position: absolute;
             max-width: 80%;
@@ -135,6 +140,33 @@
             width: 50%;
             &:nth-child(1), &:nth-child(2){
                 margin-bottom: 60px;
+            }
+        }
+    }
+    .list-quotes{
+        margin-bottom: 0;
+        >li{
+            padding: 0 15px;
+        }
+        blockquote{
+            font-size: 1.5rem;
+        }
+    }
+}
+@media (max-width: $tablet){
+    .list-quotes{
+        display: block;
+        >li{
+            display: block;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto 50px;
+            padding-top: 30px;
+            &:before{
+                top: 0;
+            }
+            &:last-child{
+                margin-bottom: 0;
             }
         }
     }
