@@ -22,7 +22,7 @@ get_header(); ?>
         <?php the_post_thumbnail( 'full' ); ?>
 	</section>
 
-    <section class='block-full'>
+    <section class='block-full section-benefits'>
         <div class='container container-benefits'>
             <?php if( have_rows('benefits') ){ ?>
                 <ul class='benefits'>
@@ -36,7 +36,8 @@ get_header(); ?>
             <?php } ?>
 
             <?php if( have_rows('sections') ){ ?>
-                <ol class='list-menu'>
+                <ol id='menuFonctionnalites' class='list-menu'>
+        
                     <?php while( have_rows('sections') ){ the_row(); ?>
                         <li>
                             <a class='link-arrow' href='#<?php the_sub_field('anchor'); ?>' title='<?php the_sub_field('title'); ?>'><?php the_sub_field('title'); ?></a>
@@ -47,20 +48,21 @@ get_header(); ?>
         </div>
     </section>
 
-    <?php if( have_rows('sections') ){ ?>
-    <?php $i = 1; ?>
-        <nav id='sideLinksNav' class='side-links'>
-            <ul>
-                <?php while( have_rows('sections') ){ the_row(); ?>
-                    <li>
-                        <a href='#<?php the_sub_field('anchor'); ?>' title='<?php the_sub_field('title'); ?>' ><?php echo sprintf('%02d', $i); ?></a>
-                    </li>
-                <?php $i++; } ?>
-            </ul>
-        </nav>
-    <?php } ?>
+    <div class='container wrapper-sticky'>
 
-    <div class='container'>
+        <?php if( have_rows('sections') ){ ?>
+        <?php $i = 1; ?>
+            <nav id='sideLinksNav' class='side-links'>
+                <ul>
+                    <?php while( have_rows('sections') ){ the_row(); ?>
+                        <li>
+                            <a href='#<?php the_sub_field('anchor'); ?>' title='<?php the_sub_field('title'); ?>' ><?php echo sprintf('%02d', $i); ?></a>
+                        </li>
+                    <?php $i++; } ?>
+                </ul>
+            </nav>
+        <?php } ?>
+
         <?php if( have_rows('sections') ){ ?>
             <?php $i = 1; $j = 1; ?>
             <?php while( have_rows('sections') ){ the_row(); ?>
