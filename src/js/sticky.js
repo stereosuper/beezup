@@ -22,6 +22,7 @@ module.exports = function(stickyElt, givenPosition, unit = 'px'){
     }
     
     function scrollHandler() {
+        
         scrollTop = $(document).scrollTop();
         if (scrollTop >= stickyElt.data('offsetTop') - position) {
             stickyElt.addClass('sticky').css('top', position+'px');

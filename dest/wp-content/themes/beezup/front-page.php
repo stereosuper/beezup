@@ -39,10 +39,10 @@ get_header(); ?>
 		<?php } ?>
 
 		<?php if( have_rows('anchors') ){ ?>
-			<ol>
+			<ol class='list-menu'>
 				<?php while( have_rows('anchors') ){ the_row(); ?>
 					<li>
-						<a href='<?php the_sub_field('lien'); ?>' title='<?php the_sub_field('texte'); ?>'><?php the_sub_field('texte'); ?></a>
+						<a href='<?php the_sub_field('lien'); ?>' class='link-arrow' title='<?php the_sub_field('texte'); ?>'><?php the_sub_field('texte'); ?></a>
 					</li>
 				<?php } ?>
 			</ol>
@@ -72,7 +72,7 @@ get_header(); ?>
 	
 	<section class='container'>
 		<div class='wrapper-blocks-half'>
-			<div class='block-half'>
+			<div class='block-half block-visu'>
 				<?php if( have_rows('people', 'options') ){ ?>
 					<ul class='members'>
 						<?php while( have_rows('people', 'options') ){ the_row(); ?>
@@ -123,7 +123,7 @@ get_header(); ?>
 				<?php } ?>
 				<?php the_field('networkText'); ?>
 			</div>
-			<div class='block-half big-img'>
+			<div class='block-half block-visu big-img'>
 				<?php echo wp_get_attachment_image( get_field('networkImg'), 'full' ); ?>
 			</div>
 		</div>
