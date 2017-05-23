@@ -25,8 +25,6 @@ function beezup_get_data_transient($transientName, $url, $args = array()){
 
 
 function beezup_get_channels_by_type($channelsTypeIndex, $channelsForOneLang){
-    if( !property_exists($channelsTypeIndex, 'items') || !property_exists($channelsForOneLang, 'channels')) continue;
-    
     foreach( $channelsForOneLang->channels as $channel ){
         foreach( $channelsTypeIndex->items as $type ){
             if( !property_exists($channel, 'types') ) return;

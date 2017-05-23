@@ -73,6 +73,7 @@ if( $channelsIndex && property_exists($channelsIndex, 'items') ){
         // $allChannelsTogether = array_merge( $allChannelsTogether, $allChannels[$code]->channels );
 
         // Remplissage du tableau qui servira à créer le transient qui contient les channels triés par pays et par type
+        if( !property_exists($channelsTypeIndex, 'items') || !property_exists($allChannels[$code], 'channels')) continue;
         $channelsByType[$code] = beezup_get_channels_by_type( $channelsTypeIndex, $allChannels[$code] );
     }
 }else{

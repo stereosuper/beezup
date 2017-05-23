@@ -25,6 +25,7 @@ if( $channelsIndex && property_exists($channelsIndex, 'items') ){
         $code = $channel->codeIdentifier;
         $allChannels[$code] = beezup_get_data_transient( 'channels_' . $code, 'channels/' . $code );
         if( !$channelsByType ){
+            if( !property_exists($channelsTypeIndex, 'items') || !property_exists($allChannels[$code], 'channels')) continue;
             $channelsByType[$code] = beezup_get_channels_by_type( $channelsTypeIndex, $allChannels[$code] );
         }
     }
