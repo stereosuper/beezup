@@ -15,7 +15,6 @@ module.exports = function(stickyElt, givenPosition, unit = 'px'){
         windowHeight = $(window).height();
         if (unit == 'vh') {
             eltHeight = stickyElt.height();
-            console.log(eltHeight);
             position = windowHeight / (100/givenPosition) - eltHeight/2;
         } else {
             position = givenPosition;
@@ -23,7 +22,6 @@ module.exports = function(stickyElt, givenPosition, unit = 'px'){
     }
     
     function scrollHandler() {
-
         scrollTop = $(document).scrollTop();
         if (scrollTop >= stickyElt.data('offsetTop') - position) {
             stickyElt.addClass('sticky').css('top', position+'px');
