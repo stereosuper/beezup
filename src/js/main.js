@@ -3,8 +3,8 @@
 var $ = require('jquery-slim');
 
 // require('gsap');
-require('gsap/CSSPlugin');
-var TweenLite = require('gsap/TweenLite');
+// require('gsap/CSSPlugin');
+// var TweenLite = require('gsap/TweenLite');
 
 
 $(function(){
@@ -26,23 +26,29 @@ $(function(){
         langSwitcher.checkLangState(windowWidth);
     }
 
-    $('#current-language').on('click', function () {
+    // Lang Switcher
+    $('#current-language').on('click', function (){
         langSwitcher.clickOnLanguage(windowWidth);
     });
+    langSwitcher.checkLangState(windowWidth);
 
-    $('#btnMenu, #btnMenuClose, #bgMobile').on('click', function () {
+    // Header responsive
+    $('#btnMenu, #btnMenuClose, #bgMobile').on('click', function (){
         $('#header').toggleClass('deployed'); 
         body.toggleClass('no-scroll');
     });
 
-    checkInputs($('form'));
-    langSwitcher.checkLangState(windowWidth);
-
+    // Newsletter inputs
+    checkInputs($('#theform'));
+    
+    // Sticky
     sticky($('#btnDemo'), 15);
     sticky($('#sideLinksNav'), 50, 'vh');
 
+    // Fixed meu
     scrollTo($('#sideLinksNav'), true);
     scrollTo($('#menuFonctionnalites'));
+
 
     $(window).on('resize', throttle(function(){
         requestAnimFrame(resizeHandler);
@@ -50,7 +56,6 @@ $(function(){
 
     });
  
-
     $(document).on('scroll', throttle(function(){
     
     }, 60));
