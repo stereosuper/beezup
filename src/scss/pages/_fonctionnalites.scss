@@ -1,4 +1,41 @@
 .page-template-fonctionnalites{
+    .section-bottom{
+        display: flex;
+        padding: 100px 0 100px 50px;
+        position: relative;
+        &:after{
+            content: '';
+            display: block;
+            background: url('../layoutImg/quadrillage.png') no-repeat;
+            width: 2000px;
+            height: 600px;
+            left: -500px;
+            position: absolute;
+            z-index: -1;
+        }
+        .text-bottom{
+            order: 2;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 50px 0 0;
+        }
+        .btn{
+            margin: 3em 0 0 0; 
+        }
+    }
+    .container-img-bottom{
+        width: 45%;
+        order: 1;
+        transform: scaleY(0.75) rotate(-10deg);
+        .img-bottom{
+            transform: rotate(-45deg);
+            border: 3px solid $white;
+            box-shadow: -39px 39px 0px 0px rgba(242, 247, 249, 1); 
+        }
+    }
     hr {
         margin: 0 auto;
         height: 1px;
@@ -36,24 +73,21 @@
         position: absolute;
         right: 0;
         bottom: 0;
+        z-index: 4;
     }
     .intro{
         margin: 0 auto 125px;
     }
     .section-benefits{
         position: relative;
-        z-index: 3;
+        z-index: 2;
     }
+
     .side-links{
         position: absolute;
         right: calc((100% - 1150px)/2);
         top: -450px;
-        z-index: 2;
-        transform: translate(0,0);
-        //transition: $transition;
-        &.sticky, &.sticky-stuck{
-            //transform: translate(0,-50%);
-        }
+        z-index: 1;
     }
 }
 
@@ -98,6 +132,12 @@
 .subsection-link{
     text-align: right;
     width: 58%;
+    .link-arrow{
+        color: $primary;
+        &:after{
+            background: url('../layoutImg/arrow-right-blue.svg') no-repeat;
+        }
+    }
 }
 
 .container-benefits{
