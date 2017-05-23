@@ -345,6 +345,22 @@ function beezup_mlp_navigation(){
 
 
 /*-----------------------------------------------------------------------------------*/
+/* Yoast breadcrumbs
+/*-----------------------------------------------------------------------------------*/
+include_once( get_template_directory() . '/functions/schemaorg_breadcrumbs.php' );
+
+function beezup_instantiate_breadcrumbs_class(){
+    global $schemaorg_breadcrumbs;
+    $schemaorg_breadcrumbs = null;
+
+    if( function_exists( 'yoast_breadcrumb' ) && class_exists( 'SchemaOrg_Breadcrumbs' ) ){
+        $schemaorg_breadcrumbs = new SchemaOrg_Breadcrumbs();
+    }
+}
+add_action( 'after_setup_theme', 'beezup_instantiate_breadcrumbs_class' );
+
+
+/*-----------------------------------------------------------------------------------*/
 /* Enqueue Styles and Scripts
 /*-----------------------------------------------------------------------------------*/
 // Add defer attr to scripts

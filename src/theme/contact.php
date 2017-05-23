@@ -94,7 +94,7 @@ get_header(); ?>
 <?php if ( have_posts() ) : the_post(); ?>
 	
 	<section class='container'>
-        <?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb(); } ?>
+       <?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
         
 		<h1 class='title-black'>
 			<?php the_title(); ?>
