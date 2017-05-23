@@ -5,11 +5,14 @@ Template Name: Contact
 
 $error = false;
 $success = false;
+
 $errorLastname = false;
 $errorFirstname = false;
-$errorPhone = false;
-$errorMail = false;
 $errorMsg = false;
+$errorPhone = false;
+$errorPhoneTxt = false;
+$errorMail = false;
+$errorMailTxt = false;
 $errorSend = false;
 
 $lastname = isset($_POST['last_name']) ? strip_tags(stripslashes($_POST['last_name'])) : '';
@@ -24,39 +27,42 @@ $mailto = get_field('emails', 'options');
 
 if( isset($_POST['submit']) ){
     if( empty($lastname) ){
-        $errorLastname = __('The field "Last Name" is mandatory', 'beezup');
+        $errorLastname = true;
         $error = true;
     }
 
     if( empty($firstname) ){
-        $errorFirstname = __('The field "First Name" is mandatory', 'beezup');
+        $errorFirstname = true;
         $error = true;
     }
 
     if( empty($phone) ){
-        $errorPhone = __('The field "Phone" is mandatory', 'beezup');
+        $errorPhone = true;
         $error = true;
     }else{
         if( !(strlen($phone) < 20 && strlen($phone) > 9 && preg_match("/^\+?[^.\-][0-9\.\- ]+$/", $phone)) ){
-            $errorPhone = __('The phone number is not valid', 'beezup');
+            $errorPhoneTxt = __('The phone number is not valid', 'beezup');
+            $errorPhone = true;
             $error = true;
         }
     }
 
     if( empty($mail) ){
-        $errorMail = __('The field "E-mail" is mandatory', 'beezup');
+        $errorMail = true;
         $error = true;
     }else{
         if( !filter_var($mail, FILTER_VALIDATE_EMAIL) ){
-            $errorMail = __('The e-mail address is not valid', 'beezup');
+            $errorMailTxt = __('The e-mail address is not valid', 'beezup');
+            $errorMail = true;
             $error = true;
         }
     }
 
     if( empty($msg) ){
-        $errorMsg = __('The field "Your project" is mandatory', 'beezup');
+        $errorMsg = true;
         $error = true;
     }
+
 
     if( !$error ){
         if( empty($spamUrl) ){
@@ -126,39 +132,35 @@ get_header(); ?>
         <?php } ?>
 
         <form method='post' action='<?php the_permalink(); ?>'>
-            <div class='<?php if($errorLastname) echo 'error'; ?>'>
+            <div class='field <?php if($errorLastname) echo 'error'; ?>'>
                 <label for='last_name'><?php _e('Last Name', 'beezup'); ?></label>
-                <input type='text' name='last_name' id='last_name' value='<?php echo $lastname; ?>' required>
-                <?php if($errorLastname) echo '<span>'. $errorLastname .'</span>'; ?>
+                <input type='text' name='last_name' id='last_name' value='<?php echo $lastname; ?>' >
             </div>
 
-            <div class='<?php if($errorFirstname) echo 'error'; ?>'>
+            <div class='field <?php if($errorFirstname) echo 'error'; ?>'>
                 <label for='first_name'><?php _e('First Name', 'beezup'); ?></label>
-                <input type='text' name='first_name' id='first_name' value='<?php echo $firstname; ?>' required>
-                <?php if($errorFirstname) echo '<span>'. $errorFirstname .'</span>'; ?>
+                <input type='text' name='first_name' id='first_name' value='<?php echo $firstname; ?>' >
             </div>
 
-            <div>
+            <div class='field'>
                 <label for='website'><?php _e('E-commerce(s) website(s)', 'beezup'); ?> <i>(<?php _e('optionnal', 'beezup'); ?>)</i></label>
                 <input type='url' name='website' id='webiste' value='<?php echo $website; ?>'>
             </div>
 
-            <div class='<?php if($errorPhone) echo 'error'; ?>'>
+            <div class='field <?php if($errorPhone) echo 'error'; ?>'>
                 <label for='tel'><?php _e('Phone', 'beezup'); ?></label>
-                <input type='tel' name='tel' id='tel' value='<?php echo $phone; ?>' required>
-                <?php if($errorPhone) echo '<span>'. $errorPhone .'</span>'; ?>
+                <input type='tel' name='tel' id='tel' value='<?php echo $phone; ?>' >
+                
             </div>
 
-            <div class='<?php if($errorMail) echo 'error'; ?>'>
+            <div class='field <?php if($errorMail) echo 'error'; ?>'>
                 <label for='email'><?php _e('Email', 'beezup'); ?></label>
-                <input type='email' name='email-contact' id='email' value='<?php echo $mail; ?>' required>
-                <?php if($errorMail) echo '<span>'. $errorMail .'</span>'; ?>
+                <input type='email' name='email-contact' id='email' value='<?php echo $mail; ?>' >
             </div>
 
-            <div class='<?php if($errorMsg) echo 'error'; ?>'>
+            <div class='field <?php if($errorMsg) echo 'error'; ?>'>
                 <label for='message'><?php _e('Message', 'beezup'); ?></label>
-                <textarea name='message' id='message' required><?php echo $msg; ?></textarea>
-                <?php if($errorMsg) echo '<span>'. $errorMsg .'</span>'; ?>
+                <textarea name='message' id='message' ><?php echo $msg; ?></textarea>
             </div>
 
             <div class='hidden'>
@@ -169,6 +171,8 @@ get_header(); ?>
             <?php if( $error && !$errorSend ){ ?>
                 <p class='form-error'>
                     <?php _e('Please fill all the required fields', 'beezup'); ?>
+                    <?php if($errorPhoneTxt) echo '<br>'. $errorPhoneTxt; ?>
+                    <?php if($errorMailTxt) echo '<br>'. $errorMailTxt; ?>
                 </p>
             <?php } ?>
 
