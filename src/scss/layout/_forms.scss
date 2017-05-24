@@ -176,3 +176,27 @@ button{
         }
     }
 }
+
+
+@media (max-width: $desktop-large){
+    .field.error, .form-success, .form-error{
+        .icon{
+            left: -35px;
+        }
+    }
+
+    .form-success{
+        margin-left: 32px;
+    }
+}
+
+@media (max-width: $phone){
+    .field{
+        .btn-add{
+            position: relative;
+            top: 0;
+            left: 0;
+            margin: 5px 0 0;
+        }
+    }
+}
