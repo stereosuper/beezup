@@ -1,1 +1,13 @@
 /* Home specific style */
+.wrapper-list-menu-home{
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 100px;
+    .list-menu{
+        margin-bottom: -20px;
+    }
+}
+.title-home{
+    font-family: $fira-semibold;
+    font-size: 4.5rem;
+}

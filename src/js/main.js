@@ -15,6 +15,7 @@ $(function(){
     var langSwitcher = require('./langSwitcher.js');
     var sticky = require('./sticky.js');
     var scrollTo = require('./scrollTo.js');
+    var animTopHome = require('./animTopHome.js');
 
     var body = $('body');
     // window.outerWidth returns the window width including the scroll, but it's not working with $(window).outerWidth
@@ -43,6 +44,8 @@ $(function(){
 
     scrollTo($('#sideLinksNav'), true);
     scrollTo($('#menuFonctionnalites'));
+
+    animTopHome();
 
     $(window).on('resize', throttle(function(){
         requestAnimFrame(resizeHandler);
