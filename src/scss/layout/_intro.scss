@@ -1,6 +1,7 @@
 .intro{
     display: flex;
 }
+
 .text-intro{
     width: $col*7;
     h1{
@@ -8,20 +9,25 @@
         text-align: left;
     }
 }
+
 .img-intro{
     flex: 1;
 }
 
+
 .breadcrumbs{
-    font-size: 1.3rem;
-    color: $primary;
     position: relative;
     z-index: 1;
+    font-size: 1.3rem;
+    color: $primary;
     a{
         text-decoration: none;
         color: $primary;
+        &:hover, &:focus{
+            color: $secondary;
+        }
     }
     .breadcrumb_last{
-        color: $black;
+        color: $text;
     }
 }
