@@ -15,25 +15,28 @@ $(function(){
     var langSwitcher = require('./langSwitcher.js');
     var sticky = require('./sticky.js');
     var scrollTo = require('./scrollTo.js');
+    var addUrlInputs = require('./addUrlInputs.js');
 
     var body = $('body');
     // window.outerWidth returns the window width including the scroll, but it's not working with $(window).outerWidth
     var windowWidth = window.outerWidth, windowHeight = $(window).height();
 
-    function resizeHandler() {
+    // On window resize
+    function resizeHandler(){
         windowWidth = window.outerWidth;
         windowHeight = $(window).height();
+        
         langSwitcher.checkLangState(windowWidth);
     }
 
     // Lang Switcher
-    $('#current-language').on('click', function (){
+    $('#current-language').on('click', function(){
         langSwitcher.clickOnLanguage(windowWidth);
     });
     langSwitcher.checkLangState(windowWidth);
 
     // Header responsive
-    $('#btnMenu, #btnMenuClose, #bgMobile').on('click', function (){
+    $('#btnMenu, #btnMenuClose, #bgMobile').on('click', function(){
         $('#header').toggleClass('deployed'); 
         body.toggleClass('no-scroll');
     });
@@ -49,9 +52,14 @@ $(function(){
     scrollTo($('#sideLinksNav'), true);
     scrollTo($('#menuFonctionnalites'));
 
+    // Add url inputs
+    addUrlInputs($('#addUrlInput'), $('#newInputsCount'));
+
 
     $(window).on('resize', throttle(function(){
+
         requestAnimFrame(resizeHandler);
+
     }, 60)).on('load', function(){
 
     });

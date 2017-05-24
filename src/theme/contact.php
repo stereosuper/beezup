@@ -24,6 +24,13 @@ $mail = isset($_POST['email-contact']) ? strip_tags(stripslashes($_POST['email-c
 $msg = isset($_POST['message']) ? strip_tags(stripslashes($_POST['message'])) : '';
 $spamUrl = isset($_POST['url']) ? strip_tags(stripslashes($_POST['url'])) : '';
 
+$websitesCount = isset($_POST['new-websites-count']) ? strip_tags($_POST['new-websites-count']) : '';
+if( $websitesCount > 0 ){
+    for( $i = 1; $i <= $websitesCount; $i++){
+        $newWebsites[] = isset($_POST['website'.$i]) ? strip_tags($_POST['website'.$i]) : '';
+    }
+}
+
 $mailto = get_field('emails', 'options');
 
 if( isset($_POST['submit']) ){
@@ -84,6 +91,15 @@ if( isset($_POST['submit']) ){
                        'Téléphone: ' . $phone . "\r\n";
             if( !empty($website) ){
                 $content .= 'Site web: ' . $website . "\r\n";
+            }
+            if( isset($newWebsites) ){
+                $count = 1;
+                foreach( $newWebsites as $newWebsite ){
+                    if( !empty($newWebsite) ){
+                        $count ++;
+                        $content .= 'Site web ' . $count . ': ' . $newWebsite . "\r\n";
+                    }
+                }
             }
             $content .= "\r\n" . 'Message: ' . $msg;
             
@@ -162,6 +178,7 @@ get_header(); ?>
                     <?php _e('Add', 'beezup'); ?>
                     <svg class='icon icon-plus'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-plus'></use></svg>
                 </button>
+                <input type='hidden' value='0' name='new-websites-count' id='newInputsCount'>
             </div>
 
             <div class='field <?php if($errorPhone) echo 'error'; ?>'>
