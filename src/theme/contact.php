@@ -158,7 +158,7 @@ get_header(); ?>
             <div class='field optionnal'>
                 <label for='website'><?php _e('E-commerce(s) website(s)', 'beezup'); ?> <i>(<?php _e('optionnal', 'beezup'); ?>)</i></label>
                 <input type='url' name='website' id='webiste' value='<?php echo $website; ?>' placeholder='http://'>
-                <button id='addUrlInput' class='btn-add'>
+                <button id='addUrlInput' class='btn-add' type='button'>
                     <?php _e('Add', 'beezup'); ?>
                     <svg class='icon icon-plus'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-plus'></use></svg>
                 </button>
