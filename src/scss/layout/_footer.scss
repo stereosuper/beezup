@@ -6,6 +6,10 @@
     }
     a{
         color: $white;
+        &:hover, &:focus{
+            color: $white;
+            opacity: 0.6;
+        }
     }
     .link-arrow{
         &:after{
