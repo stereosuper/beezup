@@ -97,11 +97,11 @@ add_filter( 'login_errors', create_function('$a', "return null;") );
 /* Admin
 /*-----------------------------------------------------------------------------------*/
 // Remove some useless admin stuff
-function beezup_remove_submenus(){
+function beezup_remove_menus(){
     remove_submenu_page( 'themes.php', 'themes.php' );
     remove_menu_page( 'edit-comments.php' );
 }
-add_action( 'admin_menu', 'beezup_remove_submenus', 999 );
+add_action( 'admin_menu', 'beezup_remove_menus', 999 );
 function beezup_remove_top_menus( $wp_admin_bar ){
     $wp_admin_bar->remove_node( 'wp-logo' );
 }
