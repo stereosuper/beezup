@@ -8,45 +8,39 @@ get_header(); ?>
 <?php if ( have_posts() ) : the_post(); ?>
 	
 	<section class='container'>
-		<h2 class='h1'>
-			<?php the_title(); ?>
-			<?php if( get_field('title2') ){ ?>
-				<span><?php the_field('title2'); ?></span>
-			<?php } ?>
-		</h2>
-
-		<?php if( get_field('headerBtn') ){ ?>
-			<a href='#flux' class='btn' title='<?php _e('Gestion du flux e-commerce - BeezUP', 'beezup'); ?>'><?php the_field('headerBtn'); ?></a>
-		<?php } ?>
-
 		<?php the_post_thumbnail( 'full' ); ?>
-
-		<?php if( get_field('title') ){ ?>
-			<h1>
-				<?php the_field('title'); ?>
-				<?php if( get_field('titleBlack') ){ ?>
-					<span><?php the_field('titleBlack'); ?></span>
-				<?php } ?>
-			</h1>
-		<?php } ?>
-
-		<?php the_field('headerText'); ?>
-
-		<?php if( get_field('headerBtn2') ){ ?>
-			<button class='btn-arrow' data-appointlet-organization='beezup' data-appointlet-service='32290'>
-				<?php the_field('headerBtn2'); ?>
-			</button>
-		<?php } ?>
-
-		<?php if( have_rows('anchors') ){ ?>
-			<ol class='list-menu'>
-				<?php while( have_rows('anchors') ){ the_row(); ?>
-					<li>
-						<a href='<?php the_sub_field('lien'); ?>' class='link-arrow' title='<?php the_sub_field('texte'); ?>'><?php the_sub_field('texte'); ?></a>
-					</li>
-				<?php } ?>
-			</ol>
-		<?php } ?>
+		<h2 class='h1 block-half block-txt block-title-home' id='titleHome'>
+			<span class='title-home primary' data-after="<?php the_field('title'); ?>"><?php the_title(); ?></span>
+			<span class='title-home' data-after-black="<?php if( get_field('titleBlack') ){ ?><?php the_field('titleBlack'); ?><?php } ?>"><?php if( get_field('title2') ){ ?><?php the_field('title2'); ?><?php } ?></span>
+		</h2>
+		<div style='opacity: 0;'>
+			<?php if( get_field('title') ){ ?>
+				<h1>
+					<?php the_field('title'); ?>
+					<?php if( get_field('titleBlack') ){ ?>
+						<span><?php the_field('titleBlack'); ?></span>
+					<?php } ?>
+				</h1>
+			<?php } ?>
+			<?php the_field('headerText'); ?>
+			<?php if( get_field('headerBtn2') ){ ?>
+				<button class='btn btn-arrow' data-appointlet-organization='beezup' data-appointlet-service='32290'>
+					<?php the_field('headerBtn2'); ?>
+					<svg class='icon icon-arrow-right'><use xlink:href='#icon-arrow-right'></use></svg>
+				</button>
+			<?php } ?>
+		</div>
+		<div class='wrapper-list-menu-home'>
+			<?php if( have_rows('anchors') ){ ?>
+				<ol class='list-menu'>
+					<?php while( have_rows('anchors') ){ the_row(); ?>
+						<li>
+							<a href='<?php the_sub_field('lien'); ?>' class='link-arrow' title='<?php the_sub_field('texte'); ?>'><?php the_sub_field('texte'); ?></a>
+						</li>
+					<?php } ?>
+				</ol>
+			<?php } ?>
+		</div>
 	</section>
 	
 	<section class='block-full'>

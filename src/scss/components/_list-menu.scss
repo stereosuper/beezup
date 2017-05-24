@@ -1,9 +1,13 @@
 .list-menu{
-    padding: 75px 70px 75px 140px;
+    width: 50%;
     margin: 0;
+    padding: 75px 70px 75px 140px;
     background-color: $white;
     box-shadow: -1px 10px 79px 0px rgba(0, 63, 97, 0.09);
-    width: 50%;
+    text-align: left;
+    .block-half &{
+        width: 100%;
+    }
     li{
         margin: 0 0 35px;
         &:before{

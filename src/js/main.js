@@ -15,6 +15,7 @@ $(function(){
     var langSwitcher = require('./langSwitcher.js');
     var sticky = require('./sticky.js');
     var scrollTo = require('./scrollTo.js');
+    var animTopHome = require('./animTopHome.js');
     var addUrlInputs = require('./addUrlInputs.js');
 
     var body = $('body');
@@ -53,6 +54,7 @@ $(function(){
     scrollTo($('#sideLinksNav'), true);
     scrollTo($('#menuFonctionnalites'));
 
+    animTopHome();
     // Add url inputs
     addUrlInputs($('#addUrlInput'), $('#newInputsCount'));
 
@@ -66,7 +68,6 @@ $(function(){
             });
         });
     }
-
 
     $(window).on('resize', throttle(function(){
 
