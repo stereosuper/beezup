@@ -114,7 +114,7 @@ get_header(); ?>
                     <?php the_field('bottomText'); ?>
 
                     <?php if( get_field('bottomBtn') ){ ?>
-                    <button class='btn-arrow btn' data-appointlet-organization='beezup' data-appointlet-service='32290'><?php the_field('bottomBtn'); ?><svg class='icon icon-arrow-right'><use xlink:href='#icon-arrow-right'></use></svg></button>
+                    <button class='btn-arrow btn' data-appointlet-organization='beezup' data-appointlet-service='32290'><?php the_field('bottomBtn'); ?><svg class='icon'><use xlink:href='#icon-arrow-right'></use></svg></button>
                  <?php } ?>
                 </div>
                 <div class='container-img-bottom'>

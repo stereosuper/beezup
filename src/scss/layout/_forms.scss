@@ -98,7 +98,7 @@ button{
     border: 0;
 }
 
-.field, .form-error, .form-success{
+.field.error, .form-error, .form-success{
     position: relative;
     .icon{
         width: 30px;

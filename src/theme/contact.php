@@ -158,6 +158,10 @@ get_header(); ?>
             <div class='field optionnal'>
                 <label for='website'><?php _e('E-commerce(s) website(s)', 'beezup'); ?> <i>(<?php _e('optionnal', 'beezup'); ?>)</i></label>
                 <input type='url' name='website' id='webiste' value='<?php echo $website; ?>' placeholder='http://'>
+                <button id='addUrlInput' class='btn-add'>
+                    <?php _e('Add', 'beezup'); ?>
+                    <svg class='icon icon-plus'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-plus'></use></svg>
+                </button>
             </div>
 
             <div class='field <?php if($errorPhone) echo 'error'; ?>'>
@@ -200,7 +204,7 @@ get_header(); ?>
 
             <button class='btn btn-arrow' type='submit' name='submit' for='form-contact'>
                 <?php _e('Submit', 'beezup'); ?>
-                <svg class='icon icon-arrow-right'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-arrow-right'></use></svg>
+                <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-arrow-right'></use></svg>
             </button>
         </form>
 
