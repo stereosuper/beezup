@@ -9,9 +9,7 @@ get_header(); ?>
 	
 	<section class='container intro'>
         <div class='text-intro'>
-            <?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('
-            <span class="breadcrumbs">','</span>
-            '); } ?>
+            <?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
             
             <h1 class='title-black'>
                 <?php the_title(); ?>
@@ -116,7 +114,7 @@ get_header(); ?>
                     <?php the_field('bottomText'); ?>
 
                     <?php if( get_field('bottomBtn') ){ ?>
-                    <button class='btn-arrow btn' data-appointlet-organization='beezup' data-appointlet-service='32290'><?php the_field('bottomBtn'); ?><svg class='icon icon-arrow-right'><use xlink:href='#icon-arrow-right'></use></svg></button>
+                    <button class='btn-arrow btn' data-appointlet-organization='beezup' data-appointlet-service='32290'><?php the_field('bottomBtn'); ?><svg class='icon'><use xlink:href='#icon-arrow-right'></use></svg></button>
                  <?php } ?>
                 </div>
                 <div class='container-img-bottom'>

@@ -2,7 +2,7 @@
 
 <div class='container'>
 
-	<?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb(); } ?>
+	<?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
 
 	<h1><?php echo single_cat_title(); ?></h1>
 

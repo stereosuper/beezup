@@ -19,8 +19,8 @@
 
 .btn-secondary{
     display: inline-block;
-    width: 44px;
-    height: 44px;
+    width: 45px;
+    height: 45px;
     font-family: $fira-semibold;
     font-size: 1.4rem;
     background: $black;
@@ -34,13 +34,20 @@
 .btn-arrow{
     padding: 15px 52px 15px 34px;
     position: relative;
-    .icon-arrow-right{
-        position: absolute;
-        top: 50%;
-        right: 30px;
+    .icon{
         width: 10px;
         height: 8px;
-        transform: translate3d(0, -50%, 0);
+        position: absolute;
+        top: 1px;
+        bottom: 0;
+        margin: auto;
+        right: 30px;
+        transition: $transition;
+    }
+    &:hover, &:focus{
+        .icon{
+            transform: translate3d(5px, 0, 0);
+        }
     }
 }
 
@@ -62,5 +69,26 @@
         &:after{
             transform: translate3d(5px, 0, 0);
         }
+    }
+}
+
+.btn-add{
+    display: inline-block;
+    padding: 0 0 0 22px;
+    position: relative;
+    font-size: 1.3rem;
+    color: $secondary;
+    text-decoration: underline;
+    .icon{
+        width: 14px;
+        height: 14px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 1px;
+        margin: auto;
+    }
+    &:hover, &:focus{
+        color: $primary;
     }
 }

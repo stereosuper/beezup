@@ -19,6 +19,7 @@
         "module": false,
         "window": false,
         "document": false,
-        "console": false
+        "console": false,
+        "requestAnimFrame": false
     }
 }
