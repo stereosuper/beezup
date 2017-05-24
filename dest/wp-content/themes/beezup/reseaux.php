@@ -51,6 +51,48 @@ if( $channelsToDisplay ){
     usort($channelsToDisplay, 'beezup_sort_by_name');
 }
 
+function beezup_get_country_select($channelsIndex, $country){
+    if( !$channelsIndex || !property_exists($channelsIndex, 'items') ) return;
+
+    $output = '<select name="country">';
+    
+    foreach( $channelsIndex->items as $channel ){
+        $code = $channel->codeIdentifier;
+        
+        $output .= '<option value="' . $code . '"';
+        if($code === $country){
+            $output .= ' selected';
+        }
+        $output .= '>';
+        $output .= $channel->translationText;
+        $output .= '</option>';
+    }
+
+    $output .= ' </select>';
+    return $output;
+}
+
+function beezup_get_types_pages($channelsByType, $subPages, $country, $postID){
+    if( !$channelsByType || !isset($channelsByType[$country]) || !$subPages ) return;
+
+    $output = '';
+
+    foreach( $subPages as $subPage ){
+        if( !isset($channelsByType[$country][get_field('type', $subPage->ID)]) ) continue;
+
+        $output .= '<li';
+        if( $postID === $subPage->ID ){
+            $output .= 'class="current"';
+        }
+        $output .= '>';
+        $output .= '<a href="' . $subPage->guid . '"?country="' . $country . '">' . $subPage->post_title . '</a>';
+        $output .= '</li>';
+    }
+
+    return $output;
+}
+
+
 get_header(); ?>
 
 <?php if ( have_posts() ) : the_post(); ?>
@@ -70,40 +112,29 @@ get_header(); ?>
         <?php } ?>
 
         <?php the_field('text', $networkPage); ?>
-
         <?php the_post_thumbnail( 'full', $networkPage ); ?>
 
-        <?php if( $channelsIndex && property_exists($channelsIndex, 'items') ){ ?>
+
+        <?php $countrySelect = beezup_get_country_select($channelsIndex, $country); ?>
+        
+        <?php if( $countrySelect ){ ?>
             <?php the_field('form', $networkPage); ?>
 
             <form action='<?php the_permalink(); ?>' method='GET'>
-                <select name='country'>
-                    <?php foreach( $channelsIndex->items as $channel ){ ?>
-                        <?php $code = $channel->codeIdentifier; ?>
-                        <option value='<?php echo $code; ?>' <?php if($code === $country){ echo 'selected'; } ?>>
-                            <?php echo $channel->translationText; ?>
-                        </option>
-                    <?php } ?>
-                </select>
-
+                <?php echo $countrySelect; ?>
                 <button type='submit' name='filter' value='true'>Go</button>
             </form>
         <?php } ?>
 
-        <?php if( $channelsByType && isset($channelsByType[$country]) ){ ?>
-            <?php $subPages = get_pages( array('child_of' => $networkPage) ); ?>
-            <?php if( $subPages ){ ?>
-                <ul>
-                    <li class='<?php if( $isNetworkPage ) echo "current"; ?>'><a href='<?php echo get_the_permalink($networkPage); ?>'><?php _e('All types of channels', 'beezup'); ?></a></li>
-                    <?php foreach( $subPages as $subPage ){ ?>
-                        <?php if( isset($channelsByType[$country][get_field('type', $subPage->ID)]) ){ ?>
-                            <li class='<?php if( $post->ID === $subPage->ID ) echo "current"; ?>'>
-                                <a href='<?php echo $subPage->guid . "?country=" . $country; ?>'><?php echo $subPage->post_title; ?></a>
-                            </li>
-                        <?php } ?>
-                    <?php } ?>
-                </ul>
-            <?php } ?>
+
+        <?php $subPages = get_pages( array('child_of' => $networkPage) ); ?>
+        <?php $typePages = beezup_get_types_pages($channelsByType, $subPages, $country, $post->ID); ?>
+
+        <?php if( $typePages ){ ?>
+            <ul>
+                <li class='<?php if( $isNetworkPage ) echo "current"; ?>'><a href='<?php echo get_the_permalink($networkPage); ?>'><?php _e('All types of channels', 'beezup'); ?></a></li>
+                <?php echo $typePages; ?>
+            </ul>
         <?php } ?>
 	</section>
 
@@ -112,7 +143,7 @@ get_header(); ?>
             <ul>
                 <?php foreach( $channelsToDisplay as $partner ){ ?>
                     <?php $name = $partner->name; ?>
-                    <li>
+                    <li data-sector='<?php echo $partner->sectors[0]; ?>'>
                         <a href='<?php echo $partner->homeUrl; ?>' title='<?php echo $name; ?>' target='_blank'>
                             <?php echo $name; ?>
                             <img src='<?php echo $partner->logoUrl; ?>' alt='<?php echo $name; ?>'>

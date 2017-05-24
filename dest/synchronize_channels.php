@@ -5,6 +5,7 @@
 /*-----------------------------------------------------------------------------------*/
 require_once( 'wp-load.php' );
 
+// Get all the sites of the multisite installation
 $sites = get_sites();
 
 
@@ -19,6 +20,7 @@ foreach( $sites as $site ){
     delete_site_transient( 'channels_index_' . $lang );
     echo( 'Transient for channels index ' . $lang . ' deleted. <br>' );
 
+    // Liste des liste de channels par pays
     $transientChannelsIndex = beezup_get_data_transient( 'channels_index_' . $lang, 'lov/www_ChannelCountry', array('accept-language' => $lang) );
     $allChannelsIndex[] = $transientChannelsIndex;
     if( $transientChannelsIndex ){
@@ -30,6 +32,7 @@ foreach( $sites as $site ){
     delete_site_transient( 'channels_type_index_' . $lang );
     echo( 'Transient for channels type index ' . $lang . ' deleted. <br>' );
 
+    // Liste des types
     $transientChannelsTypeIndex = beezup_get_data_transient( 'channels_type_index', 'lov/ChannelType', array('accept-language' => $lang) );
     $allChannelsTypeIndex[] = $transientChannelsTypeIndex;
     if( $transientChannelsIndex ){
