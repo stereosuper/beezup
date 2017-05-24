@@ -18,6 +18,7 @@ $(function(){
     var addUrlInputs = require('./addUrlInputs.js');
 
     var body = $('body');
+    var forms = $('form');
     // window.outerWidth returns the window width including the scroll, but it's not working with $(window).outerWidth
     var windowWidth = window.outerWidth, windowHeight = $(window).height();
 
@@ -54,6 +55,17 @@ $(function(){
 
     // Add url inputs
     addUrlInputs($('#addUrlInput'), $('#newInputsCount'));
+
+    // Remove form success opacity
+    if(forms.length){
+        forms.each(function(){
+            $(this).on('click', function(){
+                if($(this).hasClass('success')){
+                    $(this).removeClass('success');
+                }
+            });
+        });
+    }
 
 
     $(window).on('resize', throttle(function(){
