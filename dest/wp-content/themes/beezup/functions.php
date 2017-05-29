@@ -23,7 +23,6 @@ function beezup_get_data_transient($transientName, $url, $args = array()){
     return $result;
 }
 
-
 function beezup_get_channels_by_type($channelsTypeIndex, $channelsForOneLang){
     foreach( $channelsForOneLang->channels as $channel ){
         foreach( $channelsTypeIndex->items as $type ){
@@ -34,6 +33,91 @@ function beezup_get_channels_by_type($channelsTypeIndex, $channelsForOneLang){
     }
 
     return $channelsByTypeForOneLang;
+}
+
+function beezup_get_all_channels($channelsIndex, $currentLang){
+    $channelsTypeIndex = beezup_get_data_transient( 'channels_type_index_' . $currentLang, 'lov/ChannelType' );
+
+    if( !$channelsIndex || !property_exists($channelsIndex, 'items') ) return;
+
+    $allChannels = [];
+    $channelsByType = get_site_transient('channels_by_type');
+
+    foreach( $channelsIndex->items as $channel ){
+        $code = $channel->codeIdentifier;
+        $allChannels[$code] = beezup_get_data_transient( 'channels_' . $code, 'channels/' . $code );
+        
+        if( !$channelsByType || !property_exists($channelsTypeIndex, 'items') || !property_exists($allChannels[$code], 'channels')) continue;
+        $channelsByType[$code] = beezup_get_channels_by_type( $channelsTypeIndex, $allChannels[$code] );
+    }
+
+    return [$allChannels,  $channelsByType];
+}
+
+
+/*-----------------------------------------------------------------------------------*/
+/* Get BeezUP API HTML content for networks pages
+/*-----------------------------------------------------------------------------------*/
+function beezup_get_country_select($channelsIndex, $country){
+    if( !$channelsIndex || !property_exists($channelsIndex, 'items') ) return;
+
+    $output = '<select name="country">';
+    
+    foreach( $channelsIndex->items as $channel ){
+        $code = $channel->codeIdentifier;
+        
+        $output .= '<option value="' . $code . '"';
+        if($code === $country){
+            $output .= ' selected';
+        }
+        $output .= '>';
+        $output .= $channel->translationText;
+        $output .= '</option>';
+    }
+
+    $output .= ' </select>';
+    return $output;
+}
+
+function beezup_get_types_pages($channelsByType, $subPages, $country, $postID){
+    if( !$channelsByType || !isset($channelsByType[$country]) || !$subPages ) return;
+
+    $output = '';
+
+    foreach( $subPages as $subPage ){
+        if( !isset($channelsByType[$country][get_field('type', $subPage->ID)]) ) continue;
+
+        $output .= '<li';
+        if( $postID === $subPage->ID ){
+            $output .= 'class="current"';
+        }
+        $output .= '>';
+        $output .= '<a href="' . $subPage->guid . '"?country="' . $country . '">' . $subPage->post_title . '</a>';
+        $output .= '</li>';
+    }
+
+    return $output;
+}
+
+function beezup_get_channels_to_display($channelsToDisplay){
+    if( !$channelsToDisplay ) return;
+
+    $output = '';
+
+    foreach( $channelsToDisplay as $partner ){
+        $name = $partner->name;
+        $output .= '<li';
+        if( property_exists($partner, 'sectors') && isset($partner->sectors[0]) ){
+            $output .= ' data-sector="' . $partner->sectors[0] . '"';
+        }
+        $output .= '>';
+        $output .= '<a href="' . $partner->homeUrl . '" title="' . $name . '" target="_blank">';
+        $output .= $name;
+        $output .= '<img src="' . $partner->logoUrl . '" alt="' . $name . '">';
+        $output .= '</a></li>';
+    }
+
+    return $output;
 }
 
 
