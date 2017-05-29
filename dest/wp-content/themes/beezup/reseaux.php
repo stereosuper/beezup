@@ -13,23 +13,10 @@ $defaultCountry = $fieldLang ? $fieldLang : 'FRA';
 $country = isset( $_GET['country'] ) ? $_GET['country'] : $defaultCountry;
 
 $channelsIndex = beezup_get_data_transient( 'channels_index_' . $currentLang, 'lov/www_ChannelCountry' );
-$channelsTypeIndex = beezup_get_data_transient( 'channels_type_index_' . $currentLang, 'lov/ChannelType' );
 
-$channelsByType = get_site_transient('channels_by_type');
-
-$allChannels = [];
+$allChannels = beezup_get_all_channels($channelsIndex, $currentLang)[0];
+$channelsByType = beezup_get_all_channels($channelsIndex, $currentLang)[1];
 $channelsToDisplay = [];
-
-if( $channelsIndex && property_exists($channelsIndex, 'items') ){
-    foreach( $channelsIndex->items as $channel ){
-        $code = $channel->codeIdentifier;
-        $allChannels[$code] = beezup_get_data_transient( 'channels_' . $code, 'channels/' . $code );
-        if( !$channelsByType ){
-            if( !property_exists($channelsTypeIndex, 'items') || !property_exists($allChannels[$code], 'channels')) continue;
-            $channelsByType[$code] = beezup_get_channels_by_type( $channelsTypeIndex, $allChannels[$code] );
-        }
-    }
-}
 
 $noChannels = false;
 
@@ -49,47 +36,6 @@ if( $isNetworkPage ){
 
 if( $channelsToDisplay ){
     usort($channelsToDisplay, 'beezup_sort_by_name');
-}
-
-function beezup_get_country_select($channelsIndex, $country){
-    if( !$channelsIndex || !property_exists($channelsIndex, 'items') ) return;
-
-    $output = '<select name="country">';
-    
-    foreach( $channelsIndex->items as $channel ){
-        $code = $channel->codeIdentifier;
-        
-        $output .= '<option value="' . $code . '"';
-        if($code === $country){
-            $output .= ' selected';
-        }
-        $output .= '>';
-        $output .= $channel->translationText;
-        $output .= '</option>';
-    }
-
-    $output .= ' </select>';
-    return $output;
-}
-
-function beezup_get_types_pages($channelsByType, $subPages, $country, $postID){
-    if( !$channelsByType || !isset($channelsByType[$country]) || !$subPages ) return;
-
-    $output = '';
-
-    foreach( $subPages as $subPage ){
-        if( !isset($channelsByType[$country][get_field('type', $subPage->ID)]) ) continue;
-
-        $output .= '<li';
-        if( $postID === $subPage->ID ){
-            $output .= 'class="current"';
-        }
-        $output .= '>';
-        $output .= '<a href="' . $subPage->guid . '"?country="' . $country . '">' . $subPage->post_title . '</a>';
-        $output .= '</li>';
-    }
-
-    return $output;
 }
 
 
@@ -141,15 +87,7 @@ get_header(); ?>
     <section class='container'>
         <?php if( $channelsToDisplay ){ ?>
             <ul>
-                <?php foreach( $channelsToDisplay as $partner ){ ?>
-                    <?php $name = $partner->name; ?>
-                    <li data-sector='<?php echo $partner->sectors[0]; ?>'>
-                        <a href='<?php echo $partner->homeUrl; ?>' title='<?php echo $name; ?>' target='_blank'>
-                            <?php echo $name; ?>
-                            <img src='<?php echo $partner->logoUrl; ?>' alt='<?php echo $name; ?>'>
-                        </a>
-                    </li>
-                <?php } ?>
+                <?php echo beezup_get_channels_to_display($channelsToDisplay); ?>
             </ul>
         <?php }else{ ?>
             <?php if( $noChannels ){ ?>
