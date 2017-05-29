@@ -1,6 +1,6 @@
 'use strict';
 
-var $ = require('jquery-slim');
+var $ = require('jquery');
 
 // require('gsap');
 // require('gsap/CSSPlugin');
@@ -17,6 +17,7 @@ $(function(){
     var scrollTo = require('./scrollTo.js');
     var animTopHome = require('./animTopHome.js');
     var addUrlInputs = require('./addUrlInputs.js');
+    var getChannelsByCountry = require('./getChannelsByCountry.js');
 
     var body = $('body');
     var forms = $('form');
@@ -54,7 +55,9 @@ $(function(){
     scrollTo($('#sideLinksNav'), true);
     scrollTo($('#menuFonctionnalites'));
 
+    // Anim top home
     animTopHome();
+    
     // Add url inputs
     addUrlInputs($('#addUrlInput'), $('#newInputsCount'));
 
@@ -68,6 +71,9 @@ $(function(){
             });
         });
     }
+
+    // Networks page: dinamically get channels by country
+    getChannelsByCountry(wp, $('#channelsCountrySelect'), $('#channelsList'));
 
     $(window).on('resize', throttle(function(){
 

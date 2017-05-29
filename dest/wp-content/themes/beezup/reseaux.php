@@ -6,37 +6,16 @@ Template Name: Réseaux
 $networkPage = get_field('networkPage', 'options');
 $isNetworkPage = $post->ID === $networkPage;
 
-$currentLang = get_field('lang2', 'options');
-
 $fieldLang = get_field('lang', 'options');
 $defaultCountry = $fieldLang ? $fieldLang : 'FRA';
 $country = isset( $_GET['country'] ) ? $_GET['country'] : $defaultCountry;
 
-$channelsIndex = beezup_get_data_transient( 'channels_index_' . $currentLang, 'lov/www_ChannelCountry' );
+$dataToDisplay = beezup_get_data_to_display($isNetworkPage, $country);
 
-$allChannels = beezup_get_all_channels($channelsIndex, $currentLang)[0];
-$channelsByType = beezup_get_all_channels($channelsIndex, $currentLang)[1];
-$channelsToDisplay = [];
-
-$noChannels = false;
-
-if( $isNetworkPage ){
-    if( isset($allChannels[$country]) && property_exists($allChannels[$country], 'channels') ){
-        $channelsToDisplay = $allChannels[$country]->channels;
-    }
-}else{
-    if( $channelsByType && isset($channelsByType[$country]) ){
-        if( isset($channelsByType[$country][get_field('type')]) ){
-            $channelsToDisplay = $channelsByType[$country][get_field('type')];
-        }else{
-            $noChannels = true;
-        }
-    }
-}
-
-if( $channelsToDisplay ){
-    usort($channelsToDisplay, 'beezup_sort_by_name');
-}
+$channelsIndex = $dataToDisplay['channelsIndex'];
+$channelsToDisplay = $dataToDisplay['channelsToDisplay'];
+$channelsByType = $dataToDisplay['channelsByType'];
+$noChannels = $dataToDisplay['noChannels'];
 
 
 get_header(); ?>
@@ -68,7 +47,7 @@ get_header(); ?>
 
             <form action='<?php the_permalink(); ?>' method='GET'>
                 <?php echo $countrySelect; ?>
-                <button type='submit' name='filter' value='true'>Go</button>
+                <button type='submit' name='filter' value='true' id='channelsSubmit'>Go</button>
             </form>
         <?php } ?>
 
@@ -85,17 +64,17 @@ get_header(); ?>
 	</section>
 
     <section class='container'>
-        <?php if( $channelsToDisplay ){ ?>
-            <ul>
+        <div id='channelsList'>
+            <?php if( $channelsToDisplay ){ ?>
                 <?php echo beezup_get_channels_to_display($channelsToDisplay); ?>
-            </ul>
-        <?php }else{ ?>
-            <?php if( $noChannels ){ ?>
-                <p><?php _e("There are no channels of this type in this country.", 'beezup'); ?></p>
             <?php }else{ ?>
-                <p><?php _e("Channels can't be displayed at this time. Please come back later!", 'beezup'); ?></p>
+                <?php if( $noChannels ){ ?>
+                    <p><?php _e("There are no channels of this type in this country.", 'beezup'); ?></p>
+                <?php }else{ ?>
+                    <p><?php _e("Channels can't be displayed at this time. Please come back later!", 'beezup'); ?></p>
+                <?php } ?>
             <?php } ?>
-        <?php } ?>
+        </div>
     </section>
 
     <?php get_template_part('includes/free-links'); ?>
