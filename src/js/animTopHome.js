@@ -1,4 +1,4 @@
-var $ = require('jquery-slim');
+var $ = require('jquery');
 
 var TweenLite = require('gsap/TweenLite');
 //var scrambleText = require('gsap/src/minified/plugins/ScrambleTextPlugin-0.4.0.min.js');
