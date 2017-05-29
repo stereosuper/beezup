@@ -94,22 +94,19 @@ function beezup_get_data_to_display($isNetworkPage, $country){
 }
 
 function beezup_ajax_get_data(){
-    $country = isset( $_GET['country'] ) ? $_GET['country'] : 'FRA';
+    $fieldLang = get_field('lang', 'options');
+    $defaultCountry = $fieldLang ? $fieldLang : 'FRA';
+    $country = isset( $_GET['country'] ) ? $_GET['country'] : $defaultCountry;
     $isNetworkPage = isset( $_GET['isNetworkPage'] ) ? $_GET['isNetworkPage'] : '';
+
+    session_start();
+    $_SESSION['country'] = $country;
     
     $data = beezup_get_data_to_display($isNetworkPage, $country);
     $channelsToDisplay = $data['channelsToDisplay'];
     $noChannels = $data['noChannels'];
 
-    if($channelsToDisplay){
-        echo beezup_get_channels_to_display($channelsToDisplay);
-    }else{
-        if( $noChannels ){
-            echo '<p>' . __("There are no channels of this type in this country.", 'beezup') . '</p>';
-        }else{
-            echo '<p>' . __("Channels can't be displayed at this time. Please come back later!", 'beezup') . '</p>';
-        }
-    }        
+    echo beezup_get_channels_to_display($channelsToDisplay, $noChannels); 
 
     die();
 }
@@ -161,27 +158,37 @@ function beezup_get_types_pages($channelsByType, $subPages, $country, $postID){
     return $output;
 }
 
-function beezup_get_channels_to_display($channelsToDisplay){
-    if( !$channelsToDisplay ) return;
+function beezup_get_channels_to_display($channelsToDisplay, $noChannels){
+    $output = '';
 
-    $output = '<ul>';
+    if( $channelsToDisplay ){
+        $output = '<ul>';
 
-    foreach( $channelsToDisplay as $partner ){
-        $name = $partner->name;
-        $output .= '<li';
-        if( property_exists($partner, 'sectors') && isset($partner->sectors[0]) ){
-            $output .= ' data-sector="' . $partner->sectors[0] . '"';
+        foreach( $channelsToDisplay as $partner ){
+            $name = $partner->name;
+            $output .= '<li';
+            if( property_exists($partner, 'sectors') && isset($partner->sectors[0]) ){
+                $output .= ' data-sector="' . $partner->sectors[0] . '"';
+            }
+            $output .= '>';
+            $output .= '<a href="' . $partner->homeUrl . '" title="' . $name . '" target="_blank">';
+            $output .= $name;
+            $output .= '<img src="' . $partner->logoUrl . '" alt="' . $name . '">';
+            $output .= '</a></li>';
         }
-        $output .= '>';
-        $output .= '<a href="' . $partner->homeUrl . '" title="' . $name . '" target="_blank">';
-        $output .= $name;
-        $output .= '<img src="' . $partner->logoUrl . '" alt="' . $name . '">';
-        $output .= '</a></li>';
+
+        $output .= '</ul>';
+    }else{
+        
+        if( $noChannels ){
+            $output = '<p>' . __("There are no channels of this type in this country.", 'beezup') . '</p>';
+        }else{
+            $output = '<p>' . __("Channels can't be displayed at this time. Please come back later!", 'beezup') . '</p>';
+        }
+
     }
 
-    $output .= '</ul>';
-
-    return $output;
+    return $output;    
 }
 
 

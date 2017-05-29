@@ -8,7 +8,13 @@ $isNetworkPage = $post->ID === $networkPage;
 
 $fieldLang = get_field('lang', 'options');
 $defaultCountry = $fieldLang ? $fieldLang : 'FRA';
+
 $country = isset( $_GET['country'] ) ? $_GET['country'] : $defaultCountry;
+
+session_start();
+if( isset( $_SESSION['country'] ) ){
+    $country = $_SESSION['country'];
+}
 
 $dataToDisplay = beezup_get_data_to_display($isNetworkPage, $country);
 
@@ -65,15 +71,7 @@ get_header(); ?>
 
     <section class='container'>
         <div id='channelsList'>
-            <?php if( $channelsToDisplay ){ ?>
-                <?php echo beezup_get_channels_to_display($channelsToDisplay); ?>
-            <?php }else{ ?>
-                <?php if( $noChannels ){ ?>
-                    <p><?php _e("There are no channels of this type in this country.", 'beezup'); ?></p>
-                <?php }else{ ?>
-                    <p><?php _e("Channels can't be displayed at this time. Please come back later!", 'beezup'); ?></p>
-                <?php } ?>
-            <?php } ?>
+            <?php echo beezup_get_channels_to_display($channelsToDisplay, $noChannels); ?>
         </div>
     </section>
 
