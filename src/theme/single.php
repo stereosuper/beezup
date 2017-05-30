@@ -5,7 +5,7 @@
 	<section class='container-small'>
 		<?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
 
-		<h1>
+		<h1 <?php if( get_field('left') ) echo 'class="left"'; ?>>
 			<?php the_title(); ?>
 			<?php if( get_field('title2') ){ ?>
 				<span><?php the_field('title2'); ?></span>
