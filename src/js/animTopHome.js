@@ -11,7 +11,13 @@ module.exports = function(){
     if(!$('body').hasClass('home')) return;
 
     var windowHeight, windowScroll, windowBottom;
-    var titleHomePrimary = $('#titleHomePrimary'), titleHomeBlack = $('#titleHomeBlack');
+    var titleHome = $('#titleHome h1'), titleHomePrimary = $('#titleHomePrimary'), titleHomeBlack = $('#titleHomeBlack');
+
+    function initTitleTxt(){
+        titleHomePrimary.html(titleHomePrimary.data('before'));
+        titleHomeBlack.html(titleHomeBlack.data('before'));
+        TweenLite.set(titleHome, {opacity: 1});
+    }
 
     function animTitleTxt(){
         windowHeight = $(window).height();
@@ -30,6 +36,7 @@ module.exports = function(){
         }
     }
 
+    initTitleTxt();
     sticky($('#titleHome'), 15);
 
     var scrollHandler = throttle(function(){
