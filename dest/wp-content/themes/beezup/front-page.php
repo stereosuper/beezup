@@ -1029,8 +1029,8 @@ get_header(); ?>
 				<?php if( have_rows('people', 'options') ){ ?>
 					<ul class='members'>
 						<?php while( have_rows('people', 'options') ){ the_row(); ?>
-							<li>
-								<span class='photo' style="background-image: url(<?php echo wp_get_attachment_image_url( get_sub_field('photo', 'options'), 'full' ); ?>);"></span>
+							<li class='member'>
+								<span class='photo' style='background-image: url(<?php echo wp_get_attachment_image_url( get_sub_field('photo', 'options'), 'full' ); ?>);'></span>
 								<span class='name'><?php the_sub_field('name', 'options'); ?></span>
 								<span class='job '><?php the_sub_field('job', 'options'); ?></span>
 							</li>

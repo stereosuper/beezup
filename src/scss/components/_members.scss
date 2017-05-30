@@ -1,22 +1,27 @@
 .members{
     display: flex;
     justify-content: space-between;
-    >li{
-        position: relative;
-        width: calc(33.3333333% - #{$gutter});
-        height: 365px;
-        margin: 0;
-        padding: 25px;
-        font-size: 1.4rem;
-        &:before, &:after{
-            display: none;
-        }
+    .member{
+        width: calc(33.3333% - #{$gutter});
         &:nth-child(2){
             margin-top: 80px;
         }
         &:nth-child(3){
             margin-top: 45px;
         }
+    }
+}
+
+.member{
+    height: 365px;
+    padding: 25px 15px;
+    position: relative;
+    margin: 0;
+    font-family: $fira-medium;
+    color: $white;
+    background: red;
+    &:before, &:after{
+        display: none;
     }
     .photo{
         position: absolute;
@@ -29,45 +34,49 @@
         background-size: cover;
     }
     .name, .job{
-        display: block;
         position: relative;
     }
     .name{
-        margin-bottom: 5px;
+        display: block;
+        margin: 0 0 5px;
         font-family: $fira-medium-italic;
         color: $text;
     }
     .job{
-        font-family: $fira-medium;
-        color: $white;
+        font-size: 1.4rem;
     }
 }
 
+
 @media (max-width: $desktop-small){
-    .members{
-        >li{
-            height: 330px;
-        }
+    .member{
+        height: 330px;
     }
 }
+
 @media (max-width: $phone){
-    .members{
-        >li{
-            height: 280px;
-            padding: 10px;
+    .member{
+        height: 280px;
+        padding: 15px 10px;
+        font-size: 1.4rem;
+        .job{
             font-size: 1.2rem;
         }
     }
 }
-@media (max-width: $phone){
+
+@media (max-width: $phone-small){
     .members{
-        >li{
-            width: calc(33.3333333% - 5px);
-            height: 250px;
+        .member{
+            width: calc(33.3333% - 5px);
+        }
+    }
+
+    .member{
+        height: 250px;
+        font-size: 1.2rem;
+        .job{
             font-size: 1rem;
-        }
-        .name{
-            font-size: 1.2rem;
         }
     }
 }
