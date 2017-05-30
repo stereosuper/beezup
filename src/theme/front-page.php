@@ -975,10 +975,14 @@ get_header(); ?>
 			</g>
 		</svg>
 		<div class='block-half block-txt block-title-home' id='titleHome'>
-			<h2 class='h1'>
+			<!--<h2 class='h1'>
 				<span class='title-home primary' id='titleHomePrimary' data-after="<?php the_field('title'); ?>"><?php the_title(); ?></span>
 				<span class='title-home' id='titleHomeBlack' data-after="<?php if( get_field('titleBlack') ){ ?><?php the_field('titleBlack'); ?><?php } ?>"><?php if( get_field('title2') ){ ?><?php the_field('title2'); ?><?php } ?></span>
-			</h2>
+			</h2>-->
+			<h1>
+				<span class='title-home primary' id='titleHomePrimary' data-before="<?php the_title(); ?>" data-after="<?php the_field('title'); ?>"><?php the_field('title'); ?></span>
+				<span class='title-home' id='titleHomeBlack' data-before="<?php if( get_field('title2') ){ ?><?php the_field('title2'); ?><?php } ?>" data-after="<?php if( get_field('titleBlack') ){ ?><?php the_field('titleBlack'); ?><?php } ?>"><?php if( get_field('titleBlack') ){ ?><?php the_field('titleBlack'); ?><?php } ?></span>
+			</h1>
 			<div style='opacity: 0;'>
 				<?php if( get_field('title') ){ ?>
 					<h1>
