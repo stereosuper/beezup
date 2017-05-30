@@ -36,7 +36,7 @@ function beezup_get_channels_by_type($channelsTypeIndex, $channelsForOneLang){
 }
 
 function beezup_get_all_channels($channelsIndex, $currentLang){
-    $channelsTypeIndex = beezup_get_data_transient( 'channels_type_index_' . $currentLang, 'lov/ChannelType' );
+    $channelsTypeIndex = beezup_get_data_transient( 'channels_type_index_' . $currentLang, 'lov/ChannelType', array('accept-language' => $currentLang) );
 
     if( !$channelsIndex || !property_exists($channelsIndex, 'items') ) return;
 
@@ -60,7 +60,7 @@ function beezup_get_all_channels($channelsIndex, $currentLang){
 function beezup_get_data_to_display($isNetworkPage, $country){
     $currentLang = get_field('lang2', 'options');
 
-    $channelsIndex = beezup_get_data_transient( 'channels_index_' . $currentLang, 'lov/www_ChannelCountry' );
+    $channelsIndex = beezup_get_data_transient( 'channels_index_' . $currentLang, 'lov/www_ChannelCountry', array('accept-language' => $currentLang) );
 
     $allChannelsArray = beezup_get_all_channels($channelsIndex, $currentLang);
     $allChannels = $allChannelsArray['allChannels'];
@@ -131,6 +131,29 @@ function beezup_get_country_select($channelsIndex, $country){
         }
         $output .= '>';
         $output .= $channel->translationText;
+        $output .= '</option>';
+    }
+
+    $output .= ' </select>';
+    return $output;
+}
+
+function beezup_get_sector_select(){
+    $currentLang = get_field('lang2', 'options');
+
+    $channelsSectorIndex = beezup_get_data_transient( 'channels_sector_index' . $currentLang, 'lov/ParamSector', array('accept-language' => $currentLang) );
+
+    if( !$channelsSectorIndex || !property_exists($channelsSectorIndex, 'items') ) return;
+
+    $output = '<select name="sector" id="channelsSectorSelect">';
+    $output .= '<option value="all">' . __('All the sectors', 'beezup') . '</option>';
+    
+    foreach( $channelsSectorIndex->items as $sector ){
+        $code = $sector->codeIdentifier;
+        
+        $output .= '<option value="' . $code . '"';
+        $output .= '>';
+        $output .= $sector->translationText;
         $output .= '</option>';
     }
 
@@ -556,7 +579,8 @@ function beezup_scripts(){
 
     wp_localize_script( 'beezup-scripts', 'wp', array(
         'adminAjax' => site_url( '/wp-admin/admin-ajax.php' ),
-        'isNetworkPage' => $isNetworkPage
+        'isNetworkPage' => $isNetworkPage,
+        'noChannels' => __('There are no channels of this sector in this country', 'beezup')
     ) );
     
 }

@@ -52,6 +52,7 @@ get_header(); ?>
             <?php the_field('form', $networkPage); ?>
 
             <form action='<?php the_permalink(); ?>' method='GET'>
+                <?php echo beezup_get_sector_select(); ?>
                 <?php echo $countrySelect; ?>
                 <button type='submit' name='filter' value='true' id='channelsSubmit'>Go</button>
             </form>
@@ -70,6 +71,7 @@ get_header(); ?>
 	</section>
 
     <section class='container'>
+        <p id='sectorError'></p>
         <div id='channelsList'>
             <?php echo beezup_get_channels_to_display($channelsToDisplay, $noChannels); ?>
         </div>
