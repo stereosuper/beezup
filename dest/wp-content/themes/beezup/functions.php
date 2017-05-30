@@ -145,7 +145,7 @@ function beezup_get_sector_select(){
 
     if( !$channelsSectorIndex || !property_exists($channelsSectorIndex, 'items') ) return;
 
-    $output = '<select name="sector" id="channelsSectorSelect">';
+    $output = '<select name="sector" id="channelsSectorSelect" class="channels-select-sector">';
     $output .= '<option value="all">' . __('All the sectors', 'beezup') . '</option>';
     
     foreach( $channelsSectorIndex->items as $sector ){
@@ -204,9 +204,9 @@ function beezup_get_channels_to_display($channelsToDisplay, $noChannels){
     }else{
         
         if( $noChannels ){
-            $output = '<p>' . __("There are no channels of this type in this country.", 'beezup') . '</p>';
+            $output = '<p class="channels-error">' . __("There are no channels of this type in this country.", 'beezup') . '</p>';
         }else{
-            $output = '<p>' . __("Channels can't be displayed at this time. Please come back later!", 'beezup') . '</p>';
+            $output = '<p class="channels-error">' . __("Channels can't be displayed at this time. Please come back later!", 'beezup') . '</p>';
         }
 
     }

@@ -1,0 +1,12 @@
+.channels-select-sector{
+    .no-js &{
+        display: none;
+    }
+}
+
+.channels-list{
+    transition: opacity $transition;
+    &.loading{
+        opacity: 0.5;
+    }
+}

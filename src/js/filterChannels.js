@@ -15,7 +15,6 @@ module.exports = function(wp, countrySelect, sectorSelect, channelsList){
 
         if(sectorError.length){
             channels.not('.hidden').length ? sectorError.html('') : sectorError.html(wp.noChannels);
-            console.log(channels.not('.hidden').length);
         }
     }
 

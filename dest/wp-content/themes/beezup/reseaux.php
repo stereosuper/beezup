@@ -71,8 +71,9 @@ get_header(); ?>
 	</section>
 
     <section class='container'>
-        <p id='sectorError'></p>
-        <div id='channelsList'>
+        <p id='sectorError' class='channels-error'></p>
+        
+        <div id='channelsList' class='channels-list'>
             <?php echo beezup_get_channels_to_display($channelsToDisplay, $noChannels); ?>
         </div>
     </section>
