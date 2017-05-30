@@ -11,33 +11,47 @@ module.exports = function(){
     if(!$('body').hasClass('home')) return;
 
     var windowHeight, windowScroll, windowBottom;
-    var titleHome = $('#titleHome h1'), titleHomePrimary = $('#titleHomePrimary'), titleHomeBlack = $('#titleHomeBlack');
+    var titleHome = $('#titleHome h1'), textToAnim = $('.textToAnim'), btnTopHome = $('#btnTopHome'), introHome = $('#introHome');
+    var isOverBaseline = true;
 
     function initTitleTxt(){
-        titleHomePrimary.html(titleHomePrimary.data('before'));
-        titleHomeBlack.html(titleHomeBlack.data('before'));
-        TweenLite.set(titleHome, {opacity: 1});
+        textToAnim.each(function(){
+            $(this).html($(this).data('before'));
+        });
+        TweenLite.to(titleHome, 0.3, {opacity: 1});
     }
-
+    function animScrambleText(dataToAnimate){
+        textToAnim.each(function(){
+            TweenLite.to($(this), 0.3, {scrambleText: $(this).data(dataToAnimate), speed: 0.1, ease: Linear.easeNone, onComplete:function(){
+                $(this).html($(this).data(dataToAnimate));
+            }});
+        });
+        isOverBaseline = !isOverBaseline;
+    }
     function animTitleTxt(){
         windowHeight = $(window).height();
         windowScroll = $(window).scrollTop();
         windowBottom = windowScroll + windowHeight;
 
-        if(windowScroll >= 50){
-            TweenLite.to(titleHomePrimary, 0.3, {delay: 3, scrambleText: titleHomePrimary.data('after'), speed: 0.1, ease:Linear.easeNone, onComplete:function(){
-                titleHomePrimary.html(titleHomePrimary.data('after'));
+        if(windowScroll >= 200 && isOverBaseline){
+            animScrambleText('after');
+            introHome.slideToggle(300, function(){
+                TweenLite.to(introHome, 0.3, {opacity: 1});
+            });
+        }else if(windowScroll < 200 && !isOverBaseline){
+            animScrambleText('before');
+            TweenLite.to(introHome, 0.3, {opacity: 0, onComplete: function(){
+                introHome.slideToggle(300);
             }});
-            TweenLite.to(titleHomeBlack, 0.3, {delay: 3, scrambleText: titleHomeBlack.data('after'), speed: 0.1, ease:Linear.easeNone, onComplete:function(){
-                titleHomeBlack.html(titleHomeBlack.data('after'));
-            }});
-        }else{
-
         }
     }
 
     initTitleTxt();
     sticky($('#titleHome'), 15);
+
+    btnTopHome.on('click', function(e){
+        e.preventDefault();
+    });
 
     var scrollHandler = throttle(function(){
         requestAnimFrame(animTitleTxt);

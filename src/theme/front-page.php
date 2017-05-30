@@ -975,31 +975,19 @@ get_header(); ?>
 			</g>
 		</svg>
 		<div class='block-half block-txt block-title-home' id='titleHome'>
-			<!--<h2 class='h1'>
-				<span class='title-home primary' id='titleHomePrimary' data-after="<?php the_field('title'); ?>"><?php the_title(); ?></span>
-				<span class='title-home' id='titleHomeBlack' data-after="<?php if( get_field('titleBlack') ){ ?><?php the_field('titleBlack'); ?><?php } ?>"><?php if( get_field('title2') ){ ?><?php the_field('title2'); ?><?php } ?></span>
-			</h2>-->
 			<h1>
-				<span class='title-home primary' id='titleHomePrimary' data-before="<?php the_title(); ?>" data-after="<?php the_field('title'); ?>"><?php the_field('title'); ?></span>
-				<span class='title-home' id='titleHomeBlack' data-before="<?php if( get_field('title2') ){ ?><?php the_field('title2'); ?><?php } ?>" data-after="<?php if( get_field('titleBlack') ){ ?><?php the_field('titleBlack'); ?><?php } ?>"><?php if( get_field('titleBlack') ){ ?><?php the_field('titleBlack'); ?><?php } ?></span>
+				<span class='title-home primary textToAnim' data-before="<?php the_title(); ?>" data-after="<?php the_field('title'); ?>"><?php the_field('title'); ?></span>
+				<span class='title-home textToAnim' data-before="<?php if( get_field('title2') ){ ?><?php the_field('title2'); ?><?php } ?>" data-after="<?php if( get_field('titleBlack') ){ ?><?php the_field('titleBlack'); ?><?php } ?>"><?php if( get_field('titleBlack') ){ ?><?php the_field('titleBlack'); ?><?php } ?></span>
 			</h1>
-			<div style='opacity: 0;'>
-				<?php if( get_field('title') ){ ?>
-					<h1>
-						<?php the_field('title'); ?>
-						<?php if( get_field('titleBlack') ){ ?>
-							<span><?php the_field('titleBlack'); ?></span>
-						<?php } ?>
-					</h1>
-				<?php } ?>
+			<div id='introHome'>
 				<?php the_field('headerText'); ?>
-				<?php if( get_field('headerBtn2') ){ ?>
-					<button class='btn btn-arrow' data-appointlet-organization='beezup' data-appointlet-service='32290'>
-						<?php the_field('headerBtn2'); ?>
-						<svg class='icon icon-arrow-right'><use xlink:href='#icon-arrow-right'></use></svg>
-					</button>
-				<?php } ?>
 			</div>
+			<?php if( get_field('headerBtn') ){ ?>
+				<button class='btn btn-arrow' id='btnTopHome' data-appointlet-organization='beezup' data-appointlet-service='32290'>
+					<span class='textToAnim' data-before="<?php the_field('headerBtn'); ?>" data-after="<?php if( get_field('headerBtn2') ){ the_field('headerBtn2'); } ?>"><?php the_field('headerBtn'); ?></span>
+					<svg class='icon icon-arrow-right'><use xlink:href='#icon-arrow-right'></use></svg>
+				</button>
+			<?php } ?>
 		</div>
 		<div class='wrapper-list-menu-home'>
 			<?php if( have_rows('anchors') ){ ?>
