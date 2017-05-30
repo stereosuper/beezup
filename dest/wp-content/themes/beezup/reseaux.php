@@ -32,24 +32,39 @@ get_header(); ?>
        <?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
         
 		<h1 class='title-black'>
-			<?php echo get_the_title( $networkPage ); ?>
-			<?php if( get_field('title2', $networkPage) ){ ?>
-				<span><?php the_field('title2', $networkPage); ?></span>
+			<?php the_title(); ?>
+			<?php if( get_field('title2') ){ ?>
+				<span><?php the_field('title2'); ?></span>
 			<?php } ?>
 		</h1>
 
-        <?php if( get_field('subtitle', $networkPage) ){ ?>
+        <?php if( get_field('subtitle') ){ ?>
+            <h3><?php the_field('subtitle'); ?></h3>
+        <?php }elseif( get_field('subtitle', $networkPage) ){ ?>
             <h3><?php the_field('subtitle', $networkPage); ?></h3>
         <?php } ?>
 
-        <?php the_field('text', $networkPage); ?>
-        <?php the_post_thumbnail( 'full', $networkPage ); ?>
+        <?php if( get_field('text') ){ ?>
+            <?php the_field('text'); ?>
+        <?php }elseif( get_field('text', $networkPage) ){ ?>
+            <?php the_field('text', $networkPage); ?>
+        <?php } ?>
+
+        <?php if( has_post_thumbnail() ){ ?>
+            <?php the_post_thumbnail( 'full' ); ?>
+        <?php }elseif( has_post_thumbnail($networkPage) ){ ?>
+            <?php the_post_thumbnail( 'full', $networkPage ); ?>
+        <?php } ?>
 
 
         <?php $countrySelect = beezup_get_country_select($channelsIndex, $country); ?>
         
         <?php if( $countrySelect ){ ?>
-            <?php the_field('form', $networkPage); ?>
+            <?php if( get_field('form') ){ ?>
+                <?php the_field('form'); ?>
+            <?php }elseif( get_field('form', $networkPage) ){ ?>
+                <?php the_field('form', $networkPage); ?>
+            <?php } ?>
 
             <form action='<?php the_permalink(); ?>' method='GET'>
                 <?php echo beezup_get_sector_select(); ?>
