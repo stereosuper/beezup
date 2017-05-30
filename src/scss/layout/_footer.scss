@@ -4,13 +4,6 @@
     h3{
         color: $black;
     }
-    a{
-        color: $white;
-        &:hover, &:focus{
-            color: $white;
-            opacity: 0.6;
-        }
-    }
     .link-arrow{
         &:after{
             background-image: url('../layoutImg/arrow-right-white.svg');
@@ -29,14 +22,11 @@
         background: $purple-dark;
         text-align: center;
         font-size: 1rem;
-        ul{
-            display: block;
-            >li{
-                display: inline-block;
-                margin: 0 8px;
-                &:before, &:after{
-                    display: none;
-                }
+        li{
+            display: inline-block;
+            margin: 0 8px;
+            &:before, &:after{
+                display: none;
             }
         }
         p, a{
@@ -49,26 +39,33 @@
             }
         }
     }
+    .wrapper-about, .wrapper-links{
+        a{
+            color: $white;
+            &:hover, &:focus{
+                color: $white;
+                opacity: 0.6;
+            }
+        }
+    }
     .wrapper-about{
-        margin-right: 125px;
+        margin: 0 125px 0 0;
         p{
             margin-bottom: 0;
         }
     }
     .wrapper-links{
         flex: 0 0 150px;
-        margin-right: 50px;
-        ul{
-            > li{
-                display: block;
-                &:before, &:after{
-                    display: none;
-                }
+        margin: 0 50px 0 0;
+        li{
+            display: block;
+            &:before, &:after{
+                display: none;
             }
-            a{
-                font-family: $fira-bold;
-                text-decoration: none;
-            }
+        }
+        a{
+            font-family: $fira-bold;
+            text-decoration: none;
         }
     }
     .wrapper-social-newsletter{
