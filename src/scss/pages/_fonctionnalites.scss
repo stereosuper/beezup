@@ -96,6 +96,9 @@
     &.odd{
         .subsection-illu{
             order: 1;
+            img{
+                //-transform: rotate(10deg);
+            }
         }
         .subsection-text{
             order: 2;
@@ -117,6 +120,9 @@
 }
 .subsection-illu{
     flex: 1;
+    img{
+        //transform: rotate(-10deg);
+    }
 }
 .subsection-text{
     width: 58%;
