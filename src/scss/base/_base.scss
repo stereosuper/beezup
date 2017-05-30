@@ -41,6 +41,9 @@ h1, .h1{
         display: block;
         color: $black;
     }
+    > .primary{
+        color: $primary;
+    }
 }
 
 h2{
@@ -398,7 +401,7 @@ a{
     position: relative;
 }
 
-.primary, .h1>span.primary{
+.primary{
     color: $primary;
 }
 

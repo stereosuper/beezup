@@ -28,34 +28,42 @@ get_header(); ?>
 
 <?php if ( have_posts() ) : the_post(); ?>
 	
-	<section class='container'>
-       <?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
+	<section class='container page-intro'>
         
-		<h1 class='title-black'>
-			<?php the_title(); ?>
-			<?php if( get_field('title2') ){ ?>
-				<span><?php the_field('title2'); ?></span>
-			<?php } ?>
-		</h1>
+        <div class='page-intro-title'>
+            <?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
 
-        <?php if( get_field('subtitle') ){ ?>
-            <h3><?php the_field('subtitle'); ?></h3>
-        <?php }elseif( get_field('subtitle', $networkPage) ){ ?>
-            <h3><?php the_field('subtitle', $networkPage); ?></h3>
-        <?php } ?>
+            <h1 class='page-title title-black'>
+                <?php the_title(); ?>
+                <?php if( get_field('title2') ){ ?>
+                    <span><?php the_field('title2'); ?></span>
+                <?php } ?>
+            </h1>
 
-        <?php if( get_field('text') ){ ?>
-            <?php the_field('text'); ?>
-        <?php }elseif( get_field('text', $networkPage) ){ ?>
-            <?php the_field('text', $networkPage); ?>
-        <?php } ?>
+            <?php if( get_field('subtitle') ){ ?>
+                <h3><?php the_field('subtitle'); ?></h3>
+            <?php }elseif( get_field('subtitle', $networkPage) ){ ?>
+                <h3><?php the_field('subtitle', $networkPage); ?></h3>
+            <?php } ?>
 
-        <?php if( has_post_thumbnail() ){ ?>
-            <?php the_post_thumbnail( 'full' ); ?>
-        <?php }elseif( has_post_thumbnail($networkPage) ){ ?>
-            <?php the_post_thumbnail( 'full', $networkPage ); ?>
-        <?php } ?>
+            <?php if( get_field('text') ){ ?>
+                <?php the_field('text'); ?>
+            <?php }elseif( get_field('text', $networkPage) ){ ?>
+                <?php the_field('text', $networkPage); ?>
+            <?php } ?>
+        </div>
+        
+        <div class='page-intro-img'>
+            <?php if( has_post_thumbnail() ){ ?>
+                <?php the_post_thumbnail( 'full' ); ?>
+            <?php }elseif( has_post_thumbnail($networkPage) ){ ?>
+                <?php the_post_thumbnail( 'full', $networkPage ); ?>
+            <?php } ?>
+        </div>
 
+    </section>
+        
+    <section class='container'>
 
         <?php $countrySelect = beezup_get_country_select($channelsIndex, $country); ?>
         

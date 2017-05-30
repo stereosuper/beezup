@@ -7,18 +7,25 @@ get_header(); ?>
 
 <?php if ( have_posts() ) : the_post(); ?>
 	
-	<section class='container'>
-       <?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
+	<section class='container page-intro'>
         
-		<h1 class='title-black'>
-			<?php the_title(); ?>
-			<?php if( get_field('title2') ){ ?>
-				<span><?php the_field('title2'); ?></span>
-			<?php } ?>
-		</h1>
+        <div class='page-intro-title'>
+            <?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
 
-        <?php the_field('intro'); ?>
-	</section>
+            <h1 class='page-title'>
+                <?php the_title(); ?>
+                <?php if( get_field('title2') ){ ?>
+                    <span><?php the_field('title2'); ?></span>
+                <?php } ?>
+            </h1>
+            <?php the_field('intro'); ?>
+        </div>
+        
+        <div class='page-intro-img'>
+            <?php the_post_thumbnail( 'full' ); ?>
+        </div>
+
+    </section>
 
     <section class='block-full'>
         <div class='container'>

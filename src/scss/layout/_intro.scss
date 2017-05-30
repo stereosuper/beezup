@@ -1,16 +1,28 @@
-.intro{
+.page-intro{
     display: flex;
+    margin-bottom: 4.5em;
 }
 
-.text-intro{
+.page-intro-title{
     width: $col*7;
-    h1{
-        margin: 0 0 1em;
-        text-align: left;
+}
+
+.page-title{
+    margin: 0 0 1em;
+    text-align: left;
+    > span{
+        display: inline;
     }
 }
 
-.img-intro{
+.title-black{
+    color: $text;
+    > span{
+        color: $primary;
+    }
+}
+
+.page-intro-img{
     flex: 1;
 }
 

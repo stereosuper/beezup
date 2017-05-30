@@ -7,11 +7,12 @@ get_header(); ?>
 
 <?php if ( have_posts() ) : the_post(); ?>
 	
-	<section class='container intro'>
-        <div class='text-intro'>
+	<section class='container page-intro'>
+        
+        <div class='page-intro-title'>
             <?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
             
-            <h1 class='title-black'>
+            <h1 class='page-title title-black'>
                 <?php the_title(); ?>
                 <?php if( get_field('title2') ){ ?>
                     <span><?php the_field('title2'); ?></span>
@@ -19,9 +20,11 @@ get_header(); ?>
             </h1>
              <?php the_field('intro'); ?>
         </div>
-        <div class='img-intro'>
+
+        <div class='page-intro-img'>
             <?php the_post_thumbnail( 'full' ); ?>
         </div>
+        
 	</section>
 
     <section class='block-full section-benefits'>
