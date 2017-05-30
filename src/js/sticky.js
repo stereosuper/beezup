@@ -10,6 +10,7 @@ module.exports = function(stickyElt, givenPosition, unit = 'px'){
         eltHeight;
     var windowHeight = $(window).height(); 
     var scrollTop = $(document).scrollTop();
+    var wrapperSticky = stickyElt.closest('.wrapper-sticky');
 
     function checkWindowHeight() {
         windowHeight = $(window).height();
@@ -22,7 +23,6 @@ module.exports = function(stickyElt, givenPosition, unit = 'px'){
     }
     
     function scrollHandler() {
-        
         scrollTop = $(document).scrollTop();
         if (scrollTop >= stickyElt.data('offsetTop') - position) {
             stickyElt.addClass('sticky').css('top', position+'px');
@@ -39,7 +39,7 @@ module.exports = function(stickyElt, givenPosition, unit = 'px'){
     function resizeHandler() {
         checkWindowHeight();
         stickyElt.data({
-            'offsetBottom': stickyElt.closest('.wrapper-sticky').offset().top + stickyElt.closest('.wrapper-sticky').outerHeight(),
+            'offsetBottom': wrapperSticky.offset().top + wrapperSticky.outerHeight(),
             'height': stickyElt.height()
         });
         scrollHandler();
@@ -49,13 +49,12 @@ module.exports = function(stickyElt, givenPosition, unit = 'px'){
     stickyElt.data({
         'initialPos': stickyElt.css('top'),
         'offsetTop': stickyElt.offset().top,
-        'offsetBottom': stickyElt.closest('.wrapper-sticky').offset().top + stickyElt.closest('.wrapper-sticky').outerHeight(),
+        'offsetBottom': wrapperSticky.offset().top + wrapperSticky.outerHeight(),
         'height': stickyElt.height()
     });
 
 
     checkWindowHeight();
-
 
     
     $(document).on('scroll', throttle(function(){
