@@ -24,3 +24,20 @@
     font-family: $fira;
     font-size: 1.6rem;
 }
+
+@media (max-width: $desktop-small){
+    .article-title{
+        padding: 0 10px;
+        font-size: 1.3rem;
+    }
+}
+@media (max-width: $tablet){
+    .article-title{
+        font-size: 1.5rem;
+    }
+}
+@media (max-width: $phone-small){
+    .article-title{
+        font-size: 1.3rem;
+    }
+}

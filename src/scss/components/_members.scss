@@ -5,6 +5,7 @@
         position: relative;
         width: calc(33.3333333% - #{$gutter});
         height: 365px;
+        margin: 0;
         padding: 25px;
         font-size: 1.4rem;
         &:before, &:after{
@@ -39,5 +40,34 @@
     .job{
         font-family: $fira-medium;
         color: $white;
+    }
+}
+
+@media (max-width: $desktop-small){
+    .members{
+        >li{
+            height: 330px;
+        }
+    }
+}
+@media (max-width: $phone){
+    .members{
+        >li{
+            height: 280px;
+            padding: 10px;
+            font-size: 1.2rem;
+        }
+    }
+}
+@media (max-width: $phone){
+    .members{
+        >li{
+            width: calc(33.3333333% - 5px);
+            height: 250px;
+            font-size: 1rem;
+        }
+        .name{
+            font-size: 1.2rem;
+        }
     }
 }

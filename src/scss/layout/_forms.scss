@@ -1,14 +1,39 @@
 /* Forms */
 
 ::-webkit-input-placeholder{
+    color: rgba($purple-dark, 0.35);
 }
 ::-moz-placeholder{
+    color: rgba($purple-dark, 0.35);
 }
 :-ms-input-placeholder{
+    color: rgba($purple-dark, 0.35);
 }
 
-fieldset{
+form{
+    &.success{
+        opacity: 0.5;
+    }
+    .btn{
+        margin: 15px 0 0;
+    }
+}
 
+label{
+    display: inline-block;
+    margin: 15px 0 5px;
+    font-size: 1.4rem;
+    font-family: $fira-medium;
+    cursor: pointer;
+    i{
+        display: inline-block;
+        margin: 0 0 0 15px;
+        font-size: 0.9em;
+        color: $primary;
+    }
+    .optionnal &{
+        font-family: $fira;
+    }
 }
 
 input, textarea, select, button{
@@ -18,30 +43,19 @@ input, textarea, select, button{
   	}
 }
 
-input, textarea, label{
-    font-family: $fira-italic;
-    color: $grey;
-}
-
 input, textarea{
-    width: 220px;
+    display: block;
+    width: 265px;
     max-width: 100%;
     padding: 10px 15px;
-    border-top: 1px solid rgba($primary, 0.4);
-    border-right: none;
-    border-bottom: 1px solid rgba($primary, 0.4);
-    border-left: 1px solid rgba($primary, 0.4);
+    border: 1px solid rgba($primary, 0.2);
     background: $white;
+    color: $grey;
   	&:-webkit-autofill{
-      	box-shadow: 0 0 0 1000px rgba($primary, 0.4) inset;
+      	box-shadow: 0 0 0 1000px rgba($primary, 0.2) inset;
   	}
     &:focus{
         border-color: rgba($primary, 0.8);
-    }
-    &:focus, &.on{
-        + label{
-            opacity: 0;
-        }
     }
     &:invalid{
         // FF red borders
@@ -50,12 +64,31 @@ input, textarea{
 }
 
 input{
+    &[type=email]{
+        width: 365px;
+    }
+    &[type=tel]{
+        width: 190px;
+    }
+    &[type=url]{
+        width: 325px;
+    }
     // hide the symbols of input search
     &[type=search]{
         &::-webkit-search-cancel-button, &::-webkit-search-decoration{
             display: none;
         }
     }
+}
+
+.new-input{
+    margin: 10px 0 0;
+}
+
+textarea{
+    width: 365px;
+    height: 185px;
+    margin: 0 0 25px;
 }
 
 select{
@@ -69,13 +102,101 @@ button{
     border: 0;
 }
 
+.field.error, .form-error, .form-success{
+    .icon{
+        width: 30px;
+        height: 15px;
+        position: absolute;
+        left: -40px;
+        top: 55px;
+    }
+}
+
 .field{
+    position: relative;
+    &.error{
+        color: $error;
+        input, textarea{
+            border-color: $error;
+        }
+    }
+    .btn-add{
+        position: absolute;
+        top: 55px;
+        left: 340px;
+        .no-js &{
+            display: none;
+        }
+    }
+}
+
+.field-inline{
     position: relative;
     > label{
         position: absolute;
-        top: 10px;
+        top: 12px;
         left: 15px;
+        margin: 0;
         pointer-events: none;
         transition: 0.1s ease-in-out;
+    }
+}
+
+.form-success, .form-error{
+    position: relative;
+    font-size: 1.4rem;
+    font-family: $fira-medium;
+    .icon{
+        top: 0;
+        bottom: 1px;
+        margin: auto;
+    }
+}
+
+.form-success{
+    color: $success;
+}
+
+.form-error{
+    color: $error;
+}
+
+.newsletter{
+    label, input{
+        font-family: $fira-italic;
+        color: $grey;
+    }
+    input{
+        width: 220px;
+        border-right: 0;
+        &:focus, &.on{
+            + label{
+                opacity: 0;
+            }
+        }
+    }
+}
+
+
+@media (max-width: $desktop-large){
+    .field.error, .form-success, .form-error{
+        .icon{
+            left: -35px;
+        }
+    }
+
+    .form-success{
+        margin-left: 32px;
+    }
+}
+
+@media (max-width: $phone){
+    .field{
+        .btn-add{
+            position: relative;
+            top: 0;
+            left: 0;
+            margin: 5px 0 0;
+        }
     }
 }

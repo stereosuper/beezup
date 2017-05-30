@@ -6,7 +6,7 @@
         <div id='sib_loading_gif_area' style='position:absolute;z-index:9999;display:none;'>
             <img src='https://my.sendinblue.com/public/theme/version4/assets/images/loader_sblue.gif' style='display:block;margin-left:auto;margin-right:auto;position:relative;top:40%;'>
         </div>
-        <form id='theform' name='theform' action='https://my.sendinblue.com/users/subscribeembed/js_id/2kqou/id/1' onsubmit='return false;'>
+        <form id='theform' name='theform' action='https://my.sendinblue.com/users/subscribeembed/js_id/2kqou/id/1' onsubmit='return false;' class='newsletter'>
             <input type='hidden' name='js_id' id='js_id' value='2kqou'>
             <input type='hidden' name='listid' id='listid' value='6'>
             <input type='hidden' name='from_url' id='from_url' value='yes'>
@@ -15,7 +15,7 @@
                 <input type='hidden' name='req_hid' id='req_hid' value=''>
                 <div class='view-messages'></div>
                 <div class='container-newsletter'>
-                    <div class='row mandatory-email field'>
+                    <div class='row mandatory-email field-inline'>
                         <input type='text' name='email' id='email'>
                         <label for='email'>Votre adresse email</label>
                     </div> 

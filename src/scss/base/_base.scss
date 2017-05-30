@@ -398,6 +398,10 @@ a{
     position: relative;
 }
 
+.primary, .h1>span.primary{
+    color: $primary;
+}
+
 
 @media (max-width: $desktop-small){
     img{
