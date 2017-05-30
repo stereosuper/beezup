@@ -11,7 +11,7 @@ $defaultCountry = $fieldLang ? $fieldLang : 'FRA';
 
 $country = isset( $_GET['country'] ) ? $_GET['country'] : $defaultCountry;
 
-session_start();
+if( !session_id() ) session_start();
 if( isset( $_SESSION['country'] ) ){
     $country = $_SESSION['country'];
 }

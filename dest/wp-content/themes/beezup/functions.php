@@ -99,7 +99,7 @@ function beezup_ajax_get_data(){
     $country = isset( $_GET['country'] ) ? $_GET['country'] : $defaultCountry;
     $isNetworkPage = isset( $_GET['isNetworkPage'] ) ? $_GET['isNetworkPage'] : '';
 
-    session_start();
+    if( !session_id() ) session_start();
     $_SESSION['country'] = $country;
     
     $data = beezup_get_data_to_display($isNetworkPage, $country);
