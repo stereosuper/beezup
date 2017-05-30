@@ -36,7 +36,7 @@ function beezup_get_channels_by_type($channelsTypeIndex, $channelsForOneLang){
 }
 
 function beezup_get_all_channels($channelsIndex, $currentLang){
-    $channelsTypeIndex = beezup_get_data_transient( 'channels_type_index_' . $currentLang, 'lov/ChannelType' );
+    $channelsTypeIndex = beezup_get_data_transient( 'channels_type_index_' . $currentLang, 'lov/ChannelType', array('accept-language' => $currentLang) );
 
     if( !$channelsIndex || !property_exists($channelsIndex, 'items') ) return;
 
@@ -60,7 +60,7 @@ function beezup_get_all_channels($channelsIndex, $currentLang){
 function beezup_get_data_to_display($isNetworkPage, $country){
     $currentLang = get_field('lang2', 'options');
 
-    $channelsIndex = beezup_get_data_transient( 'channels_index_' . $currentLang, 'lov/www_ChannelCountry' );
+    $channelsIndex = beezup_get_data_transient( 'channels_index_' . $currentLang, 'lov/www_ChannelCountry', array('accept-language' => $currentLang) );
 
     $allChannelsArray = beezup_get_all_channels($channelsIndex, $currentLang);
     $allChannels = $allChannelsArray['allChannels'];
@@ -138,6 +138,29 @@ function beezup_get_country_select($channelsIndex, $country){
     return $output;
 }
 
+function beezup_get_sector_select(){
+    $currentLang = get_field('lang2', 'options');
+
+    $channelsSectorIndex = beezup_get_data_transient( 'channels_sector_index' . $currentLang, 'lov/ParamSector', array('accept-language' => $currentLang) );
+
+    if( !$channelsSectorIndex || !property_exists($channelsSectorIndex, 'items') ) return;
+
+    $output = '<select name="sector" id="channelsSectorSelect" class="channels-select-sector">';
+    $output .= '<option value="all">' . __('All the sectors', 'beezup') . '</option>';
+    
+    foreach( $channelsSectorIndex->items as $sector ){
+        $code = $sector->codeIdentifier;
+        
+        $output .= '<option value="' . $code . '"';
+        $output .= '>';
+        $output .= $sector->translationText;
+        $output .= '</option>';
+    }
+
+    $output .= ' </select>';
+    return $output;
+}
+
 function beezup_get_types_pages($channelsByType, $subPages, $country, $postID){
     if( !$channelsByType || !isset($channelsByType[$country]) || !$subPages ) return;
     
@@ -181,9 +204,9 @@ function beezup_get_channels_to_display($channelsToDisplay, $noChannels){
     }else{
         
         if( $noChannels ){
-            $output = '<p>' . __("There are no channels of this type in this country.", 'beezup') . '</p>';
+            $output = '<p class="channels-error">' . __("There are no channels of this type in this country.", 'beezup') . '</p>';
         }else{
-            $output = '<p>' . __("Channels can't be displayed at this time. Please come back later!", 'beezup') . '</p>';
+            $output = '<p class="channels-error">' . __("Channels can't be displayed at this time. Please come back later!", 'beezup') . '</p>';
         }
 
     }
@@ -363,6 +386,8 @@ if( function_exists('acf_add_options_page') ){
 
 // Add tags in acf fields
 function beezup_acf_load_value( $value, $field, $post_id ){
+    if( is_admin() ) return $value;
+    
     $value = str_replace( '[small]', '<span class="small">', str_replace( '[/small]', '</span>', $value ) );
     $value = str_replace( '[blue]', '<span class="blue">', str_replace( '[/blue]', '</span>', $value ) );
     return $value;
@@ -556,7 +581,8 @@ function beezup_scripts(){
 
     wp_localize_script( 'beezup-scripts', 'wp', array(
         'adminAjax' => site_url( '/wp-admin/admin-ajax.php' ),
-        'isNetworkPage' => $isNetworkPage
+        'isNetworkPage' => $isNetworkPage,
+        'noChannels' => __('There are no channels of this sector in this country', 'beezup')
     ) );
     
 }

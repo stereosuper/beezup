@@ -10,6 +10,7 @@ module.exports = function(stickyElt, givenPosition, unit = 'px'){
         eltHeight;
     var windowHeight = $(window).height(); 
     var scrollTop = $(document).scrollTop();
+    var wrapperSticky = stickyElt.closest('.wrapper-sticky');
 
     function checkWindowHeight() {
         windowHeight = $(window).height();
@@ -22,7 +23,6 @@ module.exports = function(stickyElt, givenPosition, unit = 'px'){
     }
     
     function scrollHandler() {
-        
         scrollTop = $(document).scrollTop();
         if (scrollTop >= stickyElt.data('offsetTop') - position) {
             stickyElt.addClass('sticky').css('top', position+'px');
@@ -55,7 +55,6 @@ module.exports = function(stickyElt, givenPosition, unit = 'px'){
 
 
     checkWindowHeight();
-
 
     
     $(document).on('scroll', throttle(function(){

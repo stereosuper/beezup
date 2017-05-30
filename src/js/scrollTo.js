@@ -1,41 +1,56 @@
 var $ = require('jquery');
 
 require('gsap/CSSPlugin');
+require('gsap/ScrollToPlugin');
 var TweenLite = require('gsap/TweenLite');
 
 window.requestAnimFrame = require('./requestAnimFrame.js');
 var throttle = require('./throttle.js');
 
 module.exports = function(elt, activeClass = false){
-    if(!elt.length) return;
+    if (!elt.length) return;
+    
+    var target, scrollPos, currLink, refElement, link;
 
-    function scrollTo(e) {
+    function scrollTo(e){
         e.preventDefault();
-        var link = e.target.hash;
-        TweenLite.to(window, 1, {scrollTo:{y:$(link).offset().top - 70}});
-        window.location.hash = link;
+        link = e.target.hash;
+        TweenLite.to(window, 1, {scrollTo: { y: $(link).offset().top - 70 }, onComplete: function(){
+            history.pushState(null, null, link);
+        }});
+    }
+
+    function setData(){
+        elt.find('a[href^="#"]').each(function(){
+            target = $($(this).attr('href'));
+            target.data('top', target.offset().top).data('height', target.height());
+        });
     }
 
     function onScroll(){
         if (!activeClass) return;
-        var scrollPos = $(document).scrollTop();
-        elt.find('a[href^="#"]').each(function () {
-            var currLink = $(this);
-            var refElement = $(currLink.attr("href"));
-            if (refElement.offset().top-100 <= scrollPos && refElement.offset().top + refElement.height()+100 > scrollPos) {
-                elt.find('li').removeClass("active");
-                currLink.parent().addClass("active");
-            }
-            else{
-                currLink.parent().removeClass("active");
+
+        scrollPos = $(document).scrollTop();
+        elt.find('a[href^="#"]').each(function(){
+            currLink = $(this);
+            refElement = $(currLink.attr('href'));
+            
+            if(refElement.data('top')-100 <= scrollPos && refElement.data('top')+ refElement.data('height')+100 > scrollPos){
+                currLink.parent().addClass('active').siblings().removeClass('active');
+            }else{
+                currLink.parent().removeClass('active');
             }
         });
     }
 
-    elt.find('a').on('click', function (e) {
-        scrollTo(e);
-    });
 
+    elt.on('click', 'a', scrollTo);
+    setData();
+
+
+    $(window).on('resize', throttle(function(){
+        requestAnimFrame(setData);
+    }, 60));
 
     $(document).on('scroll', throttle(function(){
         requestAnimFrame(onScroll);

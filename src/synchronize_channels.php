@@ -12,15 +12,17 @@ $sites = get_sites();
 /*-----------------------------------------------------------------------------------*/
 /* Delete transients
 /*-----------------------------------------------------------------------------------*/
-// Suppression + création des transients qui contiendront la liste des pays par langue + ceux qui contiendront la liste des types par langue
+// Suppression + création des transients qui contiendront la liste des pays par langue + ceux qui contiendront la liste des types par langue + liste des secteurs -> le tout pour chaque site
 foreach( $sites as $site ){
     switch_to_blog( $site->blog_id );
     $lang = get_field('lang2', 'options');
 
+
+    // Suppresion - Liste des liste de channels par pays
     delete_site_transient( 'channels_index_' . $lang );
     echo( 'Transient for channels index ' . $lang . ' deleted. <br>' );
 
-    // Liste des liste de channels par pays
+    // Création - Liste des liste de channels par pays
     $transientChannelsIndex = beezup_get_data_transient( 'channels_index_' . $lang, 'lov/www_ChannelCountry', array('accept-language' => $lang) );
     $allChannelsIndex[] = $transientChannelsIndex;
     if( $transientChannelsIndex ){
@@ -29,23 +31,38 @@ foreach( $sites as $site ){
         echo( "ERROR: Transient for channels index " . $lang . "  couldn't be created. <br>" );
     }
 
+
+    // Suppression - Liste des types
     delete_site_transient( 'channels_type_index_' . $lang );
     echo( 'Transient for channels type index ' . $lang . ' deleted. <br>' );
 
-    // Liste des types
-    $transientChannelsTypeIndex = beezup_get_data_transient( 'channels_type_index', 'lov/ChannelType', array('accept-language' => $lang) );
+    // Création - Liste des types
+    $transientChannelsTypeIndex = beezup_get_data_transient( 'channels_type_index' . $lang, 'lov/ChannelType', array('accept-language' => $lang) );
     $allChannelsTypeIndex[] = $transientChannelsTypeIndex;
     if( $transientChannelsIndex ){
         echo( 'Transient for channels type index ' . $lang . ' created. <br>' );
     }else{
         echo( "ERROR: Transient for channels type index " . $lang . "  couldn't be created. <br>" );
     }
+
+
+    // Suppression - Liste des secteurs
+    delete_site_transient( 'channels_sector_index' . $lang );
+    echo( 'Transient for channels sector index ' . $lang . ' deleted. <br>' );
+
+    // Création - Liste des secteurs
+    $transientChannelsSectorIndex = beezup_get_data_transient( 'channels_sector_index' . $lang, 'lov/ParamSector', array('accept-language' => $lang) );
+    if( $transientChannelsSectorIndex ){
+        echo( 'Transient for channels sector index ' . $lang . ' created. <br>' );
+    }else{
+        echo( "ERROR: Transient for channels sector index " . $lang . "  couldn't be created. <br>" );
+    }
 }
 
 $channelsIndex = $allChannelsIndex[0];
 $channelsTypeIndex = $allChannelsTypeIndex[0];
 
-// Suppression des channels par pays
+// Suppression des channels par pays (pas besoin de le faire par langue vu qu'on affiche que l'image et le lien)
 if( $channelsIndex && property_exists($channelsIndex, 'items') ){
     foreach( $channelsIndex->items as $channel ){
         $code = $channel->codeIdentifier;
@@ -73,7 +90,6 @@ if( $channelsIndex && property_exists($channelsIndex, 'items') ){
         }else{
             echo( "ERROR: Transient for " . $code . " channels couldn't be created." );
         }
-        // $allChannelsTogether = array_merge( $allChannelsTogether, $allChannels[$code]->channels );
 
         // Remplissage du tableau qui servira à créer le transient qui contient les channels triés par pays et par type
         if( !property_exists($channelsTypeIndex, 'items') || !property_exists($allChannels[$code], 'channels')) continue;

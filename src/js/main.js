@@ -17,7 +17,7 @@ $(function(){
     var scrollTo = require('./scrollTo.js');
     var animTopHome = require('./animTopHome.js');
     var addUrlInputs = require('./addUrlInputs.js');
-    var getChannelsByCountry = require('./getChannelsByCountry.js');
+    var filterChannels = require('./filterChannels.js');
 
     var body = $('body');
     var forms = $('form');
@@ -73,7 +73,7 @@ $(function(){
     }
 
     // Networks page: dinamically get channels by country
-    getChannelsByCountry(wp, $('#channelsCountrySelect'), $('#channelsList'));
+    filterChannels(wp, $('#channelsCountrySelect'), $('#channelsSectorSelect'), $('#channelsList'));
 
     $(window).on('resize', throttle(function(){
 
