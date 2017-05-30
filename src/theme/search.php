@@ -19,7 +19,7 @@
 
 		<?php while ( have_posts() ) : the_post(); ?>
 			
-			<div class='<?php if( get_field('highlighted') ) echo 'highlighted'; ?>'>
+			<div class='<?php if( is_sticky() ) echo 'highlighted'; ?>'>
 				<span>
 					<?php _e('Add on', 'beezup'); ?>
 					<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>'><?php echo get_the_date(); ?></a>
