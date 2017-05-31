@@ -80,13 +80,29 @@
     color: $secondary;
     text-decoration: underline;
     .icon{
-        width: 14px;
-        height: 14px;
+        width: 13px;
+        height: 13px;
         position: absolute;
         top: 0;
         left: 0;
         bottom: 1px;
         margin: auto;
+    }
+    &:hover, &:focus{
+        color: $primary;
+    }
+}
+
+.btn-close{
+    width: 10px;
+    height: 10px;
+    text-indent: -99em;
+    overflow: hidden;
+    color: rgba($primary, 0.35);
+    .icon{
+        width: 10px;
+        height: 10px;
+        float: left;
     }
     &:hover, &:focus{
         color: $primary;
