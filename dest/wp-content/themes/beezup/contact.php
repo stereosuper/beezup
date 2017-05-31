@@ -150,7 +150,7 @@ get_header(); ?>
         <?php if( $success ){ ?>
             <p class='form-success'>
                 <?php _e('Thank you for your message ! We’ll get back to you soon.', 'beezup'); ?>
-                <svg class='icon icon-check'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-check'></use></svg>
+                <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-check'></use></svg>
             </p>
         <?php } ?>
 
@@ -159,7 +159,7 @@ get_header(); ?>
                 <label for='last_name'><?php _e('Last Name', 'beezup'); ?></label>
                 <input type='text' name='last_name' id='last_name' value='<?php echo $lastname; ?>' required>
                 <?php if( $errorLastname ){ ?>
-                    <svg class='icon icon-error'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
+                    <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
                 <?php } ?>
             </div>
 
@@ -167,7 +167,7 @@ get_header(); ?>
                 <label for='first_name'><?php _e('First Name', 'beezup'); ?></label>
                 <input type='text' name='first_name' id='first_name' value='<?php echo $firstname; ?>' required>
                 <?php if( $errorFirstname ){ ?>
-                    <svg class='icon icon-error'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
+                    <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
                 <?php } ?>
             </div>
 
@@ -176,7 +176,7 @@ get_header(); ?>
                 <input type='url' name='website' id='webiste' value='<?php echo $website; ?>' placeholder='http://'>
                 <button id='addUrlInput' class='btn-add' type='button'>
                     <?php _e('Add', 'beezup'); ?>
-                    <svg class='icon icon-plus'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-plus'></use></svg>
+                    <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-plus'></use></svg>
                 </button>
                 <input type='hidden' value='0' name='new-websites-count' id='newInputsCount'>
             </div>
@@ -185,7 +185,7 @@ get_header(); ?>
                 <label for='tel'><?php _e('Phone', 'beezup'); ?></label>
                 <input type='tel' name='tel' id='tel' value='<?php echo $phone; ?>' required>
                 <?php if( $errorPhone ){ ?>
-                    <svg class='icon icon-error'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
+                    <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
                 <?php } ?>
             </div>
 
@@ -193,7 +193,7 @@ get_header(); ?>
                 <label for='email'><?php _e('Email', 'beezup'); ?></label>
                 <input type='email' name='email-contact' id='email' value='<?php echo $mail; ?>' required>
                 <?php if( $errorMail ){ ?>
-                    <svg class='icon icon-error'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
+                    <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
                 <?php } ?>
             </div>
 
@@ -201,7 +201,7 @@ get_header(); ?>
                 <label for='message'><?php _e('Message', 'beezup'); ?></label>
                 <textarea name='message' id='message' required><?php echo $msg; ?></textarea>
                 <?php if( $errorMsg ){ ?>
-                    <svg class='icon icon-error'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
+                    <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
                 <?php } ?>
             </div>
 
@@ -215,7 +215,7 @@ get_header(); ?>
                     <?php if($errorEmpty) echo __('Please fill all the required fields', 'beezup') . '<br>'; ?>
                     <?php if($errorPhoneTxt) echo $errorPhoneTxt . '<br>'; ?>
                     <?php if($errorMailTxt) echo $errorMailTxt; ?>
-                    <svg class='icon icon-error'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
+                    <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
                 </p>
             <?php } ?>
 
