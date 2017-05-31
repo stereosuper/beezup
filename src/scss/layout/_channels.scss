@@ -20,7 +20,28 @@
 }
 
 .channels-error{
+    font-family: $fira-medium;
     text-align: center;
+    &:after{
+        content: '';
+        display: none;
+        width: 365px;
+        height: 1px;
+        margin: 50px auto 0;
+        background: rgba($white, 0.4);
+    }
+    &:not(:empty){
+        &:after{
+            display: block;
+        }
+    }
+    .icon{
+        width: 30px;
+        height: 15px;
+        position: relative;
+        margin: 0 10px 0 0;
+        top: -1px;
+    }
 }
 
 .channels-list{
@@ -95,10 +116,10 @@
                     &:before, span{
                         color: $primary;
                     }
-                    span{
-                        font-family: $fira-medium;
-                        font-size: 0.9em;
-                    }
+                }
+                span{
+                    font-family: $fira-medium;
+                    font-size: 0.9em;
                 }
                 .icon{
                     display: none;

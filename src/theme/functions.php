@@ -209,9 +209,9 @@ function beezup_get_channels_to_display($channelsToDisplay, $noChannels){
     }else{
         
         if( $noChannels ){
-            $output = '<p class="channels-error">' . __("There are no channels of this type in this country.", 'beezup') . '</p>';
+            $output = '<p class="channels-error"><svg class="icon"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-error"></use></svg>' . __("There are no channels of this type in this country.", 'beezup') . '</p>';
         }else{
-            $output = '<p class="channels-error">' . __("Channels can't be displayed at this time. Please come back later!", 'beezup') . '</p>';
+            $output = '<p class="channels-error"><svg class="icon"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-error"></use></svg>' . __("Channels can't be displayed at this time. Please come back later!", 'beezup') . '</p>';
         }
 
     }
@@ -588,8 +588,8 @@ function beezup_scripts(){
         'adminAjax' => site_url( '/wp-admin/admin-ajax.php' ),
         'isNetworkPage' => $isNetworkPage,
         'type' => get_field('type', $post->ID),
-        'noChannels' => __('There are no channels of this sector in this country', 'beezup'),
-        'noChannelsType' => __('There are no channels of this sector and this type in this country', 'beezup')
+        'noChannels' => '<svg class="icon"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-error"></use></svg>' . __('There are no channels of this sector in this country', 'beezup'),
+        'noChannelsType' => '<svg class="icon"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-error"></use></svg>' . __('There are no channels of this sector and this type in this country', 'beezup')
     ) );
     
 }
