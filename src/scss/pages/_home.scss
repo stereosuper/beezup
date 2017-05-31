@@ -41,3 +41,125 @@
     margin: -30px 0 0 -15px;
     pointer-events: none;
 }
+.wrapper-svg-home{
+    position: relative;
+}
+.text-illus{
+    position: absolute;
+    transform: scaleY(0.75) rotate(-10deg);
+    z-index: 2;
+    >div{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        height: 100%;
+        transform: rotate(45deg);
+    }
+    strong{
+        text-align: center;
+        text-transform: uppercase;
+        line-height: 1;
+        color: $primary;
+        >span{
+            display: block;
+            text-transform: none;
+        }
+    }
+    &.market-places{
+        width: 30.6%;
+        height: 41%;
+        top: 5.5%;
+        left: 44.5%;
+        strong{
+            font-size: 8rem;
+        }
+    }
+    &.google-shopping{
+        width: 22.2%;
+        height: 27%;
+        top: 2%;
+        left: 72%;
+        strong{
+            font-size: 4.5rem;
+            >span{
+                font-size: 0.7em;
+            }
+        }
+    }
+    &.comparator{
+        width: 23.5%;
+        height: 13%;
+        top: 51.5%;
+        left: 71.5%;
+        strong{
+            font-size: 3.2rem;
+        }
+    }
+    &.affiliate{
+        width: 20%;
+        height: 14%;
+        top: 64.5%;
+        left: 70%;
+        strong{
+            font-size: 3.2rem;
+        }
+    }
+    &.retargeting{
+        width: 18.5%;
+        height: 12.5%;
+        top: 77.5%;
+        left: 60%;
+        strong{
+            font-size: 2.7rem;
+        }
+    }
+    &.your-shop{
+        width: 25.5%;
+        height: 20.5%;
+        top: 48%;
+        left: 0.5%;
+        strong{
+            font-size: 4.5rem;
+            color: $white;
+            >span{
+                font-size: 0.5em;
+            }
+        }
+    }
+}
+
+@media (max-width: $desktop-large){
+    .text-illus{
+        &.market-places{
+            strong{
+                font-size: 6.5vw;
+            }
+        }
+        &.google-shopping{
+            strong{
+                font-size: 3.5vw;
+            }
+        }
+        &.comparator{
+            strong{
+                font-size: 2.5vw;
+            }
+        }
+        &.affiliate{
+            strong{
+                font-size: 2.3vw;
+            }
+        }
+        &.retargeting{
+            strong{
+                font-size: 2.2vw;
+            }
+        }
+        &.your-shop{
+            strong{
+                font-size: 3.6vw;
+            }
+        }
+    }
+}

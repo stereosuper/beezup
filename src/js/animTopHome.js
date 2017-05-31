@@ -11,8 +11,8 @@ module.exports = function(){
     if(!$('body').hasClass('home')) return;
 
     var windowHeight, windowScroll, windowBottom;
-    var titleHome = $('#titleHome h1'), textToAnim = $('.textToAnim'), btnTopHome = $('#btnTopHome'), introHome = $('#introHome');
-    var isOverBaseline = true;
+    var blockTitle = $('#titleHome'), titleHome = blockTitle.find('h1'), textToAnim = $('.textToAnim'), btnTopHome = $('#btnTopHome'), introHome = $('#introHome');
+    var baseline = 200, isOverBaseline = true;
 
     function initTitleTxt(){
         textToAnim.each(function(){
@@ -33,13 +33,16 @@ module.exports = function(){
         windowScroll = $(window).scrollTop();
         windowBottom = windowScroll + windowHeight;
 
-        if(windowScroll >= 200 && isOverBaseline){
+        if(windowScroll >= baseline && isOverBaseline){
             animScrambleText('after');
-            introHome.slideToggle(300, function(){
+            TweenLite.killTweensOf(introHome, true);
+            introHome.stop().slideToggle(300, function(){
                 TweenLite.to(introHome, 0.3, {opacity: 1});
             });
-        }else if(windowScroll < 200 && !isOverBaseline){
+        }else if(windowScroll < baseline && !isOverBaseline){
             animScrambleText('before');
+            TweenLite.killTweensOf(introHome, true);
+            introHome.stop();
             TweenLite.to(introHome, 0.3, {opacity: 0, onComplete: function(){
                 introHome.slideToggle(300);
             }});
@@ -47,7 +50,7 @@ module.exports = function(){
     }
 
     initTitleTxt();
-    sticky($('#titleHome'), 15);
+    sticky(blockTitle, 150, 'px', true);
 
     btnTopHome.on('click', function(e){
         e.preventDefault();
