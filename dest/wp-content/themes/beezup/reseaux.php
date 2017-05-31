@@ -41,9 +41,9 @@ get_header(); ?>
             </h1>
 
             <?php if( get_field('subtitle') ){ ?>
-                <h3><?php the_field('subtitle'); ?></h3>
+                <h3 class='h2'><?php the_field('subtitle'); ?></h3>
             <?php }elseif( get_field('subtitle', $networkPage) ){ ?>
-                <h3><?php the_field('subtitle', $networkPage); ?></h3>
+                <h3 class='h2'><?php the_field('subtitle', $networkPage); ?></h3>
             <?php } ?>
 
             <?php if( get_field('text') ){ ?>
