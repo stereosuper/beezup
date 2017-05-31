@@ -69,15 +69,18 @@ get_header(); ?>
             <?php $countrySelect = beezup_get_country_select($channelsIndex, $country); ?>
             
             <?php if( $countrySelect ){ ?>
-                <?php if( get_field('form') ){ ?>
-                    <?php the_field('form'); ?>
-                <?php }elseif( get_field('form', $networkPage) ){ ?>
-                    <?php the_field('form', $networkPage); ?>
-                <?php } ?>
+                <form action='<?php the_permalink(); ?>' method='GET' class='channels-form'>
+                    <?php if( get_field('form') ){ ?>
+                        <legend><?php the_field('form'); ?></legend>
+                    <?php }elseif( get_field('form', $networkPage) ){ ?>
+                        <legend><?php the_field('form', $networkPage); ?></legend>
+                    <?php } ?>
 
-                <form action='<?php the_permalink(); ?>' method='GET'>
-                    <?php echo beezup_get_sector_select(); ?>
-                    <?php echo $countrySelect; ?>
+                    <fieldset>
+                        <?php echo beezup_get_sector_select(); ?>
+                        <?php echo $countrySelect; ?>
+                    </fieldset>
+                    
                     <button type='submit' name='filter' value='true' id='channelsSubmit'>Go</button>
                 </form>
             <?php } ?>

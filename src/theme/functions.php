@@ -120,7 +120,7 @@ add_action( 'wp_ajax_nopriv_beezup_ajax_get_data', 'beezup_ajax_get_data' );
 function beezup_get_country_select($channelsIndex, $country){
     if( !$channelsIndex || !property_exists($channelsIndex, 'items') ) return;
 
-    $output = '<select name="country" id="channelsCountrySelect">';
+    $output = '<div class="select"><select name="country" id="channelsCountrySelect">';
     
     foreach( $channelsIndex->items as $channel ){
         $code = $channel->codeIdentifier;
@@ -134,7 +134,7 @@ function beezup_get_country_select($channelsIndex, $country){
         $output .= '</option>';
     }
 
-    $output .= ' </select>';
+    $output .= ' </select></div>';
     return $output;
 }
 
@@ -145,7 +145,7 @@ function beezup_get_sector_select(){
 
     if( !$channelsSectorIndex || !property_exists($channelsSectorIndex, 'items') ) return;
 
-    $output = '<select name="sector" id="channelsSectorSelect" class="channels-select-sector">';
+    $output = '<div class="select"><select name="sector" id="channelsSectorSelect" class="channels-select-sector">';
     $output .= '<option value="all">' . __('All the sectors', 'beezup') . '</option>';
     
     foreach( $channelsSectorIndex->items as $sector ){
@@ -157,7 +157,7 @@ function beezup_get_sector_select(){
         $output .= '</option>';
     }
 
-    $output .= ' </select>';
+    $output .= ' </select></div>';
     return $output;
 }
 
