@@ -1,11 +1,11 @@
 var $ = require('jquery');
 
-module.exports = function(wp, countrySelect, sectorSelect, channelsList){
-    if(!wp || !channelsList.length) return;
+module.exports = function(wp, wrapper, countrySelect, sectorSelect, channelsList){
+    if(!wp || !wrapper.length || !channelsList.length) return;
 
     var form = countrySelect.closest('form');
     var channels = channelsList.find('li');
-    var sectorError = $('#sectorError');
+    var sectorError = wrapper.find('#sectorError');
 
     function filterBySector(sector){
         channels.removeClass('hidden');
@@ -13,8 +13,16 @@ module.exports = function(wp, countrySelect, sectorSelect, channelsList){
             channels.not('[data-sector="' + sector + '"]').addClass('hidden');
         }
 
-        if(sectorError.length){
-            channels.not('.hidden').length ? sectorError.html('') : sectorError.html(wp.noChannels);
+        if(!sectorError.length) return;
+        
+        if(channels.not('.hidden').length){
+            sectorError.html('');
+        }else{
+            wp.type ? sectorError.html(wp.noChannelsType) : sectorError.html(wp.noChannels);
+        }
+       
+        if(sector === 'all'){
+            sectorError.html('');
         }
     }
 
@@ -22,15 +30,16 @@ module.exports = function(wp, countrySelect, sectorSelect, channelsList){
         form.find('#channelsSubmit').addClass('hidden');
 
         countrySelect.on('change', function(){
-            channelsList.addClass('loading');
+            wrapper.addClass('loading');
 
             $.ajax({
                 method: 'GET',
                 url: wp.adminAjax,
-                data: 'action=beezup_ajax_get_data&isNetworkPage=' + wp.isNetworkPage + '&' + form.serialize(),
+                data: 'action=beezup_ajax_get_data&isNetworkPage=' + wp.isNetworkPage + '&' + form.serialize() + '&type=' + wp.type,
                 dataType: 'html',
                 success: function(data){
-                    channelsList.html(data).removeClass('loading');
+                    channelsList.html(data);
+                    wrapper.removeClass('loading');
                     channels = channelsList.find('li');
 
                     if(sectorSelect.length){

@@ -36,6 +36,12 @@ label{
     }
 }
 
+legend{
+    display: block;
+    margin: 0 0 15px;
+    font-family: $fira-medium;
+}
+
 input, textarea, select, button{
   	transition: $transition;
   	&:focus{
@@ -100,6 +106,43 @@ select{
 
 button{
     border: 0;
+}
+
+select{
+    height: 45px;
+    padding: 0 35px 0 15px;
+    border: 1px solid rgba($primary, 0.2);
+    background: $white;
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    &::-ms-expand{
+        display: none;
+    }
+    .lt-ie10 &{
+        padding-right: 0;
+    }
+}
+
+.select{
+    display: inline-block;
+    position: relative;
+    &:after{
+        content: '';
+        width: 0;
+        height: 0;
+        border-style: solid;
+        border-width: 4px 3px 0 3px;
+        border-color: $text transparent transparent transparent;
+        position: absolute;
+        top: 1px;
+        bottom: 0;
+        margin: auto;
+        right: 18px;
+        pointer-events: none;
+        .lt-ie10 &{
+            display: none;
+        }
+    }
 }
 
 .field.error, .form-error, .form-success{
@@ -174,6 +217,12 @@ button{
                 opacity: 0;
             }
         }
+    }
+}
+
+.channels-form{
+    .select{
+        margin: 0 25px 0 0;
     }
 }
 
