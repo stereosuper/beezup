@@ -5,8 +5,24 @@
 }
 
 .channels-list{
+    text-align: center;
     transition: opacity $transition;
     &.loading{
         opacity: 0.5;
+    }
+}
+
+.channels-error{
+    text-align: center;
+}
+
+.channels{
+    a{
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+    }
+    img{
+        max-width: 80%;
     }
 }

@@ -62,42 +62,46 @@ get_header(); ?>
         </div>
 
     </section>
-        
-    <section class='container'>
+    
+    <section class='block-full no-pad'>
+        <div class='container'>
 
-        <?php $countrySelect = beezup_get_country_select($channelsIndex, $country); ?>
-        
-        <?php if( $countrySelect ){ ?>
-            <?php if( get_field('form') ){ ?>
-                <?php the_field('form'); ?>
-            <?php }elseif( get_field('form', $networkPage) ){ ?>
-                <?php the_field('form', $networkPage); ?>
+            <?php $countrySelect = beezup_get_country_select($channelsIndex, $country); ?>
+            
+            <?php if( $countrySelect ){ ?>
+                <?php if( get_field('form') ){ ?>
+                    <?php the_field('form'); ?>
+                <?php }elseif( get_field('form', $networkPage) ){ ?>
+                    <?php the_field('form', $networkPage); ?>
+                <?php } ?>
+
+                <form action='<?php the_permalink(); ?>' method='GET'>
+                    <?php echo beezup_get_sector_select(); ?>
+                    <?php echo $countrySelect; ?>
+                    <button type='submit' name='filter' value='true' id='channelsSubmit'>Go</button>
+                </form>
             <?php } ?>
 
-            <form action='<?php the_permalink(); ?>' method='GET'>
-                <?php echo beezup_get_sector_select(); ?>
-                <?php echo $countrySelect; ?>
-                <button type='submit' name='filter' value='true' id='channelsSubmit'>Go</button>
-            </form>
-        <?php } ?>
 
+            <?php $subPages = get_pages( array('child_of' => $networkPage) ); ?>
+            <?php $typePages = beezup_get_types_pages($channelsByType, $subPages, $country, $post->ID); ?>
 
-        <?php $subPages = get_pages( array('child_of' => $networkPage) ); ?>
-        <?php $typePages = beezup_get_types_pages($channelsByType, $subPages, $country, $post->ID); ?>
+            <?php if( $typePages ){ ?>
+                <ul>
+                    <li class='<?php if( $isNetworkPage ) echo "current"; ?>'><a href='<?php echo get_the_permalink($networkPage); ?>'><?php _e('All types of channels', 'beezup'); ?></a></li>
+                    <?php echo $typePages; ?>
+                </ul>
+            <?php } ?>
+        </div>
+    </section>
 
-        <?php if( $typePages ){ ?>
-            <ul>
-                <li class='<?php if( $isNetworkPage ) echo "current"; ?>'><a href='<?php echo get_the_permalink($networkPage); ?>'><?php _e('All types of channels', 'beezup'); ?></a></li>
-                <?php echo $typePages; ?>
-            </ul>
-        <?php } ?>
-	</section>
-
-    <section class='container'>
-        <p id='sectorError' class='channels-error'></p>
-        
-        <div id='channelsList' class='channels-list'>
-            <?php echo beezup_get_channels_to_display($channelsToDisplay, $noChannels); ?>
+    <section class='block-full no-pad'>
+        <div class='container'>
+            <p id='sectorError' class='channels-error'></p>
+            
+            <div id='channelsList' class='channels-list'>
+                <?php echo beezup_get_channels_to_display($channelsToDisplay, $noChannels); ?>
+            </div>
         </div>
     </section>
 

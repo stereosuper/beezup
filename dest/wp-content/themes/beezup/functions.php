@@ -185,7 +185,7 @@ function beezup_get_channels_to_display($channelsToDisplay, $noChannels){
     $output = '';
 
     if( $channelsToDisplay ){
-        $output = '<ul>';
+        $output = '<ul class="galery channels">';
 
         foreach( $channelsToDisplay as $partner ){
             $name = $partner->name;
@@ -195,7 +195,7 @@ function beezup_get_channels_to_display($channelsToDisplay, $noChannels){
             }
             $output .= '>';
             $output .= '<a href="' . $partner->homeUrl . '" title="' . $name . '" target="_blank">';
-            $output .= $name;
+            // $output .= $name;
             $output .= '<img src="' . $partner->logoUrl . '" alt="' . $name . '">';
             $output .= '</a></li>';
         }

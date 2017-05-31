@@ -1,0 +1,69 @@
+.galery{
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 -0.78% -20px;
+    > li{
+        width: 15.1%;
+        margin: 0 0.78% 20px;
+        &:before, &:after{
+            display: none;
+        }
+    }
+    a{
+        display: flex;
+        height: 105px;
+        overflow: hidden;
+        &:hover, &:focus{
+            opacity: 0.6;
+        }
+    }
+    img{
+        width: auto;
+    }
+    &:not(.channels){
+        img{
+            height: 100%;
+            max-width: none;
+            position: relative;
+            left: 50%;
+            transform: translate3d(-50%, 0, 0);
+        }
+    }
+}
+
+
+@media (max-width: $desktop-small){
+    .galery{
+        margin-bottom: -10px;
+        > li{
+            width: 18.41%;
+            margin-bottom: 10px;
+        }
+    }
+}
+
+@media (max-width: $tablet){
+    .galery{
+        > li{
+            width: 23.44%;
+        }
+    }
+}
+
+@media (max-width: $phone){
+    .galery{
+        > li{
+            width: 31.77%;
+        }
+    }
+}
+
+@media (max-width: $phone-small){
+    .galery{
+        margin-bottom: -5px;
+        > li{
+            width: 48.45%;
+            margin-bottom: 5px;
+        }
+    }
+}

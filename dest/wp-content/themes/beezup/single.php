@@ -25,15 +25,15 @@
 						<div class='container-small'><?php the_sub_field('blockFull'); ?></div>
 					</section>
 				<?php }elseif( get_row_layout() == 'galery' ){ ?>
-					<section class='<?php if( get_sub_field('blueBg') ){ echo "block-full"; } ?>'>
+					<section class='<?php if( get_sub_field('blueBg') ){ echo "block-full no-pad"; } ?>'>
 						<div class='container'>
 							<?php $images = get_sub_field('galery'); ?>
 							<?php if( $images ){ ?>
-							<ul>
+							<ul class='galery'>
 								<?php foreach( $images as $image ){ ?>
 								<li>
 									<a href='<?php echo $image['url']; ?>' title='<?php echo $image['caption']; ?>'>
-										<img src='<?php echo $image['sizes']['thumbnail']; ?>' alt='<?php echo $image['alt']; ?>'>
+										<img src='<?php echo $image['sizes']['medium']; ?>' alt='<?php echo $image['alt']; ?>'>
 									</a>
 								</li>
 								<?php } ?>
