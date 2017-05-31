@@ -90,7 +90,7 @@ get_header(); ?>
             <?php $typePages = beezup_get_types_pages($channelsByType, $subPages, $country, $post->ID); ?>
 
             <?php if( $typePages ){ ?>
-                <div class='channels-type closed' id='channels-type'>
+                <div class='channels-type closed' id='channelsType'>
                     <ul class='channels-type-list'>
                         <?php if( $isNetworkPage ){ ?>
                             <li class='current'><?php _e('All types of channels', 'beezup'); ?><svg class='icon'><use xlink:href='#icon-check'></use></svg></li>
@@ -121,6 +121,8 @@ get_header(); ?>
             <div id='channelsList'>
                 <?php echo beezup_get_channels_to_display($channelsToDisplay, $noChannels); ?>
             </div>
+
+            <?php get_template_part( 'includes/loader' ); ?>
         </div>
     </section>
 

@@ -7,7 +7,7 @@ module.exports = function(wp, wrapper, countrySelect, sectorSelect, channelsList
     var channels = channelsList.find('li');
     var sectorError = wrapper.find('#sectorError');
     var btn = $('.js-btn-type');
-    var typeList = $('#channels-type');
+    var typeList = $('#channelsType')/*, allTypesLi*/;
 
     function filterBySector(sector){
         channels.removeClass('hidden');
@@ -32,6 +32,7 @@ module.exports = function(wp, wrapper, countrySelect, sectorSelect, channelsList
         countrySelect.on('change', function(){
             wrapper.addClass('loading');
 
+            // update channels list
             $.ajax({
                 method: 'GET',
                 url: wp.adminAjax,
@@ -50,6 +51,25 @@ module.exports = function(wp, wrapper, countrySelect, sectorSelect, channelsList
                     console.log(err);
                 }
             });
+
+            // if(typeList.length){
+            //     // Update subpages list
+            //     allTypesLi = typeList.find('li').eq(0);
+
+            //     $.ajax({
+            //         method: 'GET',
+            //         url: wp.adminAjax,
+            //         data: 'action=beezup_ajax_get_types_pages&networkPage=' + wp.networkPage + '&' + form.serialize() + '&type=' + wp.type + '&pageID=' + wp.pageID,
+            //         dataType: 'html',
+            //         success: function(data){
+            //             allTypesLi.siblings().remove();
+            //             allTypesLi.after(data);
+            //         },
+            //         error: function(req, status, err){
+            //             console.log(err);
+            //         }
+            //     });
+            // }
         });
     }
 
@@ -61,7 +81,11 @@ module.exports = function(wp, wrapper, countrySelect, sectorSelect, channelsList
 
     if(btn.length && typeList.length){
         btn.on('click', function(){
-            typeList.toggleClass('closed');
+            typeList.toggleClass('closed').removeClass('top');
+            
+            if($(document).scrollTop() > typeList.offset().top){
+                typeList.addClass('top');
+            }
         });
     }
     
