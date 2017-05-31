@@ -57,7 +57,7 @@ function beezup_get_all_channels($channelsIndex, $currentLang){
     ];
 }
 
-function beezup_get_data_to_display($isNetworkPage, $country){
+function beezup_get_data_to_display($isNetworkPage, $country, $type){
     $currentLang = get_field('lang2', 'options');
 
     $channelsIndex = beezup_get_data_transient( 'channels_index_' . $currentLang, 'lov/www_ChannelCountry', array('accept-language' => $currentLang) );
@@ -74,8 +74,8 @@ function beezup_get_data_to_display($isNetworkPage, $country){
             $channelsToDisplay = $allChannels[$country]->channels;
         }
     }elseif( $channelsByType && isset($channelsByType[$country]) ){
-        if( isset($channelsByType[$country][get_field('type')]) ){
-            $channelsToDisplay = $channelsByType[$country][get_field('type')];
+        if( isset($channelsByType[$country][$type]) ){
+            $channelsToDisplay = $channelsByType[$country][$type];
         }else{
             $noChannels = true;
         }
@@ -98,11 +98,12 @@ function beezup_ajax_get_data(){
     $defaultCountry = $fieldLang ? $fieldLang : 'FRA';
     $country = isset( $_GET['country'] ) ? $_GET['country'] : $defaultCountry;
     $isNetworkPage = isset( $_GET['isNetworkPage'] ) ? $_GET['isNetworkPage'] : '';
+    $type = isset( $_GET['type'] ) ? $_GET['type'] : '';
 
     if( !session_id() ) session_start();
     $_SESSION['country'] = $country;
     
-    $data = beezup_get_data_to_display($isNetworkPage, $country);
+    $data = beezup_get_data_to_display($isNetworkPage, $country, $type);
     $channelsToDisplay = $data['channelsToDisplay'];
     $noChannels = $data['noChannels'];
 
@@ -165,16 +166,20 @@ function beezup_get_types_pages($channelsByType, $subPages, $country, $postID){
     if( !$channelsByType || !isset($channelsByType[$country]) || !$subPages ) return;
     
     $output = '';
+    $count = 0;
 
     foreach( $subPages as $subPage ){
         if( !isset($channelsByType[$country][get_field('type', $subPage->ID)]) ) continue;
 
-        $output .= '<li';
+        $count ++;
+        
         if( $postID === $subPage->ID ){
-            $output .= ' class="current"';
+            $output .= '<li class="current"><span>0' . $count . '.</span> ' . $subPage->post_title . '<svg class="icon"><use xlink:href="#icon-check"></use></svg>';
+        }else{
+            $output .= '<li>';
+            $output .= '<span>0' . $count . '.</span> ';
+            $output .= '<a href="' . $subPage->guid . '"?country="' . $country . '" class="link-arrow">' . $subPage->post_title . '</a>';
         }
-        $output .= '>';
-        $output .= '<a href="' . $subPage->guid . '"?country="' . $country . '">' . $subPage->post_title . '</a>';
         $output .= '</li>';
     }
 
@@ -185,7 +190,7 @@ function beezup_get_channels_to_display($channelsToDisplay, $noChannels){
     $output = '';
 
     if( $channelsToDisplay ){
-        $output = '<ul class="galery channels">';
+        $output = '<ul class="galery channels-list">';
 
         foreach( $channelsToDisplay as $partner ){
             $name = $partner->name;
@@ -582,7 +587,9 @@ function beezup_scripts(){
     wp_localize_script( 'beezup-scripts', 'wp', array(
         'adminAjax' => site_url( '/wp-admin/admin-ajax.php' ),
         'isNetworkPage' => $isNetworkPage,
-        'noChannels' => __('There are no channels of this sector in this country', 'beezup')
+        'type' => get_field('type', $post->ID),
+        'noChannels' => __('There are no channels of this sector in this country', 'beezup'),
+        'noChannelsType' => __('There are no channels of this sector and this type in this country', 'beezup')
     ) );
     
 }

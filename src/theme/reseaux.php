@@ -16,7 +16,7 @@ if( isset( $_SESSION['country'] ) ){
     $country = $_SESSION['country'];
 }
 
-$dataToDisplay = beezup_get_data_to_display($isNetworkPage, $country);
+$dataToDisplay = beezup_get_data_to_display($isNetworkPage, $country, get_field('type'));
 
 $channelsIndex = $dataToDisplay['channelsIndex'];
 $channelsToDisplay = $dataToDisplay['channelsToDisplay'];
@@ -64,7 +64,7 @@ get_header(); ?>
     </section>
     
     <section class='block-full block-pale no-pad'>
-        <div class='container'>
+        <div class='container relative'>
 
             <?php $countrySelect = beezup_get_country_select($channelsIndex, $country); ?>
             
@@ -90,19 +90,27 @@ get_header(); ?>
             <?php $typePages = beezup_get_types_pages($channelsByType, $subPages, $country, $post->ID); ?>
 
             <?php if( $typePages ){ ?>
-                <ul>
-                    <li class='<?php if( $isNetworkPage ) echo "current"; ?>'><a href='<?php echo get_the_permalink($networkPage); ?>'><?php _e('All types of channels', 'beezup'); ?></a></li>
-                    <?php echo $typePages; ?>
-                </ul>
+                <div class='channels-type'>
+                    <ul class='channels-type-list'>
+                        <?php if( $isNetworkPage ){ ?>
+                            <li class='current'><?php _e('All types of channels', 'beezup'); ?><svg class='icon'><use xlink:href='#icon-check'></use></svg></li>
+                        <?php }else{ ?>
+                            <li><a href='<?php echo get_the_permalink($networkPage); ?>' class='link-arrow'><?php _e('All types of channels', 'beezup'); ?></a></li>
+                        <?php } ?>
+                        <?php echo $typePages; ?>
+                    </ul>
+
+                    <button class='channels-type-close' type='button'><?php _e('Close channels type list', 'beezup'); ?></button>
+                </div>
             <?php } ?>
         </div>
     </section>
 
     <section class='block-full no-pad'>
-        <div class='container'>
+        <div class='container channels' id='channels'>
             <p id='sectorError' class='channels-error'></p>
             
-            <div id='channelsList' class='channels-list'>
+            <div id='channelsList'>
                 <?php echo beezup_get_channels_to_display($channelsToDisplay, $noChannels); ?>
             </div>
         </div>

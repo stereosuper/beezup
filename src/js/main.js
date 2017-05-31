@@ -73,7 +73,7 @@ $(function(){
     }
 
     // Networks page: dinamically get channels by country
-    filterChannels(wp, $('#channelsCountrySelect'), $('#channelsSectorSelect'), $('#channelsList'));
+    filterChannels(wp, $('#channels'), $('#channelsCountrySelect'), $('#channelsSectorSelect'), $('#channelsList'));
 
     $(window).on('resize', throttle(function(){
 
