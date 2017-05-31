@@ -6,6 +6,8 @@ module.exports = function(wp, wrapper, countrySelect, sectorSelect, channelsList
     var form = countrySelect.closest('form');
     var channels = channelsList.find('li');
     var sectorError = wrapper.find('#sectorError');
+    var btn = $('.js-btn-type');
+    var typeList = $('#channels-type');
 
     function filterBySector(sector){
         channels.removeClass('hidden');
@@ -27,8 +29,6 @@ module.exports = function(wp, wrapper, countrySelect, sectorSelect, channelsList
     }
 
     if(countrySelect.length){
-        form.find('#channelsSubmit').addClass('hidden');
-
         countrySelect.on('change', function(){
             wrapper.addClass('loading');
 
@@ -56,6 +56,12 @@ module.exports = function(wp, wrapper, countrySelect, sectorSelect, channelsList
     if(sectorSelect.length){
         sectorSelect.on('change', function(){
             filterBySector($(this).val());
+        });
+    }
+
+    if(btn.length && typeList.length){
+        btn.on('click', function(){
+            typeList.toggleClass('closed');
         });
     }
     

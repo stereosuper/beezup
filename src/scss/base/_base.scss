@@ -1,12 +1,12 @@
 /******* GÉNÉRAL *******/
 
 ::-moz-selection{
-    background: $black;
+    background: $primary;
     color: $white;
     text-shadow: none;
 }
 ::selection{
-    background: $black;
+    background: $primary;
     color: $white;
     text-shadow: none;
 }
@@ -337,7 +337,7 @@ a{
     @include clearfix;
 }
 
-.pos-relative{
+.relative{
     position: relative;
 }
 

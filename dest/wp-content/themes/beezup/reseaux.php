@@ -79,9 +79,9 @@ get_header(); ?>
                     <fieldset>
                         <?php echo beezup_get_sector_select(); ?>
                         <?php echo $countrySelect; ?>
+
+                        <button type='submit' name='filter' value='true' class='btn-secondary'>GO</button>
                     </fieldset>
-                    
-                    <button type='submit' name='filter' value='true' id='channelsSubmit'>Go</button>
                 </form>
             <?php } ?>
 
@@ -90,7 +90,7 @@ get_header(); ?>
             <?php $typePages = beezup_get_types_pages($channelsByType, $subPages, $country, $post->ID); ?>
 
             <?php if( $typePages ){ ?>
-                <div class='channels-type'>
+                <div class='channels-type closed' id='channels-type'>
                     <ul class='channels-type-list'>
                         <?php if( $isNetworkPage ){ ?>
                             <li class='current'><?php _e('All types of channels', 'beezup'); ?><svg class='icon'><use xlink:href='#icon-check'></use></svg></li>
@@ -100,7 +100,15 @@ get_header(); ?>
                         <?php echo $typePages; ?>
                     </ul>
 
-                    <button class='channels-type-close' type='button'><?php _e('Close channels type list', 'beezup'); ?></button>
+                    <button class='btn-list js-btn-type' type='button'>
+                        <?php _e('Open channels type list', 'beezup'); ?>
+                        <svg class='icon'><use xlink:href='#icon-list'></use></svg>
+                    </button>
+
+                    <button class='btn-close js-btn-type' type='button'>
+                        <?php _e('Close channels type list', 'beezup'); ?>
+                        <svg class='icon'><use xlink:href='#icon-close'></use></svg>
+                    </button>
                 </div>
             <?php } ?>
         </div>
