@@ -63,7 +63,7 @@ get_header(); ?>
 
     </section>
     
-    <section class='block-full no-pad'>
+    <section class='block-full block-pale no-pad'>
         <div class='container'>
 
             <?php $countrySelect = beezup_get_country_select($channelsIndex, $country); ?>
