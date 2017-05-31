@@ -3,7 +3,7 @@ var $ = require('jquery');
 window.requestAnimFrame = require('./requestAnimFrame.js');
 var throttle = require('./throttle.js');
 
-module.exports = function(stickyElt, givenPosition, unit = 'px'){
+module.exports = function(stickyElt, givenPosition, unit = 'px', updateHeightOnScroll = false){
     if(!stickyElt.length) return;
 
     var position,
@@ -23,6 +23,9 @@ module.exports = function(stickyElt, givenPosition, unit = 'px'){
     }
     
     function scrollHandler() {
+        if(updateHeightOnScroll && stickyElt.hasClass('sticky')){
+            stickyElt.data('height', stickyElt.outerHeight());
+        }
         scrollTop = $(document).scrollTop();
         if (scrollTop >= stickyElt.data('offsetTop') - position) {
             stickyElt.addClass('sticky').css('top', position+'px');
