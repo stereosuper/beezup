@@ -49,7 +49,7 @@
 	?>
 
 	<div class='container-small'>
-		<ul><?php wp_list_categories( array('title_li' => '') ); ?></ul>
+		<ul class='list-cat'><?php wp_list_categories( array('title_li' => '') ); ?></ul>
 
 		<?php get_template_part( 'includes/demo' ); ?>
 

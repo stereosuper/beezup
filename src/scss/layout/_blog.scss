@@ -1,4 +1,4 @@
-.post-home{
+.small-post{
     &:hover, &:focus{
         color: $secondary;
         .link-arrow{
@@ -13,18 +13,18 @@
     }
 }
 
-.post-home-date{
+.small-post-date{
     display: block;
     margin: 0 0 15px;
     font-family: $fira-bold;
     color: $primary;
 }
 
-.post-home-image{
+.small-post-image{
     background-repeat: no-repeat;
     background-position: 50% 50%;
     background-size: cover;
-    &:before{
+    &:not(:empty):before{
         content: '';
         display: block;
         padding: 0 0 55%;
@@ -43,6 +43,30 @@
 .post-single-header{
     margin-bottom: 4.4em;
     text-align: center;
+}
+
+.list-cat{
+    margin: 4.7em 0 0;
+    font-size: 1.4rem;
+    > li{
+        display: inline-block;
+        padding: 0;
+        margin: 0 10px 0 0;
+        &:before, &:after{
+            display: none;
+        }
+    }
+    a{
+        display: inherit;
+        padding: 12px 20px;
+        text-decoration: none;
+        background: rgba($primary, 0.09);
+        color: $text;
+        &:hover, &:focus{
+            background: $primary;
+            color: $white;
+        }
+    }
 }
 
 

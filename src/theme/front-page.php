@@ -1115,21 +1115,21 @@ get_header(); ?>
 		</div>
 	</section>
 
-	<?php $lastPosts = new WP_Query( array('posts_per_page' => 3) ); ?>
+	<?php $lastPosts = new WP_Query( array('posts_per_page' => 3, 'ignore_sticky_posts' => 1) ); ?>
 	<?php if( $lastPosts->have_posts() ){ ?>
 		<section class='container'>
 			<svg class='icon icon-blog'><use xlink:href='#icon-blog'></use></svg>
 			<?php if( get_field('blogTitle') ){ ?>
-				<h2 class='h1'><?php the_field('blogTitle'); ?></h2>
+				<h2 class='h1 small-m'><?php the_field('blogTitle'); ?></h2>
 			<?php } ?>
 
-			<ul class='list-articles'>
+			<ul class='list-small-posts'>
 				<?php while( $lastPosts->have_posts() ){ $lastPosts->the_post(); ?>
 					<li>
 						<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>' class='post-home'>
-							<time class='post-home-date' datetime='<?php the_time('c');?>'><?php echo get_the_date(); ?></time>
-							<div class='post-home-image' style="background-image: url(<?php echo the_post_thumbnail_url('large'); ?>);"></div>
-							<h3 class='post-home-title'><?php the_title(); ?></h3>
+							<time class='small-post-date' datetime='<?php the_time('c');?>'><?php echo get_the_date(); ?></time>
+							<div class='small-post-image' style="background-image: url(<?php echo the_post_thumbnail_url('large'); ?>);"></div>
+							<h3 class='small-post-title'><?php the_title(); ?></h3>
 							<span class='link-arrow'><?php _e('Lire la suite', 'beezup'); ?></span>
 						</a>
 					</li>
