@@ -19,24 +19,32 @@
 		<?php while ( have_posts() ) : the_post(); ?>
 
 			<div class='post <?php if( is_sticky() ) echo 'highlighted'; ?>'>
-				<span>
-					<?php _e('Add on', 'beezup'); ?>
-					<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>'><?php echo get_the_date(); ?></a>
-					<?php _e('in', 'beezup'); ?>
-					<?php echo get_the_category_list(); ?>
-				</span>
+				<div class='post-txt'>
+					<div class='post-meta'>
+						<?php _e('Add on', 'beezup'); ?>
+						<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>'><?php echo get_the_date(); ?></a>
+						<?php _e('in', 'beezup'); ?>
+						<?php echo get_the_category_list(); ?>
+					</div>
 
-				<h2>
-					<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>'>
-						<?php the_title(); ?>
+					<h2>
+						<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>'>
+							<?php the_title(); ?>
+						</a>
+					</h2>
+
+					<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>' class='excerpt'>
+						<div><?php the_excerpt(); ?></div>
 					</a>
-				</h2>
+					
+					<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>' class='link-arrow'><?php _e('Lire la suite', 'beezup'); ?></a>
+				</div>
 
-				<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>'>
-					<?php the_post_thumbnail('large'); ?>
-					<?php the_excerpt(); ?>
-					<span class='link-arrow'><?php _e('Lire la suite', 'beezup'); ?></span>
-				</a>
+				<?php if( has_post_thumbnail() ){ ?>
+					<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>' class='post-img'>
+						<?php the_post_thumbnail('large'); ?>
+					</a>
+				<?php } ?>
 			</div>
 
 			<?php if( $count === 2 ){ //newsletter ?>
