@@ -29,7 +29,7 @@
 						<div class='container'>
 							<?php $images = get_sub_field('galery'); ?>
 							<?php if( $images ){ ?>
-							<ul class='galery'>
+							<ul class='galery <?php if( !get_sub_field("photos") ) echo "channels-list"; ?>'>
 								<?php foreach( $images as $image ){ ?>
 								<li>
 									<a href='<?php echo $image['url']; ?>' title='<?php echo $image['caption']; ?>'>
