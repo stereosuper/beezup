@@ -37,12 +37,15 @@ module.exports = function(stickyElt, givenPosition, unit = 'px', updateHeightOnS
         }else {
             stickyElt.removeClass('sticky').css('top', stickyElt.data('initialPos'));
         }
+        //console.log('initialPos : '+stickyElt.data('initialPos')+' offsetTop : '+stickyElt.data('offsetTop')+' offsetBottom : '+stickyElt.data('offsetBottom')+' height : '+stickyElt.data('height'));
     }
 
     function resizeHandler() {
         checkWindowHeight();
+        // scrollTop = $(document).scrollTop();
+        // console.log(scrollTop);
         stickyElt.data({
-            'offsetTop': stickyElt.offset().top,
+            'offsetTop': wrapperSticky.offset().top,
             'offsetBottom': wrapperSticky.offset().top + wrapperSticky.outerHeight(),
             'height': stickyElt.outerHeight()
         });
@@ -52,7 +55,7 @@ module.exports = function(stickyElt, givenPosition, unit = 'px', updateHeightOnS
 
     stickyElt.data({
         'initialPos': stickyElt.css('top'),
-        'offsetTop': stickyElt.offset().top,
+        'offsetTop': wrapperSticky.offset().top,
         'offsetBottom': wrapperSticky.offset().top + wrapperSticky.outerHeight(),
         'height': stickyElt.outerHeight()
     });
