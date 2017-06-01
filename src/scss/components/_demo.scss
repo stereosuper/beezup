@@ -1,0 +1,51 @@
+.demo{
+    display: flex;
+    width: calc(100% + 200px);
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 2.8em 2.5em 0 100px;
+    margin: 6.5em 0 0 -100px;
+    background: $primary;
+    color: $white;
+    > img{
+        max-width: calc(50% - #{$gutter});
+    }
+}
+
+.demo-txt{
+    max-width: calc(50% - #{$gutter});
+    > h3{
+        margin: 0;
+        font-size: 2.2rem;
+        font-family: $fira-semibold;
+        color: $text;
+    }
+    > p{
+        margin-top: 0;
+    }
+    > .btn-arrow{
+        margin: 0 0 3em;
+    }
+}
+
+
+@media (max-width: $desktop-small){
+    .demo{
+        width: calc(100% + #{4*$gutter});
+        padding: 2.8em #{4*$gutter} 0;
+        margin-left: #{-2*$gutter};
+    }
+}
+
+@media (max-width: $tablet){
+    .demo{
+        display: block;
+        > img{
+            max-width: 100%;
+        }
+    }
+
+    .demo-txt{
+        max-width: 100%;
+    }
+}

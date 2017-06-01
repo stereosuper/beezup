@@ -17,6 +17,14 @@
     }
 }
 
+.btn-black{
+    background: $text;
+    &:hover, &:focus{
+        background: $white;
+        color: $text;
+    }
+}
+
 .btn-secondary{
     display: inline-block;
     width: 45px;
@@ -42,7 +50,7 @@
         bottom: 0;
         margin: auto;
         right: 30px;
-        transition: $transition;
+        transition: transform $transition;
     }
     &:hover, &:focus{
         .icon{
