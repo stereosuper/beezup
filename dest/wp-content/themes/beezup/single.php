@@ -50,7 +50,9 @@
 
 	<div class='container-small'>
 		<ul class='list-cat'><?php wp_list_categories( array('title_li' => '') ); ?></ul>
+	</div>
 
+	<div class='container-medium'>
 		<?php get_template_part( 'includes/demo' ); ?>
 
 		<?php get_template_part( 'includes/related' ); ?>

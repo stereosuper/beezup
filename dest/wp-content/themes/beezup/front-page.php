@@ -1128,7 +1128,9 @@ get_header(); ?>
 					<li>
 						<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>' class='post-home'>
 							<time class='small-post-date' datetime='<?php the_time('c');?>'><?php echo get_the_date(); ?></time>
-							<div class='small-post-image' style="background-image: url(<?php echo the_post_thumbnail_url('large'); ?>);"></div>
+							<?php if( has_post_thumbnail() ){ ?>
+								<div class='small-post-image' style="background-image: url(<?php echo the_post_thumbnail_url('large'); ?>);"></div>
+							<?php } ?>
 							<h3 class='small-post-title'><?php the_title(); ?></h3>
 							<span class='link-arrow'><?php _e('Lire la suite', 'beezup'); ?></span>
 						</a>

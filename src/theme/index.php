@@ -18,7 +18,7 @@
 
 		<?php while ( have_posts() ) : the_post(); ?>
 
-			<div class='<?php if( is_sticky() ) echo 'highlighted'; ?>'>
+			<div class='post <?php if( is_sticky() ) echo 'highlighted'; ?>'>
 				<span>
 					<?php _e('Add on', 'beezup'); ?>
 					<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>'><?php echo get_the_date(); ?></a>
