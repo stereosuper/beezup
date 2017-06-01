@@ -18,6 +18,7 @@ module.exports = function(){
         textToAnim.each(function(){
             $(this).html($(this).data('before'));
         });
+        TweenLite.set(introHome, {display: 'none', opacity: 0});
     }
     function animScrambleText(dataToAnimate){
         textToAnim.each(function(){

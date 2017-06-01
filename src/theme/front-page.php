@@ -1017,7 +1017,7 @@ get_header(); ?>
 			</div>
 			<?php if( get_field('headerBtn') ){ ?>
 				<button class='btn btn-arrow' id='btnTopHome' data-appointlet-organization='beezup' data-appointlet-service='32290'>
-					<span class='textToAnim' data-before="<?php the_field('headerBtn'); ?>" data-after="<?php if( get_field('headerBtn2') ){ the_field('headerBtn2'); } ?>"><?php the_field('headerBtn'); ?></span>
+					<span class='textToAnim' data-before="<?php the_field('headerBtn'); ?>" data-after="<?php if( get_field('headerBtn2') ){ the_field('headerBtn2'); } ?>"><?php the_field('headerBtn2'); ?></span>
 					<svg class='icon icon-arrow-right'><use xlink:href='#icon-arrow-right'></use></svg>
 				</button>
 			<?php } ?>
