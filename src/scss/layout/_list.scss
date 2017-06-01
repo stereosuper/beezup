@@ -133,9 +133,6 @@
         strong{
             font-size: 4rem;
         }
-        a{
-            font-size: 1.4rem;
-        }
     }
 }
 
@@ -168,8 +165,8 @@
             display: block;
             width: 100%;
             max-width: 400px;
-            margin: 0 auto 50px;
             padding-top: 30px;
+            margin: 0 auto 50px;
             &:before{
                 top: 0;
             }
@@ -179,12 +176,15 @@
         }
     }
 
-    .list-articles{
+    .list-small-posts{
         flex-wrap: wrap;
         > li{
             width: 100%;
             margin: 0 auto 50px;
             max-width: 400px;
+            &:nth-child(3n){
+                margin-right: auto;
+            }
             &:last-child{
                 margin-bottom: 0;
             }
