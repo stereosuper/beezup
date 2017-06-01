@@ -1125,10 +1125,10 @@ get_header(); ?>
 			<ul class='list-articles'>
 				<?php while( $lastPosts->have_posts() ){ $lastPosts->the_post(); ?>
 					<li>
-						<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>'>
-							<time class='article-date'><?php echo get_the_date(); ?></time>
-							<span class='article-image' style="background-image: url(<?php echo the_post_thumbnail_url('large'); ?>);"></span>
-							<h3 class='article-title'><?php the_title(); ?></h3>
+						<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>' class='post-home'>
+							<time class='post-home-date' datetime='<?php the_time('c');?>'><?php echo get_the_date(); ?></time>
+							<div class='post-home-image' style="background-image: url(<?php echo the_post_thumbnail_url('large'); ?>);"></div>
+							<h3 class='post-home-title'><?php the_title(); ?></h3>
 							<span class='link-arrow'><?php _e('Lire la suite', 'beezup'); ?></span>
 						</a>
 					</li>

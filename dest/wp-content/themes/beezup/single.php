@@ -2,17 +2,19 @@
 
 <?php if ( have_posts() ) : the_post(); ?>
 	
-	<section class='container-small'>
+	<section class='container-medium post-single-header'>
 		<?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
 
-		<h1 <?php if( get_field('left') ) echo 'class="left"'; ?>>
+		<h1>
 			<?php the_title(); ?>
 			<?php if( get_field('title2') ){ ?>
 				<span><?php the_field('title2'); ?></span>
 			<?php } ?>
 		</h1>
 
-		<span><?php _e('Add on', 'beezup'); ?> <?php echo get_the_date(); ?></span>
+		<time datetime='<?php the_time('c');?>' class='title-time'><?php _e('Add on', 'beezup'); ?> <?php echo get_the_date(); ?></time>
+
+		<?php the_post_thumbnail('full', array('class' => 'wide')); ?>
 	</section>
 		
 	<?php

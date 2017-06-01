@@ -108,9 +108,10 @@ i, em{
 }
 
 blockquote, .star{
+    width: calc(100% + 100px + #{2*$gutter});
     padding: 2em 5.5em;
     position: relative;
-    margin: 4em 0;
+    margin: 4em 0 4em -100px;
     background: rgba($primary, 0.09);
     &:before{
         position: absolute;
@@ -260,10 +261,10 @@ img{
     max-width: 100%;
     height: auto;
     &.alignone{
-        margin: 20px 0;
+        margin: 3.7em 0 4em;
     }
     &.aligncenter{
-        margin: 20px auto;
+        margin: 3.7em auto 4em;
     }
     &.alignleft{
         float: left;
@@ -276,7 +277,7 @@ img{
     &.wide{
         width: calc(100% + 200px);
         max-width: none;
-        margin: 20px 0 20px -100px;
+        margin: 3.7em 0 4em -100px;
     }
 }
 
