@@ -2,41 +2,12 @@
 
 .footer{
     h3{
+        font-family: $fira-semibold;
         color: $black;
     }
     .link-arrow{
         &:after{
             background-image: url('../layoutImg/arrow-right-white.svg');
-        }
-    }
-    .top-footer{
-        padding: 20px 0 45px;
-        background: $primary;
-        color: $white;
-        .container{
-            display: flex;
-        }
-    }
-    .bottom-footer{
-        padding: 30px 0;
-        background: $purple-dark;
-        text-align: center;
-        font-size: 1rem;
-        li{
-            display: inline-block;
-            margin: 0 8px;
-            &:before, &:after{
-                display: none;
-            }
-        }
-        p, a{
-            color: rgba($white, 0.5);
-        }
-        a{
-            text-decoration: none;
-            &:hover, &:focus{
-                color: $white;
-            }
         }
     }
     .wrapper-about, .wrapper-links{
@@ -73,60 +44,93 @@
     .container-newsletter{
         display: flex;
     }
-    .social{
+}
+
+.top-footer{
+    padding: 20px 0 45px;
+    background: $primary;
+    color: $white;
+    .container{
+        display: flex;
+    }
+}
+
+.bottom-footer{
+    padding: 30px 0;
+    background: $purple-dark;
+    text-align: center;
+    font-size: 1rem;
+    li{
         display: inline-block;
-        position: relative;
-        margin: 0;
+        margin: 0 8px;
         &:before, &:after{
-            content: '';
-            display: block;
-            position: absolute;
-            background-position: 0 0;
-            background-repeat: no-repeat;
+            display: none;
         }
-        &:before{
-            width: 26px;
-            height: 22px;
-            bottom: -10px;
-            left: -32px;
-            background-image: url('../layoutImg/bees-left-white.svg');
+    }
+    p, a{
+        color: rgba($white, 0.5);
+    }
+    a{
+        text-decoration: none;
+        &:hover, &:focus{
+            color: $white;
         }
-        &:after{
-            width: 30px;
-            height: 18px;
-            top: -7px;
-            right: -28px;
-            background-image: url('../layoutImg/bees-right-white.svg');
+    }
+}
+
+.social{
+    display: inline-block;
+    position: relative;
+    margin: 0;
+    &:before, &:after{
+        content: '';
+        display: block;
+        position: absolute;
+        background-position: 0 0;
+        background-repeat: no-repeat;
+    }
+    &:before{
+        width: 26px;
+        height: 22px;
+        bottom: -10px;
+        left: -32px;
+        background-image: url('../layoutImg/bees-left-white.svg');
+    }
+    &:after{
+        width: 30px;
+        height: 18px;
+        top: -7px;
+        right: -28px;
+        background-image: url('../layoutImg/bees-right-white.svg');
+    }
+    > li{
+        display: inline-block;
+        vertical-align: top;
+        margin: 0 10px 0 0;
+        &:before, &:after{
+            display: none;
         }
-        > li{
-            display: inline-block;
-            vertical-align: top;
-            margin: 0 10px 0 0;
-            &:before, &:after{
-                display: none;
-            }
-            &:last-child{
-                margin-right: 0;
-            }
+        &:last-child{
+            margin-right: 0;
         }
-        .icon{
-            width: 20px;
-            height: 18px;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate3d(-50%, -50%, 0);
-        }
-        span{
-            display: block;
-            width: 0;
-            height: 0;
-            overflow: hidden;
-            position: absolute;
-        }
-        a{
-            position: relative;
-        }
+    }
+    .icon{
+        width: 20px;
+        height: 18px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate3d(-50%, -50%, 0);
+    }
+    span{
+        display: block;
+        width: 0;
+        height: 0;
+        overflow: hidden;
+        position: absolute;
+    }
+    a{
+        position: relative;
     }
 }
 
@@ -140,27 +144,29 @@
 
 @media (max-width: $desktop-small){
     .footer{
-        .top-footer{
-            .container{
-                flex-wrap: wrap;
-            }
-        }
         .wrapper-about{
             width: 100%;
             margin-right: 0;
+        }
+    }
+
+    .top-footer{
+        .container{
+            flex-wrap: wrap;
         }
     }
 }
 
 @media (max-width: $phone){
     .footer{
-        .top-footer{
-            .container{
-                display: block;
-            }
-        }
         .wrapper-links{
             margin-right: 0;
+        }
+    }
+
+    .top-footer{
+        .container{
+            display: block;
         }
     }
 }

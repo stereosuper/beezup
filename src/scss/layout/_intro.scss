@@ -8,12 +8,11 @@
 }
 
 .page-title{
-    margin: 0 0 1em;
     text-align: left;
     > span{
         display: inline;
     }
-    + .h2{
+    + h2{
         margin: -1em 0 1.1em;
     }
 }
@@ -45,4 +44,12 @@
     .breadcrumb_last{
         color: $text;
     }
+    + h1{
+        margin: 0 0 1em;
+    }
+}
+
+.title-time{
+    display: block;
+    margin: -2em 0 5em;
 }

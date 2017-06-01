@@ -11,16 +11,43 @@
 }
 
 .channels{
+    min-height: 280px;
+    position: relative;
     margin-bottom: 40px;
     text-align: center;
-    transition: opacity $transition;
+    > p, > div{
+        transition: opacity 0.4s ease-in-out;
+    }
     &.loading{
-        opacity: 0.5;
+        > p, > div{
+            opacity: 0.2;
+        }
     }
 }
 
 .channels-error{
+    font-family: $fira-medium;
     text-align: center;
+    &:after{
+        content: '';
+        display: none;
+        width: 200px;
+        height: 1px;
+        margin: 50px auto 0;
+        background: rgba($white, 0.4);
+    }
+    &:not(:empty){
+        &:after{
+            display: block;
+        }
+    }
+    .icon{
+        width: 30px;
+        height: 15px;
+        position: relative;
+        margin: 0 10px 0 0;
+        top: -1px;
+    }
 }
 
 .channels-list{
@@ -37,13 +64,17 @@
 
 .channels-type{
     width: 30.75%;
-    padding: 65px 65px 40px;
+    padding: 63px 65px 33px;
     border: 1px solid transparent;
     position: absolute;
     right: 30px;
     bottom: 0;
     z-index: 1;
     background: $white;
+    &.top{
+        bottom: auto;
+        top: 38px;
+    }
     &:before{
         content: '';
         position: absolute;
@@ -95,10 +126,10 @@
                     &:before, span{
                         color: $primary;
                     }
-                    span{
-                        font-family: $fira-medium;
-                        font-size: 0.9em;
-                    }
+                }
+                span{
+                    font-family: $fira-medium;
+                    font-size: 0.9em;
                 }
                 .icon{
                     display: none;

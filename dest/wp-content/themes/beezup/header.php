@@ -8,6 +8,7 @@
 		<meta name='format-detection' content='telephone=no'>
 
 		<link rel='alternate' type='application/rss+xml' title='BeezUP Feed' href='<?php bloginfo('rss2_url'); ?>'>
+		<link rel='alternate' href='<?php echo site_url(); ?>' hreflang='x-default'>
 
 		<?php wp_head(); ?>
 

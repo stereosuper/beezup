@@ -169,7 +169,14 @@ function beezup_get_types_pages($channelsByType, $subPages, $country, $postID){
     $count = 0;
 
     foreach( $subPages as $subPage ){
-        if( !isset($channelsByType[$country][get_field('type', $subPage->ID)]) ) continue;
+        $empty = true;
+        foreach( $channelsByType as $channelsOneCountry){
+            if( isset($channelsOneCountry[get_field('type', $subPage->ID)]) ){
+                $empty = false;
+            }
+        }
+        if( $empty ) continue;
+        // if( !isset($channelsByType[$country][get_field('type', $subPage->ID)]) ) continue;
 
         $count ++;
         
@@ -185,6 +192,20 @@ function beezup_get_types_pages($channelsByType, $subPages, $country, $postID){
 
     return $output;
 }
+
+// function beezup_ajax_get_types_pages(){
+//     $fieldLang = get_field('lang', 'options');
+//     $defaultCountry = $fieldLang ? $fieldLang : 'FRA';
+//     $country = isset( $_GET['country'] ) ? $_GET['country'] : $defaultCountry;
+//     $networkPage = isset( $_GET['networkPage'] ) ? $_GET['networkPage'] : '';
+//     $postID = isset( $_GET['pageID'] ) ? $_GET['pageID'] : '';
+
+//     echo beezup_get_types_pages($networkPage, $country, $postID); 
+
+//     die();
+// }
+// add_action( 'wp_ajax_beezup_ajax_get_types_pages', 'beezup_ajax_get_types_pages' );
+// add_action( 'wp_ajax_nopriv_beezup_ajax_get_types_pages', 'beezup_ajax_get_types_pages' );
 
 function beezup_get_channels_to_display($channelsToDisplay, $noChannels){
     $output = '';
@@ -209,9 +230,9 @@ function beezup_get_channels_to_display($channelsToDisplay, $noChannels){
     }else{
         
         if( $noChannels ){
-            $output = '<p class="channels-error">' . __("There are no channels of this type in this country.", 'beezup') . '</p>';
+            $output = '<p class="channels-error"><svg class="icon"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-error"></use></svg>' . __("There are no channels of this type in this country.", 'beezup') . '</p>';
         }else{
-            $output = '<p class="channels-error">' . __("Channels can't be displayed at this time. Please come back later!", 'beezup') . '</p>';
+            $output = '<p class="channels-error"><svg class="icon"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-error"></use></svg>' . __("Channels can't be displayed at this time. Please come back later!", 'beezup') . '</p>';
         }
 
     }
@@ -588,8 +609,8 @@ function beezup_scripts(){
         'adminAjax' => site_url( '/wp-admin/admin-ajax.php' ),
         'isNetworkPage' => $isNetworkPage,
         'type' => get_field('type', $post->ID),
-        'noChannels' => __('There are no channels of this sector in this country', 'beezup'),
-        'noChannelsType' => __('There are no channels of this sector and this type in this country', 'beezup')
+        'noChannels' => '<svg class="icon"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-error"></use></svg>' . __('There are no channels of this sector in this country', 'beezup'),
+        'noChannelsType' => '<svg class="icon"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-error"></use></svg>' . __('There are no channels of this sector and this type in this country', 'beezup')
     ) );
     
 }
