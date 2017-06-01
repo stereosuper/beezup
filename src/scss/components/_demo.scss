@@ -1,12 +1,15 @@
 .demo{
     display: flex;
-    width: calc(100% + 200px);
     align-items: flex-end;
     justify-content: space-between;
     padding: 2.8em 2.5em 0 100px;
-    margin: 6.5em 0 0 -100px;
+    margin: 6.5em 0 0;
     background: $primary;
     color: $white;
+    .container-small &{
+        width: calc(100% + 200px);
+        margin-left: -100px;
+    }
     > img{
         max-width: calc(50% - #{$gutter});
     }
