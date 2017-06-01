@@ -1006,6 +1006,7 @@ get_header(); ?>
 				</div>
 			</div>
 		</div>
+		<img class='illus-responsive' src='<?php echo get_stylesheet_directory_uri(); ?>/img/block-beezup.png' srcset='<?php echo get_stylesheet_directory_uri(); ?>/img/block-beezup@2x.png 2x' alt=''>
 		<div class='block-half block-txt block-title-home' id='titleHome'>
 			<h1>
 				<span class='title-home primary textToAnim' data-before="<?php the_title(); ?>" data-after="<?php the_field('title'); ?>"><?php the_field('title'); ?></span>
