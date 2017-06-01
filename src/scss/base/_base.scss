@@ -463,11 +463,30 @@ a{
     .hide-desktop{
         display: initial !important;
     }
+
+    blockquote, .star{
+        width: calc(100% + #{4*$gutter});
+        margin-left: #{-2*$gutter};
+    }
 }
 
 @media (max-width: $tablet){
+    h1, .h1{
+        font-size: 3.8rem;
+    }
+
     .block-full{
         padding-top: 40px;
         padding-bottom: 40px;
+    }
+
+    blockquote, .star{
+        padding-right: #{2*$gutter};
+    }
+}
+
+@media (max-width: $phone){
+    h1, .h1{
+        font-size: 3rem;
     }
 }

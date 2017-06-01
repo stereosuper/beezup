@@ -53,3 +53,10 @@
     display: block;
     margin: -2em 0 5em;
 }
+
+
+@media (max-width: $tablet){
+    .title-time{
+        margin: -1.2em 0 5em;
+    }
+}
