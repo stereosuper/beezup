@@ -8,7 +8,6 @@ var browserify = require('browserify');
 var babelify = require('babelify');
 var source = require('vinyl-source-stream');
 var buffer = require('vinyl-buffer');
-var sitemap = require('gulp-sitemap');
 
 var reportError = function(error) {
     $.notify({
@@ -119,7 +118,7 @@ gulp.task('watch', function () {
         gulp.start(['js'], reload);
     });
 
-    $.watch('src/**', function(){
+    $.watch('src/*.*', function(){
         gulp.start(['root'], reload);
     });
 });
