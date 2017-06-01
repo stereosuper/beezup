@@ -44,3 +44,47 @@
         }
     }
 }
+
+@media (max-width: $desktop){
+    .list-menu{
+        padding: 50px 50px 50px 110px; 
+    }
+}
+@media (max-width: $tablet){
+    .list-menu{
+        width: 100%;
+    }
+}
+@media (max-width: $phone){
+    .list-menu{
+        padding: 40px 40px 40px 100px; 
+        li{
+            margin-bottom: 25px;
+            &:before{
+                font-size: 18px;
+                top: -2px;
+            }
+            .link-arrow{
+                font-size: 1.6rem;
+            }
+        }
+    }
+}
+@media (max-width: $phone-small){
+    .list-menu{
+        padding-left: 60px; 
+        li{
+            margin-bottom: 20px;
+            &:before{
+                font-size: 16px;
+                top: 0;
+            }
+            &:after{
+                display: none;
+            }
+            .link-arrow{
+                font-size: 1.5rem;
+            }
+        }
+    }
+}
