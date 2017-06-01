@@ -177,13 +177,24 @@ select{
 
 .field-inline{
     position: relative;
+    > label, > input{
+        font-family: $fira-italic;
+        color: $grey;
+    }
     > label{
         position: absolute;
-        top: 12px;
+        top: 13px;
         left: 15px;
         margin: 0;
         pointer-events: none;
         transition: 0.1s ease-in-out;
+    }
+    > input{
+        &:focus, &.on{
+            + label{
+                opacity: 0;
+            }
+        }
     }
 }
 
@@ -207,18 +218,9 @@ select{
 }
 
 .newsletter{
-    label, input{
-        font-family: $fira-italic;
-        color: $grey;
-    }
     input{
         width: 220px;
         border-right: 0;
-        &:focus, &.on{
-            + label{
-                opacity: 0;
-            }
-        }
     }
 }
 

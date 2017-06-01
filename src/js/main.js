@@ -45,7 +45,7 @@ $(function(){
     });
 
     // Newsletter inputs
-    checkInputs($('#theform'));
+    checkInputs($('.js-inline-form'));
     
     // Sticky
     sticky($('#btnDemo'), 15);

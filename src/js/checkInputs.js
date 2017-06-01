@@ -7,9 +7,11 @@ module.exports = function(forms){
         input.val() !== '' ? input.addClass('on') : input.removeClass('on');
     }
 
-    forms.find('input').each(function(){
-        checkInput($(this));
-    }).on('change input', function(){
-        checkInput($(this));
+    forms.each(function(){
+        $(this).find('input').each(function(){
+            checkInput($(this));
+        }).on('change input', function(){
+            checkInput($(this));
+        });
     });
 }

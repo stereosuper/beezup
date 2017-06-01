@@ -1,18 +1,23 @@
 <?php get_header(); ?>
 
-<div class='container'>
+<section class='container-medium page-intro'>
 
-	<?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
+	<div class='page-intro-title'>
+		<?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
 
-	<h1><?php the_field('blogTitle', 'options'); ?></h1>
+		<h1 class='page-title title-black'><?php the_field('blogTitle', 'options'); ?></h1>
+	</div>
 
+</section>
+
+<section class='container-medium'>
 	<?php if ( have_posts() ) : $count = 0; ?>
 
 		<ul><?php wp_list_categories( array('title_li' => '') ); ?></ul>
 		<?php get_search_form(); ?>
 
 		<?php while ( have_posts() ) : the_post(); ?>
-			
+
 			<div class='<?php if( is_sticky() ) echo 'highlighted'; ?>'>
 				<span>
 					<?php _e('Add on', 'beezup'); ?>
@@ -20,7 +25,7 @@
 					<?php _e('in', 'beezup'); ?>
 					<?php echo get_the_category_list(); ?>
 				</span>
-				
+
 				<h2>
 					<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>'>
 						<?php the_title(); ?>
@@ -39,7 +44,7 @@
 					<?php if( get_field('blogNewsletterTitle', 'options') ){ ?>
 						<h3><?php the_field('blogNewsletterTitle', 'options'); ?></h3>
 					<?php } ?>
-					
+
 					<?php the_field('blogNewsletterText', 'options'); ?>
 
 					<?php get_template_part( 'includes/newsletter' ); ?>
@@ -49,7 +54,7 @@
 			<?php if( $count === 4 ){ //demo ?>
 				<?php get_template_part( 'includes/demo' ); ?>
 			<?php } ?>
-		
+
 		<?php $count ++; endwhile; ?>
 
 		<div class='pagination'>
@@ -57,13 +62,12 @@
 		</div>
 
 		<?php get_template_part('includes/free-links'); ?>
-	
+
 	<?php else : ?>
-				
+
 		<p><?php _e("There is no posts yet!", 'beezup'); ?></p>
 
 	<?php endif; ?>
-
-</div>
+</section>
 
 <?php get_footer(); ?>
