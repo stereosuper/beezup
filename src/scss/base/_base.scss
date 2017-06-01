@@ -41,8 +41,12 @@ h1, .h1{
     line-height: 1;
     letter-spacing: -0.02em;
     text-align: center;
-    &.small-m{
+    &.small-m, &.align-small{
         margin-bottom: 1em;
+    }
+    &.align-small{
+        margin-left: 100px;
+        text-align: left;
     }
     > span{
         display: block;
@@ -444,6 +448,12 @@ a{
 
 
 @media (max-width: $desktop-small){
+    h1, .h1{
+        &.align-small{
+            margin-left: #{2*$gutter};
+        }
+    }
+
     img{
         &.alignleft, &.alignright{
             float: none;

@@ -48,7 +48,7 @@
 		}
 	?>
 
-	<div class='container-small'>
+	<div class='container-medium'>
 		<ul class='list-cat'><?php wp_list_categories( array('title_li' => '') ); ?></ul>
 
 		<?php get_template_part( 'includes/demo' ); ?>

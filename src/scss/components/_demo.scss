@@ -6,10 +6,6 @@
     margin: 6.5em 0 0;
     background: $primary;
     color: $white;
-    .container-small &{
-        width: calc(100% + 200px);
-        margin-left: -100px;
-    }
     > img{
         max-width: calc(50% - #{$gutter});
     }

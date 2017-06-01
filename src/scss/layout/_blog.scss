@@ -24,14 +24,14 @@
     background-repeat: no-repeat;
     background-position: 50% 50%;
     background-size: cover;
-    &:not(:empty):before{
+    &:before{
         content: '';
         display: block;
         padding: 0 0 55%;
     }
 }
 
-.post-home-title{
+.small-post-title{
     padding: 0 15px;
     margin: 1.3em 0 1.1em;
     color: $text;
