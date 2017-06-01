@@ -10,15 +10,14 @@ var sticky = require('./sticky.js');
 module.exports = function(){
     if(!$('body').hasClass('home')) return;
 
-    var windowHeight, windowScroll, windowBottom;
+    var windowWiddth = window.outerWidth, windowHeight, windowScroll, windowBottom;
     var blockTitle = $('#titleHome'), titleHome = blockTitle.find('h1'), textToAnim = $('.textToAnim'), btnTopHome = $('#btnTopHome'), introHome = $('#introHome');
-    var baseline = 200, isOverBaseline = true;
+    var baseline = 200, isOverBaseline = true, largeScreen = true, alreadyInitLarge = true;
 
     function initTitleTxt(){
         textToAnim.each(function(){
             $(this).html($(this).data('before'));
         });
-        TweenLite.to(titleHome, 0.3, {opacity: 1});
     }
     function animScrambleText(dataToAnimate){
         textToAnim.each(function(){
@@ -29,28 +28,42 @@ module.exports = function(){
         isOverBaseline = !isOverBaseline;
     }
     function animTitleTxt(){
+        windowWiddth = window.outerWidth;
         windowHeight = $(window).height();
         windowScroll = $(window).scrollTop();
         windowBottom = windowScroll + windowHeight;
-
-        if(windowScroll >= baseline && isOverBaseline){
-            animScrambleText('after');
-            TweenLite.killTweensOf(introHome, true);
-            introHome.stop().slideToggle(300, function(){
-                TweenLite.to(introHome, 0.3, {opacity: 1});
-            });
-        }else if(windowScroll < baseline && !isOverBaseline){
-            animScrambleText('before');
-            TweenLite.killTweensOf(introHome, true);
-            introHome.stop();
-            TweenLite.to(introHome, 0.3, {opacity: 0, onComplete: function(){
-                introHome.slideToggle(300);
-            }});
+        if(windowWiddth > 780){
+            if(windowScroll >= baseline && isOverBaseline){
+                animScrambleText('after');
+                TweenLite.killTweensOf(introHome, true);
+                introHome.stop().slideToggle(300, function(){
+                    TweenLite.to(introHome, 0.3, {opacity: 1});
+                });
+            }else if(windowScroll < baseline && !isOverBaseline){
+                animScrambleText('before');
+                TweenLite.killTweensOf(introHome, true);
+                introHome.stop();
+                TweenLite.to(introHome, 0.3, {opacity: 0, onComplete: function(){
+                    introHome.slideToggle(300);
+                }});
+            }
+        }else{
+            if(alreadyInitLarge){
+                textToAnim.each(function(){
+                    $(this).html($(this).data('after'));
+                });
+            }
+            
         }
     }
-
-    initTitleTxt();
+    if(windowWiddth > 780){
+        initTitleTxt();
+    }else{
+        largeScreen = false;
+        alreadyInitLarge = false;
+    }
     sticky(blockTitle, 150, 'px', true);
+    TweenLite.to(titleHome, 0.3, {opacity: 1});
 
     btnTopHome.on('click', function(e){
         e.preventDefault();

@@ -14,7 +14,7 @@ module.exports = function(stickyElt, givenPosition, unit = 'px', updateHeightOnS
 
     function checkWindowHeight() {
         windowHeight = $(window).height();
-        if (unit == 'vh') {
+        if (unit === 'vh') {
             eltHeight = stickyElt.outerHeight();
             position = windowHeight / (100/givenPosition) - eltHeight/2;
         } else {
@@ -42,7 +42,8 @@ module.exports = function(stickyElt, givenPosition, unit = 'px', updateHeightOnS
     function resizeHandler() {
         checkWindowHeight();
         stickyElt.data({
-            'offsetBottom': stickyElt.closest('.wrapper-sticky').offset().top + stickyElt.closest('.wrapper-sticky').outerHeight(),
+            'offsetTop': stickyElt.offset().top,
+            'offsetBottom': wrapperSticky.offset().top + wrapperSticky.outerHeight(),
             'height': stickyElt.outerHeight()
         });
         scrollHandler();
@@ -52,7 +53,7 @@ module.exports = function(stickyElt, givenPosition, unit = 'px', updateHeightOnS
     stickyElt.data({
         'initialPos': stickyElt.css('top'),
         'offsetTop': stickyElt.offset().top,
-        'offsetBottom': stickyElt.closest('.wrapper-sticky').offset().top + stickyElt.closest('.wrapper-sticky').outerHeight(),
+        'offsetBottom': wrapperSticky.offset().top + wrapperSticky.outerHeight(),
         'height': stickyElt.outerHeight()
     });
 

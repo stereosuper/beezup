@@ -128,6 +128,10 @@
         }
     }
 }
+.illus-responsive{
+    display: none;
+    margin: 0 auto 30px;
+}
 
 @media (max-width: $desktop-large){
     .text-illus{
@@ -170,5 +174,26 @@
     }
     .title-home{
         font-size: 4rem;
+    }
+}
+@media (max-width: $tablet){
+    .block-title-home, .block-half.block-txt.block-title-home{
+        max-width: none;
+        position: relative!important;
+        top: auto!important;
+        padding: 0;
+    }
+    #introHome{
+        display: block!important;
+        opacity: 1!important;
+    }
+    .wrapper-list-menu-home{
+        margin-top: 50px;
+    }
+    .wrapper-svg-home{
+        display: none;
+    }
+    .illus-responsive{
+        display: block;
     }
 }
