@@ -148,6 +148,21 @@
     }
 }
 
+.list-usefull{
+    display: flex;
+    flex-wrap: wrap;
+    >li{
+        width: 33.3333%;
+        margin: 2px 0;
+        padding-right: 20px;
+        &:before, &:after{
+            display: none;
+        }
+        &:nth-child(3n){
+            padding-right: 0;
+        }
+    }
+}
 
 @media (max-width: $desktop){
     .list-picto{

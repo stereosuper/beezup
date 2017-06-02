@@ -1118,7 +1118,7 @@ get_header(); ?>
 	<?php $lastPosts = new WP_Query( array('posts_per_page' => 3, 'ignore_sticky_posts' => 1) ); ?>
 	<?php if( $lastPosts->have_posts() ){ ?>
 		<section class='container'>
-			<svg class='icon icon-blog'><use xlink:href='#icon-blog'></use></svg>
+			<svg class='icon icon-blog title-icon'><use xlink:href='#icon-blog'></use></svg>
 			<?php if( get_field('blogTitle') ){ ?>
 				<h2 class='h1 small-m'><?php the_field('blogTitle'); ?></h2>
 			<?php } ?>
