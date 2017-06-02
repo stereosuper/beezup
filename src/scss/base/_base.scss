@@ -144,7 +144,7 @@ blockquote, .star{
     }
     p{
         margin: 0;
-        font-family: $fira-book-italic;
+        font-family: $fira-italic;
         color: $grey;
         &:before, &:after{
             content: '';
