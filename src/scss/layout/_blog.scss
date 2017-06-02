@@ -46,6 +46,10 @@
 }
 
 
+.posts-wrapper{
+    margin-bottom: 20px;
+}
+
 .post{
     display: flex;
     justify-content: space-between;
@@ -165,6 +169,58 @@
     }
 }
 
+.pagination{
+    margin: 6.5em 0 0;
+    text-align: center;
+    > a, > span{
+        display: inline-block;
+        width: 42px;
+        height: 42px;
+        line-height: 40px;
+        overflow: hidden;
+    }
+    > a{
+        text-decoration: none;
+        color: $text;
+        &:hover, &:focus{
+            color: $primary;
+        }
+    }
+    .current{
+        font-family: $fira-medium;
+        background: $primary;
+        color: $white;
+    }
+    .next, .prev{
+        font-size: 0.55em;
+        text-indent: -99em;
+        .icon{
+            float: left;
+            margin: 1.8em;
+            transition: transform $transition;
+        }
+    }
+    .next{
+        &:hover, &:focus{
+            .icon{
+                transform: translate3d(3px, 0, 0);
+            }
+        }
+    }
+    .prev{
+        &:hover, &:focus{
+            .icon{
+                transform: translate3d(-3px, 0, 0);
+            }
+        }
+    }
+    .dots{
+        text-indent: -99em;
+        background: url(../layoutImg/bees-dots.svg) no-repeat 50% 50%;
+        background-size: 30px;
+    }
+}
+
 
 @media (max-width: $desktop-small){
     .post-home-title{
@@ -223,6 +279,19 @@
     .blog-newsletter{
         .container-newsletter{
             width: auto;
+        }
+    }
+
+    .pagination{
+        > a, > span{
+            width: 28px;
+            height: 28px;
+            line-height: 26px;
+        }
+        .next, .prev{
+            .icon{
+                margin: 1em;
+            }
         }
     }
 }

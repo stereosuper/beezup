@@ -10,7 +10,7 @@
 
 </section>
 
-<section class='container-medium'>
+<section class='container-medium posts-wrapper'>
 	<?php if ( have_posts() ) : $count = 0; ?>
 
 		<ul><?php wp_list_categories( array('title_li' => '') ); ?></ul>
@@ -68,7 +68,7 @@
 		<?php $count ++; endwhile; ?>
 
 		<div class='pagination'>
-			<?php echo paginate_links(array( 'prev_text' => __('Previous', 'beezup'), 'next_text'  =>  __('Next', 'beezup')) ); ?>
+			<?php echo paginate_links(array( 'prev_text' => __('Previous <svg class="icon"><use xlink:href="#icon-arrow-left"></use></svg>', 'beezup'), 'next_text'  =>  __('Next <svg class="icon"><use xlink:href="#icon-arrow-right"></use></svg>', 'beezup')) ); ?>
 		</div>
 
 		<?php get_template_part('includes/free-links'); ?>
