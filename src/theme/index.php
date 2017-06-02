@@ -2,7 +2,7 @@
 
 <section class='container-medium page-intro'>
 
-	<div class='page-intro-title'>
+	<div class='page-intro-title blog-title'>
 		<?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
 
 		<h1 class='page-title'><?php the_field('blogTitle', 'options'); ?></h1>

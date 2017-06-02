@@ -241,6 +241,14 @@ select{
     }
 }
 
+.searchform{
+    .btn-glass{
+        position: absolute;
+        top: 0;
+        right: 0;
+    }
+}
+
 
 @media (max-width: $desktop-large){
     .field.error, .form-success, .form-error{
