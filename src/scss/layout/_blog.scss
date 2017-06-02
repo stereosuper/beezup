@@ -49,16 +49,21 @@
 .post{
     display: flex;
     justify-content: space-between;
+    padding: 0 35px 0 0;
     margin: 0 0 6.5em;
 }
 .post-txt, .post-img{
     width: calc(50% - #{$gutter});
 }
 .post-txt{
-    order: 1;
     font-size: 1.4rem;
     > h2{
         margin: 0 0 1.4em;
+        > a{
+            &:hover, &:focus{
+                color: $secondary;
+            }
+        }
     }
 }
 .post-img{
@@ -93,6 +98,50 @@
     }
 }
 
+.highlighted{
+    padding-top: 40px;
+    padding-bottom: 40px;
+    position: relative;
+    z-index: 1;
+    color: $white;
+    a{
+        color: inherit;
+    }
+    h2{
+        color: $text;
+        > a{
+            &:hover, &:focus{
+                color: $white;
+            }
+        }
+    }
+    .link-arrow{
+        &:after{
+            background-image: url('../layoutImg/arrow-right-white.svg');
+        }
+        &:hover, &:focus{
+            color: inherit;
+        }
+    }
+    .post-meta{
+        a{
+            &:hover, &:focus{
+                opacity: 0.6;
+            }
+        }
+    }
+    &:before{
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 170px;
+        z-index: -1;
+        background: $primary;
+    }
+}
+
 
 @media (max-width: $desktop-small){
     .post-home-title{
@@ -108,20 +157,28 @@
 
     .post{
         display: block;
+        padding-right: 0;
     }
     .post-txt, .post-img{
         width: 100%;
     }
-    .post-txt{
-        margin: 0 0 30px;
-    }
     .post-img{
+        display: block;
         height: auto;
+        margin: 0 0 30px;
         > img{
-            max-width: 100%;
+            width: 100%;
             height: auto;
             left: 0;
             transform: translate3d(0, 0, 0);
+        }
+    }
+
+    .highlighted{
+        padding-right: 35px;
+        padding-left: 35px;
+        &:before{
+            left: 0;
         }
     }
 }

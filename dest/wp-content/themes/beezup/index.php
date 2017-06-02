@@ -19,6 +19,12 @@
 		<?php while ( have_posts() ) : the_post(); ?>
 
 			<div class='post <?php if( is_sticky() ) echo 'highlighted'; ?>'>
+				<?php if( has_post_thumbnail() ){ ?>
+					<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>' class='post-img'>
+						<?php the_post_thumbnail('large'); ?>
+					</a>
+				<?php } ?>
+				
 				<div class='post-txt'>
 					<div class='post-meta'>
 						<?php _e('Add on', 'beezup'); ?>
@@ -39,12 +45,6 @@
 					
 					<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>' class='link-arrow'><?php _e('Lire la suite', 'beezup'); ?></a>
 				</div>
-
-				<?php if( has_post_thumbnail() ){ ?>
-					<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>' class='post-img'>
-						<?php the_post_thumbnail('large'); ?>
-					</a>
-				<?php } ?>
 			</div>
 
 			<?php if( $count === 2 ){ //newsletter ?>
