@@ -24,7 +24,7 @@
 						<?php the_post_thumbnail('large'); ?>
 					</a>
 				<?php } ?>
-				
+
 				<div class='post-txt'>
 					<div class='post-meta'>
 						<?php _e('Add on', 'beezup'); ?>
@@ -48,12 +48,14 @@
 			</div>
 
 			<?php if( $count === 2 ){ //newsletter ?>
-				<div>
-					<?php if( get_field('blogNewsletterTitle', 'options') ){ ?>
-						<h3><?php the_field('blogNewsletterTitle', 'options'); ?></h3>
-					<?php } ?>
+				<div class='blog-newsletter'>
+					<div class='newsletter-txt'>
+						<?php if( get_field('blogNewsletterTitle', 'options') ){ ?>
+							<h3><?php the_field('blogNewsletterTitle', 'options'); ?></h3>
+						<?php } ?>
 
-					<?php the_field('blogNewsletterText', 'options'); ?>
+						<p><?php the_field('blogNewsletterText', 'options'); ?></p>
+					</div>
 
 					<?php get_template_part( 'includes/newsletter' ); ?>
 				</div>
