@@ -12,7 +12,7 @@ get_header(); ?>
         <div class='page-intro-title'>
             <?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
             
-            <h1 class='page-title title-black'>
+            <h1 class='page-title'>
                 <?php the_title(); ?>
                 <?php if( get_field('title2') ){ ?>
                     <span><?php the_field('title2'); ?></span>

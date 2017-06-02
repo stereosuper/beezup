@@ -1,6 +1,8 @@
 .page-intro{
     display: flex;
+    position: relative;
     margin-bottom: 4.5em;
+    z-index: 2;
 }
 
 .page-intro-title{
@@ -17,13 +19,6 @@
     }
 }
 
-.title-black{
-    color: $text;
-    > span{
-        color: $primary;
-    }
-}
-
 .page-intro-img{
     flex: 1;
 }
@@ -31,6 +26,7 @@
 
 .breadcrumbs{
     position: relative;
+    margin: 0 0 10px;
     z-index: 1;
     font-size: 1.3rem;
     color: $primary;

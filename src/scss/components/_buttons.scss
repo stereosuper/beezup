@@ -116,3 +116,14 @@
         color: $primary;
     }
 }
+
+
+@media (max-width: $tablet){
+    .btn{
+        padding: 15px 30px;
+    }
+    
+    .btn-arrow{
+        padding: 15px 48px 15px 30px;
+    }
+}

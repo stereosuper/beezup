@@ -34,12 +34,8 @@ h1, h2, h3, h4, h5, h6{
     }
 }
 
-h1, .h1, h2, .h2{
+h1, .h1, h2, .h2, h3{
     font-family: $fira-bold;
-}
-
-h1, .h1, h2, .h2, h4{
-    color: $primary;
 }
 
 h1, .h1{
@@ -57,9 +53,6 @@ h1, .h1{
     }
     > span{
         display: block;
-        color: $black;
-    }
-    > .primary{
         color: $primary;
     }
 }
@@ -67,6 +60,7 @@ h1, .h1{
 h2, .h2{
     font-size: 2.2rem;
     line-height: 1.1;
+    color: $primary;
 }
 
 h2{
@@ -79,15 +73,13 @@ h2{
 
 h3{
     margin: 1.8em 0 1.1em;
-    font-family: $fira-medium;
     font-size: 1.8rem;
 }
 
 h4{
     margin: 1em 0 0;
-    font-family: $fira;
-    font-size: 1.6rem;
-    letter-spacing: 1px;
+    letter-spacing: 0.01em;
+    color: $primary;
     + p{
         margin-top: 0;
     }

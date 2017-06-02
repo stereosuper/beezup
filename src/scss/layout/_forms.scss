@@ -217,9 +217,15 @@ select{
     color: $error;
 }
 
+.container-newsletter{
+    display: flex;
+    > .field-inline{
+        flex: 1;
+    }
+}
 .newsletter{
     input{
-        width: 220px;
+        width: 100%;
         border-right: 0;
     }
 }
@@ -232,6 +238,14 @@ select{
         .js &{
             display: none;
         }
+    }
+}
+
+.searchform{
+    .btn-glass{
+        position: absolute;
+        top: 0;
+        right: 0;
     }
 }
 

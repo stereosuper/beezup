@@ -1,0 +1,111 @@
+.dropdown{
+    padding: 15px 30px 10px;
+    border: 1px solid transparent;
+    position: absolute;
+    z-index: 1;
+    background: $white;
+    &.top{
+        bottom: auto;
+    }
+    &:before{
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: -1;
+        box-shadow: 0 0 90px -20px rgba($text, 0.3);
+    }
+    .btn-list{
+        display: none;
+        width: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        overflow: hidden;
+        font-size: 1.1rem;
+        text-indent: -99em;
+        .icon{
+            float: right;
+            margin: 2px 15px 0 0;
+        }
+        &:hover, &:focus{
+            color: $primary;
+        }
+    }
+    .btn-close{
+        position: absolute;
+        top: 20px;
+        right: 20px;
+    }
+    &.closed{
+        .js &{
+            padding: 10px 20px;
+            border-color: rgba($primary, 0.2);
+            &:before{
+                opacity: 0;
+            }
+            li{
+                display: none;
+                margin: 0;
+                &.current{
+                    display: block;
+                    font-family: $fira;
+                    font-size: 1.6rem;
+                    color: $grey;
+                    &:before, span{
+                        color: $primary;
+                    }
+                }
+                span{
+                    font-family: $fira-medium;
+                    font-size: 0.9em;
+                }
+                .icon{
+                    display: none;
+                }
+            }
+            .btn-list{
+                display: block;
+            }
+            .btn-close{
+                display: none;
+            }
+        }
+    }
+}
+
+.dropdown-list{
+    margin: 0;
+    > li{
+        margin: 0 0 20px;
+        font-size: 1.8rem;
+        &:before, &:after{
+            display: none;
+        }
+    }
+    .current{
+        font-family: $fira-italic;
+    }
+    .link-arrow{
+        font-family: $fira-medium;
+        color: $secondary;
+        text-decoration: none;
+        &:after{
+            background-image: url('../layoutImg/arrow-right.svg');
+        }
+    }
+    span{
+        font-size: 1.1em;
+        font-family: $fira;
+    }
+    .icon{
+        position: relative;
+        top: -2px;
+        left: 10px;
+        font-size: 0.7em;
+        color: $primary;
+    }
+}
