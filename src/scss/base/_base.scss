@@ -38,10 +38,6 @@ h1, .h1, h2, .h2, h3{
     font-family: $fira-medium;
 }
 
-h1, .h1, h2, .h2, h4{
-    color: $primary;
-}
-
 h1, .h1{
     margin: 2.4em 0 2.5em;
     font-size: 4.5rem;
@@ -57,9 +53,6 @@ h1, .h1{
     }
     > span{
         display: block;
-        color: $black;
-    }
-    > .primary{
         color: $primary;
     }
 }
@@ -67,6 +60,7 @@ h1, .h1{
 h2, .h2{
     font-size: 2.2rem;
     line-height: 1.1;
+    color: $primary;
 }
 
 h2{
@@ -85,6 +79,7 @@ h3{
 h4{
     margin: 1em 0 0;
     letter-spacing: 0.01em;
+    color: $primary;
     + p{
         margin-top: 0;
     }

@@ -5,16 +5,38 @@
 	<div class='page-intro-title'>
 		<?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
 
-		<h1 class='page-title title-black'><?php the_field('blogTitle', 'options'); ?></h1>
+		<h1 class='page-title'><?php the_field('blogTitle', 'options'); ?></h1>
+	</div>
+
+	<div class='blog-form'>
+		<div class='dropdown js-dropdown closed'>
+			<ul class='dropdown-list'>
+				<?php if( is_home() ){ ?>
+					<li class='current'><?php _e('Categories', 'beezup'); ?></li>
+				<?php }else{ ?>
+					<li><a href='<?php echo get_permalink( get_option('page_for_posts') ); ?>' class='link-arrow'><?php _e('Categories', 'beezup'); ?></a></li>
+				<?php } ?>
+				<?php wp_list_categories( array('title_li' => '') ); ?>
+			</ul>
+
+			<button class='btn-list js-btn-list' type='button'>
+				<?php _e('Open catgories list', 'beezup'); ?>
+				<svg class='icon'><use xlink:href='#icon-list'></use></svg>
+			</button>
+
+			<button class='btn-close js-btn-list' type='button'>
+				<?php _e('Close catgories list', 'beezup'); ?>
+				<svg class='icon'><use xlink:href='#icon-close'></use></svg>
+			</button>
+		</div>
+		
+		<?php get_search_form(); ?>
 	</div>
 
 </section>
 
 <section class='container-medium posts-wrapper'>
 	<?php if ( have_posts() ) : $count = 0; ?>
-
-		<ul><?php wp_list_categories( array('title_li' => '') ); ?></ul>
-		<?php get_search_form(); ?>
 
 		<?php while ( have_posts() ) : the_post(); ?>
 
