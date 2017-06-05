@@ -49,7 +49,7 @@ $(function(){
     checkInputs($('.js-inline-form'));
     
     // Sticky
-    sticky($('#btnDemo'), 15);
+    sticky($('#btnDemo'), 15, 'px', false, false);
     sticky($('#sideLinksNav'), 50, 'vh');
 
     // Fixed meu
