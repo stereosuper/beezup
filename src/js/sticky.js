@@ -27,7 +27,7 @@ module.exports = function(stickyElt, givenPosition, unit = 'px', updateHeightOnS
             stickyElt.data('height', stickyElt.outerHeight());
         }
         scrollTop = $(document).scrollTop();
-        if (scrollTop >= stickyElt.data('offsetTop') - position) {
+        if (scrollTop >= stickyElt.data('offsetTop') - position + parseFloat(stickyElt.data('initialPos'), 10)) {
             stickyElt.addClass('sticky').css('top', position+'px');
             if (scrollTop + position + stickyElt.data('height') >= stickyElt.data('offsetBottom')) {
                 stickyElt.removeClass('sticky').addClass('sticky-stuck').css({'top': 'auto', 'bottom': '0'});
@@ -37,7 +37,6 @@ module.exports = function(stickyElt, givenPosition, unit = 'px', updateHeightOnS
         }else {
             stickyElt.removeClass('sticky').css('top', stickyElt.data('initialPos'));
         }
-        //console.log('initialPos : '+stickyElt.data('initialPos')+' offsetTop : '+stickyElt.data('offsetTop')+' offsetBottom : '+stickyElt.data('offsetBottom')+' height : '+stickyElt.data('height'));
     }
 
     function resizeHandler() {
