@@ -2,7 +2,7 @@
     <section class='container'>
         <?php if( get_field('freeLinksTitle') ){ ?>
             <svg class='icon icon-links title-icon'><use xlink:href='#icon-links'></use></svg>
-            <h2 class='h1'><?php the_field('freeLinksTitle'); ?></h2>
+            <h2 class='h1 small-m'><?php the_field('freeLinksTitle'); ?></h2>
         <?php } ?>
 
         <ul class='list-usefull'>

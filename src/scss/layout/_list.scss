@@ -153,8 +153,9 @@
     flex-wrap: wrap;
     >li{
         width: 33.3333%;
-        margin: 2px 0;
+        margin: 5px 0;
         padding-right: 20px;
+        line-height: 1.1;
         &:before, &:after{
             display: none;
         }
@@ -229,6 +230,19 @@
             }
         }
     }
+    .list-usefull{
+        >li{
+            width: 50%;
+            &:nth-child(odd){
+                padding-left: 0;
+                padding-right: 10px;
+            }
+            &:nth-child(even){
+                padding-left: 10px;
+                padding-right: 0;
+            }
+        }
+    }
 }
 
 @media (max-width: $phone){
@@ -242,6 +256,14 @@
             }
             &:last-child{
                 margin-bottom: 0;
+            }
+        }
+    }
+    .list-usefull{
+        >li{
+            width: 100%;
+            &:nth-child(odd), &:nth-child(even){
+                padding: 0;
             }
         }
     }
