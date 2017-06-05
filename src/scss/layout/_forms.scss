@@ -219,8 +219,72 @@ select{
 
 .container-newsletter{
     display: flex;
+    position: relative;
+    z-index: 1;
     > .field-inline{
         flex: 1;
+        position: static;
+    }
+    .btn-secondary{
+        &:focus{
+            background: $black;
+            color: $white;
+        }
+    }
+}
+#sib_loading_gif_area{
+    display: none!important;
+}
+.newsletter{
+    .sib-container{
+        > .message_area{
+            background: $white!important;
+            color: $success!important;
+            border: 2px solid $success!important;
+            padding: 14px 8px;
+            font-family: $fira-bold;
+            font-size: 1.4rem;
+            text-align: center;
+            button{
+                display: none;
+            }
+        }
+    }
+}
+.mandatory-email{
+    &.needsfilled{
+        &:before{
+            content: '';
+            display: block;
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            bottom: -8px;
+            left: -8px;
+            border-style: solid;
+            border-width: 2px;
+            background: $white;
+            z-index: -1;
+        }
+    }
+    &.needsfilled{
+        &:before{
+            border-color: $error;
+        }
+        .message_area{
+            margin-top: 4px!important;
+        }
+    }
+    .message_area{
+        background: none!important;
+        border: none!important;
+        color: $error!important;
+        margin-right: -45px;
+        font-family: $fira-bold;
+        text-align: center;
+        button{
+            display: none;
+        }
     }
 }
 .newsletter{
