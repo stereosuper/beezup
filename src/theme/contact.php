@@ -121,23 +121,26 @@ get_header(); ?>
 
 <?php if ( have_posts() ) : the_post(); ?>
 	
-	<section class='container'>
-       <?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
-        
-		<h1>
-			<?php the_title(); ?>
-			<?php if( get_field('title2') ){ ?>
-				<span><?php the_field('title2'); ?></span>
-			<?php } ?>
-		</h1>
+	<section class='container-medium page-intro'>
+        <div class='page-intro-title'>
+            <?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
+            
+            <h1 class='page-title'>
+                <?php the_title(); ?>
+                <?php if( get_field('title2') ){ ?>
+                    <span><?php the_field('title2'); ?></span>
+                <?php } ?>
+            </h1>
 
-        <?php if( get_field('subtitle') ){ ?>
-            <h3><?php the_field('subtitle'); ?></h3>
-        <?php } ?>
+            <?php if( get_field('subtitle') ){ ?>
+                <h2><?php the_field('subtitle'); ?></h2>
+            <?php } ?>
 
-        <?php the_field('text'); ?>
-
-        <?php the_post_thumbnail( 'full' ); ?>
+            <?php the_field('text'); ?>
+        </div>
+        <div class='page-intro-img'>
+            <?php the_post_thumbnail( 'full' ); ?>
+        </div>
 	</section>
 
     <section class='container'>
