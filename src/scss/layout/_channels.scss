@@ -71,12 +71,17 @@
     }
     &.closed{
         .js &{
+            padding: 10px 20px;
             li{
                 &.current{
-                    font-family: $fira;
+                    font-size: 1.6rem;
                 }
             }
         }
+    }
+    .btn-close{
+        top: 20px;
+        right: 20px;
     }
     .dropdown-list{
         > li{

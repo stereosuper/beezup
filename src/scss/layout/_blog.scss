@@ -46,7 +46,9 @@
 }
 
 .blog-title{
-    width: calc(50% - #{$gutter});
+    .container-medium &{
+        width: calc(50% - #{$gutter});
+    }
 }
 
 .blog-form{
@@ -285,6 +287,10 @@
 
     .highlighted{
         width: 100%;
+    }
+
+    .blog-form{
+        width: calc(63% + 15px);
     }
 }
 

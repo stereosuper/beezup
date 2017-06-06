@@ -1,6 +1,8 @@
 /* Header */
 .header{
+    position: relative;
     overflow: hidden;
+    z-index: 9;
     li{
         &:before, &:after{
             content: none;
@@ -110,7 +112,7 @@
         display: inline-block;
         margin: 0 23px;
     }
-    .current-menu-item{
+    .current-menu-item, .current_page_parent, .current-page-ancestor{
         position: relative;
         font-family: $fira-medium;
         a{
@@ -249,7 +251,7 @@
 }
 
 
-@media (max-width: 1210px){
+@media (max-width: $desktop-large){
     .header{
         .wrapper-logo{
             width: 150px;
@@ -279,6 +281,7 @@
 
 @media (max-width: $desktop-small){
     .header{
+        z-index: auto;
         &.deployed{
             .container-menu-head, .container-menu-main{
                 transform: translate(0, 0);
@@ -484,7 +487,7 @@
         }
 
         .menu-main{
-            .current-menu-item{
+            .current-menu-item, .current_page_parent, .current-page-ancestor{
                 a{
                     &:before{
                         bottom: -8px;

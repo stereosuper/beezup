@@ -1,62 +1,22 @@
 <?php get_header(); ?>
 
-<div class='container'>
+<section class='container-medium page-intro'>
 
-	<?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
+	<div class='page-intro-title blog-title'>
+		<?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
 
-	<h1><?php echo single_cat_title(); ?></h1>
+		<h1 class='page-title'><?php echo single_cat_title(); ?></h1>
+	</div>
 
-	<?php if ( have_posts() ) : $count = 0; ?>
+	<?php get_template_part( 'includes/blog-form' ); ?>
 
-		<ul><?php wp_list_categories( array('title_li' => '') ); ?></ul>
-		<?php get_search_form(); ?>
+</section>
 
-		<?php while ( have_posts() ) : the_post(); ?>
-			
-			<div class='<?php if( is_sticky() ) echo 'highlighted'; ?>'>
-				<span>
-					<?php _e('Add on', 'beezup'); ?>
-					<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>'><?php echo get_the_date(); ?></a>
-					<?php _e('in', 'beezup'); ?>
-					<?php echo get_the_category_list(); ?>
-				</span>
-				
-				<h2>
-					<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>'>
-						<?php the_title(); ?>
-					</a>
-				</h2>
+<section class='container-medium posts-wrapper'>
 
-				<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>'>
-					<?php the_post_thumbnail('large'); ?>
-					<?php the_excerpt(); ?>
-					<span class='link-arrow'><?php _e('Lire la suite', 'beezup'); ?></span>
-				</a>
-			</div>
+	<?php if ( have_posts() ) : ?>
 
-			<?php if( $count === 2 ){ //newsletter ?>
-				<div>
-					<?php if( get_field('blogNewsletterTitle', 'options') ){ ?>
-						<h3><?php the_field('blogNewsletterTitle', 'options'); ?></h3>
-					<?php } ?>
-					
-					<?php the_field('blogNewsletterText', 'options'); ?>
-
-					<?php get_template_part( 'includes/newsletter' ); ?>
-				</div>
-			<?php } ?>
-
-			<?php if( $count === 4 ){ //demo ?>
-				<?php get_template_part( 'includes/demo' ); ?>
-			<?php } ?>
-		
-		<?php $count ++; endwhile; ?>
-
-		<div class='pagination'>
-			<?php echo paginate_links(array( 'prev_text' => __('Previous', 'beezup'), 'next_text'  =>  __('Next', 'beezup')) ); ?>
-		</div>
-
-		<?php get_template_part('includes/free-links'); ?>
+		<?php get_template_part( 'includes/blog-content' ); ?>
 	
 	<?php else : ?>
 				
@@ -64,6 +24,6 @@
 
 	<?php endif; ?>
 
-</div>
+</section>
 
 <?php get_footer(); ?>
