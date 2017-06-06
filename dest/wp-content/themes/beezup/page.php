@@ -19,7 +19,7 @@
 				if( get_row_layout() == 'wysiwyg' ){ ?>
 					<section class='container-small'><?php the_sub_field('wysiwyg'); ?></section>
 				<?php }elseif( get_row_layout() == 'blockFull' ){ ?>
-					<section class='block-full'>
+					<section class='block-full default'>
 						<div class='container-small'><?php the_sub_field('blockFull'); ?></div>
 					</section>
 				<?php }elseif( get_row_layout() == 'galery' ){ ?>
