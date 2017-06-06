@@ -288,6 +288,10 @@
     .highlighted{
         width: 100%;
     }
+
+    .blog-form{
+        width: calc(63% + 15px);
+    }
 }
 
 @media (max-width: $tablet){
