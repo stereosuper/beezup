@@ -52,7 +52,6 @@ h1, .h1{
     }
     > span{
         display: block;
-        color: $primary;
     }
 }
 
@@ -461,7 +460,7 @@ a{
     position: relative;
 }
 
-.primary{
+.blue{
     color: $primary;
 }
 .black{
