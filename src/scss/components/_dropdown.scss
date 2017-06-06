@@ -49,10 +49,9 @@
             li{
                 display: none;
                 margin: 0;
-                &.current{
+                &.current, &.current-cat{
                     display: block;
                     font-family: $fira;
-                    font-size: 1.6rem;
                     color: $grey;
                     &:before, span{
                         color: $primary;
@@ -85,8 +84,16 @@
             display: none;
         }
     }
-    .current{
+    .current, .current-cat{
         font-family: $fira-italic;
+    }
+    .current-cat{
+        > a{
+            font-family: inherit;
+            pointer-events: none;
+            text-decoration: none;
+            color: inherit;
+        }
     }
     .link-arrow{
         font-family: $fira-medium;
