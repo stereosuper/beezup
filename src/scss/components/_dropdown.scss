@@ -1,5 +1,5 @@
 .dropdown{
-    padding: 15px 30px 10px;
+    padding: 10px 20px;
     border: 1px solid transparent;
     position: absolute;
     z-index: 1;
@@ -37,12 +37,11 @@
     }
     .btn-close{
         position: absolute;
-        top: 20px;
-        right: 20px;
+        top: 15px;
+        right: 15px;
     }
     &.closed{
         .js &{
-            padding: 10px 20px;
             border-color: rgba($primary, 0.2);
             &:before{
                 opacity: 0;
