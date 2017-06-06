@@ -47,7 +47,7 @@
             position: absolute;
             top: -30px;
             left: 50%;
-            background: url('../layoutImg/bees-horizontal.svg') no-repeat;
+            background: url('../layoutImg/bees-horizontal.svg') no-repeat !important;
             transform: translate3d(-50%, -50%, 0);
         }
         &:after{
