@@ -101,19 +101,33 @@
     }
 }
 
-.btn-close{
-    width: 10px;
-    height: 10px;
+.btn-close, .btn-search{
     text-indent: -99em;
     overflow: hidden;
-    color: rgba($primary, 0.35);
     .icon{
-        width: 10px;
-        height: 10px;
         float: left;
     }
     &:hover, &:focus{
         color: $primary;
+    }
+}
+
+.btn-close{
+    width: 10px;
+    height: 10px;
+    color: rgba($primary, 0.35);
+    .icon{
+        width: 10px;
+        height: 10px;
+    }
+}
+
+.btn-search{
+    width: 12px;
+    height: 12px;
+    .icon{
+        width: 12px;
+        height: 12px;
     }
 }
 
