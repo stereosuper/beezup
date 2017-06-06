@@ -46,7 +46,9 @@
 }
 
 .blog-title{
-    width: calc(50% - #{$gutter});
+    .container-medium &{
+        width: calc(50% - #{$gutter});
+    }
 }
 
 .blog-form{
