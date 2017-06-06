@@ -1140,8 +1140,6 @@ get_header(); ?>
 		</section>
 	<?php } wp_reset_query(); ?>
 
-	<?php get_template_part('includes/free-links'); ?>
-
 <?php else : ?>
 
 	<div class='container-small'>
