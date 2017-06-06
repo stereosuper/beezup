@@ -1067,7 +1067,7 @@ get_header(); ?>
 				<?php } ?>
 			</div>
 			<div class='block-half block-txt'>
-				<svg class='icon icon-academy'><use xlink:href='#icon-academy'></use></svg>
+				<svg class='icon icon-title icon-academy'><use xlink:href='#icon-academy'></use></svg>
 				<?php if( get_field('academyTitle') ){ ?>
 					<h2 class='h1'><?php the_field('academyTitle'); ?></h2>
 				<?php } ?>
@@ -1098,7 +1098,7 @@ get_header(); ?>
 	<section class='container'>
 		<div class='wrapper-blocks-half'>
 			<div class='block-half block-txt'>
-				<svg class='icon icon-globe'><use xlink:href='#icon-globe'></use></svg>
+				<svg class='icon icon-title icon-globe'><use xlink:href='#icon-globe'></use></svg>
 				<?php if( get_field('networkTitle') ){ ?>
 					<h2 class='h1'><?php the_field('networkTitle'); ?></h2>
 				<?php } ?>
