@@ -3,6 +3,9 @@
     position: relative;
     margin-bottom: 4.5em;
     z-index: 2;
+    &.small-margin{
+        margin-bottom: 2em;
+    }
 }
 
 .page-intro-title{
@@ -52,9 +55,31 @@
     margin: -2em 0 5em;
 }
 
-
+@media (max-width: $desktop-large){
+    .page-intro-img{
+        padding-left: 20px;
+    }
+}
 @media (max-width: $tablet){
     .title-time{
         margin: -1.2em 0 5em;
+    }
+    .page-intro{
+        flex-wrap: wrap;
+    }
+    .page-intro-title{
+        order: 2;
+        width: 100%;
+        .container-medium &{
+            width: 100%;
+        }
+    }
+    .page-intro-img{
+        flex: 0 1 auto;
+        order: 1;
+        max-width: 200px;
+        width: 100%;
+        margin: 0 0 30px;
+        padding-left: 0;
     }
 }

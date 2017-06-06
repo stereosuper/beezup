@@ -121,7 +121,7 @@ get_header(); ?>
 
 <?php if ( have_posts() ) : the_post(); ?>
 	
-	<section class='container-medium page-intro'>
+	<section class='container-medium page-intro small-margin'>
         <div class='page-intro-title'>
             <?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
             
@@ -143,93 +143,94 @@ get_header(); ?>
         </div>
 	</section>
 
-    <section class='container'>
-        <?php if( $error && $errorSend ){ ?>
-            <p class='form-error'>
-                <?php echo $errorSend; ?>
-            </p>
-        <?php } ?>
-        
-        <?php if( $success ){ ?>
-            <p class='form-success'>
-                <?php _e('Thank you for your message ! We’ll get back to you soon.', 'beezup'); ?>
-                <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-check'></use></svg>
-            </p>
-        <?php } ?>
-
-        <form method='post' action='<?php the_permalink(); ?>' class='<?php if( $success ) echo "success"; ?>'>
-            <div class='field <?php if($errorLastname) echo 'error'; ?>'>
-                <label for='last_name'><?php _e('Last Name', 'beezup'); ?></label>
-                <input type='text' name='last_name' id='last_name' value='<?php echo $lastname; ?>' required>
-                <?php if( $errorLastname ){ ?>
-                    <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
-                <?php } ?>
-            </div>
-
-            <div class='field <?php if($errorFirstname) echo 'error'; ?>'>
-                <label for='first_name'><?php _e('First Name', 'beezup'); ?></label>
-                <input type='text' name='first_name' id='first_name' value='<?php echo $firstname; ?>' required>
-                <?php if( $errorFirstname ){ ?>
-                    <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
-                <?php } ?>
-            </div>
-
-            <div class='field optionnal'>
-                <label for='website'><?php _e('E-commerce(s) website(s)', 'beezup'); ?> <i>(<?php _e('optionnal', 'beezup'); ?>)</i></label>
-                <input type='url' name='website' id='webiste' value='<?php echo $website; ?>' placeholder='http://'>
-                <button id='addUrlInput' class='btn-add' type='button'>
-                    <?php _e('Add', 'beezup'); ?>
-                    <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-plus'></use></svg>
-                </button>
-                <input type='hidden' value='0' name='new-websites-count' id='newInputsCount'>
-            </div>
-
-            <div class='field <?php if($errorPhone) echo 'error'; ?>'>
-                <label for='tel'><?php _e('Phone', 'beezup'); ?></label>
-                <input type='tel' name='tel' id='tel' value='<?php echo $phone; ?>' required>
-                <?php if( $errorPhone ){ ?>
-                    <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
-                <?php } ?>
-            </div>
-
-            <div class='field <?php if($errorMail) echo 'error'; ?>'>
-                <label for='email'><?php _e('Email', 'beezup'); ?></label>
-                <input type='email' name='email-contact' id='email' value='<?php echo $mail; ?>' required>
-                <?php if( $errorMail ){ ?>
-                    <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
-                <?php } ?>
-            </div>
-
-            <div class='field <?php if($errorMsg) echo 'error'; ?>'>
-                <label for='message'><?php _e('Message', 'beezup'); ?></label>
-                <textarea name='message' id='message' required><?php echo $msg; ?></textarea>
-                <?php if( $errorMsg ){ ?>
-                    <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
-                <?php } ?>
-            </div>
-
-            <div class='hidden'>
-                <input type='url' name='url2' id='url2' value='<?php echo $spamUrl; ?>'>
-                <label for='url2'><?php _e('Please leave this field empty', 'beezup'); ?></label>
-            </div>
-
-            <?php if( $error && !$errorSend ){ ?>
+    <section class='container relative'>
+        <div class='block-half is-alone'>
+            <?php if( $error && $errorSend ){ ?>
                 <p class='form-error'>
-                    <?php if($errorEmpty) echo __('Please fill all the required fields', 'beezup') . '<br>'; ?>
-                    <?php if($errorPhoneTxt) echo $errorPhoneTxt . '<br>'; ?>
-                    <?php if($errorMailTxt) echo $errorMailTxt; ?>
-                    <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
+                    <?php echo $errorSend; ?>
                 </p>
             <?php } ?>
 
-            <button class='btn btn-arrow' type='submit' name='submit' for='form-contact'>
-                <?php _e('Submit', 'beezup'); ?>
-                <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-arrow-right'></use></svg>
-            </button>
-        </form>
+            <?php if( $success ){ ?>
+                <p class='form-success'>
+                    <?php _e('Thank you for your message ! We’ll get back to you soon.', 'beezup'); ?>
+                    <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-check'></use></svg>
+                </p>
+            <?php } ?>
 
+            <form method='post' action='<?php the_permalink(); ?>' class='<?php if( $success ) echo "success"; ?>'>
+                <div class='field <?php if($errorLastname) echo 'error'; ?>'>
+                    <label for='last_name'><?php _e('Last Name', 'beezup'); ?></label>
+                    <input type='text' name='last_name' id='last_name' value='<?php echo $lastname; ?>' required>
+                    <?php if( $errorLastname ){ ?>
+                        <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
+                    <?php } ?>
+                </div>
+
+                <div class='field <?php if($errorFirstname) echo 'error'; ?>'>
+                    <label for='first_name'><?php _e('First Name', 'beezup'); ?></label>
+                    <input type='text' name='first_name' id='first_name' value='<?php echo $firstname; ?>' required>
+                    <?php if( $errorFirstname ){ ?>
+                        <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
+                    <?php } ?>
+                </div>
+
+                <div class='field optionnal'>
+                    <label for='website'><?php _e('E-commerce(s) website(s)', 'beezup'); ?> <i>(<?php _e('optionnal', 'beezup'); ?>)</i></label>
+                    <input type='url' name='website' id='webiste' value='<?php echo $website; ?>' placeholder='http://'>
+                    <button id='addUrlInput' class='btn-add' type='button'>
+                        <?php _e('Add', 'beezup'); ?>
+                        <svg class='icon icon-plus'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-plus'></use></svg>
+                    </button>
+                    <input type='hidden' value='0' name='new-websites-count' id='newInputsCount'>
+                </div>
+
+                <div class='field <?php if($errorPhone) echo 'error'; ?>'>
+                    <label for='tel'><?php _e('Phone', 'beezup'); ?></label>
+                    <input type='tel' name='tel' id='tel' value='<?php echo $phone; ?>' required>
+                    <?php if( $errorPhone ){ ?>
+                        <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
+                    <?php } ?>
+                </div>
+
+                <div class='field <?php if($errorMail) echo 'error'; ?>'>
+                    <label for='email'><?php _e('Email', 'beezup'); ?></label>
+                    <input type='email' name='email-contact' id='email' value='<?php echo $mail; ?>' required>
+                    <?php if( $errorMail ){ ?>
+                        <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
+                    <?php } ?>
+                </div>
+
+                <div class='field <?php if($errorMsg) echo 'error'; ?>'>
+                    <label for='message'><?php _e('Message', 'beezup'); ?></label>
+                    <textarea name='message' id='message' required><?php echo $msg; ?></textarea>
+                    <?php if( $errorMsg ){ ?>
+                        <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
+                    <?php } ?>
+                </div>
+
+                <div class='hidden'>
+                    <input type='url' name='url2' id='url2' value='<?php echo $spamUrl; ?>'>
+                    <label for='url2'><?php _e('Please leave this field empty', 'beezup'); ?></label>
+                </div>
+
+                <?php if( $error && !$errorSend ){ ?>
+                    <p class='form-error'>
+                        <?php if($errorEmpty) echo __('Please fill all the required fields', 'beezup') . '<br>'; ?>
+                        <?php if($errorPhoneTxt) echo $errorPhoneTxt . '<br>'; ?>
+                        <?php if($errorMailTxt) echo $errorMailTxt; ?>
+                        <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
+                    </p>
+                <?php } ?>
+
+                <button class='btn btn-arrow' type='submit' name='submit' for='form-contact'>
+                    <?php _e('Submit', 'beezup'); ?>
+                    <svg class='icon icon-arrow-right'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-arrow-right'></use></svg>
+                </button>
+            </form>
+        </div>
         <?php if( have_rows('people', 'options') ){ ?>
-            <ul>
+            <ul class='members'>
                 <?php while( have_rows('people', 'options') ){ the_row(); ?>
                     <li class='member'>
                         <span class='photo' style='background-image: url(<?php echo wp_get_attachment_image_url( get_sub_field('photo', 'options'), 'full' ); ?>);'></span>
