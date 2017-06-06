@@ -456,6 +456,10 @@ a{
     }
 }
 
+.above-title{
+    z-index: 3;
+}
+
 
 @media (max-width: $desktop-small){
     h1, .h1{

@@ -17,6 +17,16 @@
     'abstracts/placeholders';
 
 @import
+    'components/buttons',
+    'components/side-links',
+    'components/list-menu',    
+    'components/members',
+    'components/galery',
+    'components/loader',
+    'components/demo',
+    'components/dropdown';
+
+@import
     'layout/grid',
     'layout/forms',
     'layout/header',
@@ -26,16 +36,6 @@
     'layout/intro',
     'layout/blog',
     'layout/channels';
-
-@import
-    'components/buttons',
-    'components/side-links',
-    'components/list-menu',    
-    'components/members',
-    'components/galery',
-    'components/loader',
-    'components/demo',
-    'components/dropdown';
 
 @import
     'pages/fonctionnalites',
