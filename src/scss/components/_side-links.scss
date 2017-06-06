@@ -1,4 +1,6 @@
 .side-links{
+    position: absolute;
+    right: calc((100% - 1150px)/2);
     ul{
         display: flex;
         flex-direction: column;
@@ -40,5 +42,14 @@
         text-decoration: none;
         font-size: 2rem;
         transition: $transition;
+    }
+}
+
+@media (max-width: 1210px){
+    .side-links{
+        right: 30px;
+        &.sticky-stuck{
+            right: 0;
+        }
     }
 }
