@@ -2,37 +2,42 @@
 .wrapper-list-menu-home{
     display: flex;
     justify-content: flex-end;
-    margin-top: 100px;
+    margin: 100px 0 0;
     .list-menu{
         margin-bottom: -20px;
     }
 }
+
 .title-home{
+    margin: 0;
     font-family: $fira-bold;
     font-size: 4.5rem;
-}
-#introHome{
-    display: none;
+    word-wrap: break-word;
     opacity: 0;
 }
+
+#introHome{
+    display: none;
+    padding: 20px 0 0;
+    opacity: 0;
+}
+
 .block-title-home, .block-half.block-txt.block-title-home{
-    position: absolute;
-    top: 0;
     width: 100%;
     max-width: 440px;
-    margin: 0;
     padding: 0 0 100px;
-    h1{
+    position: absolute;
+    top: 0;
+    margin: 0;
+    > p{
         margin: 0;
-        opacity: 0;
-    }
-    p{
-        margin: 20px 0 0;
     }
 }
+
 #btnTopHome{
-    margin-top: 30px;
+    margin: 30px 0 0;
 }
+
 #illus-home{
     display: block;
     position: relative;
@@ -41,30 +46,29 @@
     margin: -30px 0 0 -15px;
     pointer-events: none;
 }
+
 .wrapper-svg-home{
     position: relative;
 }
+
 .text-illus{
     position: absolute;
     transform: scaleY(0.75) rotate(-10deg);
     z-index: 2;
-    >div{
+    > div{
         display: flex;
         justify-content: center;
         align-items: center;
-        width: 100%;
         height: 100%;
-        transform: rotate(45deg);
-    }
-    strong{
         text-align: center;
         text-transform: uppercase;
         line-height: 1;
         color: $primary;
-        >span{
-            display: block;
-            text-transform: none;
-        }
+        transform: rotate(45deg);
+    }
+    span{
+        display: block;
+        text-transform: none;
     }
     &.market-places{
         width: 30.6%;
@@ -82,7 +86,7 @@
         left: 72%;
         strong{
             font-size: 4.5rem;
-            >span{
+            > span{
                 font-size: 0.7em;
             }
         }
@@ -128,10 +132,12 @@
         }
     }
 }
+
 .illus-responsive{
     display: none;
     margin: 0 auto 30px;
 }
+
 
 @media (max-width: $desktop-large){
     .text-illus{
@@ -172,30 +178,36 @@
     .block-title-home, .block-half.block-txt.block-title-home{
         max-width: 310px;
     }
+
     .title-home{
         font-size: 4rem;
     }
 }
+
 @media (max-width: $tablet){
     .block-title-home, .block-half.block-txt.block-title-home{
         max-width: none;
-        position: relative!important;
-        top: auto!important;
         padding: 0;
+        position: relative !important;
+        top: auto !important;
     }
+
     #introHome{
-        display: block!important;
-        opacity: 1!important;
+        display: block !important;
+        opacity: 1 !important;
     }
+
     .wrapper-list-menu-home{
         margin-top: 50px;
         .list-menu{
             margin-bottom: 0;
         }
     }
+
     .wrapper-svg-home{
         display: none;
     }
+
     .illus-responsive{
         display: block;
     }

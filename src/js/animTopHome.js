@@ -4,36 +4,34 @@ var throttle = require('./throttle.js');
 window.requestAnimFrame = require('./requestAnimFrame.js');
 
 var TweenLite = require('gsap/TweenLite');
-var scrambleText = require('gsap/ScrambleTextPlugin');
+require('gsap/ScrambleTextPlugin');
 var sticky = require('./sticky.js');
 
 module.exports = function(){
     if(!$('body').hasClass('home')) return;
 
-    var windowWiddth = window.outerWidth, windowHeight, windowScroll, windowBottom;
-    var blockTitle = $('#titleHome'), titleHome = blockTitle.find('h1'), textToAnim = $('.textToAnim'), btnTopHome = $('#btnTopHome'), introHome = $('#introHome');
+    var windowWidth = window.outerWidth, windowScroll;
+    var blockTitle = $('#titleHome'), titleHome = blockTitle.find('h1'), btnTopHome = $('#btnTopHome'), introHome = $('#introHome');
     var baseline = 200, isOverBaseline = true, largeScreen = true, alreadyInitLarge = true;
 
+
     function initTitleTxt(){
-        textToAnim.each(function(){
-            $(this).html($(this).data('before'));
-        });
+        titleHome.html(titleHome.data('before'));
         TweenLite.set(introHome, {display: 'none', opacity: 0});
     }
+
     function animScrambleText(dataToAnimate){
-        textToAnim.each(function(){
-            TweenLite.to($(this), 0.3, {scrambleText: $(this).data(dataToAnimate), speed: 0.1, ease: Linear.easeNone, onComplete:function(){
-                $(this).html($(this).data(dataToAnimate));
-            }});
-        });
+        TweenLite.to(titleHome, 0.5, {scrambleText: {text: titleHome.data(dataToAnimate), speed: 0.5, chars: 'lowerCase'}, ease: Linear.easeNone, onComplete: function(){
+            titleHome.html(titleHome.data(dataToAnimate));
+        }});
         isOverBaseline = !isOverBaseline;
     }
+
     function animTitleTxt(){
-        windowWiddth = window.outerWidth;
-        windowHeight = $(window).height();
+        windowWidth = window.outerWidth;
         windowScroll = $(window).scrollTop();
-        windowBottom = windowScroll + windowHeight;
-        if(windowWiddth > 780){
+        
+        if(windowWidth > 780){
             if(windowScroll >= baseline && isOverBaseline){
                 animScrambleText('after');
                 TweenLite.killTweensOf(introHome, true);
@@ -48,21 +46,19 @@ module.exports = function(){
                     introHome.slideToggle(300);
                 }});
             }
-        }else{
-            if(alreadyInitLarge){
-                textToAnim.each(function(){
-                    $(this).html($(this).data('after'));
-                });
-            }
-            
+        }else if(alreadyInitLarge){
+            titleHome.html(titleHome.data('after'));
         }
     }
-    if(windowWiddth > 780){
+
+
+    if(windowWidth > 780){
         initTitleTxt();
     }else{
         largeScreen = false;
         alreadyInitLarge = false;
     }
+
     sticky(blockTitle, 150, 'px', true);
     TweenLite.to(titleHome, 0.3, {opacity: 1});
 

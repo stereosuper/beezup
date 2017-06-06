@@ -1008,13 +1008,8 @@ get_header(); ?>
 		</div>
 		<img class='illus-responsive' src='<?php echo get_stylesheet_directory_uri(); ?>/img/block-beezup.png' srcset='<?php echo get_stylesheet_directory_uri(); ?>/img/block-beezup@2x.png 2x' alt=''>
 		<div class='block-half block-txt block-title-home' id='titleHome'>
-			<h1>
-				<span class='title-home textToAnim' data-before="<?php the_title(); ?>" data-after="<?php the_field('title'); ?>"><?php the_field('title'); ?></span>
-				<span class='title-home black textToAnim' data-before="<?php if( get_field('title2') ){ ?><?php the_field('title2'); ?><?php } ?>" data-after="<?php if( get_field('titleBlack') ){ ?><?php the_field('titleBlack'); ?><?php } ?>"><?php if( get_field('titleBlack') ){ ?><?php the_field('titleBlack'); ?><?php } ?></span>
-			</h1>
-			<div id='introHome'>
-				<?php the_field('headerText'); ?>
-			</div>
+			<h1 class='title-home' data-before='<?php the_field('title'); ?>' data-after='<?php the_field('title2'); ?>'><?php the_field('title'); ?></h1>
+			<p id='introHome'><?php the_field('headerText'); ?></p>
 			<?php if( get_field('headerBtn') ){ ?>
 				<button class='btn btn-arrow' id='btnTopHome' data-appointlet-organization='beezup' data-appointlet-service='32290'>
 					<span class='textToAnim' data-before="<?php the_field('headerBtn'); ?>" data-after="<?php if( get_field('headerBtn2') ){ the_field('headerBtn2'); } ?>"><?php the_field('headerBtn2'); ?></span>
@@ -1072,7 +1067,7 @@ get_header(); ?>
 				<?php } ?>
 			</div>
 			<div class='block-half block-txt'>
-				<svg class='icon icon-academy'><use xlink:href='#icon-academy'></use></svg>
+				<svg class='icon icon-title icon-academy'><use xlink:href='#icon-academy'></use></svg>
 				<?php if( get_field('academyTitle') ){ ?>
 					<h2 class='h1'><?php the_field('academyTitle'); ?></h2>
 				<?php } ?>
@@ -1103,7 +1098,7 @@ get_header(); ?>
 	<section class='container'>
 		<div class='wrapper-blocks-half'>
 			<div class='block-half block-txt'>
-				<svg class='icon icon-globe'><use xlink:href='#icon-globe'></use></svg>
+				<svg class='icon icon-title icon-globe'><use xlink:href='#icon-globe'></use></svg>
 				<?php if( get_field('networkTitle') ){ ?>
 					<h2 class='h1'><?php the_field('networkTitle'); ?></h2>
 				<?php } ?>
@@ -1139,8 +1134,6 @@ get_header(); ?>
 			</ul>
 		</section>
 	<?php } wp_reset_query(); ?>
-
-	<?php get_template_part('includes/free-links'); ?>
 
 <?php else : ?>
 

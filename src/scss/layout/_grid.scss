@@ -22,3 +22,9 @@
     padding: 0 $gutter*2;
     margin: 0 auto;
 }
+
+@media (max-width: $desktop-small){
+    .main{
+        padding: 2em 0 2em;
+    }
+}

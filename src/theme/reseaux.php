@@ -34,10 +34,7 @@ get_header(); ?>
             <?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
 
             <h1 class='page-title'>
-                <?php the_title(); ?>
-                <?php if( get_field('title2') ){ ?>
-                    <span><?php the_field('title2'); ?></span>
-                <?php } ?>
+                <?php get_field('title') ? the_field('title') : the_title(); ?>
             </h1>
 
             <?php if( get_field('subtitle') ){ ?>

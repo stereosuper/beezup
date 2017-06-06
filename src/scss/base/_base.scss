@@ -391,19 +391,42 @@ a{
     background: $primary;
     color: $white;
     padding: 80px 0;
-    &.no-pad{
+    &.default, &.no-pad{
         padding: 40px 0;
+    }
+    &.default{
+        margin: 40px 0;
+    }
+    .container &, .container-small &{
+        padding: 40px;
+        margin: 40px 0;
     }
     a{
         color: $white;
+    }
+    li{
+        &:after{
+            background-image: url(../layoutImg/puce-white.svg);
+        }
+    }
+    ul{
+        > li{
+            &:before{
+                background: $white;
+            }
+        }
+    }
+    ol{
+        > li{
+            &:before{
+                color: $white;
+            }
+        }
     }
     .link-arrow{
         &:after{
             background-image: url('../layoutImg/arrow-right-white.svg');
         }
-    }
-    .container &, .container-small &{
-        padding: 40px;
     }
 }
 .block-pale{
@@ -431,11 +454,11 @@ a{
     position: fixed !important;
 }
 
-.sticky-stuck {
+.sticky-stuck{
     position: absolute;
 }
 
-.wrapper-sticky {
+.wrapper-sticky{
     position: relative;
 }
 
