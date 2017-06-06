@@ -30,6 +30,15 @@
 }
 
 
+.page-title-default{
+    margin-bottom: 6em;
+    text-align: center;
+    &.left{
+        text-align: left;
+    }
+}
+
+
 .breadcrumbs{
     position: relative;
     z-index: 1;

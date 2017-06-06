@@ -2,7 +2,7 @@
 
 <?php if ( have_posts() ) : the_post(); ?>
 	
-	<section class='container-medium post-single-header'>
+	<section class='container-medium post-single-header page-title-default <?php if( get_field('left') ) echo "left"; ?>'>
 		<?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
 
 		<h1>
