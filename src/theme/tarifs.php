@@ -29,24 +29,31 @@ get_header(); ?>
 
     <section class='container'>
         
-        <?php the_field('price'); ?>
-        <ul>
-            <li><?php _e('1 month', 'beezup'); ?></li>
-            <li><?php _e('3 months', 'beezup'); ?></li>
-            <li><?php _e('6 months', 'beezup'); ?></li>
-            <li><?php _e('1 year', 'beezup'); ?></li>
+        <span><?php the_field('price'); ?></span>
+        <ul class='slider'>
+            <li><button type='button'><?php _e('1 month', 'beezup'); ?></button></li>
+            <li><button type='button'><?php _e('3 months', 'beezup'); ?></button></li>
+            <li><button type='button'><?php _e('6 months', 'beezup'); ?></button></li>
+            <li class='selected'><button type='button'><?php _e('1 year', 'beezup'); ?></button></li>
         </ul>
 
         <?php if( have_rows('offers') ){ ?>
             <?php while( have_rows('offers') ){ the_row(); ?>
+            <div class='offer'>
                 <h2><?php the_sub_field('name'); ?></h2>
                
-                <p>
+                <span class='price'>
                     <?php the_sub_field('price1'); ?>
+                </span>
+                <span class='price'>
                     <?php the_sub_field('price2'); ?>
+                </span>
+                <span class='price'>
                     <?php the_sub_field('price3'); ?>
+                </span>
+                <span class='price'>
                     <?php the_sub_field('price4'); ?>
-                </p>
+                </span>
 
                 <?php if( get_sub_field('url') ){ ?>
                     <a href='<?php the_field('url'); ?>' class='btn btn-arrow'>
@@ -54,6 +61,7 @@ get_header(); ?>
                         <svg class='icon'><use xlink:href='#icon-arrow-right'></use></svg>
                     </a>
                 <?php } ?>
+            </div>
             <?php } ?>
         <?php } ?>
 
