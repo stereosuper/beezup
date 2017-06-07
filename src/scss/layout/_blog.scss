@@ -106,6 +106,26 @@
     justify-content: space-between;
     padding: 0 35px 0 0;
     margin: 6.5em 0 0;
+    &:hover, &:focus{
+        h2{
+            > a{
+                color: $secondary;
+            }
+        }
+        .link-arrow{
+            opacity: 0.6;
+            &:after{
+                transform: translate3d(5px, 0, 0);
+            }
+        }
+        &.highlighted{
+            h2{
+                > a{
+                    color: $white;
+                }
+            }
+        }
+    }
 }
 .post-txt, .post-img{
     width: calc(50% - #{$gutter});
@@ -124,6 +144,7 @@
 .post-img{
     height: 250px;
     overflow: hidden;
+    backface-visibility: hidden;
     > img{
         max-width: none;
         width: auto;
