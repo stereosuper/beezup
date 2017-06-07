@@ -327,7 +327,13 @@ select{
         margin-left: 32px;
     }
 }
-
+@media (max-width: $tablet){
+    .channels-form{
+        .select{
+            margin-bottom: 15px;
+        }
+    }
+}
 @media (max-width: $phone){
     .field{
         .btn-add{

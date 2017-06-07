@@ -3,6 +3,8 @@
 Template Name: Tarifs
 */
 
+include_once( 'includes/form-handler.php' );
+
 get_header(); ?>
 
 <?php if ( have_posts() ) : the_post(); ?>
@@ -19,32 +21,118 @@ get_header(); ?>
         </div>
         
         <div class='page-intro-img'>
-            <?php the_post_thumbnail( 'full' ); ?>
+            <p><?php the_field('benefit1'); ?></p>
+            <p><?php the_field('benefit2'); ?></p>
         </div>
 
-    </section>
-
-    <section class='block-full'>
-        <div class='container'>
-            <?php if( have_rows('benefits') ){ ?>
-                <ul>
-                    <?php while( have_rows('benefits') ){ the_row(); ?>
-                        <li>
-                            <svg class='icon <?php the_sub_field('icon'); ?>'><use xlink:href='#<?php the_sub_field('icon'); ?>'></use></svg>
-                            <?php the_sub_field('text'); ?>
-                        </li>
-                    <?php } ?>
-                </ul>
-            <?php } ?>
-        </div>
     </section>
 
     <section class='container'>
-        <?php if( have_rows('sections') ){ ?>
-            <?php while( have_rows('sections') ){ the_row(); ?>
+        
+        <?php the_field('price'); ?>
+        <ul>
+            <li><?php _e('1 month', 'beezup'); ?></li>
+            <li><?php _e('3 months', 'beezup'); ?></li>
+            <li><?php _e('6 months', 'beezup'); ?></li>
+            <li><?php _e('1 year', 'beezup'); ?></li>
+        </ul>
+
+        <?php if( have_rows('offers') ){ ?>
+            <?php while( have_rows('offers') ){ the_row(); ?>
+                <h2><?php the_sub_field('name'); ?></h2>
+               
+                <p>
+                    <?php the_sub_field('price1'); ?>
+                    <?php the_sub_field('price2'); ?>
+                    <?php the_sub_field('price3'); ?>
+                    <?php the_sub_field('price4'); ?>
+                </p>
+
+                <?php if( get_sub_field('url') ){ ?>
+                    <a href='<?php the_field('url'); ?>' class='btn btn-arrow'>
+                        <?php the_sub_field('btn'); ?>
+                        <svg class='icon'><use xlink:href='#icon-arrow-right'></use></svg>
+                    </a>
+                <?php } ?>
+            <?php } ?>
+        <?php } ?>
+
+        <?php if( have_rows('featuresSection') ){ ?>
+            <?php while( have_rows('featuresSection') ){ the_row(); ?>
+                <h3><?php the_sub_field('title'); ?> <i><?php the_sub_field('subtitle'); ?></i></h3>
+
+                <?php if( have_rows('features') ){ ?>
+                    <?php while( have_rows('features') ){ the_row(); ?>
+                        <span><?php the_sub_field('title'); ?></span>
+
+                        <?php if( have_rows('detail') ){ ?>
+                            <?php while( have_rows('detail') ){ the_row(); ?>
+                                <span>
+                                    <?php
+                                    if( get_sub_field('text') ){
+                                        if( get_sub_field('link') ){ ?>
+                                            <a href='<?php the_sub_field('link'); ?>'><?php the_sub_field('text'); ?></a>
+                                        <?php }else{
+                                            the_sub_field('text');
+                                        }
+                                    }elseif( get_sub_field('check') ){
+                                        echo 'check';
+                                    }else{
+                                        echo 'nope';
+                                    }
+                                    ?>
+                                </span>
+                            <?php } ?>
+                        <?php } ?>
+
+                    <?php } ?>
+                <?php } ?>
 
             <?php } ?>
         <?php } ?>
+
+        <?php if( get_field('note') ){ ?>
+            <i><?php the_field('note'); ?></i>
+        <?php } ?>
+
+        <?php if( get_field('fontionnalitesTitle') ){ ?>
+            <h2 class='h1'><?php the_field('fontionnalitesTitle'); ?></h2>
+        <?php } ?>
+
+        <?php if( have_rows('sections') ){ $i = 0; ?>
+            <?php while( have_rows('sections') ){ the_row(); ?>
+                <div class='subsection <?php echo ($i%2 !== 0 ? 'odd' : 'even') ?>'>
+                    <div class='subsection-content'>
+                        <div class='subsection-text'>
+                            <?php if( get_sub_field('title') ){ ?>
+                                <h3 class='h2'><?php the_sub_field('title'); ?></h3>
+                            <?php } ?>
+
+                            <?php the_sub_field('text'); ?>
+                        </div>
+
+                        <div class='subsection-illu'>
+                            <?php echo wp_get_attachment_image( get_sub_field('img'), 'full' ); ?>
+                        </div>
+                    </div>
+
+                    <?php if( get_sub_field('link') && get_sub_field('linkText') ){ ?>
+                        <div class='subsection-link'>
+                            <a href='<?php the_sub_field('link'); ?>' class='link-arrow' title='<?php the_sub_field('linkText'); ?>'><?php the_sub_field('linkText'); ?></a>
+                        </div>
+                    <?php } ?>
+                </div>
+            <?php $i++;} ?>
+        <?php } ?>
+
+        <?php if( get_field('contactTitle') ){ ?>
+            <h2 class='h1'><?php the_field('contactTitle'); ?></h2>
+        <?php } ?>
+
+        <?php the_field('contactText'); ?>
+
+        <?php get_template_part( 'includes/form' ); ?>
+
     </section>
 
     <?php get_template_part('includes/free-links'); ?>
