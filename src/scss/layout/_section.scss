@@ -1,4 +1,6 @@
 .subsection{
+    display: flex;
+    align-items: center;
     margin: 0 0 80px;
     &.odd{
         .subsection-illu{
@@ -20,10 +22,6 @@
     }
 }
 
-.subsection-content{
-    display: flex;
-    align-items: center;
-}
 .subsection-illu{
     flex: 1;
     transform: rotate(-10deg);
@@ -32,16 +30,17 @@
     width: 58%;
     margin:  0 70px 0 0;
     padding: 0 0 0 $col;
-}
-
-.subsection-link{
-    text-align: right;
-    width: 58%;
-    .link-arrow{
+    > .link-arrow{
+        display: inline-block;
+        float: right;
+        margin: 25px 0 0;
         color: $primary;
         &:after{
             background: url('../layoutImg/arrow-right-blue.svg') no-repeat;
         }
+    }
+    > p{
+        margin: 0;
     }
 }
 
@@ -76,29 +75,28 @@
 @media (max-width: $desktop-small){
     .subsection{
         margin: 0 0 6em;
-        .subsection-content{
-            flex-direction: column;
-            align-items: initial;
-            justify-content: center;
-            .subsection-text{
-                    order: 2;
-                    width: 100%;
-                    margin: 0;
-                    padding: 0 50px;
-            }
+        flex-direction: column;
+        align-items: initial;
+        justify-content: center;
+        .subsection-text{
+            order: 2;
+            width: 100%;
+            margin: 0;
+            padding: 0 50px;
         }
         .subsection-illu{
             order: 1;
             margin: 0 auto 2em;
-            img{
+            > img{
                 height: 300px;
                 width: auto;
             }
         }
-        .subsection-link{
-            width: auto;
-            text-align: left;
-            padding: 0 54px;
+        &.odd{
+            .subsection-text{
+                padding: 0 50px;
+                margin: 0;
+            }
         }
     }
 }
@@ -106,20 +104,20 @@
 
 @media (max-width: $phone){
     .subsection{
-        .subsection-content{
+        .subsection-text{
+            padding: 0;
+        }
+        .subsection-illu{
+            width: 90%;
+            > img{
+                width: 100%;
+                height: auto;
+            }
+        }
+        &.odd{
             .subsection-text{
                 padding: 0;
             }
-            .subsection-illu{
-                width: 90%;
-                img{
-                    width: 100%;
-                    height: auto;
-                }
-            }
-        }
-        .subsection-link{
-            padding: 0;
         }
     }
 }

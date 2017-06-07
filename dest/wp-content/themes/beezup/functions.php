@@ -384,6 +384,16 @@ function beezup_mce_before_init( $styles ){
             'selector' => 'a',
             'classes' => 'link-arrow'
         ),
+        array(
+            'title' => 'Bouton',
+            'selector' => 'a',
+            'classes' => 'btn'
+        ),
+        array(
+            'title' => 'Bouton fléché',
+            'selector' => 'a',
+            'classes' => 'btn btn-arrow-bg'
+        )
     );
     $styles['style_formats'] = json_encode( $style_formats );
     // Remove h1 and code

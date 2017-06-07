@@ -1,0 +1,39 @@
+.section-benefits{
+    position: relative;
+    margin: 7.5em 0 0;
+    z-index: 2;
+}
+
+.container-benefits{
+    display: flex;
+    position: relative;
+}
+
+.benefits{
+    width: 44%;
+    > li{
+        display: flex;
+        margin: 0 0 30px;
+        font-family: $fira-medium;
+        &:before, &:after{
+            content: none;
+        }
+    }
+    .icon{
+        width: 80px;
+        height: 50px;
+        margin: 0 30px 0 0;
+    }
+    span{
+        flex: 1;
+    }
+}
+
+@media (max-width: $desktop-small){
+    .benefits{
+        width: 100%;
+        span{
+            max-width: none;
+        }
+    }
+}

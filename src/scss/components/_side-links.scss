@@ -1,7 +1,9 @@
 .side-links{
     position: absolute;
+    top: -450px;
+    z-index: 1;
     right: calc((100% - 1150px)/2);
-    ul{
+    > ul{
         display: flex;
         flex-direction: column;
         align-items: flex-start;
@@ -9,10 +11,10 @@
             content: '';
             width: 23px;
             height: 36px;
-            background: url('../layoutImg/puce-alt-pink.svg') no-repeat;
             position: relative;
             left: 5px;
             margin: 5px 0;
+            background: url('../layoutImg/puce-alt-pink.svg') no-repeat;
         }
         &:after{
             transform: scale(1, -1);
@@ -25,31 +27,39 @@
             content: none;
         }
         &.active{
-            a {
+            > a{
                 color: $secondary;
                 background: $white,
             }
         }
     }
-    a {
-        text-align: center;
+    a{
+        
         display: inline-block;
         padding: 4px 0 0;
         width: 40px;
         height: 40px;
+        font-size: 2rem;
+        text-align: center;
+        text-decoration: none;
         background: $secondary;
         color: $white;
-        text-decoration: none;
-        font-size: 2rem;
         transition: $transition;
     }
 }
 
-@media (max-width: 1210px){
+
+@media (max-width: $desktop-large){
     .side-links{
         right: 30px;
         &.sticky-stuck{
             right: 0;
         }
+    }
+}
+
+@media (max-width: $desktop-small){
+    .side-links{
+        display: none;
     }
 }

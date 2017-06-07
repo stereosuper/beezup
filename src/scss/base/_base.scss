@@ -300,6 +300,11 @@ hr{
     border: 0;
     margin: 4em auto 5em;
     background: $primary;
+    &.large{
+        margin: 0 auto;
+        height: 1px;
+        max-width: 360px;
+    }
 }
 
 
