@@ -17,7 +17,7 @@ get_header(); ?>
 	<?php get_template_part('includes/content-default'); ?>
 
 	<section class='container-small'>
-		<h2>Pages</h2>
+		<h2><?php _e('Pages'); ?></h2>
 		<ul class='list-black'>
 			<?php wp_list_pages( array('post_type' => 'page', 'title_li' => '') ); ?>
 		</ul>
@@ -33,7 +33,7 @@ get_header(); ?>
 				$output = "<ul class='list-black'>";
 				foreach( $posts as $post ){
 					$output .= '<li>';
-					$output .= '<a href="'. get_permalink($post->ID) .'" title="Go to '. get_the_title($post->ID) .'">';
+					$output .= '<a href="'. get_permalink($post->ID) .'" title="'. get_the_title($post->ID) .'">';
 					$output .= get_the_title($post->ID);
 					$output .= '</a>';
 					$output .= '</li>';
@@ -44,7 +44,7 @@ get_header(); ?>
 			}
 		?>
 
-		<h2>Blog posts</h2>
+		<h2><?php _e('Blog', 'beezup'); ?></h2>
 		<?php listPosts('post', ''); ?>
 	</section>
 
