@@ -25,10 +25,15 @@
     }
 }
 
+.title-404{
+    margin: 0.4em 0 0.9em;
+    font-size: 10rem;
+    color: $primary;
+}
+
 .page-intro-img{
     flex: 1;
 }
-
 
 .page-title-default{
     margin-bottom: 6em;
@@ -64,18 +69,22 @@
     margin: -2em 0 5em;
 }
 
+
 @media (max-width: $desktop-large){
     .page-intro-img{
         padding-left: 20px;
     }
 }
+
 @media (max-width: $tablet){
     .title-time{
         margin: -1.2em 0 5em;
     }
+
     .page-intro{
         flex-wrap: wrap;
     }
+
     .page-intro-title{
         order: 2;
         width: 100%;
@@ -83,6 +92,7 @@
             width: 100%;
         }
     }
+
     .page-intro-img{
         flex: 0 1 auto;
         order: 1;
