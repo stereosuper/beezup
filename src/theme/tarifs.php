@@ -39,28 +39,29 @@ get_header(); ?>
 
         <?php if( have_rows('offers') ){ ?>
             <?php while( have_rows('offers') ){ the_row(); ?>
-            <div class='offer'>
+            <div class='offer <?php echo strtolower(get_sub_field("name")); ?>'>
                 <h2><?php the_sub_field('name'); ?></h2>
-               
-                <span class='price'>
-                    <?php the_sub_field('price1'); ?>
-                </span>
-                <span class='price'>
-                    <?php the_sub_field('price2'); ?>
-                </span>
-                <span class='price'>
-                    <?php the_sub_field('price3'); ?>
-                </span>
-                <span class='price'>
-                    <?php the_sub_field('price4'); ?>
-                </span>
+                <div class='offer-spec'>
+                    <span class='price hidden'>
+                        <?php the_sub_field('price1'); ?>
+                    </span>
+                    <span class='price hidden'>
+                        <?php the_sub_field('price2'); ?>
+                    </span>
+                    <span class='price hidden'>
+                        <?php the_sub_field('price3'); ?>
+                    </span>
+                    <span class='price'>
+                        <?php the_sub_field('price4'); ?>
+                    </span>
 
-                <?php if( get_sub_field('url') ){ ?>
-                    <a href='<?php the_field('url'); ?>' class='btn btn-arrow'>
-                        <?php the_sub_field('btn'); ?>
-                        <svg class='icon'><use xlink:href='#icon-arrow-right'></use></svg>
-                    </a>
-                <?php } ?>
+                    <?php if( get_sub_field('url') ){ ?>
+                        <a href='<?php the_field('url'); ?>' class='btn btn-arrow'>
+                            <?php the_field('btn'); ?>
+                            <svg class='icon'><use xlink:href='#icon-arrow-right'></use></svg>
+                        </a>
+                    <?php } ?>
+                </div>
             </div>
             <?php } ?>
         <?php } ?>
