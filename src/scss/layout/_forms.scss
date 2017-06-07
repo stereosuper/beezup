@@ -57,6 +57,9 @@ input, textarea{
     border: 1px solid rgba($primary, 0.2);
     background: $white;
     color: $grey;
+    &[type=search]{
+        padding-right: 38px;
+    }
   	&:-webkit-autofill{
       	box-shadow: 0 0 0 1000px rgba($primary, 0.2) inset;
   	}

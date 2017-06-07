@@ -1121,7 +1121,7 @@ get_header(); ?>
 			<ul class='list-small-posts'>
 				<?php while( $lastPosts->have_posts() ){ $lastPosts->the_post(); ?>
 					<li>
-						<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>' class='post-home'>
+						<a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>' class='small-post'>
 							<time class='small-post-date' datetime='<?php the_time('c');?>'><?php echo get_the_date(); ?></time>
 							<?php if( has_post_thumbnail() ){ ?>
 								<div class='small-post-image' style="background-image: url(<?php echo the_post_thumbnail_url('large'); ?>);"></div>

@@ -1,7 +1,7 @@
 <?php get_header(); ?>
 
 <?php if ( have_posts() ) : the_post(); ?>
-	
+
 	<section class='container-medium post-single-header page-title-default <?php if( get_field('left') ) echo "left"; ?>'>
 		<?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
 
@@ -13,19 +13,36 @@
 
 		<?php the_post_thumbnail('full', array('class' => 'wide')); ?>
 	</section>
-		
-	<?php get_template_part('includes/content-default'); ?>
 
-	<div class='container-small'>
-		<ul class='list-cat'><?php wp_list_categories( array('title_li' => '') ); ?></ul>
-	</div>
+	<div class='wrapper-sticky'>
+			
+		<?php get_template_part('includes/content-default'); ?>
 
-	<div class='container-medium'>
-		<?php get_template_part( 'includes/demo' ); ?>
+		<div class='container-small'>
+			<ul class='list-cat'><?php wp_list_categories( array('title_li' => '') ); ?></ul>
 
-		<?php get_template_part( 'includes/related' ); ?>
-		
-		<?php get_template_part( 'includes/free-links' ); ?>
+			<nav id='sideLinksNav' class='side-links share'>
+				<ul>
+					<li>
+						<a href='https://twitter.com/share?url=<?php the_permalink(); ?>&text=<?php the_title(); ?>&via=BeezUP' rel='nofollow' target='_blank' title='<?php _e('Share on', 'beezup'); ?> Twitter'><?php _e('Share on', 'beezup'); ?> Twitter <svg class='icon'><use xlink:href='#icon-twitter'></use></svg></a>
+					</li>
+					<li>
+						<a href='https://www.facebook.com/sharer.php?u=<?php the_permalink(); ?>&t=<?php the_title(); ?>' rel='nofollow' target='blank' title='<?php _e('Share on', 'beezup'); ?> Facebook'><?php _e('Share on', 'beezup'); ?> Facebook <svg class='icon'><use xlink:href='#icon-facebook'></use></svg></a>
+					</li>
+					<li>
+						<a href='https://plus.google.com/share?url=<?php the_permalink(); ?>' rel='nofollow' target='blank' title='<?php _e('Share on', 'beezup'); ?> Google +'><?php _e('Share on', 'beezup'); ?> Google + <svg class='icon'><use xlink:href='#icon-google-plus'></use></svg></a>
+					</li>
+				</ul>
+			</nav>
+		</div>
+
+		<div class='container-medium'>
+			<?php get_template_part( 'includes/demo' ); ?>
+
+			<?php get_template_part( 'includes/related' ); ?>
+			
+			<?php get_template_part( 'includes/free-links' ); ?>
+		</div>
 	</div>
 
 <?php else : ?>

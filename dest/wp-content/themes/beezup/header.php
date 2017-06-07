@@ -47,7 +47,7 @@
 								<?php } ?>
 								<?php if( get_field('connectLink', 'options') && get_field('connectLinkText', 'options') ){ ?>
 									<li class='head-connect'>
-										<a href='<?php the_field('connectLink', 'options'); ?>' target='_blank'>
+										<a href='<?php the_field('connectLink', 'options'); ?>' target='_blank' rel='nofollow'>
 											<svg class='icon icon-user'><use xlink:href='#icon-user'></use></svg>
 											<span><?php the_field('connectLinkText', 'options'); ?></span>
 										</a>

@@ -9,7 +9,7 @@
         }
         .subsection-text{
             padding: 0 $col 0 0;
-            margin:  0 0 0 70px;
+            margin: 0 0 0 70px;
             order: 2;
         }
         .subsection-link{
@@ -26,9 +26,10 @@
     flex: 1;
     transform: rotate(-10deg);
 }
+
 .subsection-text{
     width: 58%;
-    margin:  0 70px 0 0;
+    margin: 0 70px 0 0;
     padding: 0 0 0 $col;
     > .link-arrow{
         display: inline-block;
@@ -50,17 +51,17 @@
     text-align: center;
     .number-index{
         display: inline-block;
-        font-family: $fira;
         position: relative;
+        font-family: $fira;
         color: $black;
         &:after, &:before{
             display: inline-block;
             content: '';
             height: 21px;
             width: 30px;
-            background: url('../layoutImg/splash.svg');
             position: absolute;
             bottom: 12px;
+            background: url('../layoutImg/splash.svg');
         }
         &:after{
             right: -40px;
@@ -72,6 +73,7 @@
     }
 }
 
+
 @media (max-width: $desktop-small){
     .subsection{
         margin: 0 0 6em;
@@ -79,10 +81,10 @@
         align-items: initial;
         justify-content: center;
         .subsection-text{
-            order: 2;
             width: 100%;
-            margin: 0;
             padding: 0 50px;
+            order: 2;
+            margin: 0;
         }
         .subsection-illu{
             order: 1;
@@ -100,7 +102,6 @@
         }
     }
 }
-
 
 @media (max-width: $phone){
     .subsection{

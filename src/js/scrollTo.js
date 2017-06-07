@@ -8,7 +8,7 @@ window.requestAnimFrame = require('./requestAnimFrame.js');
 var throttle = require('./throttle.js');
 
 module.exports = function(elt, activeClass = false){
-    if (!elt.length) return;
+    if(!elt.length) return;
     
     var target, scrollPos, currLink, refElement, link;
 
@@ -31,6 +31,7 @@ module.exports = function(elt, activeClass = false){
         if (!activeClass) return;
 
         scrollPos = $(document).scrollTop();
+        
         elt.find('a[href^="#"]').each(function(){
             currLink = $(this);
             refElement = $(currLink.attr('href'));
@@ -44,7 +45,7 @@ module.exports = function(elt, activeClass = false){
     }
 
 
-    elt.on('click', 'a', scrollTo);
+    elt.on('click', 'a[href^="#"]', scrollTo);
     setData();
 
 
