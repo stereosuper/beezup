@@ -71,7 +71,7 @@
     }
     &.closed{
         .js &{
-            padding: 10px 20px;
+            padding: 10px 38px 10px 20px;
             li{
                 &.current{
                     font-size: 1.6rem;
@@ -114,11 +114,6 @@
         right: auto;
         bottom: auto;
         padding: 48px 40px 25px;
-        .js &{
-            &.closed{
-                padding-right: 40px;
-            }
-        }
     }
 }
 @media (max-width: $phone-small){
