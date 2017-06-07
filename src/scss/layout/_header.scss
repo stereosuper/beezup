@@ -283,10 +283,14 @@
     .header{
         z-index: auto;
         &.deployed{
+            .nav{
+                box-shadow: -1px 10px 52px 0 rgba(30, 80, 120, 0.2);
+            }
             .container-menu-head, .container-menu-main{
                 transform: translate(0, 0);
             }
             .container-menu-head{
+                box-shadow: -1px 10px 52px 0 rgba(30, 80, 120, 0.2);
                 &:before{
                     transform: translate(0, -50%);
                 }
@@ -318,7 +322,8 @@
             bottom: 0;
             right: 0;
             z-index: 10;
-            box-shadow: -1px 10px 52px 0 rgba(30, 80, 120, 0.2);
+            box-shadow: none;
+            transition: $transition;
         }
         .container{
             justify-content: space-between;
@@ -456,7 +461,6 @@
         z-index: 4;
         order: 2;
         overflow: hidden;
-        box-shadow: -1px 10px 52px 0 rgba(30, 80, 120, 0.2);
         background: #469ce0;
         transform: translate(100%, 0);
         transition: $transition 0.4s;
