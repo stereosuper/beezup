@@ -102,27 +102,27 @@ get_header(); ?>
         <?php if( have_rows('sections') ){ $i = 0; ?>
             <?php while( have_rows('sections') ){ the_row(); ?>
                 <div class='subsection <?php echo ($i%2 !== 0 ? 'odd' : 'even') ?>'>
-                    <div class='subsection-content'>
-                        <div class='subsection-text'>
-                            <?php if( get_sub_field('title') ){ ?>
-                                <h3 class='h2'><?php the_sub_field('title'); ?></h3>
-                            <?php } ?>
+                    <div class='subsection-text'>
+                        <?php if( get_sub_field('title') ){ ?>
+                            <h3 class='h2'><?php the_sub_field('title'); ?></h3>
+                        <?php } ?>
 
-                            <?php the_sub_field('text'); ?>
-                        </div>
+                        <?php the_sub_field('text'); ?>
 
-                        <div class='subsection-illu'>
-                            <?php echo wp_get_attachment_image( get_sub_field('img'), 'full' ); ?>
-                        </div>
+                        <?php if( get_sub_field('star') ){ ?>
+                            <div class='star'><?php the_sub_field('star'); ?></div>
+                        <?php } ?>
+
+                        <?php if( get_sub_field('link') && get_sub_field('linkText') ){ ?>
+                            <a href='<?php the_sub_field('link'); ?>' class='link-arrow' title='<?php the_sub_field('linkText'); ?>'><?php the_sub_field('linkText'); ?></a>
+                        <?php } ?>
                     </div>
 
-                    <?php if( get_sub_field('link') && get_sub_field('linkText') ){ ?>
-                        <div class='subsection-link'>
-                            <a href='<?php the_sub_field('link'); ?>' class='link-arrow' title='<?php the_sub_field('linkText'); ?>'><?php the_sub_field('linkText'); ?></a>
-                        </div>
-                    <?php } ?>
+                    <div class='subsection-illu'>
+                        <?php echo wp_get_attachment_image( get_sub_field('img'), 'full' ); ?>
+                    </div>
                 </div>
-            <?php $i++;} ?>
+            <?php $i++; } ?>
         <?php } ?>
 
         <?php if( get_field('contactTitle') ){ ?>
