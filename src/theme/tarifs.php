@@ -3,6 +3,8 @@
 Template Name: Tarifs
 */
 
+include_once( 'includes/form-handler.php' );
+
 get_header(); ?>
 
 <?php if ( have_posts() ) : the_post(); ?>
@@ -94,8 +96,42 @@ get_header(); ?>
         <?php } ?>
 
         <?php if( get_field('fontionnalitesTitle') ){ ?>
-            <h2><?php the_field('fontionnalitesTitle'); ?></h2>
+            <h2 class='h1'><?php the_field('fontionnalitesTitle'); ?></h2>
         <?php } ?>
+
+        <?php if( have_rows('sections') ){ $i = 0; ?>
+            <?php while( have_rows('sections') ){ the_row(); ?>
+                <div class='subsection <?php echo ($i%2 !== 0 ? 'odd' : 'even') ?>'>
+                    <div class='subsection-content'>
+                        <div class='subsection-text'>
+                            <?php if( get_sub_field('title') ){ ?>
+                                <h3 class='h2'><?php the_sub_field('title'); ?></h3>
+                            <?php } ?>
+
+                            <?php the_sub_field('text'); ?>
+                        </div>
+
+                        <div class='subsection-illu'>
+                            <?php echo wp_get_attachment_image( get_sub_field('img'), 'full' ); ?>
+                        </div>
+                    </div>
+
+                    <?php if( get_sub_field('link') && get_sub_field('linkText') ){ ?>
+                        <div class='subsection-link'>
+                            <a href='<?php the_sub_field('link'); ?>' class='link-arrow' title='<?php the_sub_field('linkText'); ?>'><?php the_sub_field('linkText'); ?></a>
+                        </div>
+                    <?php } ?>
+                </div>
+            <?php $i++;} ?>
+        <?php } ?>
+
+        <?php if( get_field('contactTitle') ){ ?>
+            <h2 class='h1'><?php the_field('contactTitle'); ?></h2>
+        <?php } ?>
+
+        <?php the_field('contactText'); ?>
+
+        <?php get_template_part( 'includes/form' ); ?>
 
     </section>
 
