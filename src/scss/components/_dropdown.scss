@@ -115,3 +115,12 @@
         color: $primary;
     }
 }
+
+@media (max-width: $phone){
+    .dropdown-list{
+        >li{
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+    }
+}
