@@ -99,3 +99,30 @@
         }
     }
 }
+
+@media (max-width: $desktop-small){
+    .channels-type{
+        padding: 48px 40px 25px;
+    }
+}
+@media (max-width: $tablet){
+    .channels-type{
+        display: inline-block;
+        position: relative;
+        width: 100%;
+        max-width: 330px;
+        right: auto;
+        bottom: auto;
+        padding: 48px 40px 25px;
+        .js &{
+            &.closed{
+                padding-right: 40px;
+            }
+        }
+    }
+}
+@media (max-width: $phone-small){
+    .channels-type{
+        padding: 42px 25px 15px;
+    }
+}
