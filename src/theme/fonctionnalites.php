@@ -42,8 +42,8 @@ get_header(); ?>
         </div>
     </section>
 
-    <div class='container wrapper-sections'>
-        <ol id='menuFonctionnalites' class='list-menu'>
+    <div class='container relative'>
+        <ol id='menuFonctionnalites' class='list-menu list-menu-fonctionnalites'>
 
             <?php while( have_rows('sections') ){ the_row(); ?>
                 <li>
@@ -54,7 +54,7 @@ get_header(); ?>
         <div class='wrapper-sticky'>
 
             <?php if( have_rows('sections') ){ ?>
-            <?php $i = 1; ?>
+                <?php $i = 1; ?>
                 <nav id='sideLinksNav' class='side-links'>
                     <ul>
                         <?php while( have_rows('sections') ){ the_row(); ?>
@@ -64,42 +64,37 @@ get_header(); ?>
                         <?php $i++; } ?>
                     </ul>
                 </nav>
-            <?php } ?>
 
-            <?php if( have_rows('sections') ){ ?>
                 <?php $i = 1; $j = 1; ?>
                 <?php while( have_rows('sections') ){ the_row(); ?>
                     
                     <section id='<?php the_sub_field('anchor'); ?>'>
                         <?php if( get_sub_field('title') ){ ?>
-                            <h2 class='h1 section-title'><span class='number-index'><?php echo sprintf('%02d', $i); ?></span><p><?php the_sub_field('title'); ?></p></h2>
+                            <h2 class='h1 section-title'><span class='number-index'><?php echo sprintf('%02d', $i); ?></span><span><?php the_sub_field('title'); ?></span></h2>
                         <?php } ?>
                         
                         <?php if( have_rows('subSections') ){ ?>
                             <?php while( have_rows('subSections') ){ the_row(); ?>
                                 <div class='subsection <?php echo ($j%2 !== 0 ? 'odd' : 'even') ?>'>
-                                    <div class='subsection-content'>
-                                        <div class='subsection-text'>
-                                            <?php if( get_sub_field('title') ){ ?>
-                                                <h3 class='h2'><?php the_sub_field('title'); ?></h3>
-                                            <?php } ?>
-                                            
-                                            <?php the_sub_field('text'); ?>
-                                            
-                                            <?php if( get_sub_field('star') ){ ?>
-                                                <div class='star'><?php the_sub_field('star'); ?></div>
-                                            <?php } ?>
-                                        </div>
-                                        <div class='subsection-illu'>
-                                            <?php echo wp_get_attachment_image( get_sub_field('img'), 'full' ); ?>
-                                        </div>
+                                    <div class='subsection-text'>
+                                        <?php if( get_sub_field('title') ){ ?>
+                                            <h3 class='h2'><?php the_sub_field('title'); ?></h3>
+                                        <?php } ?>
+
+                                        <?php the_sub_field('text'); ?>
+
+                                        <?php if( get_sub_field('star') ){ ?>
+                                            <div class='star'><?php the_sub_field('star'); ?></div>
+                                        <?php } ?>
+
+                                        <?php if( get_sub_field('link') && get_sub_field('linkText') ){ ?>
+                                            <a href='<?php the_sub_field('link'); ?>' class='link-arrow' title='<?php the_sub_field('linkText'); ?>'><?php the_sub_field('linkText'); ?></a>
+                                        <?php } ?>
                                     </div>
 
-                                    <?php if( get_sub_field('link') && get_sub_field('linkText') ){ ?>
-                                        <div class='subsection-link'>
-                                            <a href='<?php the_sub_field('link'); ?>' class='link-arrow' title='<?php the_sub_field('linkText'); ?>'><?php the_sub_field('linkText'); ?></a>
-                                        </div>
-                                    <?php } ?>
+                                    <div class='subsection-illu'>
+                                        <?php echo wp_get_attachment_image( get_sub_field('img'), 'full' ); ?>
+                                    </div>
                                 </div>
                             <?php $j++;} ?>
                         <?php } ?>
@@ -108,17 +103,18 @@ get_header(); ?>
                 <?php $i++; } ?>
             <?php } ?>
         </div>
+
         <?php if( get_field('bottomText') ){ ?>
             <section class='demo-bottom'>
-                <div class='text-bottom'>
+                <div class='demo-bottom-text'>
                     <?php the_field('bottomText'); ?>
 
                     <?php if( get_field('bottomBtn') ){ ?>
                     <button class='btn-arrow btn' data-appointlet-organization='beezup' data-appointlet-service='32290'><?php the_field('bottomBtn'); ?><svg class='icon'><use xlink:href='#icon-arrow-right'></use></svg></button>
                  <?php } ?>
                 </div>
-                <div class='container-img-bottom'>
-                 <?php echo wp_get_attachment_image( get_field('bottomImg'), 'full', '', ["class" => "img-bottom"] ); ?>
+                <div class='demo-bottom-img'>
+                    <?php echo wp_get_attachment_image( get_field('bottomImg'), 'full' ); ?>
                 </div>
             </section>
         <?php } ?>
