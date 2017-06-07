@@ -32,7 +32,7 @@
 				
 				<div class='nav'>	
 					<div id='containerMenuHead' class='container-menu-head'>
-						<button id='btnMenuClose' class='btn-menu-close' type='button'></button>
+						<button id='btnMenuClose' class='btn-menu-close' type='button'><?php _e('Close menu', 'beezup'); ?></button>
 						
 						<div id='wrapperMenuHead' class='wrapper-menu-head'>
 							<?php echo beezup_mlp_navigation(); ?>
@@ -63,7 +63,7 @@
 					</div>
 				</div>
 
-				<button id='btnMenu' class='btn-menu' type='button'><span></span></button>
+				<button id='btnMenu' class='btn-menu' type='button'><?php _e('Open menu', 'beezup'); ?><span></span></button>
 				<div id='bgMobile' class='bg-mobile-nav'></div>
 
 			</div>
