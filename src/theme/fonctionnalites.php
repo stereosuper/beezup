@@ -72,7 +72,7 @@ get_header(); ?>
                     
                     <section id='<?php the_sub_field('anchor'); ?>'>
                         <?php if( get_sub_field('title') ){ ?>
-                            <h2 class='h1'><span class='number-index'><?php echo sprintf('%02d', $i); ?></span><p><?php the_sub_field('title'); ?></p></h2>
+                            <h2 class='h1 section-title'><span class='number-index'><?php echo sprintf('%02d', $i); ?></span><p><?php the_sub_field('title'); ?></p></h2>
                         <?php } ?>
                         
                         <?php if( have_rows('subSections') ){ ?>
@@ -109,7 +109,7 @@ get_header(); ?>
             <?php } ?>
         </div>
         <?php if( get_field('bottomText') ){ ?>
-            <section class='section-bottom'>
+            <section class='demo-bottom'>
                 <div class='text-bottom'>
                     <?php the_field('bottomText'); ?>
 
