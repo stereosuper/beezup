@@ -391,9 +391,9 @@ a{
 }
 
 .block-full{
+    padding: 80px 0;
     background: $primary;
     color: $white;
-    padding: 80px 0;
     &.default, &.no-pad{
         padding: 40px 0;
     }
