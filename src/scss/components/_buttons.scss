@@ -39,9 +39,11 @@
     }
 }
 
-.btn-arrow{
+.btn-arrow, .btn-arrow-bg{
     padding: 15px 52px 15px 34px;
     position: relative;
+}
+.btn-arrow{
     .icon{
         width: 10px;
         height: 8px;
@@ -54,6 +56,25 @@
     }
     &:hover, &:focus{
         .icon{
+            transform: translate3d(5px, 0, 0);
+        }
+    }
+}
+.btn-arrow-bg{
+    &:after{
+        content: '';
+        width: 10px;
+        height: 8px;
+        position: absolute;
+        top: 1px;
+        bottom: 0;
+        margin: auto;
+        right: 30px;
+        background: url('../layoutImg/arrow-right-white.svg') no-repeat;
+        transition: transform $transition;
+    }
+    &:hover, &:focus{
+        &:after{
             transform: translate3d(5px, 0, 0);
         }
     }
