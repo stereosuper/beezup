@@ -10,7 +10,8 @@
     .list-menu{
         position: absolute;
         right: 0;
-        bottom: 0;
+        top: -200px;
+        transform: translate(0, -100%);
         z-index: 4;
     }
     .section-benefits{
@@ -22,6 +23,10 @@
     .side-links{
         top: -450px;
         z-index: 1;
+    }
+
+    .wrapper-sections{
+        position: relative;
     }
 }
 
@@ -94,6 +99,21 @@
         .side-links{
             display: none;
         }
+        .list-menu{
+            position: relative;
+            width: 70%;
+            margin: 0 auto;
+            transform: translate(0, 0);
+            top: -50px;
+        }
+    }
+    .benefits{
+        width: 100%;
+        li {
+            span{
+                max-width: none;
+            }
+        }
     }
     .demo-bottom{
         flex-direction: column;
@@ -109,6 +129,14 @@
             order: 2;
             width: 60%;
             margin: 5em auto 0;
+        }
+    }
+}
+
+@media (max-width: $tablet){
+    .page-template-fonctionnalites{
+        .list-menu{
+            width: 100%;
         }
     }
 }

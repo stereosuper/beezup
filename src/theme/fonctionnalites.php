@@ -38,19 +38,19 @@ get_header(); ?>
             <?php } ?>
 
             <?php if( have_rows('sections') ){ ?>
-                <ol id='menuFonctionnalites' class='list-menu'>
-        
-                    <?php while( have_rows('sections') ){ the_row(); ?>
-                        <li>
-                            <a class='link-arrow' href='#<?php the_sub_field('anchor'); ?>' title='<?php the_sub_field('title'); ?>'><?php the_sub_field('title'); ?></a>
-                        </li>
-                    <?php } ?>
-                </ol>
             <?php } ?>
         </div>
     </section>
 
-    <div class='container'>
+    <div class='container wrapper-sections'>
+        <ol id='menuFonctionnalites' class='list-menu'>
+
+            <?php while( have_rows('sections') ){ the_row(); ?>
+                <li>
+                    <a class='link-arrow' href='#<?php the_sub_field('anchor'); ?>' title='<?php the_sub_field('title'); ?>'><?php the_sub_field('title'); ?></a>
+                </li>
+            <?php } ?>
+        </ol>
         <div class='wrapper-sticky'>
 
             <?php if( have_rows('sections') ){ ?>
