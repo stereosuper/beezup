@@ -99,7 +99,7 @@ get_header(); ?>
                             <?php $j++;} ?>
                         <?php } ?>
                     </section>
-                    <hr/>
+                    <hr class='large'/>
                 <?php $i++; } ?>
             <?php } ?>
         </div>
