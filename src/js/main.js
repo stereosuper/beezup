@@ -19,6 +19,7 @@ $(function(){
     var addUrlInputs = require('./addUrlInputs.js');
     var filterChannels = require('./filterChannels.js');
     var dropdown = require('./dropdown.js');
+    var animBees = require('./animBees.js');
 
     var body = $('body');
     var forms = $('form');
@@ -78,6 +79,10 @@ $(function(){
 
     // Dropdowns
     dropdown($('.js-btn-list'));
+
+    if($('.beesToAnim').length){
+        animBees($('.beesToAnim'));
+    }
 
     $(window).on('resize', throttle(function(){
 
