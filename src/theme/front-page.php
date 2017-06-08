@@ -95,6 +95,7 @@ get_header(); ?>
 								<span class='photo' style='background-image: url(<?php echo wp_get_attachment_image_url( get_sub_field('photo', 'options'), 'full' ); ?>);'></span>
 								<span class='name'><?php the_sub_field('name', 'options'); ?></span>
 								<span class='job '><?php the_sub_field('job', 'options'); ?></span>
+								<svg class='icon icon-flux-vertical'><use xlink:href='#icon-flux-vertical'></use></svg>
 							</li>
 						<?php } ?>
 					</ul>

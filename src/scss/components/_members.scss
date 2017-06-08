@@ -63,6 +63,14 @@
     .job{
         font-size: 1.4rem;
     }
+    .icon{
+        display: block;
+        position: relative;
+        width: 12px;
+        height: 30px;
+        margin: 12px auto 0;
+        fill: $white;
+    }
 }
 
 
@@ -84,6 +92,11 @@
         font-size: 1.4rem;
         .job{
             font-size: 1.2rem;
+        }
+        .icon{
+            margin: 8px auto 0;
+            width: 10px;
+            height: 25px;
         }
     }
 }
