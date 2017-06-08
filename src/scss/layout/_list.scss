@@ -1,3 +1,21 @@
+.list-black{
+    color: $text;
+    li{
+        &:after{
+            background-image: url('../layoutImg/puce-black.svg');
+        }
+        &:before{
+            background: $text;
+        }
+    }
+    a{
+        color: inherit;
+        &:hover, &:focus{
+            color: $primary;
+        }
+    }
+}
+
 .list-picto{
     display: flex;
     font-size: 1.4rem;

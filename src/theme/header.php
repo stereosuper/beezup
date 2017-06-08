@@ -32,7 +32,7 @@
 				
 				<div class='nav'>	
 					<div id='containerMenuHead' class='container-menu-head'>
-						<button id='btnMenuClose' class='btn-menu-close' type='button'></button>
+						<button id='btnMenuClose' class='btn-menu-close' type='button'><?php _e('Close menu', 'beezup'); ?></button>
 						
 						<div id='wrapperMenuHead' class='wrapper-menu-head'>
 							<?php echo beezup_mlp_navigation(); ?>
@@ -47,7 +47,7 @@
 								<?php } ?>
 								<?php if( get_field('connectLink', 'options') && get_field('connectLinkText', 'options') ){ ?>
 									<li class='head-connect'>
-										<a href='<?php the_field('connectLink', 'options'); ?>' target='_blank'>
+										<a href='<?php the_field('connectLink', 'options'); ?>' target='_blank' rel='nofollow'>
 											<svg class='icon icon-user'><use xlink:href='#icon-user'></use></svg>
 											<span><?php the_field('connectLinkText', 'options'); ?></span>
 										</a>
@@ -63,7 +63,7 @@
 					</div>
 				</div>
 
-				<button id='btnMenu' class='btn-menu' type='button'><span></span></button>
+				<button id='btnMenu' class='btn-menu' type='button'><?php _e('Open menu', 'beezup'); ?><span></span></button>
 				<div id='bgMobile' class='bg-mobile-nav'></div>
 
 			</div>

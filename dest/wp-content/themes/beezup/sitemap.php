@@ -4,53 +4,56 @@ Template Name: Sitemap
 */
 get_header(); ?>
 
-	<div class='container'>
+<?php if ( have_posts() ) : the_post(); ?>
 
-		<?php if ( have_posts() ) : ?>
+	<section class='container-small page-title-default <?php if( get_field('left') ) echo "left"; ?>'>
+		<?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
 
-			<?php while ( have_posts() ) : the_post(); ?>
+		<h1>
+			<?php get_field('title') ? the_field('title') : the_title(); ?>
+		</h1>
+	</section>
 
-				<h1><?php get_field('title') ? the_field('title') : the_title(); ?></h1>
-				<?php the_content(); ?>
+	<?php get_template_part('includes/content-default'); ?>
 
-				<h2>Pages</h2>
-				<ul>
-					<?php wp_list_pages( array('post_type' => 'page', 'title_li' => '', 'sort_column' => 'post_title') ); ?>
-				</ul>
+	<section class='container-small'>
+		<h2><?php _e('Pages'); ?></h2>
+		<ul class='list-black'>
+			<?php wp_list_pages( array('post_type' => 'page', 'title_li' => '') ); ?>
+		</ul>
 
-				<?php
-					function listPosts($postType, $tax){
-						$options = $tax ? array( array('taxonomy' => 'types', 'field' => 'slug', 'terms' => $tax) ) : '';
-						$posts = get_posts( array('post_type' => $postType, 'orderby' => 'title', 'posts_per_page' => -1, 'order' => 'ASC', 'tax_query' => $options) );
+		<?php
+			function listPosts($postType, $tax){
+				$options = $tax ? array( array('taxonomy' => 'types', 'field' => 'slug', 'terms' => $tax) ) : '';
+				$posts = get_posts( array('post_type' => $postType, 'orderby' => 'title', 'posts_per_page' => -1, 'order' => 'ASC', 'tax_query' => $options) );
 
-						if(!$posts)
-							echo '<p>Nothing was found</p>';
+				if(!$posts)
+					echo '<p>Nothing was found</p>';
 
-						$output = "<ul>";
-						foreach( $posts as $post ){
-							$output .= '<li>';
-							$output .= '<a href="'. get_permalink($post->ID) .'" title="Go to '. get_the_title($post->ID) .'">';
-							$output .= get_the_title($post->ID);
-							$output .= '</a>';
-							$output .= '</li>';
-						}
-						$output .= '</ul>';
+				$output = "<ul class='list-black'>";
+				foreach( $posts as $post ){
+					$output .= '<li>';
+					$output .= '<a href="'. get_permalink($post->ID) .'" title="'. get_the_title($post->ID) .'">';
+					$output .= get_the_title($post->ID);
+					$output .= '</a>';
+					$output .= '</li>';
+				}
+				$output .= '</ul>';
 
-						echo $output;
-					}
-				?>
+				echo $output;
+			}
+		?>
 
-				<h2>Blog posts</h2>
-				<?php listPosts('post', ''); ?>
+		<h2><?php _e('Blog', 'beezup'); ?></h2>
+		<?php listPosts('post', ''); ?>
+	</section>
 
-			<?php endwhile; ?>
+<?php else : ?>
 
-		<?php else : ?>
-
-			<?php echo '404'; ?>
-
-		<?php endif; ?>
-
+	<div class='container-small'>
+		<h1>404</h1>
 	</div>
+
+<?php endif; ?>
 
 <?php get_footer(); ?>

@@ -29,31 +29,40 @@ get_header(); ?>
 
     <section class='container'>
         
-        <?php the_field('price'); ?>
-        <ul>
-            <li><?php _e('1 month', 'beezup'); ?></li>
-            <li><?php _e('3 months', 'beezup'); ?></li>
-            <li><?php _e('6 months', 'beezup'); ?></li>
-            <li><?php _e('1 year', 'beezup'); ?></li>
+        <span><?php the_field('price'); ?></span>
+        <ul class='slider'>
+            <li><button type='button'><?php _e('1 month', 'beezup'); ?></button></li>
+            <li><button type='button'><?php _e('3 months', 'beezup'); ?></button></li>
+            <li><button type='button'><?php _e('6 months', 'beezup'); ?></button></li>
+            <li class='selected'><button type='button'><?php _e('1 year', 'beezup'); ?></button></li>
         </ul>
 
         <?php if( have_rows('offers') ){ ?>
             <?php while( have_rows('offers') ){ the_row(); ?>
+            <div class='offer <?php echo strtolower(get_sub_field("name")); ?>'>
                 <h2><?php the_sub_field('name'); ?></h2>
-               
-                <p>
-                    <?php the_sub_field('price1'); ?>
-                    <?php the_sub_field('price2'); ?>
-                    <?php the_sub_field('price3'); ?>
-                    <?php the_sub_field('price4'); ?>
-                </p>
+                <div class='offer-spec'>
+                    <span class='price hidden'>
+                        <?php the_sub_field('price1'); ?>
+                    </span>
+                    <span class='price hidden'>
+                        <?php the_sub_field('price2'); ?>
+                    </span>
+                    <span class='price hidden'>
+                        <?php the_sub_field('price3'); ?>
+                    </span>
+                    <span class='price'>
+                        <?php the_sub_field('price4'); ?>
+                    </span>
 
-                <?php if( get_sub_field('url') ){ ?>
-                    <a href='<?php the_field('url'); ?>' class='btn btn-arrow'>
-                        <?php the_sub_field('btn'); ?>
-                        <svg class='icon'><use xlink:href='#icon-arrow-right'></use></svg>
-                    </a>
-                <?php } ?>
+                    <?php if( get_sub_field('url') ){ ?>
+                        <a href='<?php the_field('url'); ?>' class='btn btn-arrow'>
+                            <?php the_field('btn'); ?>
+                            <svg class='icon'><use xlink:href='#icon-arrow-right'></use></svg>
+                        </a>
+                    <?php } ?>
+                </div>
+            </div>
             <?php } ?>
         <?php } ?>
 
