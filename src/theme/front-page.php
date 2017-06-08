@@ -12,27 +12,27 @@ get_header(); ?>
 			<?php get_template_part( 'includes/schema' ); ?>
 			
 			<div class='text-illus market-places'>
-				<div><strong>Market places</strong></div>
+				<div><strong><?php the_field('marketplaceText'); ?></strong></div>
 			</div>
 			
 			<div class='text-illus google-shopping'>
-				<div><strong>Google Shopping <span>& Product Ads</span></strong></div>
+				<div><strong><?php the_field('productText'); ?></strong></div>
 			</div>
 
 			<div class='text-illus comparator'>
-				<div><strong>Comparateur</strong></div>
+				<div><strong><?php the_field('comparatorText'); ?></strong></div>
 			</div>
 
 			<div class='text-illus affiliate'>
-				<div><strong>Affiliation</strong></div>
+				<div><strong><?php the_field('affiliationText'); ?></strong></div>
 			</div>
 
 			<div class='text-illus retargeting'>
-				<div><strong>Retargeting</strong></div>
+				<div><strong><?php the_field('retargetingText'); ?></strong></div>
 			</div>
 
 			<div class='text-illus your-shop'>
-				<div><strong><span>Votre</span> boutique</strong></div>
+				<div><strong><?php the_field('shopText'); ?></div>
 			</div>
 		</div>
 
