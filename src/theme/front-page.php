@@ -32,7 +32,7 @@ get_header(); ?>
 			</div>
 
 			<div class='text-illus your-shop'>
-				<div><strong><?php the_field('shopText'); ?></div>
+				<div><strong><?php the_field('shopText'); ?></strong></div>
 			</div>
 		</div>
 
