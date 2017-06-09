@@ -28,53 +28,64 @@ get_header(); ?>
     </section>
 
     <section class='container'>
-        
-        <span><?php the_field('price'); ?></span>
-        <ul class='slider'>
-            <li><button type='button'><?php _e('1 month', 'beezup'); ?></button></li>
-            <li><button type='button'><?php _e('3 months', 'beezup'); ?></button></li>
-            <li><button type='button'><?php _e('6 months', 'beezup'); ?></button></li>
-            <li class='selected'><button type='button'><?php _e('1 year', 'beezup'); ?></button></li>
-        </ul>
+        <div class='tarif-header'>
+            <div class='container-slider'>
+                <span><?php the_field('price'); ?></span>
+                <ul class='slider'>
+                    <li><button type='button'><?php _e('1 month', 'beezup'); ?></button></li>
+                    <li><button type='button'><?php _e('3 months', 'beezup'); ?></button></li>
+                    <li><button type='button'><?php _e('6 months', 'beezup'); ?></button></li>
+                    <li class='selected'><button type='button'><?php _e('1 year', 'beezup'); ?></button></li>
+                </ul>
+            </div>
 
-        <?php if( have_rows('offers') ){ ?>
-            <?php while( have_rows('offers') ){ the_row(); ?>
-            <div class='offer <?php echo strtolower(get_sub_field("name")); ?>'>
-                <h2><?php the_sub_field('name'); ?></h2>
-                <div class='offer-spec'>
-                    <span class='price hidden'>
-                        <?php the_sub_field('price1'); ?>
-                    </span>
-                    <span class='price hidden'>
-                        <?php the_sub_field('price2'); ?>
-                    </span>
-                    <span class='price hidden'>
-                        <?php the_sub_field('price3'); ?>
-                    </span>
-                    <span class='price'>
-                        <?php the_sub_field('price4'); ?>
-                    </span>
+            <?php if( have_rows('offers') ){ ?>
+            <div class='offers'>
+                <?php while( have_rows('offers') ){ the_row(); ?>
+                <div class='offer <?php echo strtolower(get_sub_field("name")); ?>'>
+                    <h2><?php the_sub_field('name'); ?></h2>
+                    <div class='offer-spec'>
+                        <span class='price hidden'>
+                            <?php the_sub_field('price1'); ?>
+                        </span>
+                        <span class='price hidden'>
+                            <?php the_sub_field('price2'); ?>
+                        </span>
+                        <span class='price hidden'>
+                            <?php the_sub_field('price3'); ?>
+                        </span>
+                        <span class='price'>
+                            <?php the_sub_field('price4'); ?>
+                        </span>
 
-                    <?php if( get_sub_field('url') ){ ?>
-                        <a href='<?php the_field('url'); ?>' class='btn btn-arrow'>
-                            <?php the_field('btn'); ?>
-                            <svg class='icon'><use xlink:href='#icon-arrow-right'></use></svg>
-                        </a>
-                    <?php } ?>
+                        <?php if( get_sub_field('url') ){ ?>
+                            <a href='<?php the_field('url'); ?>' class='btn btn-arrow'>
+                                <?php the_field('btn'); ?>
+                                <svg class='icon'><use xlink:href='#icon-arrow-right'></use></svg>
+                            </a>
+                        <?php } ?>
+                    </div>
                 </div>
+                <?php } ?>
             </div>
             <?php } ?>
-        <?php } ?>
+        </div>
 
         <?php if( have_rows('featuresSection') ){ ?>
+        <ul class='tarif-content'>
             <?php while( have_rows('featuresSection') ){ the_row(); ?>
+            <li class='section-feature'><ul>
+
                 <h3><?php the_sub_field('title'); ?> <i><?php the_sub_field('subtitle'); ?></i></h3>
 
                 <?php if( have_rows('features') ){ ?>
+
                     <?php while( have_rows('features') ){ the_row(); ?>
-                        <span><?php the_sub_field('title'); ?></span>
+                    <li class='feature'>
+                        <span class='feature-title'><?php the_sub_field('title'); ?></span>
 
                         <?php if( have_rows('detail') ){ ?>
+                        <div class='feature-content'>
                             <?php while( have_rows('detail') ){ the_row(); ?>
                                 <span>
                                     <?php
@@ -85,25 +96,31 @@ get_header(); ?>
                                             the_sub_field('text');
                                         }
                                     }elseif( get_sub_field('check') ){
-                                        echo 'check';
+                                        echo '<svg class="icon icon-check"><use xlink:href="#icon-check"></use></svg>';
                                     }else{
-                                        echo 'nope';
+                                        echo '';
                                     }
                                     ?>
                                 </span>
                             <?php } ?>
+                        </div>
                         <?php } ?>
-
+                        </li>
                     <?php } ?>
                 <?php } ?>
-
+                </ul></li>
             <?php } ?>
+            </ul>
         <?php } ?>
+        </section>
 
-        <?php if( get_field('note') ){ ?>
-            <i><?php the_field('note'); ?></i>
-        <?php } ?>
+        <section class='container'>
+            <?php if( get_field('note') ){ ?>
+                <p class='tarif-note'><?php the_field('note'); ?></p>
+            <?php } ?>
+        </section>
 
+        <section class='container'>
         <?php if( get_field('fontionnalitesTitle') ){ ?>
             <h2 class='h1'><?php the_field('fontionnalitesTitle'); ?></h2>
         <?php } ?>

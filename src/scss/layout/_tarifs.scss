@@ -1,5 +1,6 @@
 .offer{
     display: inline-block;
+    width: 24%;
     > h2 {
         text-transform: uppercase;
         font-family: $fira-bold;
@@ -48,15 +49,33 @@
     }
 }
 
+.offers{
+    display: flex;
+    flex: 1;
+    justify-content: space-between;
+}
+
+.container-slider{
+    display: flex;
+    flex-direction: column;
+    width: 33%;
+    align-items: flex-start;
+
+}
+
 .offer-spec{
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 30px 25px 40px;
+    padding: 30px 0 40px;
     background: $white;
     box-shadow: 0px 2px 11.05px 1.95px rgba(0, 0, 0, 0.06); 
     > a {
         letter-spacing: 0;
+        padding: 15px 42px 15px 19px;
+        .icon{
+            right: 22px;
+        }
     }
 }
 
@@ -65,6 +84,115 @@
     font-family: $fira-medium;
     font-size: 3.5rem;
     .small{
+        position: relative;
         font-size: 2.2rem;
+        top: -8px;
     }
+}
+
+.tarif-header{
+    display: flex;
+    align-items: center;
+}
+
+.tarif-content{
+    margin: 10px 0;
+}
+
+.section-feature{
+    position: relative;
+    padding: 10px 0;
+    margin: 10px 0;
+    &:before, &:after{
+        content: '';
+        display: inline-block;
+        width: 16.08%;
+        height: auto;
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        border-radius: 0;
+        background: $white;
+        box-shadow: 0px 2px 11.05px 1.95px rgba(0, 0, 0, 0.06);
+    }
+    &:before{
+        left: 33%;
+    }
+    &:after{
+        $left02: (33 + 16.08 + (67 * (4 / 3) / 100)) * 1%; // width-title-feature + width-offer + (width-content-feature * width-gutter-offer / 100 )
+        left: $left02;
+    }
+    > ul {
+        margin: 0;
+        &:before, &:after{
+            content: '';
+            display: inline-block;
+            width: 16.08%;
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            background: $white;
+            box-shadow: 0px 2px 11.05px 1.95px rgba(0, 0, 0, 0.06);
+        }
+        &:before{
+            $right02: (16.08 + (67 * (4 / 3) / 100)) * 1%; // width-offer + (width-content-feature * width-gutter-offer / 100 )
+            right: $right02;
+        }
+        &:after{
+            right: 0;
+        }
+    }
+    h3{
+        font-family: $fira-medium;
+        font-size: 1.6rem;
+        color: $primary;
+        display: inline-block;
+        width: 33%;
+        margin: 0 0 1em;
+        > i {
+            font-family: $fira-italic;
+            display: block;
+        }
+    }
+}
+
+.feature{
+    display: flex;
+    align-items: center;
+    margin: 0 0 1em;
+}
+
+.feature-content{
+    display: flex;
+    flex: 1;
+    > span{
+        width: 25%;
+        text-align: center;
+    }
+    .icon-check{
+        color: #0fbc37;
+    }
+}
+
+.feature-title{
+    width: 33%;
+}
+
+.tarif-content{
+    ul{
+        padding: 0;
+    }
+}
+
+.feature{
+    &:before, &:after{
+        content: none;
+    }
+}
+
+.tarif-note{
+    font-size: 1.4rem;
+    margin: 0 0 0 33%;
+    color: #38393b;
+    font-family: $fira-italic;
 }
