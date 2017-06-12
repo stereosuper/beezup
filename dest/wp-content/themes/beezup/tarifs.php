@@ -117,6 +117,20 @@ get_header(); ?>
         </section>
 
         <section class='container'>
+            <div class='tarif-footer'>
+                <span>
+                    <svg class='icon'><use xlink:href='#icon-tripuce'></use></svg>
+                </span>
+                <span>
+                    <svg class='icon'><use xlink:href='#icon-tripuce'></use></svg>
+                </span>
+                <span>
+                    <svg class='icon'><use xlink:href='#icon-tripuce'></use></svg>
+                </span>
+                <span>
+                    <svg class='icon'><use xlink:href='#icon-tripuce'></use></svg>
+                </span>
+            </div>
             <?php if( get_field('note') ){ ?>
                 <p class='tarif-note'><?php the_field('note'); ?></p>
             <?php } ?>

@@ -248,9 +248,44 @@
     }
 }
 
+.tarif-footer{
+    display: flex;
+    margin: 20px 0 0 33%;
+    justify-content: space-around;
+    .icon{
+        width: 13px;
+        height: 13px;
+    }
+    > span{
+        text-align: center;
+        width: 24%;
+        &:first-child{
+            > .icon{
+                color: #6bb9e1;
+            }
+        }
+        &:nth-child(2){
+            > .icon{
+                color: #2890c6;
+            }
+        }
+        &:nth-child(3){
+            > .icon{
+                color: #2b5368;
+            }
+        }
+        &:nth-child(4){
+            > .icon{
+                color: #262729;
+            }
+        }
+    }
+}
+
 .tarif-note{
     font-size: 1.4rem;
-    margin: 75px 0 0 33%;
+    margin: 50px 0 0 33%;
+    padding: 0 0 0 1.2%;
     color: #808081;
     font-family: $fira-italic;
 }
