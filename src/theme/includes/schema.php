@@ -56,7 +56,7 @@
             <ellipse class='box-bottom' cx='756.2' cy='367.5' transform='rotate(-15.73 756.26 367.542)' rx='3.5' ry='4.7'/>
         </g>
         <g class='logo-marketplace'>
-            <image width='370' height='310' transform='matrix(0.8, 0.42, -0.57, 0.61, 661.76, 27.56)' xlink:href='<?php echo get_template_directory_uri(); ?>/img/illu_test1.png'/>
+            <image width='370' height='310' transform='matrix(0.8, 0.42, -0.57, 0.61, 661.76, 27.56)' xlink:href='<?php echo get_template_directory_uri(); ?>/layoutImg/schema-market.png'/>
         </g>
         <path class='market-shadow' d='M963 175.5L781.4 368.3 481.2 216.6l182.5-193z'/>
         <g class='box-top'>
@@ -83,7 +83,7 @@
             <ellipse class='box-bottom' cx='967.2' cy='203.6' transform='rotate(-15.73 967.272 203.656)' rx='3.5' ry='3.8'/>
         </g>
         <g class='logo-ads'>
-            <image width='1058' height='510' transform='matrix(0.2, 0.1, -0.13, 0.15, 912.02, 51.48)' xlink:href='<?php echo get_template_directory_uri(); ?>/img/illu_test2.png'/>
+            <image width='1058' height='510' transform='matrix(0.2, 0.1, -0.13, 0.15, 912.02, 51.48)' xlink:href='<?php echo get_template_directory_uri(); ?>/layoutImg/schema-ads.png'/>
         </g>
         <path class='ads-shadow' d='M1163 111.6l-114.8 124-217-109.8L945.7.6z'/>
         <g class='box-top'>
@@ -125,7 +125,7 @@
             <ellipse class='box-bottom' cx='884.1' cy='429.9' transform='rotate(-15.73 884.184 429.92)' rx='3.5' ry='3.8'/>
         </g>
         <g class='logo-comparator'>
-            <image width='1115' height='385' transform='matrix(0.2, 0.1, -0.1, 0.11, 912.81, 366.47)' xlink:href='<?php echo get_template_directory_uri(); ?>/img/illu_test3.png'/>
+            <image width='1115' height='385' transform='matrix(0.2, 0.1, -0.1, 0.11, 912.81, 366.47)' xlink:href='<?php echo get_template_directory_uri(); ?>/layoutImg/schema-comparator.png'/>
         </g>
         <path class='comparator-shadow' d='M1141.2 465.9l-54 58.2L861 410.8l54.7-59.2z'/>
         <g class='box-top'>
@@ -278,7 +278,7 @@
             <path class='box-bottom' d='M719.2 615.9l2.7 15.4 177.9 90.1L897 706z'/>
         </g>
         <g class='logo-retargeting'>
-            <image width='871' height='316' transform='matrix(0.2, 0.1, -0.13, 0.15, 770.66, 567.79)' xlink:href='<?php echo get_template_directory_uri(); ?>/img/illu_test4.png'/>
+            <image width='871' height='316' transform='matrix(0.2, 0.1, -0.13, 0.15, 770.66, 567.79)' xlink:href='<?php echo get_template_directory_uri(); ?>/layoutImg/schema-retargeting.png'/>
         </g>
         <path class='retargeting-shadow' d='M949 650.6l-52 54.8-176.8-89.6 53.3-55.4z'/>
         <g class='box-top'>
@@ -303,7 +303,7 @@
             <path class='box-bottom' d='M832.2 521.9l2.7 15.4 193.9 98.1-2.8-15.4z'/>
         </g>
         <g class='logo-affiliation'>
-            <image width='890' height='345' transform='matrix(0.2, 0.1, -0.13, 0.14, 896.61, 474.51)' xlink:href='<?php echo get_template_directory_uri(); ?>/img/illu_test5.png'/>
+            <image width='890' height='345' transform='matrix(0.2, 0.1, -0.13, 0.14, 896.61, 474.51)' xlink:href='<?php echo get_template_directory_uri(); ?>/layoutImg/schema-affiliation.png'/>
         </g>
         <path class='affiliation-shadow' d='M1085.2 556.6l-59.3 62.5-193.2-97.5 59.7-62.5z'/>
         <g class='box-top'>
