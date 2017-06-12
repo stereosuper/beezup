@@ -168,7 +168,7 @@ get_header(); ?>
 		<section class='container'>
 			<svg class='icon icon-blog title-icon'><use xlink:href='#icon-blog'></use></svg>
 			<?php if( get_field('blogTitle') ){ ?>
-				<h2 class='h1 small-m'><?php the_field('blogTitle'); ?></h2>
+				<h2 class='h1 small-m align-center'><?php the_field('blogTitle'); ?></h2>
 			<?php } ?>
 
 			<ul class='list-small-posts'>
