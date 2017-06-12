@@ -27,7 +27,7 @@ get_header(); ?>
 
     </section>
 
-    <section class='container'>
+    <section class='container container-tarifs'>
         <div class='tarif-header'>
             <div class='container-slider'>
                 <span><?php the_field('price'); ?></span>
@@ -72,49 +72,65 @@ get_header(); ?>
         </div>
 
         <?php if( have_rows('featuresSection') ){ ?>
-        <ul class='tarif-content'>
-            <?php while( have_rows('featuresSection') ){ the_row(); ?>
-            <li class='section-feature'><ul>
+        <div class='wrapper-tarif-content'>
+            <ul class='tarif-content'>
+                <?php while( have_rows('featuresSection') ){ the_row(); ?>
+                <li class='section-feature'><ul>
 
-                <h3><?php the_sub_field('title'); ?> <i><?php the_sub_field('subtitle'); ?></i></h3>
+                    <h3><?php the_sub_field('title'); ?> <i><?php the_sub_field('subtitle'); ?></i></h3>
 
-                <?php if( have_rows('features') ){ ?>
+                    <?php if( have_rows('features') ){ ?>
 
-                    <?php while( have_rows('features') ){ the_row(); ?>
-                    <li class='feature'>
-                        <span class='feature-title'><?php the_sub_field('title'); ?></span>
+                        <?php while( have_rows('features') ){ the_row(); ?>
+                        <li class='feature'>
+                            <span class='feature-title'><?php the_sub_field('title'); ?></span>
 
-                        <?php if( have_rows('detail') ){ ?>
-                        <div class='feature-content'>
-                            <?php while( have_rows('detail') ){ the_row(); ?>
-                                <span>
-                                    <?php
-                                    if( get_sub_field('text') ){
-                                        if( get_sub_field('link') ){ ?>
-                                            <a href='<?php the_sub_field('link'); ?>'><?php the_sub_field('text'); ?></a>
-                                        <?php }else{
-                                            the_sub_field('text');
+                            <?php if( have_rows('detail') ){ ?>
+                            <div class='feature-content'>
+                                <?php while( have_rows('detail') ){ the_row(); ?>
+                                    <span>
+                                        <?php
+                                        if( get_sub_field('text') ){
+                                            if( get_sub_field('link') ){ ?>
+                                                <a href='<?php the_sub_field('link'); ?>'><?php the_sub_field('text'); ?></a>
+                                            <?php }else{
+                                                the_sub_field('text');
+                                            }
+                                        }elseif( get_sub_field('check') ){
+                                            echo '<svg class="icon icon-check"><use xlink:href="#icon-check"></use></svg>';
+                                        }else{
+                                            echo '';
                                         }
-                                    }elseif( get_sub_field('check') ){
-                                        echo '<svg class="icon icon-check"><use xlink:href="#icon-check"></use></svg>';
-                                    }else{
-                                        echo '';
-                                    }
-                                    ?>
-                                </span>
+                                        ?>
+                                    </span>
+                                <?php } ?>
+                            </div>
                             <?php } ?>
-                        </div>
+                            </li>
                         <?php } ?>
-                        </li>
                     <?php } ?>
+                    </ul></li>
                 <?php } ?>
-                </ul></li>
-            <?php } ?>
-            </ul>
+                </ul>
+            </div>
         <?php } ?>
         </section>
 
         <section class='container'>
+            <div class='tarif-footer'>
+                <span>
+                    <svg class='icon'><use xlink:href='#icon-tripuce'></use></svg>
+                </span>
+                <span>
+                    <svg class='icon'><use xlink:href='#icon-tripuce'></use></svg>
+                </span>
+                <span>
+                    <svg class='icon'><use xlink:href='#icon-tripuce'></use></svg>
+                </span>
+                <span>
+                    <svg class='icon'><use xlink:href='#icon-tripuce'></use></svg>
+                </span>
+            </div>
             <?php if( get_field('note') ){ ?>
                 <p class='tarif-note'><?php the_field('note'); ?></p>
             <?php } ?>
