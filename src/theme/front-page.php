@@ -75,7 +75,7 @@ get_header(); ?>
 							<?php the_sub_field('text'); ?>
 						</h3>
 						<?php if( get_sub_field('linkText') && get_sub_field('link') ){ ?>
-							<a href='<?php the_sub_field('link'); ?>' title='<?php the_sub_field('linkText'); ?>' class='link-arrow'>
+							<a href='<?php the_sub_field('link'); ?>' title="<?php the_sub_field('linkText'); ?>" class='link-arrow'>
 								<?php the_sub_field('linkText'); ?>
 							</a>
 						<?php } ?>
