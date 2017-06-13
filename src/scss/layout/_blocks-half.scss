@@ -3,6 +3,7 @@
     padding: 130px 0;
     justify-content: space-between;
 }
+
 .block-half{
     width: 50%;
     text-align: center;
@@ -11,10 +12,11 @@
         margin: 0 auto;
     }
     &.block-txt{
-        width: 41.6666666667%;
-        padding-top: 40px;
+        width: 41.6666%;
+        padding: 40px 0 0;
     }
     &.big-img{
+        padding: 40px 0 0;
         img{
             max-width: none;
             width: calc(100% + 60px);
@@ -24,15 +26,13 @@
     .h1{
         margin: 0 0 0.8em;
     }
-    .icon{
-        &.icon-title{
-            fill: $primary;
-            width: 100%;
-            height: 40px;
-            margin-bottom: 20px;
-            &.icon-globe{
-                height: 50px;
-            }
+    .icon-title{
+        width: 100%;
+        height: 40px;
+        margin-bottom: 20px;
+        fill: $primary;
+        &.icon-globe{
+            height: 50px;
         }
     }
 }
@@ -42,21 +42,23 @@
         flex-wrap: wrap;
         padding: 50px 0;
     }
+
     .block-half{
         width: 100%;
         max-width: 550px;
         margin: 0 auto;
         &.block-txt{
-            order: 1;
             width: 100%;
             max-width: none;
-            margin-bottom: 50px;
             padding-top: 0;
+            margin-bottom: 50px;
+            order: 1;
         }
         &.block-visu{
             order: 2;
         }
         &.big-img{
+            padding-top: 0;
             img{
                 max-width: 100%;
                 width: auto;
