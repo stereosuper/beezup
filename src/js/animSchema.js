@@ -1,11 +1,9 @@
 var $ = require('jquery');
 
-var throttle = require('./throttle.js');
-window.requestAnimFrame = require('./requestAnimFrame.js');
-
 var TweenLite = require('gsap/TweenLite');
 var TimelineLite = require('gsap/TimelineLite');
 require('gsap/src/uncompressed/plugins/DrawSVGPlugin');
+
 
 module.exports = function(schema, windowWidth){
     if(!schema.length || windowWidth < 781) return;
@@ -104,7 +102,5 @@ module.exports = function(schema, windowWidth){
     });
 
 
-    $(window).on('load', function(){
-        createTimeline();
-    });
+    createTimeline();
 }
