@@ -1,10 +1,9 @@
 .list-menu{
     width: 50%;
-    margin: 0;
     padding: 75px 70px 75px 140px;
-    box-shadow: -1px 10px 79px 0 rgba(0, 63, 97, 0.09);
-    text-align: left;
-    background-color: $white;
+    margin: 0;
+    box-shadow: 0 10px 80px 0 rgba(0, 63, 97, 0.15);
+    background: $white;
     .block-half &{
         width: 100%;
     }
@@ -15,7 +14,9 @@
             top: -2px;
             font-family: $fira;
             font-size: 20px;
-            color: $black;
+            .block-full &{
+                color: $text;
+            }
         }
         &:after{
             width: 25px;
@@ -48,9 +49,8 @@
 .list-menu-fonctionnalites{
     position: absolute;
     right: 0;
-    top: -200px;
+    top: -125px;
     z-index: 4;
-    transform: translate(0, -100%);
 }
 
 
@@ -63,10 +63,18 @@
 @media (max-width: $desktop-small){
     .list-menu-fonctionnalites{
         width: 70%;
-        position: relative;
-        top: -50px;
-        margin: 0 auto;
-        transform: translate(0, 0);
+        position: static;
+        margin: 80px auto 0;
+        &:before{
+            content: '';
+            height: 300px;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: -1;
+            background: #fff;
+        }
     }
 }
 
