@@ -64,7 +64,11 @@
 }
 
 .container-tarifs{
+    overflow: auto;
+}
 
+.tarifs{
+    min-width: 1130px;
 }
 
 .offer-spec{
@@ -101,14 +105,15 @@
 
 .wrapper-tarif-content{
     position: relative;
-    
-    $leftBlue1 : 33% + 0.804%; // width feature-title + gutter entre offer et offer-title
-    $leftBlue2 : $leftBlue1 + 16.08% + 0.804%; // left1 + width column + gutter entre offer et offer-title
-
-    $leftBlue3 : $leftBlue2 + 16.08% + 0.804%; // left2 + width column + gutter entre offer et offer-title
-    $leftBlue4 : $leftBlue3 + 16.08% + 0.804%; // left3 + width column + gutter entre offer et offer-title
 
     $widthBloc : 16.08*90/100*1%;  // width-offer * width-offer-title / 100 -> produit en croix
+    
+    $leftBlue1 : 33% + 0.804%; // width feature-title + padding-left
+    $leftBlue2 : $leftBlue1 + $widthBloc + 0.804%*2 + (67 * (4 / 3) / 100); // left1 + width bloc bleu + padding + gutter
+
+    $leftBlue3 : $leftBlue2 + $widthBloc + 0.804%*2 + (67 * (4 / 3) / 100); // left2 + width bloc bleu + padding + gutter
+    $leftBlue4 : $leftBlue3 + $widthBloc + 0.804%*2 + (67 * (4 / 3) / 100); // left3 + width bloc bleu + padding + gutter
+
 
     .tarif-content{
         margin: 7px 0;
@@ -288,4 +293,37 @@
     padding: 0 0 0 1.2%;
     color: #808081;
     font-family: $fira-italic;
+}
+
+@media (max-width: 1120px){
+    .container-tarifs{
+        border-left: 1px solid $secondary;
+        border-right: 1px solid $secondary;
+    }
+    .tarifs {
+        padding: 0 $gutter*2;
+    }
+    .tarif-note{
+        margin: 50px 0 0;
+        padding: 0;
+    }
+}
+
+@media (max-width: $phone){
+    .section-feature{
+        h3{
+            font-size: 1.4rem;
+        }
+    }
+    .feature-title{
+        font-size: 1.4rem;
+    }
+    .feature-content{
+        > span {
+            font-size: 1.4rem;
+        }
+        .icon-check{
+            width: 13px;
+        }
+    }
 }
