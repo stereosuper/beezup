@@ -11,6 +11,19 @@ module.exports = function(wp, wrapper, countrySelect, sectorSelect, channelsList
     var sectorError = wrapper.find('#sectorError');
     var search = form.find('#channelsSearch');
 
+
+    function attachSearchEvent(){
+        if(!search.length) return;
+            
+        search.off().hideseek().on('_after', function(){
+            if(channels.filter(':visible').length){
+                sectorError.html('');
+            }else{
+                sectorError.html(wp.noChannelsSearch);
+            }
+        });
+    }
+
     function filterBySector(sector){
         channels.removeClass('hidden');
         if(sector !== 'all'){
@@ -44,6 +57,8 @@ module.exports = function(wp, wrapper, countrySelect, sectorSelect, channelsList
                     channelsList.html(data);
                     wrapper.removeClass('loading');
                     channels = channelsList.find('li');
+
+                    attachSearchEvent()
 
                     if(sectorSelect.length){
                         filterBySector(sectorSelect.val());
@@ -81,12 +96,6 @@ module.exports = function(wp, wrapper, countrySelect, sectorSelect, channelsList
         });
     }
 
-    if(search.length){
-        search.hideseek({ nodata: '0' }).on('input', function(){
-            sectorError.html('');
-        }).on('_after_nodata', function(){
-            sectorError.html(wp.noChannelsSearch);
-        });
-    }
+    attachSearchEvent();
     
 }
