@@ -18,6 +18,7 @@ module.exports = function(schema){
     var countBilley = 0;
     var billeyTween1, billeyTween2;
     var firstRound = true, currentBilley, currentBilleyHtml;
+    var boxesTop = schema.find('a').children('.box-top'), dataSchemaText = schema.find('[data-schema-text]');
 
 
     function tweenBilley(){
@@ -66,8 +67,8 @@ module.exports = function(schema){
             TweenLite.to(cables1, tempo, {drawSVG: '100% 100%'}),
             TweenLite.to(cables2, tempo, {drawSVG: '0 100%'})
         ]).add([
-            TweenLite.to([schema.find('a').children('.box-top'), $('[data-text]')], 0.2, {y: '-10px', onComplete: function(){
-                TweenLite.to([schema.find('a').children('.box-top'), $('[data-text]')], 0.1, {y: '0'});
+            TweenLite.to([boxesTop, dataSchemaText], 0.2, {y: '-10px', onComplete: function(){
+                TweenLite.to([boxesTop, dataSchemaText], 0.1, {y: '0'});
             }}),
             TweenLite.to(cables2, tempo, {drawSVG: '100% 100%'}),
             TweenLite.to(cables3, tempo, {drawSVG: '0 100%'})
@@ -92,12 +93,12 @@ module.exports = function(schema){
 
     schema.on('mouseenter', 'a', function(){
         TweenLite.to(
-            [$(this).children('.box-top'), $('[data-text="' + $(this).attr('id') + '"]')],
+            [$(this).children('.box-top'), schema.find('[data-schema-text="' + $(this).attr('id') + '"]')],
             0.3, {y: '-20px'}
         );
     }).on('mouseleave', 'a', function(){
         TweenLite.to(
-            [$(this).children('.box-top'), $('[data-text="' + $(this).attr('id') + '"]')],
+            [$(this).children('.box-top'), schema.find('[data-schema-text="' + $(this).attr('id') + '"]')],
             0.3, {y: '0px'}
         );
     });

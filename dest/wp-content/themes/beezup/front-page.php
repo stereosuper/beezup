@@ -26,23 +26,23 @@ get_header(); ?>
 		<div class='wrapper-svg-home'>
 			<?php get_template_part( 'includes/schema' ); ?>
 			
-			<div class='text-illus market-places' data-text='marketplace'>
+			<div class='text-illus market-places' data-schema-text='marketplace'>
 				<div><strong><?php the_field('marketplaceText'); ?></strong></div>
 			</div>
 			
-			<div class='text-illus google-shopping' data-text='ads'>
+			<div class='text-illus google-shopping' data-schema-text='ads'>
 				<div><strong><?php the_field('productText'); ?></strong></div>
 			</div>
 
-			<div class='text-illus comparator' data-text='comparator'>
+			<div class='text-illus comparator' data-schema-text='comparator'>
 				<div><strong><?php the_field('comparatorText'); ?></strong></div>
 			</div>
 
-			<div class='text-illus affiliate' data-text='affiliation'>
+			<div class='text-illus affiliate' data-schema-text='affiliation'>
 				<div><strong><?php the_field('affiliationText'); ?></strong></div>
 			</div>
 
-			<div class='text-illus retargeting' data-text='retargeting'>
+			<div class='text-illus retargeting' data-schema-text='retargeting'>
 				<div><strong><?php the_field('retargetingText'); ?></strong></div>
 			</div>
 
