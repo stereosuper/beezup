@@ -112,6 +112,7 @@ button{
 }
 
 select{
+    max-width: 100%;
     height: 45px;
     padding: 0 35px 0 15px;
     border: 1px solid rgba($primary, 0.2);
@@ -236,14 +237,14 @@ select{
     }
 }
 #sib_loading_gif_area{
-    display: none!important;
+    display: none !important;
 }
 .newsletter{
     .sib-container{
         > .message_area{
-            background: $white!important;
-            color: $success!important;
-            border: 2px solid $success!important;
+            background: $white !important;
+            color: $success !important;
+            border: 2px solid $success !important;
             padding: 14px 8px;
             font-family: $fira-bold;
             font-size: 1.4rem;
@@ -258,7 +259,6 @@ select{
     &.needsfilled{
         &:before{
             content: '';
-            display: block;
             position: absolute;
             top: -8px;
             right: -8px;
@@ -275,13 +275,13 @@ select{
             border-color: $error;
         }
         .message_area{
-            margin-top: 4px!important;
+            margin-top: 4px !important;
         }
     }
     .message_area{
-        background: none!important;
-        border: none!important;
-        color: $error!important;
+        background: none !important;
+        border: 0 !important;
+        color: $error !important;
         margin-right: -45px;
         font-family: $fira-bold;
         text-align: center;
@@ -299,12 +299,30 @@ select{
 
 .channels-form{
     .select{
-        margin: 0 25px 0 0;
+        max-width: 195px;
+        margin: 0 20px 0 0;
+    }
+    .field-inline{
+        display: inline-block;
+        max-width: 220px;
     }
     .btn-secondary{
         .js &{
             display: none;
         }
+    }
+    .icon{
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        top: 0;
+        bottom: 1px;
+        right: 15px;
+        margin: auto;
+    }
+    label{
+        top: 11px;
+        font-size: 1.6rem;
     }
 }
 

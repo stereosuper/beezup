@@ -1,4 +1,7 @@
 var $ = require('jquery');
+global.jQuery = $;
+
+require('hideseek');
 
 module.exports = function(wp, wrapper, countrySelect, sectorSelect, channelsList){
     if(!wp || !wrapper.length || !channelsList.length) return;
@@ -6,6 +9,7 @@ module.exports = function(wp, wrapper, countrySelect, sectorSelect, channelsList
     var form = countrySelect.closest('form');
     var channels = channelsList.find('li');
     var sectorError = wrapper.find('#sectorError');
+    var search = form.find('#channelsSearch');
 
     function filterBySector(sector){
         channels.removeClass('hidden');
@@ -74,6 +78,14 @@ module.exports = function(wp, wrapper, countrySelect, sectorSelect, channelsList
     if(sectorSelect.length){
         sectorSelect.on('change', function(){
             filterBySector($(this).val());
+        });
+    }
+
+    if(search.length){
+        search.hideseek({ nodata: '0' }).on('input', function(){
+            sectorError.html('');
+        }).on('_after_nodata', function(){
+            sectorError.html(wp.noChannelsSearch);
         });
     }
     

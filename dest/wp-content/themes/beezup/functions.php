@@ -221,7 +221,7 @@ function beezup_get_channels_to_display($channelsToDisplay, $noChannels){
             }
             $output .= '>';
             $output .= '<a href="' . $partner->homeUrl . '" title="' . $name . '" target="_blank">';
-            // $output .= $name;
+            $output .= '<span>' . $name . '</span>';
             $output .= '<img src="' . $partner->logoUrl . '" alt="' . $name . '">';
             $output .= '</a></li>';
         }
@@ -620,7 +620,8 @@ function beezup_scripts(){
         'isNetworkPage' => $isNetworkPage,
         'type' => get_field('type', $post->ID),
         'noChannels' => '<svg class="icon"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-error"></use></svg>' . __('There are no channels of this sector in this country', 'beezup'),
-        'noChannelsType' => '<svg class="icon"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-error"></use></svg>' . __('There are no channels of this sector and this type in this country', 'beezup')
+        'noChannelsType' => '<svg class="icon"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-error"></use></svg>' . __('There are no channels of this sector and this type in this country', 'beezup'),
+        'noChannelsSearch' => '<svg class="icon"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-error"></use></svg>' . __('There no channels matching your search', 'beezup')
     ) );
     
 }
