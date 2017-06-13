@@ -16,6 +16,7 @@ $(function(){
     var sticky = require('./sticky.js');
     var scrollTo = require('./scrollTo.js');
     var animTopHome = require('./animTopHome.js');
+    var animSchema = require('./animSchema.js');
     var addUrlInputs = require('./addUrlInputs.js');
     var filterChannels = require('./filterChannels.js');
     var dropdown = require('./dropdown.js');
@@ -59,6 +60,7 @@ $(function(){
 
     // Anim top home
     animTopHome();
+    animSchema($('#schema'));
     
     // Add url inputs
     addUrlInputs($('#addUrlInput'), $('#newInputsCount'));

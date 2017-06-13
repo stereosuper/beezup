@@ -7,7 +7,22 @@ get_header(); ?>
 
 <?php if ( have_posts() ) : the_post(); ?>
 	
-	<section class='container wrapper-sticky'>		
+	<section class='container wrapper-sticky'>
+		<img class='illus-responsive' src='<?php echo get_stylesheet_directory_uri(); ?>/layoutImg/block-beezup.png' srcset='<?php echo get_stylesheet_directory_uri(); ?>/layoutImg/block-beezup@2x.png 2x' alt=''>
+		
+		<div class='block-half block-txt block-title-home' id='titleHome'>
+			<h1 class='title-home' data-before='<?php the_field('title'); ?>' data-after='<?php the_field('title2'); ?>'><?php the_field('title'); ?></h1>
+
+			<p id='introHome'><?php the_field('headerText'); ?></p>
+
+			<?php if( get_field('headerBtn') ){ ?>
+				<button class='btn btn-arrow' id='btnTopHome' data-appointlet-organization='beezup' data-appointlet-service='32290'>
+					<span class='textToAnim' data-before="<?php the_field('headerBtn'); ?>" data-after="<?php if( get_field('headerBtn2') ){ the_field('headerBtn2'); } ?>"><?php the_field('headerBtn2'); ?></span>
+					<svg class='icon icon-arrow-right'><use xlink:href='#icon-arrow-right'></use></svg>
+				</button>
+			<?php } ?>
+		</div>
+
 		<div class='wrapper-svg-home'>
 			<?php get_template_part( 'includes/schema' ); ?>
 			
@@ -34,21 +49,6 @@ get_header(); ?>
 			<div class='text-illus your-shop'>
 				<div><strong><?php the_field('shopText'); ?></strong></div>
 			</div>
-		</div>
-
-		<img class='illus-responsive' src='<?php echo get_stylesheet_directory_uri(); ?>/layoutImg/block-beezup.png' srcset='<?php echo get_stylesheet_directory_uri(); ?>/layoutImg/block-beezup@2x.png 2x' alt=''>
-
-		<div class='block-half block-txt block-title-home' id='titleHome'>
-			<h1 class='title-home' data-before='<?php the_field('title'); ?>' data-after='<?php the_field('title2'); ?>'><?php the_field('title'); ?></h1>
-			
-			<p id='introHome'><?php the_field('headerText'); ?></p>
-			
-			<?php if( get_field('headerBtn') ){ ?>
-				<button class='btn btn-arrow' id='btnTopHome' data-appointlet-organization='beezup' data-appointlet-service='32290'>
-					<span class='textToAnim' data-before="<?php the_field('headerBtn'); ?>" data-after="<?php if( get_field('headerBtn2') ){ the_field('headerBtn2'); } ?>"><?php the_field('headerBtn2'); ?></span>
-					<svg class='icon icon-arrow-right'><use xlink:href='#icon-arrow-right'></use></svg>
-				</button>
-			<?php } ?>
 		</div>
 
 		<div class='wrapper-list-menu-home'>

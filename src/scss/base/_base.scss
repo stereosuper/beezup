@@ -392,13 +392,14 @@ a{
 
 .block-full{
     padding: 80px 0;
+    clear: both;
     background: $primary;
     color: $white;
     &.default, &.no-pad{
         padding: 40px 0;
     }
     &.default{
-        margin: 40px 0;
+        margin: 50px 0;
     }
     .container &, .container-small &{
         padding: 40px;

@@ -1,5 +1,5 @@
 .white{
-    fill: #fff;
+    fill: $white;
 }
 .black{
     fill: #262729;
@@ -11,30 +11,39 @@
 
 // Cables //
 
-.cable-wrapper{
+.cable-bg, .cable, .cable-wrapper{
     fill: none;
-    stroke: #009EE6;
     stroke-miterlimit: 10;
-    opacity: 0.4;
 }
-.cable{
-    opacity: 0.8;
-    fill: none;
-    stroke: #fff;
+.cable-bg, .cable{
     stroke-width: 4;
     stroke-linecap: round;
     stroke-linejoin: round;
-    stroke-miterlimit: 10;
 }
+.cable-wrapper{
+    stroke: #009EE6;
+    opacity: 0.4;
+}
+.cable-bg{
+    stroke: rgba($white, 0.6);
+}
+.cable{
+    opacity: 0.8;
+    &.on{
+        stroke: $secondary;
+    }
+}
+
 
 // Shadows //
 
-.shadow1{
+.shadow1, .shadow{
     opacity: 0.12;
+}
+.shadow1{
     fill: #009EE6;
 }
 .shadow{
-    opacity: 0.12;
     fill: #45B0E1;
 }
 .ads-shadow{
@@ -53,11 +62,11 @@
     fill: url(#affiliation-shadow);
 }
 
+
 // Connectors //
 
-.connector-right{
-    fill: none;
-    stroke: #fff;
+.connector-right, .connector-bottom{
+    stroke: $white;
     stroke-miterlimit: 10;
 }
 .blue{
@@ -72,22 +81,11 @@
 .red2{
     fill: #BE091A;
 }
-.red-bottom{
-    fill: #BE091A;
-    stroke: #fff;
-    stroke-width: 0.75;
-    stroke-miterlimit: 10;
-}
 .blue-flash{
     fill: #0B11D9;
 }
 .blue-flash2{
     fill: #050997;
-}
-.blue-bottom{
-    fill: #050997;
-    stroke: #fff;
-    stroke-miterlimit: 10;
 }
 .orange{
     fill: #FF9C00;
@@ -95,21 +93,11 @@
 .orange2{
     fill: #EF9200;
 }
-.orange-bottom{
-    fill: #EF9200;
-    stroke: #fff;
-    stroke-miterlimit: 10;
-}
 .pink{
     fill: #E30C95;
 }
 .pink2{
     fill: #C81888;
-}
-.pink-bottom{
-    fill: #C81888;
-    stroke: #fff;
-    stroke-miterlimit: 10;
 }
 .green{
     fill: #23DA4A;
@@ -117,90 +105,74 @@
 .green2{
     fill: #15BC37;
 }
-.green-bottom{
-    fill: #15BC37;
-    stroke: #fff;
-    stroke-miterlimit: 10;
-}
+
 
 // Box //
 
-.behind{
-    fill: #0178AB;
+.behind, .box-right, .box-bottom, .box-top{
     stroke: #C6DDEB;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
+}
+.behind{
+    fill: #0178AB;
 }
 .box-right{
     fill: #FCFEFE;
-    stroke: #C6DDEB;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
 }
 .box-bottom{
     fill: #EEF6FB;
-    stroke: #C6DDEB;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
 }
 .box-top{
-    fill: #fff;
-    stroke: #C6DDEB;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
+    fill: $white;
 }
+
 
 // Shop box //
 
+.box-shop-in, .box-shop-in2, .box-shop-right, .box-shop-bottom{
+    stroke: $white;
+    stroke-miterlimit: 10;
+}
+.box-shop-in, .box-shop-in2{
+    stroke-linejoin: round;
+}
 .box-shop-in{
     fill: #3A3C3D;
-    stroke: #fff;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
 }
 .box-shop-in2{
     fill: #262729;
-    stroke: #fff;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
 }
 .box-shop-right{
     fill: #515153;
-    stroke: #fff;
-    stroke-miterlimit: 10;
 }
 .box-shop-bottom{
     fill: #3A3C3D;
-    stroke: #fff;
-    stroke-miterlimit: 10;
 }
 
 // Shop connector //
 
-.connector-shop-right{
-    fill: #4EBBED;
-    stroke: #fff;
+.connector-shop-right, .connector-shop-bottom, .connector-shop-top{
+    stroke: $white;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
+}
+.connector-shop-right{
+    fill: #4EBBED;
 }
 .connector-shop-bottom{
     fill: #2BB2EA;
-    stroke: #fff;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
 }
 .connector-shop-top{
     fill: #009DE5;
-    stroke: #fff;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
 }
 .connector-arrows{
     fill: none;
-    stroke: #fff;
+    stroke: $white;
     stroke-width: 2;
     stroke-miterlimit: 10;
 }
+
 
 // Billeys //
 
@@ -210,7 +182,7 @@
     stroke: #DCEAF3;
 }
 .money-bg{
-    fill: #fff;
+    fill: $white;
     stroke: #DCEAF3;
 }
 .euro{
@@ -221,32 +193,41 @@
     opacity: 0.2;
     fill: #262729;
 }
+.billey{
+    .js &{
+        display: none;
+    }
+    &.no-js-none{
+        opacity: 0;
+        .no-js &{
+            display: none;
+        }
+    }
+}
+
 
 // Processor //
 
-.proc-side{
-    fill: #4DBBEE;
-    stroke: #fff;
-    stroke-width: 0.5;
+.proc-side, .proc-top, .proc-hole{
+    stroke: $white;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
+}
+.proc-side{
+    fill: #4DBBEE;
+    stroke-width: 0.5;
 }
 .proc-top{
     fill: #009EE6;
-    stroke: #fff;
     stroke-width: 0.5;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
 }
 .proc-hole{
     fill: #009EE6;
-    stroke: #fff;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
+    
 }
 .ventilation{
     opacity: 0.5;
-    fill: #fff;
+    fill: $white;
 }
 
 // Internal logos //
