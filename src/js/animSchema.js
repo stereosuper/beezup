@@ -66,6 +66,9 @@ module.exports = function(schema){
             TweenLite.to(cables1, tempo, {drawSVG: '100% 100%'}),
             TweenLite.to(cables2, tempo, {drawSVG: '0 100%'})
         ]).add([
+            TweenLite.to([schema.find('a').children('.box-top'), $('[data-text]')], 0.2, {y: '-10px', onComplete: function(){
+                TweenLite.to([schema.find('a').children('.box-top'), $('[data-text]')], 0.1, {y: '0'});
+            }}),
             TweenLite.to(cables2, tempo, {drawSVG: '100% 100%'}),
             TweenLite.to(cables3, tempo, {drawSVG: '0 100%'})
         ])
@@ -86,6 +89,18 @@ module.exports = function(schema){
 
     TweenLite.set(billeys, {x: '-75px', y: '-40px', opacity: 1});
     billeys.eq(0).addClass('on');
+
+    schema.on('mouseenter', 'a', function(){
+        TweenLite.to(
+            [$(this).children('.box-top'), $('[data-text="' + $(this).attr('id') + '"]')],
+            0.3, {y: '-20px'}
+        );
+    }).on('mouseleave', 'a', function(){
+        TweenLite.to(
+            [$(this).children('.box-top'), $('[data-text="' + $(this).attr('id') + '"]')],
+            0.3, {y: '0px'}
+        );
+    });
 
 
     $(window).on('load', function(){

@@ -9,7 +9,7 @@ get_header(); ?>
 	
 	<section class='container wrapper-sticky'>
 		<img class='illus-responsive' src='<?php echo get_stylesheet_directory_uri(); ?>/layoutImg/block-beezup.png' srcset='<?php echo get_stylesheet_directory_uri(); ?>/layoutImg/block-beezup@2x.png 2x' alt=''>
-		
+
 		<div class='block-half block-txt block-title-home' id='titleHome'>
 			<h1 class='title-home' data-before='<?php the_field('title'); ?>' data-after='<?php the_field('title2'); ?>'><?php the_field('title'); ?></h1>
 
@@ -26,23 +26,23 @@ get_header(); ?>
 		<div class='wrapper-svg-home'>
 			<?php get_template_part( 'includes/schema' ); ?>
 			
-			<div class='text-illus market-places'>
+			<div class='text-illus market-places' data-text='marketplace'>
 				<div><strong><?php the_field('marketplaceText'); ?></strong></div>
 			</div>
 			
-			<div class='text-illus google-shopping'>
+			<div class='text-illus google-shopping' data-text='ads'>
 				<div><strong><?php the_field('productText'); ?></strong></div>
 			</div>
 
-			<div class='text-illus comparator'>
+			<div class='text-illus comparator' data-text='comparator'>
 				<div><strong><?php the_field('comparatorText'); ?></strong></div>
 			</div>
 
-			<div class='text-illus affiliate'>
+			<div class='text-illus affiliate' data-text='affiliation'>
 				<div><strong><?php the_field('affiliationText'); ?></strong></div>
 			</div>
 
-			<div class='text-illus retargeting'>
+			<div class='text-illus retargeting' data-text='retargeting'>
 				<div><strong><?php the_field('retargetingText'); ?></strong></div>
 			</div>
 

@@ -1,3 +1,11 @@
+.schema{
+    display: block;
+    width: calc(100% + #{$gutter});
+    position: relative;
+    margin: -30px 0 0 -$gutter;
+    overflow: visible !important;
+}
+
 .white{
     fill: $white;
 }
@@ -65,6 +73,11 @@
 
 // Connectors //
 
+.connector{
+    > .white{
+        stroke: #fff;
+    }
+}
 .connector-right, .connector-bottom{
     stroke: $white;
     stroke-miterlimit: 10;
@@ -130,17 +143,17 @@
 
 // Shop box //
 
-.box-shop-in, .box-shop-in2, .box-shop-right, .box-shop-bottom{
+/*.box-shop-in, .box-shop-in2,*/.box-shop-top, .box-shop-right, .box-shop-bottom{
     stroke: $white;
     stroke-miterlimit: 10;
 }
-.box-shop-in, .box-shop-in2{
-    stroke-linejoin: round;
-}
-.box-shop-in{
-    fill: #3A3C3D;
-}
-.box-shop-in2{
+// .box-shop-in, .box-shop-in2{
+//     stroke-linejoin: round;
+// }
+// .box-shop-in{
+//     fill: #3A3C3D;
+// }
+/*.box-shop-in2*/ .box-shop-top{
     fill: #262729;
 }
 .box-shop-right{
