@@ -38,7 +38,7 @@
         </radialGradient>
     </defs>
 
-    <a xlink:href='#' id='marketplace' transform='translate(-30, -16)'>
+    <a xlink:href='<?php the_field('marketplaceLink'); ?>' id='marketplace' transform='translate(-30, -16)'>
         <path class='shadow1' d='M973 230.5L791 424 491.2 271.9 673.7 78.6z'/>
         <g class='box'>
             <path class='behind' d='M484.9 240.3L667.4 47.1l-3.7-23.5-182.5 193.3zm482-40.9l-3.9-23.9L663.7 23.6l3.7 23.5z'/>
@@ -71,7 +71,7 @@
         </g>
     </a>
     
-    <a xlink:href='#' id='ads'>
+    <a xlink:href='<?php the_field('productLink'); ?>' id='ads'>
         <path class='shadow' d='M1197 297.5L1082 423 863.2 311.9l115.5-125.3z'/>
         <g class='box'>
             <path class='behind' d='M833.9 145.3L949.4 20.1 945.7.6 830.2 125.9zm334-13.9l-3.9-19.9L945.7.6l3.7 19.5z'/>
@@ -129,7 +129,7 @@
         </g>
     </g>
 
-    <a xlink:href='#' id='comparator'>
+    <a xlink:href='<?php the_field('comparatorLink'); ?>' id='comparator'>
         <path class='shadow' d='M1146.2 485.5l-54.9 59.5-226.9-114.1 55.5-59.3z'/>
         <g class='box'>
             <path class='behind' d='M862.9 426.3l55.5-59.2-2.7-15.5-55.5 59.3zm282 55.1l-2.9-15.9-226.3-113.9 2.7 15.5z'/>
@@ -324,7 +324,7 @@
         <path class='cable-wrapper' d='M744.8 596.8c-.3 0-.6-.1-.9-.2l-46.5-23.7c-1-.5-1.4-1.7-.9-2.7.5-1 1.7-1.4 2.7-.9l46.5 23.7c1 .5 1.4 1.7.9 2.7-.3.7-1 1.1-1.8 1.1zm8-7c-.3 0-.6-.1-.9-.2l-47.7-24.7c-1-.5-1.4-1.7-.9-2.7.5-1 1.7-1.4 2.7-.9l47.7 24.7c1 .5 1.4 1.7.9 2.7-.3.7-1 1.1-1.8 1.1z'/>
     </g>
 
-    <a xlink:href='#' id='retargeting'>
+    <a xlink:href='<?php the_field('retargetingLink'); ?>' id='retargeting'>
         <path class='shadow' d='M954 669.5L901 725l-177.8-90.1 53.5-55.3z'/>
         <g class='box'>
             <path class='behind' d='M721.9 631.3l53.5-55.2-2.7-15.5-53.5 55.3zm231 35.1l-2.9-15.9-177.3-89.9 2.7 15.5z'/>
@@ -349,7 +349,7 @@
         </g>
     </a>
 
-    <a xlink:href='#' id='affiliation'>
+    <a xlink:href='<?php the_field('affiliationLink'); ?>' id='affiliation'>
         <path class='shadow' d='M1106.7 690.4l-60 63.5-119.8-60.6-3.1-15-67.6-36.2 26.3-25.9 5.5 2.8 25.4-26.4z'/>
         <g class='box'>
             <path class='behind' d='M834.9 537.3l60.5-63.2-2.7-15.5-60.5 63.3zm254 35.1l-2.9-15.9-193.3-97.9 2.7 15.5z'/>
