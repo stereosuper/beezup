@@ -1,43 +1,41 @@
 .members{
     display: flex;
     justify-content: space-between;
-    .member{
-        width: calc(16.6666666667% - #{$gutter});
-        text-align: center;
-        .block-half &{
-            width: calc(33.3333% - #{$gutter});
-            &:nth-child(2){
-                margin-top: 80px;
-            }
-            &:nth-child(3){
-                margin-top: 45px;
-            }
-        }
-        .page-template-contact &{
-            position: absolute;
-            &:nth-child(1){
-                top: 150px;
-                left: $gutter;
-            }
-            &:nth-child(2){
-                top: 70px;
-                right: $gutter;
-            }
-            &:nth-child(3){
-                top: 300px;
-                right: calc(16.6666666667% + #{2*$gutter});
-            }
-        }
-    }
 }
 
 .member{
-    height: 365px;
+    width: calc(33.3333% - #{$gutter});
+    height: 385px;
     padding: 25px 15px;
     position: relative;
     margin: 0;
     font-family: $fira-medium;
+    text-align: center;
     color: $white;
+    .block-half &{
+        &:nth-child(2){
+            margin-top: 80px;
+        }
+        &:nth-child(3){
+            margin-top: 45px;
+        }
+    }
+    .page-template-contact &{
+        width: calc(16.6666% - #{$gutter});
+        position: absolute;
+        &:nth-child(1){
+            top: 150px;
+            left: $gutter;
+        }
+        &:nth-child(2){
+            top: 70px;
+            right: $gutter;
+        }
+        &:nth-child(3){
+            top: 300px;
+            right: calc(16.6666% + #{2*$gutter});
+        }
+    }
     &:before, &:after{
         display: none;
     }
@@ -52,10 +50,10 @@
         background-size: cover;
     }
     .name, .job{
+        display: block;
         position: relative;
     }
     .name{
-        display: block;
         margin: 0 0 5px;
         font-family: $fira-medium-italic;
         color: $text;
@@ -75,13 +73,14 @@
 
 
 @media (max-width: $desktop-small){
-    .member{
-        height: 330px;
-    }
     .members{
         .page-template-contact &{
             display: none;
         }
+    }
+
+    .member{
+        height: 330px;
     }
 }
 
@@ -102,13 +101,8 @@
 }
 
 @media (max-width: $phone-small){
-    .members{
-        .member{
-            width: calc(33.3333% - 5px);
-        }
-    }
-
     .member{
+        width: calc(33.3333% - 5px);
         height: 250px;
         font-size: 1.2rem;
         .job{
