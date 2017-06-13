@@ -210,8 +210,10 @@
     .js &{
         display: none;
     }
+}
+.js-billey{
+    opacity: 0;
     &.no-js-none{
-        opacity: 0;
         .no-js &{
             display: none;
         }

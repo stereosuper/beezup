@@ -60,7 +60,7 @@ $(function(){
 
     // Anim top home
     animTopHome();
-    animSchema($('#schema'));
+    animSchema($('#schema'), windowWidth);
     
     // Add url inputs
     addUrlInputs($('#addUrlInput'), $('#newInputsCount'));

@@ -7,8 +7,8 @@ var TweenLite = require('gsap/TweenLite');
 var TimelineLite = require('gsap/TimelineLite');
 require('gsap/src/uncompressed/plugins/DrawSVGPlugin');
 
-module.exports = function(schema){
-    if(!schema.length) return;
+module.exports = function(schema, windowWidth){
+    if(!schema.length || windowWidth < 781) return;
 
     var tl, tempo = 1;
     var cables = schema.find('.cable');
@@ -18,7 +18,7 @@ module.exports = function(schema){
     var countBilley = 0;
     var billeyTween1, billeyTween2;
     var firstRound = true, currentBilley, currentBilleyHtml;
-    var boxesTop = schema.find('a').children('.box-top'), dataSchemaText = schema.find('[data-schema-text]');
+    var boxesTop = schema.find('a').children('.box-top'), dataSchemaText = $('[data-schema-text]');
 
 
     function tweenBilley(){
@@ -93,12 +93,12 @@ module.exports = function(schema){
 
     schema.on('mouseenter', 'a', function(){
         TweenLite.to(
-            [$(this).children('.box-top'), schema.find('[data-schema-text="' + $(this).attr('id') + '"]')],
+            [$(this).children('.box-top'), $('[data-schema-text="' + $(this).attr('id') + '"]')],
             0.3, {y: '-20px'}
         );
     }).on('mouseleave', 'a', function(){
         TweenLite.to(
-            [$(this).children('.box-top'), schema.find('[data-schema-text="' + $(this).attr('id') + '"]')],
+            [$(this).children('.box-top'), $('[data-schema-text="' + $(this).attr('id') + '"]')],
             0.3, {y: '0px'}
         );
     });
