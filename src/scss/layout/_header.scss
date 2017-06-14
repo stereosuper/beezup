@@ -324,6 +324,12 @@
         }
     }
 
+    .sub-menu{
+        &:after{
+            left: 15px;
+        }
+    }
+
     .container-menu-main{
         > .btn{
             right: 30px;
