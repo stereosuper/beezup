@@ -34,7 +34,7 @@
 					<div id='containerMenuHead' class='container-menu-head'>
 						<button id='btnMenuClose' class='btn-menu-close' type='button'><?php _e('Close menu', 'beezup'); ?></button>
 						
-						<div id='wrapperMenuHead' class='wrapper-menu-head'>
+						<div class='wrapper-menu-head'>
 							<?php echo beezup_mlp_navigation(); ?>
 							<ul id='menuHead' class='menu-head'>
 								<?php if( get_field('contactLink', 'options') && get_field('contactLinkText', 'options') ){ ?>
@@ -58,7 +58,7 @@
 					</div>
 					
 					<div class='container-menu-main'>
-						<?php wp_nav_menu( array( 'theme_location' => 'primary', 'container' => 'nav', 'menu_class' => 'menu-main' ) ); ?>
+						<?php wp_nav_menu( array( 'theme_location' => 'primary', 'container' => 'nav', 'menu_class' => 'menu-main', 'menu_id' => 'menuMain' ) ); ?>
 						<button id='btnDemo' class='btn' data-appointlet-organization='beezup' data-appointlet-service='32290'><?php _e('Demo', 'Beezup'); ?></button>
 					</div>
 				</div>

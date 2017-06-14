@@ -1,5 +1,6 @@
 /* Header */
 .header{
+    height: 170px;
     position: relative;
     overflow: hidden;
     z-index: 9;
@@ -101,21 +102,38 @@
     justify-content: space-between;
     align-items: center;
     > .btn{
-        right: calc((100% - 1150px)/2);
+        right: calc((100% - 1150px) /2);
         backface-visibility: hidden;
     }
 }
 
 .menu-main{
     display: flex;
+    margin: 0;
     li{
         display: inline-block;
+        position: static;
         margin: 0 23px;
+        transition: opacity $transition;
+        &:hover{
+            > a{
+                color: $primary;
+                &:before{
+                    transform: scaleY(1);
+                }
+            }
+            > .sub-menu{
+                opacity: 1;
+                transform: translate3d(0, 0, 0);
+            }
+        }
+        &.off{
+            opacity: 0.3;
+        }
     }
     .current-menu-item, .current_page_parent, .current-page-ancestor{
-        position: relative;
         font-family: $fira-medium;
-        a{
+        > a{
             color: $primary;
             &:before{
                 transform: scaleY(1);
@@ -123,7 +141,10 @@
         }
     }
     a{
-        color: $black;
+        display: inline-block;
+        padding: 6px 0;
+        position: relative;
+        color: $text;
         text-decoration: none;
         &:before{
             content: '';
@@ -131,7 +152,7 @@
             position: absolute;
             left: 0;
             right: 0;
-            bottom: -15px;
+            bottom: -9px;
             background: $primary;
             transform: scaleY(0);
             transform-origin: 0 0;
@@ -142,6 +163,34 @@
             &:before{
                 transform: scaleY(1);
             }
+        }
+    }
+}
+
+.sub-menu{
+    padding: 20px 0 10px;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 90%;
+    margin: 0;
+    z-index: -1;
+    font-family: $fira;
+    background: rgba($white, 0.8);
+    opacity: 0;
+    transform: translate3d(0, -400%, 0);
+    transition: opacity $transition;
+    &:after{
+        content: '';
+        border-bottom: 1px solid rgba($grey, 0.2);
+        position: absolute;
+        left: 22px;
+        right: 0;
+        bottom: 0;
+    }
+    a{
+        &:before{
+            content: none;
         }
     }
 }
@@ -293,14 +342,13 @@
     .header{
         z-index: auto;
         &.deployed{
-            .nav{
+            .nav, .container-menu-head{
                 box-shadow: -1px 10px 52px 0 rgba(30, 80, 120, 0.2);
             }
             .container-menu-head, .container-menu-main{
                 transform: translate(0, 0);
             }
             .container-menu-head{
-                box-shadow: -1px 10px 52px 0 rgba(30, 80, 120, 0.2);
                 &:before{
                     transform: translate(0, -50%);
                 }
@@ -325,7 +373,7 @@
                 }
             }
         }
-        .nav {
+        .nav{
             flex-direction: row;
             position: fixed;
             top: 0;
@@ -348,12 +396,11 @@
         }
     }
 
-    .btn-menu, .btn-menu-close{
+    .btn-menu, .btn-menu-close, .bg-mobile-nav{
         display: block;
     }
 
     .bg-mobile-nav{
-        display: block;
         opacity: 0;
     }
 
@@ -416,16 +463,36 @@
         align-items: flex-start;
         transform: translate(0,0);
         li{
-            margin: 25px 0;
+            margin: 20px 0;
         }
         a{
             font-size: 1.8rem;
+            &:before{
+                bottom: 0;
+            }
+        }
+    }
+
+    .sub-menu{
+        padding: 0 0 0 20px;
+        position: static;
+        transform: none !important;
+        opacity: 1 !important;
+        font-size: 0.9em;
+        > li{
+            display: block;
+        }
+        a{
+            font-size: 1.6rem;
+        }
+        &:after{
+            content: none;
         }
     }
 
     .container-menu-main{
         width: 340px;
-        padding: 0 0 0 50px;
+        padding: 0 0 50px 50px;
         position: absolute;
         margin: 0;
         top: 0;
@@ -435,6 +502,7 @@
         flex-direction: column;
         justify-content: initial;
         align-items: flex-start;
+        overflow-y: scroll;
         background: $white;
         transform: translate(100%, 0);
         transition: $transition 0.2s;
@@ -488,24 +556,14 @@
     
     @media (max-height: 750px){
         .menu-main{
-          li{
-              margin: 15px 0;
-          }  
+            li{
+                margin: 10px 0;
+            }  
         }
 
         .container-menu-main{
             > .btn{
                 margin: 20px 0 0;
-            }
-        }
-
-        .menu-main{
-            .current-menu-item, .current_page_parent, .current-page-ancestor{
-                a{
-                    &:before{
-                        bottom: -8px;
-                    }
-                }
             }
         }
     }

@@ -47,6 +47,13 @@ $(function(){
         body.toggleClass('no-scroll');
     });
 
+    // Header rollover
+    $('#menuMain').on('mouseenter', '> li', function(){
+        $(this).siblings().addClass('off');
+    }).on('mouseleave', '> li', function(){
+        $(this).siblings().removeClass('off');
+    });
+
     // Newsletter inputs
     checkInputs($('.js-inline-form'));
     
