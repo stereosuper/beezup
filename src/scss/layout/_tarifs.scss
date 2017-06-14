@@ -63,14 +63,6 @@
 
 }
 
-.container-tarifs{
-    overflow: auto;
-}
-
-.tarifs{
-    min-width: 1130px;
-}
-
 .offer-spec{
     display: flex;
     flex-direction: column;
@@ -99,8 +91,19 @@
 }
 
 .tarif-header{
-    display: flex;
-    align-items: center;
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: 9;
+    transition: $transition;
+    &.sticky, &.sticky-stuck{
+        background: $white;
+        box-shadow: 0 0 50px rgba(0,0,0,0.1);
+    }
+    > .container {
+        display: flex;
+        align-items: center;
+    }
 }
 
 .wrapper-tarif-content{
@@ -287,6 +290,16 @@
     }
 }
 
+.container-tarifs{
+    > div {
+        min-width: 1060px;
+    }  
+}
+
+.tarif-body{
+    padding: 246px 30px 0;
+}
+
 .tarif-note{
     font-size: 1.4rem;
     margin: 50px 0 0 33%;
@@ -295,17 +308,25 @@
     font-family: $fira-italic;
 }
 
+
 @media (max-width: 1120px){
     .container-tarifs{
+        overflow: auto;
         border-left: 1px solid $secondary;
         border-right: 1px solid $secondary;
     }
+    .tarif-body{
+        padding: 0 30px;
+    }
     .tarifs {
-        padding: 0 $gutter*2;
+        padding: 0 30px;
     }
     .tarif-note{
         margin: 50px 0 0;
         padding: 0;
+    }
+    .tarif-header{
+        position: static;
     }
 }
 

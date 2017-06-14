@@ -3,8 +3,12 @@ var $ = require('jquery');
 window.requestAnimFrame = require('./requestAnimFrame.js');
 var throttle = require('./throttle.js');
 
-module.exports = function(stickyElt, givenPosition, unit = 'px', updateHeightOnScroll = false, wrapper = true){
-    if(!stickyElt.length) return;
+module.exports = function (stickyElt, givenPosition, {
+    unit = 'px',
+    updateHeightOnScroll = false,
+    wrapper = true
+} = {}) {
+    if (!stickyElt.length) return;
 
     var position, eltHeight, posTop;
     var windowHeight = $(window).height(); 
