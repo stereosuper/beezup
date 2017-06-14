@@ -1,6 +1,7 @@
 'use strict';
 
 var $ = require('jquery');
+var Cookies = require('js-cookie');
 
 // require('gsap');
 // require('gsap/CSSPlugin');
@@ -36,15 +37,22 @@ $(function(){
     }
 
     // Lang Switcher
-    $('#current-language').on('click', function(){
+    body.on('click', '#current-language', function(){
         langSwitcher.clickOnLanguage(windowWidth);
     });
     langSwitcher.checkLangState(windowWidth);
 
     // Header responsive
-    $('#btnMenu, #btnMenuClose, #bgMobile').on('click', function(){
+    body.on('click', '#btnMenu, #btnMenuClose, #bgMobile', function(){
         $('#header').toggleClass('deployed'); 
         body.toggleClass('no-scroll');
+    });
+
+    // Header rollover
+    $('#menuMain').on('mouseenter', '> li', function(){
+        $(this).siblings().addClass('off');
+    }).on('mouseleave', '> li', function(){
+        $(this).siblings().removeClass('off');
     });
 
     // Newsletter inputs
@@ -87,9 +95,18 @@ $(function(){
     // Dropdowns
     dropdown($('.js-btn-list'));
 
+    // Bees anim
     if($('.beesToAnim').length){
         animBees($('.beesToAnim'));
     }
+
+    // Cookies
+    body.on('click', '#btnCookies', function(e){
+        e.preventDefault();
+        Cookies.set('beez-cookies', true, { expires: 30, path: '/' });
+        $(this).parents('#cookies').addClass('off');
+    });
+
 
     $(window).on('resize', throttle(function(){
 

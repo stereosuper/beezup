@@ -1,4 +1,7 @@
 var $ = require('jquery');
+global.jQuery = $;
+
+require('hideseek');
 
 module.exports = function(wp, wrapper, countrySelect, sectorSelect, channelsList){
     if(!wp || !wrapper.length || !channelsList.length) return;
@@ -6,6 +9,20 @@ module.exports = function(wp, wrapper, countrySelect, sectorSelect, channelsList
     var form = countrySelect.closest('form');
     var channels = channelsList.find('li');
     var sectorError = wrapper.find('#sectorError');
+    var search = form.find('#channelsSearch');
+
+
+    function attachSearchEvent(){
+        if(!search.length) return;
+            
+        search.off().hideseek().on('_after', function(){
+            if(channels.filter(':visible').length){
+                sectorError.html('');
+            }else{
+                sectorError.html(wp.noChannelsSearch);
+            }
+        });
+    }
 
     function filterBySector(sector){
         channels.removeClass('hidden');
@@ -40,6 +57,8 @@ module.exports = function(wp, wrapper, countrySelect, sectorSelect, channelsList
                     channelsList.html(data);
                     wrapper.removeClass('loading');
                     channels = channelsList.find('li');
+
+                    attachSearchEvent()
 
                     if(sectorSelect.length){
                         filterBySector(sectorSelect.val());
@@ -76,5 +95,7 @@ module.exports = function(wp, wrapper, countrySelect, sectorSelect, channelsList
             filterBySector($(this).val());
         });
     }
+
+    attachSearchEvent();
     
 }

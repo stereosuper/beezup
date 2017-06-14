@@ -32,10 +32,12 @@
 }
 
 .page-intro-img{
-    display: flex;
-    align-items: center;
-    justify-content: center;
     flex: 1;
+    .page-template-reseaux &{
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 }
 
 .page-title-default{

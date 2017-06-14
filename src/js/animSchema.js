@@ -8,7 +8,7 @@ require('gsap/src/uncompressed/plugins/DrawSVGPlugin');
 module.exports = function(schema, windowWidth){
     if(!schema.length || windowWidth < 781) return;
 
-    var tl, tempo = 1;
+    var tl, tempo = 0.5;
     var cables = schema.find('.cable');
     var cables1 = cables.filter('.js-cable-1'), cables2 = cables.filter('.js-cable-2');
     var cables3 = cables.filter('.js-cable-3'), cables4 = cables.filter('.js-cable-4');
@@ -16,7 +16,7 @@ module.exports = function(schema, windowWidth){
     var countBilley = 0;
     var billeyTween1, billeyTween2;
     var firstRound = true, currentBilley, currentBilleyHtml;
-    var boxesTop = schema.find('a').children('.box-top'), dataSchemaText = $('[data-schema-text]');
+    var ease = Power3.easeOut;
 
 
     function tweenBilley(){
@@ -32,10 +32,10 @@ module.exports = function(schema, windowWidth){
             currentBilley = billeys.last();
         }
 
-        TweenLite.to(billeys.filter('.on'), tempo, {y: '+=5px'});
+        TweenLite.to(billeys.filter('.on'), tempo, {y: '+=5px', ease: Power0.easeNone});
 
-        billeyTween1 = TweenLite.fromTo(currentBilley, tempo, {x: '-75px', y: '-40px'}, {x: '45px', y: '25px'});
-        billeyTween2 = TweenLite.to(currentBilley, tempo, {y: '+=30px', className: '+=on'});
+        billeyTween1 = TweenLite.fromTo(currentBilley, tempo, {x: '-75px', y: '-40px'}, {x: '45px', y: '25px', ease: ease});
+        billeyTween2 = TweenLite.to(currentBilley, tempo, {y: '+=30px', className: '+=on', ease: ease});
 
         tl.add(billeyTween1).add(billeyTween2);
     }
@@ -62,21 +62,18 @@ module.exports = function(schema, windowWidth){
 
         tl.to(cables1, tempo, {drawSVG: '0 100%'})
           .add([
-            TweenLite.to(cables1, tempo, {drawSVG: '100% 100%'}),
-            TweenLite.to(cables2, tempo, {drawSVG: '0 100%'})
+            TweenLite.to(cables1, tempo, {drawSVG: '100% 100%', ease: ease}),
+            TweenLite.to(cables2, tempo, {drawSVG: '0 100%', ease: ease})
         ]).add([
-            TweenLite.to([boxesTop, dataSchemaText], 0.2, {y: '-10px', onComplete: function(){
-                TweenLite.to([boxesTop, dataSchemaText], 0.1, {y: '0'});
-            }}),
-            TweenLite.to(cables2, tempo, {drawSVG: '100% 100%'}),
-            TweenLite.to(cables3, tempo, {drawSVG: '0 100%'})
+            TweenLite.to(cables2, tempo, {drawSVG: '100% 100%', ease: ease}),
+            TweenLite.to(cables3, tempo, {drawSVG: '0 100%', ease: ease})
         ])
-          .to(cables3, tempo, {drawSVG: 0})
-          .to(cables4, tempo, {drawSVG: '0 100%'})
-          .to(cables4, tempo, {drawSVG: 0});
+          .to(cables3, tempo, {drawSVG: 0, ease: ease})
+          .to(cables4, tempo, {drawSVG: '0 100%', ease: ease})
+          .to(cables4, tempo, {drawSVG: 0, ease: ease});
 
-        billeyTween1 = TweenLite.to(billeys.eq(0), tempo, {x: '45px', y: '25px'});
-        billeyTween2 = TweenLite.to(billeys.eq(0), tempo, {y: '+=30px', className: '+=on'});
+        billeyTween1 = TweenLite.to(billeys.eq(0), tempo, {x: '45px', y: '25px', ease: ease});
+        billeyTween2 = TweenLite.to(billeys.eq(0), tempo, {y: '+=30px', className: '+=on', ease: ease});
 
         tl.add(billeyTween1).add(billeyTween2);
     }

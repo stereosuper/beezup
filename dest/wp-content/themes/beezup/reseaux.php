@@ -66,7 +66,7 @@ get_header(); ?>
             <?php $countrySelect = beezup_get_country_select($channelsIndex, $country); ?>
             
             <?php if( $countrySelect ){ ?>
-                <form action='<?php the_permalink(); ?>' method='GET' class='channels-form'>
+                <form action='<?php the_permalink(); ?>' method='GET' class='js-inline-form channels-form'>
                     <?php if( get_field('form') ){ ?>
                         <legend><?php the_field('form'); ?></legend>
                     <?php }elseif( get_field('form', $networkPage) ){ ?>
@@ -76,6 +76,11 @@ get_header(); ?>
                     <fieldset>
                         <?php echo beezup_get_sector_select(); ?>
                         <?php echo $countrySelect; ?>
+                        <div class='field-inline'>
+                            <input type='search' name='channels-search' id='channelsSearch' data-list='.channels-list'>
+                            <label for='channelsSearch'><?php _e('Search', 'beezup'); ?>...</label>
+                            <svg class='icon'><use xlink:href='#icon-search'></use></svg>
+                        </div>
 
                         <button type='submit' name='filter' value='true' class='btn-secondary'>GO</button>
                     </fieldset>

@@ -17,11 +17,7 @@ var checkLangState = function(windowWidth){
     if(windowWidth > 960){
         TweenLite.to(eltsToMove, 0.3, { y: '0px' });
     }else{
-        if(!langOpen){
-            TweenLite.to(eltsToMove, 0.3, { y: langHeight + 'px' });
-        }else{
-            TweenLite.to(eltsToMove, 0.3, { y: '0px' });
-        }
+        langOpen ? TweenLite.to(eltsToMove, 0.3, { y: '0px' }) : TweenLite.to(eltsToMove, 0.3, { y: langHeight + 'px' });
     }
 }    
 
@@ -30,11 +26,7 @@ var clickOnLanguage = function(windowWidth){
     containerMenuHead.toggleClass('open');
     
     if(windowWidth <= 960){
-        if(langOpen){
-            TweenLite.to(eltsToMove, 0.3, { y: langHeight + 'px' });
-        }else{
-            TweenLite.to(eltsToMove, 0.3, { y: '0px' });
-        }
+        langOpen ? TweenLite.to(eltsToMove, 0.3, { y: langHeight + 'px' }) : TweenLite.to(eltsToMove, 0.3, { y: '0px' });
     }
 
     langOpen = !langOpen;

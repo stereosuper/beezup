@@ -1,5 +1,6 @@
         </main>
 
+        <?php $cookie = isset($_COOKIE['beez-cookies']) ? true : false; ?>
 
         <footer role='contentinfo' class='footer'>
             <div class='top-footer'>
@@ -22,22 +23,22 @@
                         <ul class='social'>
                             <?php if(get_field('twitter', 'options')){ ?>
                                 <li>
-                                    <a href='<?php the_field('twitter', 'options'); ?>' title='<?php _e('Follow us on', 'beezup'); ?> Twitter' class='btn-secondary' target='_blank'><span><?php _e('Follow us on', 'beezup'); ?> Twitter</span><svg class='icon icon-twitter'><use xlink:href='#icon-twitter'></use></svg></a>
+                                    <a href='<?php the_field('twitter', 'options'); ?>' title='<?php _e('Follow us on', 'beezup'); ?> Twitter' class='btn-secondary' target='_blank'><span><?php _e('Follow us on', 'beezup'); ?> Twitter</span> <svg class='icon'><use xlink:href='#icon-twitter'></use></svg></a>
                                 </li>
                             <?php } ?>
                             <?php if(get_field('linkedin', 'options')){ ?>
                                 <li>
-                                    <a href='<?php the_field('linkedin', 'options'); ?>' title='<?php _e('Follow us on', 'beezup'); ?> LinkedIn' class='btn-secondary' target='_blank'><span><?php _e('Follow us on', 'beezup'); ?> LinkedIn</span><svg class='icon icon-linkedin'><use xlink:href='#icon-linkedin'></use></svg></a>
+                                    <a href='<?php the_field('linkedin', 'options'); ?>' title='<?php _e('Follow us on', 'beezup'); ?> LinkedIn' class='btn-secondary' target='_blank'><span><?php _e('Follow us on', 'beezup'); ?> LinkedIn</span> <svg class='icon'><use xlink:href='#icon-linkedin'></use></svg></a>
                                 </li>
                             <?php } ?>
                             <?php if(get_field('facebook', 'options')){ ?>
                                 <li>
-                                    <a href='<?php the_field('facebook', 'options'); ?>' title='<?php _e('Follow us on', 'beezup'); ?> Facebook' class='btn-secondary' target='_blank'><span><?php _e('Follow us on', 'beezup'); ?> Facebook</span><svg class='icon icon-facebook'><use xlink:href='#icon-facebook'></use></svg></a>
+                                    <a href='<?php the_field('facebook', 'options'); ?>' title='<?php _e('Follow us on', 'beezup'); ?> Facebook' class='btn-secondary' target='_blank'><span><?php _e('Follow us on', 'beezup'); ?> Facebook</span> <svg class='icon'><use xlink:href='#icon-facebook'></use></svg></a>
                                 </li>
                             <?php } ?>
                             <?php if(get_field('google', 'options')){ ?>
                                 <li>
-                                    <a href='<?php the_field('google', 'options'); ?>' title='<?php _e('Follow us on', 'beezup'); ?> Google +' class='btn-secondary' target='_blank'><span><?php _e('Follow us on', 'beezup'); ?> Google +</span><svg class='icon icon-google-plus'><use xlink:href='#icon-google-plus'></use></svg></a>
+                                    <a href='<?php the_field('google', 'options'); ?>' title='<?php _e('Follow us on', 'beezup'); ?> Google +' class='btn-secondary' target='_blank'><span><?php _e('Follow us on', 'beezup'); ?> Google +</span> <svg class='icon'><use xlink:href='#icon-google-plus'></use></svg></a>
                                 </li>
                             <?php } ?>
                         </ul>
@@ -47,11 +48,21 @@
                     </div>
                 </div>
             </div>
+
             <div class='bottom-footer'>
                 <div class='container'>
                     <?php wp_nav_menu( array('theme_location' => 'footer') ); ?>
                 </div>
             </div>
+
+            <?php if(!$cookie){ ?>
+                <div class='cookies' id='cookies'>
+                    <div class='container'>
+                        <p><?php the_field('cookies', 'options'); ?></p>
+                        <button type='button' class='btn-cookies' id='btnCookies'>OK</button>
+                    </div>
+                </div>
+            <?php } ?>
         </footer>
 
 
