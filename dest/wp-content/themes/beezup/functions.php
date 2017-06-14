@@ -578,6 +578,16 @@ add_action( 'after_setup_theme', 'beezup_instantiate_breadcrumbs_class' );
 
 
 /*-----------------------------------------------------------------------------------*/
+/* WP Rocket
+/*-----------------------------------------------------------------------------------*/
+function beez_cookies($cookies){
+    $cookies[] = 'beez-cookies';
+    return $cookies;
+}
+add_filter( 'rocket_cache_dynamic_cookies', 'beez_cookies' );
+
+
+/*-----------------------------------------------------------------------------------*/
 /* Enqueue Styles and Scripts
 /*-----------------------------------------------------------------------------------*/
 // Add defer attr to scripts
