@@ -18,7 +18,8 @@ module.exports = function(schema, windowWidth){
     var billeyTween1, billeyTween2;
     var firstRound = true, currentBilley, currentBilleyHtml;
     var easeOut = Power3.easeOut, easeIn = Power3.easeIn;
-    var random, bounce = CustomEase.create("custom", "M0,0 C0.4,0 0.593,0.983 0.6,1 0.662,0.916 0.664,0.88 0.7,0.88 0.742,0.88 0.8,0.985 0.814,0.998 0.825,0.994 1,1 1,1");
+    var random, bounce = CustomEase.create('custom', 'M0,0 C0.4,0 0.593,0.983 0.6,1 0.662,0.916 0.664,0.88 0.7,0.88 0.742,0.88 0.8,0.985 0.814,0.998 0.825,0.994 1,1 1,1');
+    var survol;
 
 
     function tweenBilley(){
@@ -93,9 +94,10 @@ module.exports = function(schema, windowWidth){
     billeys.eq(0).addClass('on');
 
     schema.on('mouseenter', 'a', function(){
+        survol = $(this).data('size') === 'small' ? 30 : 45;
         TweenLite.to(
             [$(this).children('.box-top'), $('[data-schema-text="' + $(this).attr('id') + '"]')],
-            0.3, {y: '-45px', ease: easeOut}
+            0.3, {y: '-' + survol + 'px', ease: easeOut}
         );
     }).on('mouseleave', 'a', function(){
         TweenLite.to(
