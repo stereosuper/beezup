@@ -486,6 +486,9 @@ a{
     z-index: 3;
 }
 
+.beesToAnim{
+    overflow: visible!important;
+}
 
 @media (max-width: $desktop-small){
     h1, .h1{
