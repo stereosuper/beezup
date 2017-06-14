@@ -51,8 +51,13 @@ $(function(){
     checkInputs($('.js-inline-form'));
     
     // Sticky
-    sticky($('#btnDemo'), 15, 'px', false, false);
-    sticky($('#sideLinksNav'), 50, 'vh');
+    sticky($('#btnDemo'), 15, {
+        wrapper: false 
+    });
+    sticky($('#tarifHeader'), 0);
+    sticky($('#sideLinksNav'), 50, {
+        unit: 'vh'
+    });
 
     // Fixed meu
     scrollTo($('#sideLinksNav'), true);
