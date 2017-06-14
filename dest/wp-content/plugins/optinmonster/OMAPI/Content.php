@@ -314,8 +314,36 @@ class OMAPI_Content {
 				echo $object->get_setting_ui( 'optins', 'mailpoet' );
 				echo $object->get_setting_ui( 'optins', 'mailpoet_list' );
 			}
+            if ( 'sidebar' !== $type ) {
 
-	        if ( 'sidebar' !== $type ) {
+                // Add WooCommerce Toggle
+                if ( $this->base->is_woocommerce_active() ) {
+                    echo $object->get_setting_ui( 'toggle', 'woocommerce-start');
+
+                    echo $object->get_setting_ui( 'optins', 'show_on_woocommerce');
+                    // Don't show if output can't use the_content filter
+                    if ( 'post' !== $type ) {
+	                    echo $object->get_setting_ui( 'optins', 'is_wc_shop' );
+                    }
+	                echo $object->get_setting_ui( 'optins', 'is_wc_product');
+	                echo $object->get_setting_ui( 'optins', 'is_wc_cart');
+	                echo $object->get_setting_ui( 'optins', 'is_wc_checkout');
+	                echo $object->get_setting_ui( 'optins', 'is_wc_account');
+	                echo $object->get_setting_ui( 'optins', 'is_wc_endpoint');
+	                echo $object->get_setting_ui( 'optins', 'is_wc_endpoint_order_pay');
+	                echo $object->get_setting_ui( 'optins', 'is_wc_endpoint_order_received');
+	                echo $object->get_setting_ui( 'optins', 'is_wc_endpoint_view_order');
+	                echo $object->get_setting_ui( 'optins', 'is_wc_endpoint_edit_account');
+	                echo $object->get_setting_ui( 'optins', 'is_wc_endpoint_edit_address');
+	                echo $object->get_setting_ui( 'optins', 'is_wc_endpoint_lost_password');
+	                echo $object->get_setting_ui( 'optins', 'is_wc_endpoint_customer_logout');
+	                echo $object->get_setting_ui( 'optins', 'is_wc_endpoint_add_payment_method');
+                    echo $object->get_setting_ui( 'optins', 'is_wc_product_category' );
+                    echo $object->get_setting_ui( 'optins', 'is_wc_product_tag' );
+                    echo $object->get_setting_ui( 'toggle', 'woocommerce-end');
+                }
+
+
 		        // Advanced Settings
 		        echo $object->get_setting_ui( 'toggle', 'advanced-start' );
 		        echo $object->get_setting_ui( 'optins', 'never' );
@@ -365,50 +393,13 @@ class OMAPI_Content {
 
 	public function migrate() {
 
-		$migration_data = get_option( '_om_migration_data' );
+
 		?>
-		<p><?php _e( 'You can migrate all of your existing OptinMonster data (optin forms, settings & integrations) to the new hosted platform. Just click the "Migrate" button below.', 'optin-monster-api' ); ?></p>
-		<p class="submit">
-			<a class="button button-primary" href="<?php echo wp_nonce_url( esc_url_raw( add_query_arg( array( 'optin_monster_api_view' => $this->view, 'optin_monster_api_action' => 'migrate' ), admin_url( 'admin.php?page=optin-monster-api-settings' ) ) ), 'omapi-action' ); ?>"><?php _e( 'Migrate', 'optin-monster-api' ); ?></a>
-		</p>
+		<p><?php _e( 'Your campaigns created within WordPress using the original OptinMonster plugin can be recreated manually in your OptinMonster account.', 'optin-monster-api' ); ?></p>
+
+        <p><a href="http://optinmonster.com/docs/old-wordpress-customers-migrating-to-the-new-optinmonster-app/"><?php __e( 'Read the full post about the changes.')?></a></p>
 
 		<?php
-		if ( $migration_data ) : ?>
-			<h3><?php _e( 'Migration Results', 'optin-monster-api' ); ?></h3>
-			<hr />
-			<?php if ( ! empty( $migration_data['errors'] ) ) : ?>
-				<h4><?php _e( 'Migration Errors', 'optin-monster-api' ); ?></h4>
-				<ul>
-					<?php foreach ( $migration_data['errors'] as $error ) : ?>
-						<li><span class="dashicons dashicons-no"></span> <?php echo $error; ?></li>
-					<?php endforeach; ?>
-				</ul>
-			<?php endif; ?>
-			<?php if ( isset( $migration_data['site'] ) ) : ?>
-				<h4><?php _e( 'Site Information', 'optin-monster-api' ); ?></h4>
-				<span class="dashicons dashicons-yes"></span> <?php printf( __( '%s has been registered.', 'optin-monster-api' ), $migration_data['site']->name ); ?>
-			<?php endif; ?>
-			<h4><?php _e( 'Optin Forms', 'optin-monster-api' ); ?></h4>
-			<ul>
-				<?php foreach ( $migration_data['migrated_optins'] as $optin_id ) : $optin = get_post( $optin_id ); ?>
-				<?php if ( $optin ) : ?>
-				<li><span class="dashicons dashicons-yes"></span> <?php echo $optin->post_title; ?></li>
-				<?php endif; ?>
-				<?php endforeach; ?>
-			</ul>
-			<?php if ( isset( $migration_data['integrations'] ) ) : ?>
-				<h4>Integrations</h4>
-				<p><span class="dashicons dashicons-yes"></span> <?php echo $migration_data['integrations']; ?></p>
-			<?php endif; ?>
-
-			<h3><?php _e( 'Reset Migration', 'optin-monster-api' ); ?></h3>
-			<hr />
-			<p><?php _e( 'If your optin forms, site information or integrations did not migrate properly you can reset the migration and try again. Please note that this can cause some data duplication in your account.', 'optin-monster-api' ); ?></p>
-			<p class="submit">
-				<a class="button button-secondary" href="<?php echo wp_nonce_url( esc_url_raw( add_query_arg( array( 'optin_monster_api_view' => $this->view, 'optin_monster_api_action' => 'migrate-reset' ), admin_url( 'admin.php?page=optin-monster-api-settings' ) ) ), 'omapi-action' ); ?>"><?php _e( 'Reset Migration', 'optin-monster-api' ); ?></a>
-			</p>
-
-		<?php endif;
 	}
 
 }

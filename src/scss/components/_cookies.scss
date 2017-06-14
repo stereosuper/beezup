@@ -1,0 +1,43 @@
+.cookies{
+    padding: 5px 0;
+    border-top: 2px solid $primary;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    font-size: 1.3rem;
+    text-align: center;
+    color: $primary;
+    background: $white;
+    transition: $transition;
+    &.off{
+        transform: translate3d(0, 100%, 0);
+    }
+    p{
+        display: inline-block;
+        margin-right: 45px;
+        margin-left: 45px;
+    }
+}
+
+.btn-cookies{
+    padding: 10px 12px;
+    border: 2px solid $primary;
+    line-height: 1;
+    color: $primary;
+    &:hover, &:focus{
+        background: $primary;
+        color: $white;
+    }
+}
+
+@media (max-width: $desktop){
+    .cookies{
+        p{
+            display: block;
+            margin-left: 0;
+            margin-right: 0;
+        }
+    }
+}

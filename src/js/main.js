@@ -1,6 +1,7 @@
 'use strict';
 
 var $ = require('jquery');
+var Cookies = require('js-cookie');
 
 // require('gsap');
 // require('gsap/CSSPlugin');
@@ -16,6 +17,7 @@ $(function(){
     var sticky = require('./sticky.js');
     var scrollTo = require('./scrollTo.js');
     var animTopHome = require('./animTopHome.js');
+    var animSchema = require('./animSchema.js');
     var addUrlInputs = require('./addUrlInputs.js');
     var filterChannels = require('./filterChannels.js');
     var dropdown = require('./dropdown.js');
@@ -35,23 +37,35 @@ $(function(){
     }
 
     // Lang Switcher
-    $('#current-language').on('click', function(){
+    body.on('click', '#current-language', function(){
         langSwitcher.clickOnLanguage(windowWidth);
     });
     langSwitcher.checkLangState(windowWidth);
 
     // Header responsive
-    $('#btnMenu, #btnMenuClose, #bgMobile').on('click', function(){
+    body.on('click', '#btnMenu, #btnMenuClose, #bgMobile', function(){
         $('#header').toggleClass('deployed'); 
         body.toggleClass('no-scroll');
+    });
+
+    // Header rollover
+    $('#menuMain').on('mouseenter', '> li', function(){
+        $(this).siblings().addClass('off');
+    }).on('mouseleave', '> li', function(){
+        $(this).siblings().removeClass('off');
     });
 
     // Newsletter inputs
     checkInputs($('.js-inline-form'));
     
     // Sticky
-    sticky($('#btnDemo'), 15, 'px', false, false);
-    sticky($('#sideLinksNav'), 50, 'vh');
+    sticky($('#btnDemo'), 15, {
+        wrapper: false 
+    });
+    sticky($('#tarifHeader'), 0);
+    sticky($('#sideLinksNav'), 50, {
+        unit: 'vh'
+    });
 
     // Fixed meu
     scrollTo($('#sideLinksNav'), true);
@@ -59,6 +73,7 @@ $(function(){
 
     // Anim top home
     animTopHome();
+    animSchema($('#schema'), windowWidth);
     
     // Add url inputs
     addUrlInputs($('#addUrlInput'), $('#newInputsCount'));
@@ -80,9 +95,18 @@ $(function(){
     // Dropdowns
     dropdown($('.js-btn-list'));
 
+    // Bees anim
     if($('.beesToAnim').length){
         animBees($('.beesToAnim'));
     }
+
+    // Cookies
+    body.on('click', '#btnCookies', function(e){
+        e.preventDefault();
+        Cookies.set('beez-cookies', true, { expires: 30, path: '/' });
+        $(this).parents('#cookies').addClass('off');
+    });
+
 
     $(window).on('resize', throttle(function(){
 

@@ -25,12 +25,12 @@ get_header(); ?>
 	</section>
 
     <section class='block-full section-benefits'>
-        <div class='container container-benefits'>
+        <div class='container container-benefits relative'>
             <?php if( have_rows('benefits') ){ ?>
                 <ul class='benefits'>
                     <?php while( have_rows('benefits') ){ the_row(); ?>
                         <li>
-                            <svg class='icon <?php the_sub_field('icon'); ?>'><use xlink:href='#<?php the_sub_field('icon'); ?>'></use></svg>
+                            <svg class='icon'><use xlink:href='#<?php the_sub_field('icon'); ?>'></use></svg>
                             <span><?php the_sub_field('text'); ?></span>
                         </li>
                     <?php } ?>
@@ -38,19 +38,18 @@ get_header(); ?>
             <?php } ?>
 
             <?php if( have_rows('sections') ){ ?>
+                <ol id='menuFonctionnalites' class='list-menu list-menu-fonctionnalites'>
+                    <?php while( have_rows('sections') ){ the_row(); ?>
+                        <li>
+                            <a class='link-arrow' href='#<?php the_sub_field('anchor'); ?>' title='<?php the_sub_field('title'); ?>'><?php the_sub_field('title'); ?></a>
+                        </li>
+                    <?php } ?>
+                </ol>
             <?php } ?>
         </div>
     </section>
 
     <div class='container relative'>
-        <ol id='menuFonctionnalites' class='list-menu list-menu-fonctionnalites'>
-
-            <?php while( have_rows('sections') ){ the_row(); ?>
-                <li>
-                    <a class='link-arrow' href='#<?php the_sub_field('anchor'); ?>' title='<?php the_sub_field('title'); ?>'><?php the_sub_field('title'); ?></a>
-                </li>
-            <?php } ?>
-        </ol>
         <div class='wrapper-sticky'>
 
             <?php if( have_rows('sections') ){ ?>

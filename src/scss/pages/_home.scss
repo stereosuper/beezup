@@ -30,6 +30,7 @@
     position: absolute;
     top: 0;
     margin: 0;
+    z-index: 2;
     > p{
         margin: 0;
     }
@@ -39,33 +40,23 @@
     margin: 30px 0 0;
 }
 
-#illus-home{
-    display: block;
-    position: relative;
-    z-index: 2;
-    width: calc(100% + 15px);
-    margin: -30px 0 0 -15px;
-    pointer-events: none;
-}
-
 .wrapper-svg-home{
     position: relative;
 }
 
 .text-illus{
     position: absolute;
-    transform: scaleY(0.75) rotate(-10deg);
-    z-index: 2;
+    text-transform: uppercase;
+    line-height: 1;
+    text-align: center;
+    pointer-events: none;
+    color: $primary;
+    transform: scaleY(0.75) rotate(35deg);
     > div{
         display: flex;
+        height: 100%;
         justify-content: center;
         align-items: center;
-        height: 100%;
-        text-align: center;
-        text-transform: uppercase;
-        line-height: 1;
-        color: $primary;
-        transform: rotate(45deg);
     }
     span{
         display: block;
@@ -74,8 +65,8 @@
     &.market-places{
         width: 30.6%;
         height: 41%;
-        top: 5.5%;
-        left: 44.5%;
+        top: 3.5%;
+        left: 43%;
         strong{
             font-size: 8rem;
         }
@@ -84,7 +75,7 @@
         width: 22.2%;
         height: 27%;
         top: 2%;
-        left: 72%;
+        left: 73%;
         strong{
             font-size: 4.5rem;
             > span{
@@ -96,7 +87,7 @@
         width: 23.5%;
         height: 13%;
         top: 51.5%;
-        left: 71.5%;
+        left: 72.5%;
         strong{
             font-size: 3.2rem;
         }
@@ -105,7 +96,7 @@
         width: 20%;
         height: 14%;
         top: 64.5%;
-        left: 70%;
+        left: 71%;
         strong{
             font-size: 3.2rem;
         }
@@ -114,7 +105,7 @@
         width: 18.5%;
         height: 12.5%;
         top: 77.5%;
-        left: 60%;
+        left: 61%;
         strong{
             font-size: 2.7rem;
         }
@@ -123,11 +114,11 @@
         width: 25.5%;
         height: 20.5%;
         top: 48%;
-        left: 0.5%;
+        left: 1.5%;
         strong{
             font-size: 4.5rem;
             color: $white;
-            >span{
+            > span{
                 font-size: 0.5em;
             }
         }

@@ -59,7 +59,9 @@ module.exports = function(){
         alreadyInitLarge = false;
     }
 
-    sticky(blockTitle, 150, 'px', true);
+    sticky(blockTitle, 150, {
+        updateHeightOnScroll: true
+    });
     TweenLite.to(titleHome, 0.3, {opacity: 1});
 
     btnTopHome.on('click', function(e){

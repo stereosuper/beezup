@@ -45,6 +45,12 @@
         font-size: 4.5rem;
         line-height: 1;
     }
+    .link-arrow{
+        &:hover, &:focus{
+            opacity: 0.6;
+            color: $white;
+        }
+    }
 }
 
 .list-quotes{

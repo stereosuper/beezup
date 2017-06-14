@@ -43,7 +43,38 @@ class OMAPI_Output {
      *
      * @var array
      */
-    public $fields = array( 'enabled', 'automatic', 'users', 'never', 'only', 'categories', 'taxonomies', 'show', 'type', 'shortcode', 'shortcode_output', 'mailpoet', 'test' );
+    public $fields = array(
+        'enabled',
+        'automatic',
+        'users',
+        'never',
+        'only',
+        'categories',
+        'taxonomies',
+        'show',
+        'type',
+        'shortcode',
+        'shortcode_output',
+        'mailpoet',
+        'test',
+        'show_on_woocommerce',
+        'is_wc_shop',
+	    'is_wc_product',
+	    'is_wc_cart',
+	    'is_wc_checkout',
+	    'is_wc_account',
+	    'is_wc_endpoint',
+	    'is_wc_endpoint_order_pay',
+	    'is_wc_endpoint_order_received',
+	    'is_wc_endpoint_view_order',
+	    'is_wc_endpoint_edit_account',
+	    'is_wc_endpoint_edit_address',
+	    'is_wc_endpoint_lost_password',
+	    'is_wc_endpoint_customer_logout',
+	    'is_wc_endpoint_add_payment_method',
+	    'is_wc_product_category',
+	    'is_wc_product_tag',
+    );
 
     /**
      * Flag for determining if localized JS variable is output.
@@ -159,7 +190,7 @@ class OMAPI_Output {
     public function filter_api_url( $url ) {
 
         // If the handle is not ours, do nothing.
-        if ( false === strpos( $url, 'a.optnmnstr.com/app/js/api.min.js' ) ) {
+        if ( false === strpos( $url, 'a.optnmstr.com/app/js/api.min.js' ) ) {
 	        return $url;
 	    }
 
@@ -420,6 +451,150 @@ class OMAPI_Output {
                 }
             }
 
+	        // If WooCommerce is enabled we can look for WooCommerce specific settings.
+	        if ( $this->base->is_woocommerce_active() ) {
+
+                // is_woocommerce anything
+		        if ( isset( $fields['show_on_woocommerce'] ) && $fields['show_on_woocommerce'] ) {
+			        if( is_woocommerce() ) {
+				        $content .= $html;
+				        $this->set_slug( $optin );
+				        continue;
+			        }
+		        }
+		        // is_product
+		        if ( isset( $fields['is_wc_product'] ) && $fields['is_wc_product'] ) {
+			        $global = false;
+			        if( is_product() ) {
+				        $content .= $html;
+				        $this->set_slug( $optin );
+				        continue;
+			        }
+		        }
+
+		        // is_cart
+		        if ( isset( $fields['is_wc_cart'] ) && $fields['is_wc_cart'] ) {
+			        $global = false;
+			        if( is_cart() ) {
+				        $content .= $html;
+				        $this->set_slug( $optin );
+				        continue;
+			        }
+		        }
+
+		        // is_checkout
+		        if ( isset( $fields['is_wc_checkout'] ) && $fields['is_wc_checkout'] ) {
+			        $global = false;
+			        if( is_checkout() ) {
+				        $content .= $html;
+				        $this->set_slug( $optin );
+				        continue;
+			        }
+		        }
+
+		        // is_account_page
+		        if ( isset( $fields['is_wc_account'] ) && $fields['is_wc_account'] ) {
+			        $global = false;
+			        if( is_account_page() ) {
+				        $content .= $html;
+				        $this->set_slug( $optin );
+				        continue;
+			        }
+		        }
+
+		        // is_wc_endpoint_url
+		        if ( isset( $fields['is_wc_endpoint'] ) && $fields['is_wc_endpoint'] ) {
+			        $global = false;
+			        if( is_wc_endpoint_url() ) {
+				        $content .= $html;
+				        $this->set_slug( $optin );
+				        continue;
+			        }
+		        }
+
+		        // is_wc_endpoint_url( 'order-pay' )
+		        if ( isset( $fields['is_wc_endpoint_order_pay'] ) && $fields['is_wc_endpoint_order_pay'] ) {
+			        $global = false;
+			        if( is_wc_endpoint_url( 'order-pay' ) ) {
+				        $content .= $html;
+				        $this->set_slug( $optin );
+				        continue;
+			        }
+		        }
+
+		        // is_wc_endpoint_url( 'order-received' )
+		        if ( isset( $fields['is_wc_endpoint_order_received'] ) && $fields['is_wc_endpoint_order_received'] ) {
+			        $global = false;
+			        if( is_wc_endpoint_url( 'order-received' ) ) {
+				        $content .= $html;
+				        $this->set_slug( $optin );
+				        continue;
+			        }
+		        }
+
+		        // is_wc_endpoint_url( 'view-order' )
+		        if ( isset( $fields['is_wc_endpoint_view_order'] ) && $fields['is_wc_endpoint_view_order'] ) {
+			        $global = false;
+			        if( is_wc_endpoint_url( 'view-order' ) ) {
+				        $content .= $html;
+				        $this->set_slug( $optin );
+				        continue;
+			        }
+		        }
+
+		        // is_wc_endpoint_url( 'edit-account' )
+		        if ( isset( $fields['is_wc_endpoint_edit_account'] ) && $fields['is_wc_endpoint_edit_account'] ) {
+			        $global = false;
+			        if( is_wc_endpoint_url( 'edit-account' ) ) {
+				        $content .= $html;
+				        $this->set_slug( $optin );
+				        continue;
+			        }
+		        }
+
+		        // is_wc_endpoint_url( 'edit-address' )
+		        if ( isset( $fields['is_wc_endpoint_edit_address'] ) && $fields['is_wc_endpoint_edit_address'] ) {
+			        $global = false;
+			        if( is_wc_endpoint_url( 'edit-address' ) ) {
+				        $content .= $html;
+				        $this->set_slug( $optin );
+				        continue;
+			        }
+		        }
+
+		        // is_wc_endpoint_url( 'lost-password' )
+		        if ( isset( $fields['is_wc_endpoint_lost_password'] ) && $fields['is_wc_endpoint_lost_password'] ) {
+			        $global = false;
+			        if( is_wc_endpoint_url( 'lost-password' ) ) {
+				        $content .= $html;
+				        $this->set_slug( $optin );
+				        continue;
+			        }
+		        }
+
+		        // is_wc_endpoint_url( 'customer-logout' )
+		        if ( isset( $fields['is_wc_endpoint_customer_logout'] ) && $fields['is_wc_endpoint_customer_logout'] ) {
+			        $global = false;
+			        if( is_wc_endpoint_url( 'customer-logout' ) ) {
+				        $content .= $html;
+				        $this->set_slug( $optin );
+				        continue;
+			        }
+		        }
+		        // is_wc_endpoint_url( 'add-payment-method' )
+		        if ( isset( $fields['is_wc_endpoint_add_payment_method'] ) && $fields['is_wc_endpoint_add_payment_method'] ) {
+			        $global = false;
+			        if( is_wc_endpoint_url( 'add-payment-method' ) ) {
+				        $content .= $html;
+				        $this->set_slug( $optin );
+				        continue;
+			        }
+		        }
+
+
+
+	        }
+
 			// If the optin is set to be automatically displayed, show it.
 	        if ( isset( $fields['automatic'] ) && $fields['automatic'] && is_singular( 'post' ) ) {
 		        $content .= $html;
@@ -657,6 +832,169 @@ class OMAPI_Output {
                     $this->set_slug( $optin );
                     continue;
                 }
+            }
+
+            // If WooCommerce is enabled we can look for WooCommerce specific settings.
+            if ( $this->base->is_woocommerce_active() ) {
+
+                // Separate never checks for WooCommerce pages that don't ID match
+	            if ( ! empty( $fields['never'] ) ) {
+		            // No global check on purpose. Global is still true if only this setting is populated.
+                    if ( in_array( wc_get_page_id( 'shop' ), (array) $fields['never'] ) && is_shop() ) {
+                        continue;
+                    }
+	            }
+
+                // is_woocommerce
+                if ( isset( $fields['show_on_woocommerce'] ) && $fields['show_on_woocommerce'] ) {
+                    $global = false;
+                    if( is_woocommerce() ) {
+                        $init[ $optin->post_name ] = $html;
+                        $this->set_slug( $optin );
+                        continue;
+                    }
+                }
+
+                // is_shop
+	            if ( isset( $fields['is_wc_shop'] ) && $fields['is_wc_shop'] ) {
+		            $global = false;
+		            if( is_shop() ) {
+			            $init[ $optin->post_name ] = $html;
+			            $this->set_slug( $optin );
+			            continue;
+		            }
+	            }
+
+	            // is_product
+	            if ( isset( $fields['is_wc_product'] ) && $fields['is_wc_product'] ) {
+		            $global = false;
+		            if( is_product() ) {
+			            $init[ $optin->post_name ] = $html;
+			            $this->set_slug( $optin );
+			            continue;
+		            }
+	            }
+
+                // is_cart
+	            if ( isset( $fields['is_wc_cart'] ) && $fields['is_wc_cart'] ) {
+		            $global = false;
+		            if( is_cart() ) {
+			            $init[ $optin->post_name ] = $html;
+			            $this->set_slug( $optin );
+			            continue;
+		            }
+	            }
+
+                // is_checkout
+	            if ( isset( $fields['is_wc_checkout'] ) && $fields['is_wc_checkout'] ) {
+		            $global = false;
+		            if( is_checkout() ) {
+			            $init[ $optin->post_name ] = $html;
+			            $this->set_slug( $optin );
+			            continue;
+		            }
+	            }
+
+                // is_account_page
+	            if ( isset( $fields['is_wc_account'] ) && $fields['is_wc_account'] ) {
+		            $global = false;
+		            if( is_account_page() ) {
+			            $init[ $optin->post_name ] = $html;
+			            $this->set_slug( $optin );
+			            continue;
+		            }
+	            }
+
+                // is_wc_endpoint_url
+	            if ( isset( $fields['is_wc_endpoint'] ) && $fields['is_wc_endpoint'] ) {
+		            $global = false;
+		            if( is_wc_endpoint_url() ) {
+			            $init[ $optin->post_name ] = $html;
+			            $this->set_slug( $optin );
+			            continue;
+		            }
+	            }
+
+                // is_wc_endpoint_url( 'order-pay' )
+	            if ( isset( $fields['is_wc_endpoint_order_pay'] ) && $fields['is_wc_endpoint_order_pay'] ) {
+		            $global = false;
+		            if( is_wc_endpoint_url( 'order-pay' ) ) {
+			            $init[ $optin->post_name ] = $html;
+			            $this->set_slug( $optin );
+			            continue;
+		            }
+	            }
+
+	            // is_wc_endpoint_url( 'order-received' )
+	            if ( isset( $fields['is_wc_endpoint_order_received'] ) && $fields['is_wc_endpoint_order_received'] ) {
+		            $global = false;
+		            if( is_wc_endpoint_url( 'order-received' ) ) {
+			            $init[ $optin->post_name ] = $html;
+			            $this->set_slug( $optin );
+			            continue;
+		            }
+	            }
+
+	            // is_wc_endpoint_url( 'view-order' )
+	            if ( isset( $fields['is_wc_endpoint_view_order'] ) && $fields['is_wc_endpoint_view_order'] ) {
+		            $global = false;
+		            if( is_wc_endpoint_url( 'view-order' ) ) {
+			            $init[ $optin->post_name ] = $html;
+			            $this->set_slug( $optin );
+			            continue;
+		            }
+	            }
+
+	            // is_wc_endpoint_url( 'edit-account' )
+	            if ( isset( $fields['is_wc_endpoint_edit_account'] ) && $fields['is_wc_endpoint_edit_account'] ) {
+		            $global = false;
+		            if( is_wc_endpoint_url( 'edit-account' ) ) {
+			            $init[ $optin->post_name ] = $html;
+			            $this->set_slug( $optin );
+			            continue;
+		            }
+	            }
+
+	            // is_wc_endpoint_url( 'edit-address' )
+	            if ( isset( $fields['is_wc_endpoint_edit_address'] ) && $fields['is_wc_endpoint_edit_address'] ) {
+		            $global = false;
+		            if( is_wc_endpoint_url( 'edit-address' ) ) {
+			            $init[ $optin->post_name ] = $html;
+			            $this->set_slug( $optin );
+			            continue;
+		            }
+	            }
+
+	            // is_wc_endpoint_url( 'lost-password' )
+	            if ( isset( $fields['is_wc_endpoint_lost_password'] ) && $fields['is_wc_endpoint_lost_password'] ) {
+		            $global = false;
+		            if( is_wc_endpoint_url( 'lost-password' ) ) {
+			            $init[ $optin->post_name ] = $html;
+			            $this->set_slug( $optin );
+			            continue;
+		            }
+	            }
+
+	            // is_wc_endpoint_url( 'customer-logout' )
+	            if ( isset( $fields['is_wc_endpoint_customer_logout'] ) && $fields['is_wc_endpoint_customer_logout'] ) {
+		            $global = false;
+		            if( is_wc_endpoint_url( 'customer-logout' ) ) {
+			            $init[ $optin->post_name ] = $html;
+			            $this->set_slug( $optin );
+			            continue;
+		            }
+	            }
+	            // is_wc_endpoint_url( 'add-payment-method' )
+	            if ( isset( $fields['is_wc_endpoint_add_payment_method'] ) && $fields['is_wc_endpoint_add_payment_method'] ) {
+		            $global = false;
+		            if( is_wc_endpoint_url( 'add-payment-method' ) ) {
+			            $init[ $optin->post_name ] = $html;
+			            $this->set_slug( $optin );
+			            continue;
+		            }
+	            }
+
+
             }
 
             // If we should be loading globally, do it now.

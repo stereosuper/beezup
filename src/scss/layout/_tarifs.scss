@@ -1,5 +1,6 @@
 .offer{
     display: inline-block;
+    width: 24%;
     > h2 {
         text-transform: uppercase;
         font-family: $fira-bold;
@@ -48,15 +49,33 @@
     }
 }
 
+.offers{
+    display: flex;
+    flex: 1;
+    justify-content: space-between;
+}
+
+.container-slider{
+    display: flex;
+    flex-direction: column;
+    width: 33%;
+    align-items: flex-start;
+
+}
+
 .offer-spec{
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 30px 25px 40px;
+    padding: 30px 0 40px;
     background: $white;
     box-shadow: 0px 2px 11.05px 1.95px rgba(0, 0, 0, 0.06); 
     > a {
         letter-spacing: 0;
+        padding: 15px 42px 15px 19px;
+        .icon{
+            right: 22px;
+        }
     }
 }
 
@@ -65,6 +84,267 @@
     font-family: $fira-medium;
     font-size: 3.5rem;
     .small{
+        position: relative;
         font-size: 2.2rem;
+        top: -8px;
+    }
+}
+
+.tarif-header{
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: 9;
+    transition: $transition;
+    &.sticky, &.sticky-stuck{
+        background: $white;
+        box-shadow: 0 0 50px rgba(0,0,0,0.1);
+    }
+    > .container {
+        display: flex;
+        align-items: center;
+    }
+}
+
+.wrapper-tarif-content{
+    position: relative;
+
+    $widthBloc : 16.08*90/100*1%;  // width-offer * width-offer-title / 100 -> produit en croix
+    
+    $leftBlue1 : 33% + 0.804%; // width feature-title + padding-left
+    $leftBlue2 : $leftBlue1 + $widthBloc + 0.804%*2 + (67 * (4 / 3) / 100); // left1 + width bloc bleu + padding + gutter
+
+    $leftBlue3 : $leftBlue2 + $widthBloc + 0.804%*2 + (67 * (4 / 3) / 100); // left2 + width bloc bleu + padding + gutter
+    $leftBlue4 : $leftBlue3 + $widthBloc + 0.804%*2 + (67 * (4 / 3) / 100); // left3 + width bloc bleu + padding + gutter
+
+
+    .tarif-content{
+        margin: 7px 0;
+        position: relative;
+
+        &:before, &:after{
+            content: '';
+            display: inline-block;
+            width: $widthBloc;
+            position: absolute;
+            top: -7px;
+            bottom: -7px;
+        }
+        &:before{
+            left: $leftBlue1; 
+            background: #6bb9e1;
+            z-index: -1;
+        }
+        &:after{
+            left: $leftBlue2;
+            background: #2890c6;
+            z-index: -2;
+        }
+    }
+
+    &:before, &:after{
+        content: '';
+        display: inline-block;
+        width: $widthBloc;
+        position: absolute;
+        top: -7px;
+        bottom: -7px;
+    }
+    &:before{
+        left: $leftBlue3; 
+        background: #2b5368;
+        z-index: -1;
+    }
+    &:after{
+        left: $leftBlue4;
+        background: #262729;
+        z-index: -2;
+    }
+}
+
+.section-feature{
+    position: relative;
+    padding: 10px 0;
+    margin: 7px 0;
+    &:before, &:after{
+        content: '';
+        display: inline-block;
+        width: 16.08%;
+        height: auto;
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        border-radius: 0;
+        background: $white;
+        box-shadow: 0px 2px 11.05px 1.95px rgba(0, 0, 0, 0.06);
+        z-index: -1;
+    }
+    &:before{
+        left: 33%;
+    }
+    &:after{
+        transform: scale(1,1) !important;
+        $left02: (33 + 16.08 + (67 * (4 / 3) / 100)) * 1%; // width-title-feature + width-offer + (width-content-feature * width-gutter-offer / 100 )
+        left: $left02;
+    }
+    > ul {
+        margin: 0;
+        &:before, &:after{
+            content: '';
+            display: inline-block;
+            width: 16.08%;
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            background: $white;
+            box-shadow: 0px 2px 11.05px 1.95px rgba(0, 0, 0, 0.06);
+            z-index: -1;
+        }
+        &:before{
+            $right02: (16.08 + (67 * (4 / 3) / 100)) * 1%; // width-offer + (width-content-feature * width-gutter-offer / 100 )
+            right: $right02;
+        }
+        &:after{
+            right: 0;
+        }
+    }
+    h3{
+        font-family: $fira-medium;
+        font-size: 1.6rem;
+        color: $primary;
+        display: inline-block;
+        width: 33%;
+        margin: 0 0 1em;
+        > i {
+            font-family: $fira-italic;
+            display: block;
+        }
+    }
+}
+
+.feature{
+    display: flex;
+    align-items: center;
+    margin: 0 0 1em;
+}
+
+.feature-content{
+    display: flex;
+    flex: 1;
+    > span{
+        width: 25%;
+        text-align: center;
+    }
+    .icon-check{
+        color: #0fbc37;
+    }
+}
+
+.feature-title{
+    width: 33%;
+}
+
+.tarif-content{
+    ul{
+        padding: 0;
+    }
+}
+
+.feature{
+    &:before, &:after{
+        content: none;
+    }
+}
+
+.tarif-footer{
+    display: flex;
+    margin: 20px 0 0 33%;
+    justify-content: space-around;
+    .icon{
+        width: 13px;
+        height: 13px;
+    }
+    > span{
+        text-align: center;
+        width: 24%;
+        &:first-child{
+            > .icon{
+                color: #6bb9e1;
+            }
+        }
+        &:nth-child(2){
+            > .icon{
+                color: #2890c6;
+            }
+        }
+        &:nth-child(3){
+            > .icon{
+                color: #2b5368;
+            }
+        }
+        &:nth-child(4){
+            > .icon{
+                color: #262729;
+            }
+        }
+    }
+}
+
+.container-tarifs{
+    > div {
+        min-width: 1060px;
+    }  
+}
+
+.tarif-body{
+    padding: 246px 30px 0;
+}
+
+.tarif-note{
+    font-size: 1.4rem;
+    margin: 50px 0 0 33%;
+    padding: 0 0 0 1.2%;
+    color: #808081;
+    font-family: $fira-italic;
+}
+
+
+@media (max-width: 1120px){
+    .container-tarifs{
+        overflow: auto;
+        border-left: 1px solid $secondary;
+        border-right: 1px solid $secondary;
+    }
+    .tarif-body{
+        padding: 0 30px;
+    }
+    .tarifs {
+        padding: 0 30px;
+    }
+    .tarif-note{
+        margin: 50px 0 0;
+        padding: 0;
+    }
+    .tarif-header{
+        position: static;
+    }
+}
+
+@media (max-width: $phone){
+    .section-feature{
+        h3{
+            font-size: 1.4rem;
+        }
+    }
+    .feature-title{
+        font-size: 1.4rem;
+    }
+    .feature-content{
+        > span {
+            font-size: 1.4rem;
+        }
+        .icon-check{
+            width: 13px;
+        }
     }
 }

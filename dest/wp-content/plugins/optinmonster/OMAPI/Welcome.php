@@ -94,7 +94,7 @@ class OMAPI_Welcome {
 		// Make sure welcome page is always first page to view.
 		if ( 'toplevel_page_optin-monster-api-settings' === $screen->id ) {
 			$welcome = get_option( 'optin_monster_viewed_welcome', false );
-			if ( ! $welcome && ! $this->base->get_api_credentials() ) {
+			if ( ! $welcome && ! $this->base->get_api_credentials() && ! is_network_admin() ) {
 				die( wp_redirect( 'admin.php?page=optin-monster-api-welcome' ) );
 			}
 		}

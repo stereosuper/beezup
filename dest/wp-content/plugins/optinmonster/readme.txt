@@ -2,8 +2,8 @@
 Contributors: optinmonster, griffinjt, smub
 Tags: wordpress popup, popup, lightbox popup, mailchimp, aweber, campaign monitor, constant contact, exit-intent, madmimi, infusionsoft, getresponse, hubspot, marketo, activecampaign, pardot, totalsend, emma, icontact, mailerlite, mailpoet, google analytics, pop over, optin forms, email list, subscribers, wordpress popup form, lightbox, wordpress popups, popups, lightbox popups, optin form, wordpress optin form, sidebar optin form, sidebar optin, sidebar form, wordpress overlay popup, wordpress popup plugin, popup plugin, wordpress lightbox optin, wordpress lightbox optin form, after post optin form, wordpress after post optin form, after post optin form plugin, lightbox popup plugin, wordpress popup solution, exit intent, exit-intent, optinmonster, optin monster, optin-monster, mobile popup, mobile popups, mobile optin forms, mobile optins, lightbox optins, wordpress mobile popup, wordpress mobile popups, wordpress mobile optin forms, wordpress lightbox optins, lead gen, lead generation, wordpress lead generation, lead generation wordpress, wordpress lead gen, fullscreen, welcome gate, interstitial
 Requires at least: 3.5.1
-Tested up to: 4.7.4
-Stable tag: 1.1.9
+Tested up to: 4.8
+Stable tag: 1.2.0
 License: GNU General Public License v2.0 or later
 
 OptinMonster helps you grow your email list by converting visitors into subscribers and customers. Get more email subscribers now!
@@ -160,11 +160,16 @@ OptinMonster is the <a href="http://optinmonster.com" rel="friend" title="OptinM
 
 == Changelog ==
 
+= 1.2.0 =
+* Added additional support for WooCommerce display settings.
+* Updated language for legacy migrations.
+* Fixed a multisite activation issue.
+
 = 1.1.9 =
-* Updated version numbers to prevent possible asset caching errors
+* Updated version numbers to prevent possible asset caching errors.
 
 = 1.1.8 =
-* Fixed possible undefined errors for API credentials
+* Fixed possible undefined errors for API credentials.
 
 = 1.1.7 =
 * Updated the API script domain for adblock.

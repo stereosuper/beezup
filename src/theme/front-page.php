@@ -7,48 +7,48 @@ get_header(); ?>
 
 <?php if ( have_posts() ) : the_post(); ?>
 	
-	<section class='container wrapper-sticky'>		
-		<div class='wrapper-svg-home'>
-			<?php get_template_part( 'includes/schema' ); ?>
-			
-			<div class='text-illus market-places'>
-				<div><strong><?php the_field('marketplaceText'); ?></strong></div>
-			</div>
-			
-			<div class='text-illus google-shopping'>
-				<div><strong><?php the_field('productText'); ?></strong></div>
-			</div>
-
-			<div class='text-illus comparator'>
-				<div><strong><?php the_field('comparatorText'); ?></strong></div>
-			</div>
-
-			<div class='text-illus affiliate'>
-				<div><strong><?php the_field('affiliationText'); ?></strong></div>
-			</div>
-
-			<div class='text-illus retargeting'>
-				<div><strong><?php the_field('retargetingText'); ?></strong></div>
-			</div>
-
-			<div class='text-illus your-shop'>
-				<div><strong><?php the_field('shopText'); ?></div>
-			</div>
-		</div>
-
+	<section class='container wrapper-sticky'>
 		<img class='illus-responsive' src='<?php echo get_stylesheet_directory_uri(); ?>/layoutImg/block-beezup.png' srcset='<?php echo get_stylesheet_directory_uri(); ?>/layoutImg/block-beezup@2x.png 2x' alt=''>
 
 		<div class='block-half block-txt block-title-home' id='titleHome'>
 			<h1 class='title-home' data-before='<?php the_field('title'); ?>' data-after='<?php the_field('title2'); ?>'><?php the_field('title'); ?></h1>
-			
+
 			<p id='introHome'><?php the_field('headerText'); ?></p>
-			
+
 			<?php if( get_field('headerBtn') ){ ?>
 				<button class='btn btn-arrow' id='btnTopHome' data-appointlet-organization='beezup' data-appointlet-service='32290'>
 					<span class='textToAnim' data-before="<?php the_field('headerBtn'); ?>" data-after="<?php if( get_field('headerBtn2') ){ the_field('headerBtn2'); } ?>"><?php the_field('headerBtn2'); ?></span>
 					<svg class='icon icon-arrow-right'><use xlink:href='#icon-arrow-right'></use></svg>
 				</button>
 			<?php } ?>
+		</div>
+
+		<div class='wrapper-svg-home'>
+			<?php get_template_part( 'includes/schema' ); ?>
+			
+			<div class='text-illus market-places' data-schema-text='marketplace'>
+				<div><strong><?php the_field('marketplaceText'); ?></strong></div>
+			</div>
+			
+			<div class='text-illus google-shopping' data-schema-text='ads'>
+				<div><strong><?php the_field('productText'); ?></strong></div>
+			</div>
+
+			<div class='text-illus comparator' data-schema-text='comparator'>
+				<div><strong><?php the_field('comparatorText'); ?></strong></div>
+			</div>
+
+			<div class='text-illus affiliate' data-schema-text='affiliation'>
+				<div><strong><?php the_field('affiliationText'); ?></strong></div>
+			</div>
+
+			<div class='text-illus retargeting' data-schema-text='retargeting'>
+				<div><strong><?php the_field('retargetingText'); ?></strong></div>
+			</div>
+
+			<div class='text-illus your-shop'>
+				<div><strong><?php the_field('shopText'); ?></strong></div>
+			</div>
 		</div>
 
 		<div class='wrapper-list-menu-home'>
@@ -75,7 +75,7 @@ get_header(); ?>
 							<?php the_sub_field('text'); ?>
 						</h3>
 						<?php if( get_sub_field('linkText') && get_sub_field('link') ){ ?>
-							<a href='<?php the_sub_field('link'); ?>' title='<?php the_sub_field('linkText'); ?>' class='link-arrow'>
+							<a href='<?php the_sub_field('link'); ?>' title="<?php the_sub_field('linkText'); ?>" class='link-arrow'>
 								<?php the_sub_field('linkText'); ?>
 							</a>
 						<?php } ?>
@@ -168,7 +168,7 @@ get_header(); ?>
 		<section class='container'>
 			<svg class='icon icon-blog title-icon'><use xlink:href='#icon-blog'></use></svg>
 			<?php if( get_field('blogTitle') ){ ?>
-				<h2 class='h1 small-m'><?php the_field('blogTitle'); ?></h2>
+				<h2 class='h1 small-m align-center'><?php the_field('blogTitle'); ?></h2>
 			<?php } ?>
 
 			<ul class='list-small-posts'>

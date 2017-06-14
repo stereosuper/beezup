@@ -1,0 +1,264 @@
+.schema{
+    display: block;
+    width: calc(100% + #{$gutter});
+    position: relative;
+    margin: -30px 0 0 -$gutter;
+    overflow: visible !important;
+}
+
+.white{
+    fill: $white;
+}
+.black{
+    fill: #262729;
+}
+.blue2{
+    fill: #4EBBED;
+}
+
+
+// Cables //
+
+.cable-bg, .cable, .cable-wrapper{
+    fill: none;
+    stroke-miterlimit: 10;
+}
+.cable-bg, .cable{
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.cable-wrapper{
+    stroke: #009EE6;
+    opacity: 0.4;
+}
+.cable-bg{
+    stroke: rgba($white, 0.6);
+}
+.cable{
+    opacity: 0.8;
+    &.on{
+        stroke: $secondary;
+    }
+}
+
+
+// Shadows //
+
+.shadow1, .shadow{
+    opacity: 0.12;
+}
+.shadow1{
+    fill: #009EE6;
+}
+.shadow{
+    fill: #45B0E1;
+}
+.ads-shadow{
+    fill: url(#ads-shadow);
+}
+.market-shadow{
+    fill: url(#market-shadow);
+}
+.comparator-shadow{
+    fill: url(#comparator-shadow);
+}
+.retargeting-shadow{
+    fill: url(#retargeting-shadow);
+}
+.affiliation-shadow{
+    fill: url(#affiliation-shadow);
+}
+
+
+// Connectors //
+
+.connector{
+    > .white{
+        stroke: #fff;
+    }
+}
+.connector-right, .connector-bottom{
+    stroke: $white;
+    stroke-miterlimit: 10;
+}
+.blue{
+    fill: #0184BD;
+}
+.primary{
+    fill: #0178AB;
+}
+.red{
+    fill: #DE0C20;
+}
+.red2{
+    fill: #BE091A;
+}
+.blue-flash{
+    fill: #0B11D9;
+}
+.blue-flash2{
+    fill: #050997;
+}
+.orange{
+    fill: #FF9C00;
+}
+.orange2{
+    fill: #EF9200;
+}
+.pink{
+    fill: #E30C95;
+}
+.pink2{
+    fill: #C81888;
+}
+.green{
+    fill: #23DA4A;
+}
+.green2{
+    fill: #15BC37;
+}
+
+
+// Box //
+
+.behind, .box-right, .box-bottom, .box-top{
+    stroke: #C6DDEB;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
+.behind{
+    fill: #0178AB;
+}
+.box-right{
+    fill: #FCFEFE;
+}
+.box-bottom{
+    fill: #EEF6FB;
+}
+.box-top{
+    fill: $white;
+}
+
+
+// Shop box //
+
+/*.box-shop-in, .box-shop-in2,*/.box-shop-top, .box-shop-right, .box-shop-bottom{
+    stroke: $white;
+    stroke-miterlimit: 10;
+}
+// .box-shop-in, .box-shop-in2{
+//     stroke-linejoin: round;
+// }
+// .box-shop-in{
+//     fill: #3A3C3D;
+// }
+/*.box-shop-in2*/ .box-shop-top{
+    fill: #262729;
+}
+.box-shop-right{
+    fill: #515153;
+}
+.box-shop-bottom{
+    fill: #3A3C3D;
+}
+
+// Shop connector //
+
+.connector-shop-right, .connector-shop-bottom, .connector-shop-top{
+    stroke: $white;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
+.connector-shop-right{
+    fill: #4EBBED;
+}
+.connector-shop-bottom{
+    fill: #2BB2EA;
+}
+.connector-shop-top{
+    fill: #009DE5;
+}
+.connector-arrows{
+    fill: none;
+    stroke: $white;
+    stroke-width: 2;
+    stroke-miterlimit: 10;
+}
+
+
+// Billeys //
+
+.money-side{
+    opacity: 0.2;
+    fill: #0289C8;
+    stroke: #DCEAF3;
+}
+.money-bg{
+    fill: $white;
+    stroke: #DCEAF3;
+}
+.euro{
+    opacity: 0.7;
+    fill: #0289C8;
+}
+.cache-top{
+    opacity: 0.2;
+    fill: #262729;
+}
+.billey{
+    .js &{
+        display: none;
+    }
+}
+.js-billey{
+    opacity: 0;
+    &.no-js-none{
+        .no-js &{
+            display: none;
+        }
+    }
+}
+
+
+// Processor //
+
+.proc-side, .proc-top, .proc-hole{
+    stroke: $white;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
+.proc-side{
+    fill: #4DBBEE;
+    stroke-width: 0.5;
+}
+.proc-top{
+    fill: #009EE6;
+    stroke-width: 0.5;
+}
+.proc-hole{
+    fill: #009EE6;
+    
+}
+.ventilation{
+    opacity: 0.5;
+    fill: $white;
+}
+
+// Internal logos //
+
+.logo-affiliation{
+    clip-path: url(#clip-affiliation);
+}
+.logo-marketplace{
+    clip-path: url(#clip-market);
+}
+.logo-ads{
+    clip-path: url(#clip-ads);
+}
+.logo-retargeting {
+    clip-path: url(#clip-retargeting);
+}
+.logo-comparator{
+    clip-path: url(#clip-comparator);
+}

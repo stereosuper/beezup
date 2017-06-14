@@ -12,6 +12,7 @@
 
 .channels{
     min-height: 280px;
+    padding-top: 5px;
     position: relative;
     margin-bottom: 40px;
     text-align: center;
@@ -22,6 +23,12 @@
         > p, > div{
             opacity: 0.2;
         }
+    }
+    span{
+        display: none;
+    }
+    .no-results{
+        display: none;
     }
 }
 
@@ -100,12 +107,14 @@
     }
 }
 
+
 @media (max-width: $desktop-small){
     .channels-type{
         padding: 48px 40px 25px;
     }
 }
-@media (max-width: $tablet){
+
+@media (max-width: $desktop){
     .channels-type{
         display: inline-block;
         position: relative;
@@ -116,6 +125,7 @@
         padding: 48px 40px 25px;
     }
 }
+
 @media (max-width: $phone-small){
     .channels-type{
         padding: 42px 25px 15px;
