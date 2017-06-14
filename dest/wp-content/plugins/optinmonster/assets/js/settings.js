@@ -36,9 +36,10 @@ jQuery(document).ready(function ($) {
      */
     function omapiSettingsToggle() {
 
-        $('.omapi-ui-toggle-controller').click(function () {
-            $(this).toggleClass("toggled");
-            $(this).siblings(".omapi-ui-toggle-content").toggleClass("visible");
+        $('.omapi-ui-toggle-controller').click(function (e) {
+            var thisToggle = e.currentTarget;
+            $(thisToggle).toggleClass("toggled");
+            $(thisToggle).next(".omapi-ui-toggle-content").toggleClass("visible");
         });
 
     }

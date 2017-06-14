@@ -265,12 +265,12 @@ class OMAPI_Menu {
 			foreach ( $optins as $optin ) {
 				$optin = get_post( $optin->ID );
 				$slug = $optin->post_name;
-
+				$design_type = get_post_meta( $optin->ID, '_omapi_type', true );
 				$optin_data[ $slug ] = array(
-					'Optin Type'                       => get_post_meta( $optin->ID, '_omapi_type', true ),
+					'Optin Type'                       => $design_type,
+					'WordPress ID'                     => $optin->ID,
 					'Associated IDs'                   => get_post_meta( $optin->ID, '_omapi_ids', true ),
-					'Current Status'                   => get_post_meta( $optin->ID, '_omapi_enabled', true ),
-					'Automatic Output Status'          => get_post_meta( $optin->ID, '_omapi_automatic', true ),
+					'Current Status'                   => get_post_meta( $optin->ID, '_omapi_enabled', true ) ? 'Live' : 'Disabled',
 					'User Settings'                    => get_post_meta( $optin->ID, '_omapi_users', true ),
 					'Pages to Never show on'           => get_post_meta( $optin->ID, '_omapi_never', true ),
 					'Pages to Only show on'            => get_post_meta( $optin->ID, '_omapi_only', true ),
@@ -279,6 +279,10 @@ class OMAPI_Menu {
 					'Template types to Show on'        => get_post_meta( $optin->ID, '_omapi_show', true ),
 					'Shortcodes Synced and Recognized' => get_post_meta( $optin->ID, '_omapi_shortcode', true ) ? htmlspecialchars_decode( get_post_meta( $optin->ID, '_omapi_shortcode_output', true ) ) : 'None recognized',
 				);
+				if ( 'post' == $design_type ) {
+                    $optin_data[$slug]['Automatic Output Status'] = get_post_meta( $optin->ID, '_omapi_automatic', true ) ? 'Enabled' : 'Disabled';
+				}
+
 			}
 		}
 		return $optin_data;
@@ -490,6 +494,12 @@ class OMAPI_Menu {
 					case 'advanced-end' :
 						$ret = $this->get_toggle_end();
 					break 2;
+                    case 'woocommerce-start' :
+                        $ret = $this->get_toggle_start( $setting, __( 'WooCommerce Settings', 'optin-monster-api'), __('More specific settings available for WooCommerce integration.', 'optin-monster-api') );
+                        break 2;
+                    case 'woocommerce-end' :
+                        $ret = $this->get_toggle_end();
+                        break 2;
 				}
 		    break;
 
@@ -556,7 +566,11 @@ class OMAPI_Menu {
 				    	// Possibly load taxonomies setting if they exist.
 					    $taxonomies                = get_taxonomies( array( 'public' => true, '_builtin' => false ) );
 					    $taxonomies['post_format'] = 'post_format';
-					    $data                      = array();
+                        $data                      = array();
+
+                        // Allow returned taxonmies to be filtered before creating UI.
+                        $taxonomies = apply_filters('optin_monster_api_setting_ui_taxonomies', $taxonomies );
+
 					    if ( $taxonomies ) {
 					        foreach ( $taxonomies as $taxonomy ) {
 						        $terms = get_terms( $taxonomy );
@@ -604,6 +618,111 @@ class OMAPI_Menu {
 				    case 'mailpoet_list' :
 				    	$ret = $this->get_dropdown_field( $setting, $value, $id, $this->get_mailpoet_lists(), __( 'Add lead to this MailPoet list:', 'optin-monster-api' ), __( 'All successful leads for the optin will be added to this particular MailPoet list.', 'optin-monster-api' ) );
 				    break 2;
+
+				    // Start WooCommerce settings.
+				    case 'show_on_woocommerce' :
+					    $ret = $this->get_checkbox_field( $setting, $value, $id, __( 'Show on all WooCommerce pages', 'optin-monster-api' ), __( 'The optin will show on any page where WooCommerce templates are used.', 'optin-monster-api' ) );
+					    break 2;
+
+				    case 'is_wc_shop' :
+					    $ret = $this->get_checkbox_field( $setting, $value, $id, __( 'Show on WooCommerce shop', 'optin-monster-api' ), __( 'The optin will show on the product archive page (shop).', 'optin-monster-api' ) );
+					    break 2;
+
+				    case 'is_wc_product' :
+					    $ret = $this->get_checkbox_field( $setting, $value, $id, __( 'Show on WooCommerce products', 'optin-monster-api' ), __( 'The optin will show on any single product.', 'optin-monster-api' ) );
+					    break 2;
+
+				    case 'is_wc_cart' :
+					    $ret = $this->get_checkbox_field( $setting, $value, $id, __( 'Show on WooCommerce Cart', 'optin-monster-api' ), __( 'The optin will show on the cart page.', 'optin-monster-api' ) );
+					    break 2;
+
+				    case 'is_wc_checkout' :
+					    $ret = $this->get_checkbox_field( $setting, $value, $id, __( 'Show on WooCommerce Checkout', 'optin-monster-api' ), __( 'The optin will show on the checkout page.', 'optin-monster-api' ) );
+					    break 2;
+
+				    case 'is_wc_account' :
+					    $ret = $this->get_checkbox_field( $setting, $value, $id, __( 'Show on WooCommerce Customer Account', 'optin-monster-api' ), __( 'The optin will show on the WooCommerce customer account pages.', 'optin-monster-api' ) );
+					    break 2;
+
+                    case 'is_wc_endpoint' :
+	                    $ret = $this->get_checkbox_field( $setting, $value, $id, __( 'Show on all WooCommerce Endpoints', 'optin-monster-api' ), __( 'The optin will show when on any WooCommerce Endpoint.', 'optin-monster-api' ) );
+                        break 2;
+				    case 'is_wc_endpoint_order_pay' :
+					    $ret = $this->get_checkbox_field( $setting, $value, $id, __( 'Show on WooCommerce Order Pay endpoint', 'optin-monster-api' ), __( 'The optin will show when the endpoint page for order pay is displayed.', 'optin-monster-api' ) );
+					    break 2;
+
+				    case 'is_wc_endpoint_order_received' :
+					    $ret = $this->get_checkbox_field( $setting, $value, $id, __( 'Show on WooCommerce Order Received endpoint', 'optin-monster-api' ), __( 'The optin will show when the endpoint page for order received is displayed.', 'optin-monster-api' ) );
+					    break 2;
+
+				    case 'is_wc_endpoint_view_order' :
+					    $ret = $this->get_checkbox_field( $setting, $value, $id, __( 'Show on WooCommerce View Order endpoint', 'optin-monster-api' ), __( 'The optin will show when the endpoint page for view order is displayed.', 'optin-monster-api' ) );
+					    break 2;
+
+				    case 'is_wc_endpoint_edit_account' :
+					    $ret = $this->get_checkbox_field( $setting, $value, $id, __( 'Show on WooCommerce Edit Account endpoint', 'optin-monster-api' ), __( 'The optin will show when the endpoint page for edit account is displayed.', 'optin-monster-api' ) );
+					    break 2;
+
+				    case 'is_wc_endpoint_edit_address' :
+					    $ret = $this->get_checkbox_field( $setting, $value, $id, __( 'Show on WooCommerce Edit Address endpoint', 'optin-monster-api' ), __( 'The optin will show when the endpoint page for edit address is displayed.', 'optin-monster-api' ) );
+					    break 2;
+
+				    case 'is_wc_endpoint_lost_password' :
+					    $ret = $this->get_checkbox_field( $setting, $value, $id, __( 'Show on WooCommerce Lost Password endpoint', 'optin-monster-api' ), __( 'The optin will show when the endpoint page for lost password is displayed.', 'optin-monster-api' ) );
+					    break 2;
+
+				    case 'is_wc_endpoint_customer_logout' :
+					    $ret = $this->get_checkbox_field( $setting, $value, $id, __( 'Show on WooCommerce Customer Logout endpoint', 'optin-monster-api' ), __( 'The optin will show when the endpoint page for customer logout is displayed.', 'optin-monster-api' ) );
+					    break 2;
+
+				    case 'is_wc_endpoint_add_payment_method' :
+					    $ret = $this->get_checkbox_field( $setting, $value, $id, __( 'Show on WooCommerce Add Payment Method endpoint', 'optin-monster-api' ), __( 'The optin will show when the endpoint page for add payment method is displayed.', 'optin-monster-api' ) );
+					    break 2;
+
+				    case 'is_wc_product_category' :
+                        $taxonomy = 'product_cat';
+					    $terms = get_terms( $taxonomy );
+					    if ( $terms ) {
+						    ob_start();
+						    $display = isset( $value ) ? (array) $value : array();
+						    $args    = array(
+							    'descendants_and_self' => 0,
+							    'selected_cats'        => $display,
+							    'popular_cats'         => false,
+							    'walker'               => null,
+							    'taxonomy'             => $taxonomy,
+							    'checked_ontop'        => true
+						    );
+						    wp_terms_checklist( 0, $args );
+						    $output = ob_get_clean();
+						    if ( ! empty( $output ) ) {
+							    $ret = $this->get_custom_field( $setting, $output, __( 'Show on WooCommerce Product Categories:', 'optin-monster-api' ) );
+						    }
+					    }
+					    break 2;
+
+				    case 'is_wc_product_tag' :
+					    $taxonomy = 'product_tag';
+					    $terms = get_terms( $taxonomy );
+					    if ( $terms ) {
+						    ob_start();
+						    $display = isset( $value ) ? (array) $value : array();
+						    $args    = array(
+							    'descendants_and_self' => 0,
+							    'selected_cats'        => $display,
+							    'popular_cats'         => false,
+							    'walker'               => null,
+							    'taxonomy'             => $taxonomy,
+							    'checked_ontop'        => true
+						    );
+						    wp_terms_checklist( 0, $args );
+						    $output = ob_get_clean();
+						    if ( ! empty( $output ) ) {
+							    $ret = $this->get_custom_field( $setting, $output, __( 'Show on WooCommerce Product Tags:', 'optin-monster-api' ) );
+						    }
+					    }
+					    break 2;
+
 		    	}
 		    break;
 		    case 'note' :

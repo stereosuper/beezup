@@ -233,6 +233,28 @@ class OMAPI_Save {
 		    	$fields['taxonomies'] = isset( $data['taxonomies'] ) ? $data['taxonomies'] : array();
 		    	$fields['show']		  = isset( $data['show'] ) ? $data['show'] : array();
 
+		    	// WooCommerce Fields.
+			    $fields['show_on_woocommerce']               = isset( $data['show_on_woocommerce'] ) ? 1 : 0;
+			    $fields['is_wc_shop']                        = isset( $data['is_wc_shop'] ) ? 1 : 0;
+			    $fields['is_wc_product']                     = isset( $data['is_wc_product'] ) ? 1 : 0;
+			    $fields['is_wc_cart']                        = isset( $data['is_wc_cart'] ) ? 1 : 0;
+			    $fields['is_wc_checkout']                    = isset( $data['is_wc_checkout'] ) ? 1 : 0;
+			    $fields['is_wc_account']                     = isset( $data['is_wc_account'] ) ? 1 : 0;
+			    $fields['is_wc_endpoint']                    = isset( $data['is_wc_endpoint'] ) ? 1 : 0;
+			    $fields['is_wc_endpoint_order_pay']          = isset( $data['is_wc_endpoint_order_pay'] ) ? 1 : 0;
+			    $fields['is_wc_endpoint_order_received']     = isset( $data['is_wc_endpoint_order_received'] ) ? 1 : 0;
+			    $fields['is_wc_endpoint_view_order']         = isset( $data['is_wc_endpoint_view_order'] ) ? 1 : 0;
+			    $fields['is_wc_endpoint_edit_account']       = isset( $data['is_wc_endpoint_edit_account'] ) ? 1 : 0;
+			    $fields['is_wc_endpoint_edit_address']       = isset( $data['is_wc_endpoint_edit_address'] ) ? 1 : 0;
+			    $fields['is_wc_endpoint_lost_password']      = isset( $data['is_wc_endpoint_lost_password'] ) ? 1 : 0;
+			    $fields['is_wc_endpoint_customer_logout']    = isset( $data['is_wc_endpoint_customer_logout'] ) ? 1 : 0;
+			    $fields['is_wc_endpoint_add_payment_method'] = isset( $data['is_wc_endpoint_add_payment_method'] ) ? 1 : 0;
+
+			    // Save the data from the regular taxonomies fields into the WC specific tax field.
+			    $fields['is_wc_product_category']            = isset( $data['taxonomies']['product_cat'] ) ? $data['taxonomies']['product_cat'] : array();
+			    $fields['is_wc_product_tag']                 = isset( $data['taxonomies']['product_tag'] ) ? $data['taxonomies']['product_tag'] : array();
+
+
 				// Convert old test mode data and remove.
 			    $test_mode = get_post_meta( $optin_id, '_omapi_test', true );
 			    if ( isset( $test_mode ) && $test_mode ) {
