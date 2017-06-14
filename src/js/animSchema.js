@@ -17,6 +17,7 @@ module.exports = function(schema, windowWidth){
     var billeyTween1, billeyTween2;
     var firstRound = true, currentBilley, currentBilleyHtml;
     var ease = Power3.easeOut;
+    var random;
 
 
     function tweenBilley(){
@@ -36,6 +37,9 @@ module.exports = function(schema, windowWidth){
 
         billeyTween1 = TweenLite.fromTo(currentBilley, tempo, {x: '-75px', y: '-40px'}, {x: '45px', y: '25px', ease: ease});
         billeyTween2 = TweenLite.to(currentBilley, tempo, {y: '+=30px', className: '+=on', ease: ease});
+
+        random = Math.floor(Math.random() * 7);
+        cables.removeClass('hidden').filter('.js-cable-box-' + random).addClass('hidden');
 
         tl.add(billeyTween1).add(billeyTween2);
     }
