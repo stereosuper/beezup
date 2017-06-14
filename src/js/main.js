@@ -25,6 +25,7 @@ $(function(){
 
     var body = $('body');
     var forms = $('form');
+    var bees = $('.js-bees');
     // window.outerWidth returns the window width including the scroll, but it's not working with $(window).outerWidth
     var windowWidth = window.outerWidth, windowHeight = $(window).height();
 
@@ -96,8 +97,8 @@ $(function(){
     dropdown($('.js-btn-list'));
 
     // Bees anim
-    if($('.beesToAnim').length){
-        animBees($('.beesToAnim'));
+    if(bees.length){
+        animBees(bees);
     }
 
     // Cookies
