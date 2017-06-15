@@ -175,15 +175,15 @@ get_header(); ?>
         </div>
     </div>
 
-        <section class='container'>
-            <?php if( get_field('note') ){ ?>
-                <p class='tarif-note'><?php the_field('note'); ?></p>
-            <?php } ?>
-        </section>
+    <section class='container'>
+        <?php if( get_field('note') ){ ?>
+            <p class='tarif-note'><?php the_field('note'); ?></p>
+        <?php } ?>
+    </section>
 
-        <section class='container'>
+    <section class='container'>
         <?php if( get_field('fontionnalitesTitle') ){ ?>
-            <h2 class='h1'><?php the_field('fontionnalitesTitle'); ?></h2>
+            <h2 class='h1 section-title'><?php the_field('fontionnalitesTitle'); ?></h2>
         <?php } ?>
 
         <?php if( have_rows('sections') ){ $i = 0; ?>
@@ -194,14 +194,14 @@ get_header(); ?>
                             <h3 class='h2'><?php the_sub_field('title'); ?></h3>
                         <?php } ?>
 
-                        <?php the_sub_field('text'); ?>
+                        <p><?php the_sub_field('text'); ?></p>
 
                         <?php if( get_sub_field('star') ){ ?>
                             <div class='star'><?php the_sub_field('star'); ?></div>
                         <?php } ?>
 
                         <?php if( get_sub_field('link') && get_sub_field('linkText') ){ ?>
-                            <a href='<?php the_sub_field('link'); ?>' class='link-arrow' title='<?php the_sub_field('linkText'); ?>'><?php the_sub_field('linkText'); ?></a>
+                            <a href='<?php the_sub_field('link'); ?>' class='link-arrow pink' title='<?php the_sub_field('linkText'); ?>'><?php the_sub_field('linkText'); ?></a>
                         <?php } ?>
                     </div>
 
@@ -211,12 +211,16 @@ get_header(); ?>
                 </div>
             <?php $i++; } ?>
         <?php } ?>
+    </section>
+    
+    <section class='container contact-us'>
+        <div>
+            <?php if( get_field('contactTitle') ){ ?>
+                <h2 class='h1'><?php the_field('contactTitle'); ?></h2>
+            <?php } ?>
 
-        <?php if( get_field('contactTitle') ){ ?>
-            <h2 class='h1'><?php the_field('contactTitle'); ?></h2>
-        <?php } ?>
-
-        <?php the_field('contactText'); ?>
+            <?php the_field('contactText'); ?>
+        </div>
 
         <?php get_template_part( 'includes/form' ); ?>
 
