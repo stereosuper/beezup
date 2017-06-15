@@ -1,6 +1,9 @@
 .offer{
     display: inline-block;
     width: 24%;
+    .column-2 & {
+        width: 48%;
+    }
     > h2 {
         text-transform: uppercase;
         font-family: $fira-bold;
@@ -56,6 +59,9 @@
 }
 
 .container-slider{
+    .column-2 &{
+        width: 45%;
+    }
     display: flex;
     flex-direction: column;
     width: 33%;
@@ -91,11 +97,18 @@
 }
 
 .tarif-header{
+    min-width: 1200px;
     position: absolute;
     left: 0;
     right: 0;
     z-index: 9;
     transition: $transition;
+    .column-3 & {
+        min-width: 960px;
+    }
+    .column-2 & {
+        min-width: 900px;
+    }
     &.sticky, &.sticky-stuck{
         background: $white;
         box-shadow: 0 0 50px rgba(0,0,0,0.1);
@@ -108,57 +121,13 @@
 
 .wrapper-tarif-content{
     position: relative;
+}
 
-    $widthBloc : 16.08*90/100*1%;  // width-offer * width-offer-title / 100 -> produit en croix
-    
-    $leftBlue1 : 33% + 0.804%; // width feature-title + padding-left
-    $leftBlue2 : $leftBlue1 + $widthBloc + 0.804%*2 + (67 * (4 / 3) / 100); // left1 + width bloc bleu + padding + gutter
-
-    $leftBlue3 : $leftBlue2 + $widthBloc + 0.804%*2 + (67 * (4 / 3) / 100); // left2 + width bloc bleu + padding + gutter
-    $leftBlue4 : $leftBlue3 + $widthBloc + 0.804%*2 + (67 * (4 / 3) / 100); // left3 + width bloc bleu + padding + gutter
-
-
-    .tarif-content{
-        margin: 7px 0;
-        position: relative;
-
-        &:before, &:after{
-            content: '';
-            display: inline-block;
-            width: $widthBloc;
-            position: absolute;
-            top: -7px;
-            bottom: -7px;
-        }
-        &:before{
-            left: $leftBlue1; 
-            background: #6bb9e1;
-            z-index: -1;
-        }
-        &:after{
-            left: $leftBlue2;
-            background: #2890c6;
-            z-index: -2;
-        }
-    }
-
-    &:before, &:after{
-        content: '';
-        display: inline-block;
-        width: $widthBloc;
-        position: absolute;
-        top: -7px;
-        bottom: -7px;
-    }
-    &:before{
-        left: $leftBlue3; 
-        background: #2b5368;
-        z-index: -1;
-    }
-    &:after{
-        left: $leftBlue4;
-        background: #262729;
-        z-index: -2;
+.tarif-content{
+    margin: 7px 0;
+    position: relative;
+    ul {
+        padding: 0;
     }
 }
 
@@ -181,11 +150,17 @@
     }
     &:before{
         left: 33%;
+        .column-2 &{
+            content: none;
+        }
     }
     &:after{
         transform: scale(1,1) !important;
         $left02: (33 + 16.08 + (67 * (4 / 3) / 100)) * 1%; // width-title-feature + width-offer + (width-content-feature * width-gutter-offer / 100 )
         left: $left02;
+        .column-3 &, .column-2 & {
+            content: none;
+        }
     }
     > ul {
         margin: 0;
@@ -199,10 +174,20 @@
             background: $white;
             box-shadow: 0px 2px 11.05px 1.95px rgba(0, 0, 0, 0.06);
             z-index: -1;
+            .column-2 & {
+                width: 26.4%;
+            }
         }
         &:before{
             $right02: (16.08 + (67 * (4 / 3) / 100)) * 1%; // width-offer + (width-content-feature * width-gutter-offer / 100 )
             right: $right02;
+            .column-3 &{
+                $right02: (16.08 + (67 * (28 / 2) / 100)) * 1%; // width-offer + (width-content-feature * width-gutter-offer / 100 )
+                right: $right02;
+            }
+            .column-2 & {
+                left: 45%;
+            }
         }
         &:after{
             right: 0;
@@ -215,9 +200,48 @@
         display: inline-block;
         width: 33%;
         margin: 0 0 1em;
+        .column-2 & {
+            width: 45%;
+        }
         > i {
             font-family: $fira-italic;
             display: block;
+        }
+    }
+}
+
+.color-column{
+    position: absolute;
+    top: -7px;
+    bottom: -7px;
+    right: 0;
+    left: 33%;
+    display: flex;
+    justify-content: space-between;
+    .column-2 & {
+        left: 45%;
+        > div {
+            width: 43.2%;
+            margin: 0 2.4%;
+        }
+    }
+
+    > div {
+        display: inline-block;
+        width: 21.6%;
+        margin: 0 1.2%;
+        z-index: -1;
+        &.standard{
+            background: #6bb9e1;
+        }
+        &.pro{
+            background: #2890c6;
+        }
+        &.expert{
+            background: #2b5368;
+        }
+        &.enterprise{
+            background: #262729;
         }
     }
 }
@@ -230,10 +254,14 @@
 
 .feature-content{
     display: flex;
+    justify-content: space-between;
     flex: 1;
     > span{
         width: 25%;
         text-align: center;
+        .column-2 & {
+            width: 50%;
+        }
     }
     .icon-check{
         color: #0fbc37;
@@ -242,11 +270,8 @@
 
 .feature-title{
     width: 33%;
-}
-
-.tarif-content{
-    ul{
-        padding: 0;
+    .column-2 &{
+        width: 45%;
     }
 }
 
@@ -260,6 +285,9 @@
     display: flex;
     margin: 20px 0 0 33%;
     justify-content: space-around;
+    .column-3 &, .column-2 &, .column-1 &{
+        display: none;
+    }
     .icon{
         width: 13px;
         height: 13px;
@@ -292,7 +320,13 @@
 
 .container-tarifs{
     > div {
-        min-width: 1060px;
+        min-width: 1200px;
+        .column-3 & {
+            min-width: 960px;
+        }
+        .column-2 & {
+            min-width: 900px;
+        }
     }  
 }
 
@@ -315,6 +349,54 @@
         border-left: 1px solid $secondary;
         border-right: 1px solid $secondary;
     }
+    .column-3{
+        .color-column{
+            left: 40%;
+            > div {
+                width: 28.8%;
+                margin: 0 1.6%;
+            }
+        }
+        .offer{
+            width: 32%;
+        }
+        .container-slider{
+            .column-2{
+
+            }
+            width: 40%;
+        }
+        .feature-title{
+            width: 40%;
+        }
+        .feature-content{
+            span{
+                width: 33%;
+            }
+        }
+        .section-feature{
+            > ul{
+                &:before{
+                    right: auto;
+                    left: 60.4%;
+                    
+                }
+                &:after, &:before{
+                    width: 19.2%;
+                }
+            }
+            &:before{
+                left: 40%;
+                width: 19.2%;
+            }
+            h3 {
+                width: 40%;
+            }
+        }
+    }
+
+
+
     .tarif-body{
         padding: 0 30px;
     }

@@ -22,6 +22,12 @@
         &:after, &:before{
             content: none;
         }
+        .no-js & {
+            display: none;
+            &.selected{
+                display: inline-block;
+            }
+        }
         &.selected{
             > button{
                 color: $primary;
