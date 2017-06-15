@@ -6,12 +6,14 @@ var throttle = require('./throttle.js');
 module.exports = function (stickyElt, givenPosition, {
     unit = 'px',
     updateHeightOnScroll = false,
-    wrapper = true
+    wrapper = true,
+    minimumWidth = false
 } = {}) {
     if (!stickyElt.length) return;
 
-    var position, eltHeight, posTop;
+    var position, eltHeight, posTop, belowWidth;
     var windowHeight = $(window).height(); 
+    var windowWidth = window.outerWidth; 
     var scrollTop = $(document).scrollTop();
     var wrapperSticky = stickyElt.closest('.wrapper-sticky');
 
@@ -27,7 +29,7 @@ module.exports = function (stickyElt, givenPosition, {
     }
     
     function scrollHandler(){
-        scrollTop = $(document).scrollTop();
+        scrollTop = $(document).scrollTop();        
 
         if(updateHeightOnScroll && stickyElt.hasClass('sticky')){
             stickyElt.data('height', stickyElt.outerHeight());
@@ -45,10 +47,18 @@ module.exports = function (stickyElt, givenPosition, {
         }else{
             stickyElt.removeClass('sticky').css('top', stickyElt.data('initialPos'));
         }
+
+        if (minimumWidth && belowWidth) {
+            stickyElt.removeClass('sticky sticky-stuck').css({ 'top': stickyElt.data('initialPos'), 'bottom': '' });
+        }
     }
 
     function resizeHandler(){
         checkWindowHeight();
+
+        windowWidth = window.outerWidth;
+
+        minimumWidth && windowWidth <= minimumWidth ? belowWidth = true : belowWidth = false;
 
         if(wrapper){
             stickyElt.data({
@@ -65,9 +75,10 @@ module.exports = function (stickyElt, givenPosition, {
             'height': stickyElt.outerHeight()
         });
 
-        scrollHandler();
+        scrollHandler();  
     }
 
+    minimumWidth && windowWidth <= minimumWidth ? belowWidth = true : belowWidth = false;
 
     if(wrapper){
         stickyElt.data({
