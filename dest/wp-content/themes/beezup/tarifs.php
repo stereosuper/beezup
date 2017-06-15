@@ -134,16 +134,39 @@ get_header(); ?>
                         <?php } ?>
                             <div class='tarif-footer'>
                                 <span>
-                                    <svg class='icon'><use xlink:href='#icon-tripuce'></use></svg>
+                                    <svg class='icon js-bees' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+                                      <title>tripuce</title>
+                                      <path class='js-bee' d="M11.967 20.669c0 3.305-2.679 5.983-5.983 5.983s-5.983-2.679-5.983-5.983c0-3.305 2.679-5.983 5.983-5.983s5.983 2.679 5.983 5.983z"></path>
+                                      <path class='js-bee' d="M23.564 2.674c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
+                                      <path class='js-bee' d="M32.448 29.326c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
+                                    </svg>
+
                                 </span>
                                 <span>
-                                    <svg class='icon'><use xlink:href='#icon-tripuce'></use></svg>
+                                    <svg class='icon js-bees' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+                                        <title>tripuce</title>
+                                        <path class='js-bee' d="M11.967 20.669c0 3.305-2.679 5.983-5.983 5.983s-5.983-2.679-5.983-5.983c0-3.305 2.679-5.983 5.983-5.983s5.983 2.679 5.983 5.983z"></path>
+                                        <path class='js-bee' d="M23.564 2.674c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
+                                        <path class='js-bee' d="M32.448 29.326c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
+                                    </svg>
+
                                 </span>
                                 <span>
-                                    <svg class='icon'><use xlink:href='#icon-tripuce'></use></svg>
+                                    <svg class='icon js-bees' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+                                        <title>tripuce</title>
+                                        <path class='js-bee' d="M11.967 20.669c0 3.305-2.679 5.983-5.983 5.983s-5.983-2.679-5.983-5.983c0-3.305 2.679-5.983 5.983-5.983s5.983 2.679 5.983 5.983z"></path>
+                                        <path class='js-bee' d="M23.564 2.674c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
+                                        <path class='js-bee' d="M32.448 29.326c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
+                                    </svg>
                                 </span>
                                 <span>
-                                    <svg class='icon'><use xlink:href='#icon-tripuce'></use></svg>
+                                    <svg class='icon js-bees' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+                                        <title>tripuce</title>
+                                        <path class='js-bee' d="M11.967 20.669c0 3.305-2.679 5.983-5.983 5.983s-5.983-2.679-5.983-5.983c0-3.305 2.679-5.983 5.983-5.983s5.983 2.679 5.983 5.983z"></path>
+                                        <path class='js-bee' d="M23.564 2.674c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
+                                        <path class='js-bee' d="M32.448 29.326c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
+                                    </svg>
+
                                 </span>
                             </div>
 
