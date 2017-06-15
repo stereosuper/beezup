@@ -490,6 +490,10 @@ a{
     z-index: 3;
 }
 
+.js-bees{
+    overflow: visible !important;
+}
+
 
 @media (max-width: $desktop-small){
     h1, .h1{
