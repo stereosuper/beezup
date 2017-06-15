@@ -62,11 +62,14 @@ $(function(){
     sticky($('#btnDemo'), 15, {
         wrapper: false 
     });
-    sticky($('#tarifHeader'), 0);
+    sticky($('#tarifHeader'), 0, {
+        minimumWidth: 1200
+    });
     sticky($('#sideLinksNav'), 50, {
         unit: 'vh'
     });
 
+    
     // Fixed meu
     scrollTo($('#sideLinksNav'), true);
     scrollTo($('#menuFonctionnalites'));
@@ -88,6 +91,23 @@ $(function(){
             });
         });
     }
+
+    // Slider price tarif
+    $('#tarifHeader').find('.js-btnPrice').each(function () {
+        $(this).on('click', function () {
+            $('#tarifHeader').find('.js-price.selected').removeClass('selected');
+            $(this).parent().addClass('selected');
+
+            var price = $(this)[0].dataset.price;
+            var classPrice = '.js-field' + price;
+            $('#tarifOffers').find('.price:not("hidden")').addClass('hidden');
+            $('#tarifOffers').find(classPrice).removeClass('hidden');
+
+                
+        });
+    });
+
+    
 
     // Networks page: dinamically get channels by country
     filterChannels(wp, $('#channels'), $('#channelsCountrySelect'), $('#channelsSectorSelect'), $('#channelsList'));
