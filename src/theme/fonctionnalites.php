@@ -92,7 +92,8 @@ get_header(); ?>
                                     </div>
 
                                     <div class='subsection-illu'>
-                                        <?php echo wp_get_attachment_image( get_sub_field('img'), 'full' ); ?>
+                                        <!--<?php echo wp_get_attachment_image( get_sub_field('img'), 'full' ); ?>-->
+                                        <?php get_template_part( 'includes/animFonctionnalites/anim'.$j ); ?>
                                     </div>
                                 </div>
                             <?php $j++;} ?>

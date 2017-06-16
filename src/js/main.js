@@ -22,12 +22,14 @@ $(function(){
     var filterChannels = require('./filterChannels.js');
     var dropdown = require('./dropdown.js');
     var animBees = require('./animBees.js');
+    var animFonctionnalites = require('./animFonctionnalites.js');
 
     var body = $('body');
     var forms = $('form');
     var bees = $('.js-bees');
     // window.outerWidth returns the window width including the scroll, but it's not working with $(window).outerWidth
     var windowWidth = window.outerWidth, windowHeight = $(window).height();
+    var tempo = 0.4;
 
     // On window resize
     function resizeHandler(){
@@ -77,7 +79,10 @@ $(function(){
 
     // Anim top home
     animTopHome();
-    animSchema($('#schema'), windowWidth);
+    animSchema($('#schema'), windowWidth, tempo);
+
+    //Anim fonctionnalités
+    animFonctionnalites(windowWidth, tempo);
     
     // Add url inputs
     addUrlInputs($('#addUrlInput'), $('#newInputsCount'));

@@ -6,10 +6,10 @@ require('gsap/src/uncompressed/plugins/DrawSVGPlugin');
 require('gsap/src/uncompressed/easing/CustomEase');
 
 
-module.exports = function(schema, windowWidth){
+module.exports = function(schema, windowWidth, tempo){
     if(!schema.length || windowWidth < 781) return;
 
-    var tl, tempo = 0.4;
+    var tl;
     var cables = schema.find('.cable');
     var cables1 = cables.filter('.js-cable-1'), cables2 = cables.filter('.js-cable-2');
     var cables3 = cables.filter('.js-cable-3'), cables4 = cables.filter('.js-cable-4');

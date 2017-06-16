@@ -1,0 +1,273 @@
+// Anim1
+.couvercle1 {
+    fill: #FFFFFF;
+    stroke: #E1EEF5;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
+
+.bottom1 {
+    fill: #EFF6FB;
+    stroke: #E1EEF5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
+
+.left1 {
+    fill: #FBFDFE;
+    stroke: #E1EEF5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
+
+.trace1 {
+    opacity: 0.8;
+    fill: none;
+    stroke: $secondary;
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+    enable-background: new;
+}
+
+.bordure1 {
+    opacity: 0.4;
+    fill: none;
+    stroke: #009EE6;
+    stroke-miterlimit: 10;
+    enable-background: new;
+}
+
+// Anim2
+.couvercle2 {
+    fill: #FFFFFF;
+    stroke: #C6DDEB;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
+
+.ombre2 {
+    opacity: 0.12;
+    fill: #009EE6;
+    enable-background: new;
+}
+
+.left2 {
+    fill: #FBFDFE;
+    stroke: #C6DDEB;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
+
+.bottom2 {
+    fill: #EFF6FA;
+    stroke: #C6DDEB;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
+
+.texte2 {
+    enable-background: new;
+}
+
+.textBlue2 {
+    fill: #009AE1;
+}
+
+.plusSide2 {
+    fill: #CD1087;
+}
+
+.plusCouvercle2 {
+    fill: #E90094;
+    stroke: #C6DDEB;
+    stroke-miterlimit: 10;
+}
+
+.textPlus2 {
+    fill: #FFFFFF;
+    font-family: $fira-medium;
+    font-size: 32.3302px;
+}
+
+.trace2 {
+    opacity: 0.8;
+    fill: none;
+    stroke: $secondary;
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+    enable-background: new;
+}
+
+.bordure2 {
+    opacity: 0.4;
+    fill: none;
+    stroke: #009EE6;
+    stroke-miterlimit: 10;
+}
+
+//Anim3 
+.ombre-3 {
+    opacity: 0.12;
+    fill: #45AFE0;
+    enable-background: new;
+}
+
+.trace-3 {
+    opacity: 0.8;
+    fill: none;
+    stroke: $secondary;
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+    enable-background: new;
+}
+
+.bordure-3 {
+    opacity: 0.4;
+    fill: none;
+    stroke: #019EE6;
+    stroke-miterlimit: 10;
+}
+
+.couvercle-3 {
+    fill: #FFFFFF;
+    stroke: #C5DCEA;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
+
+.bottom-3 {
+    fill: #EDF5FA;
+    stroke: #C5DCEA;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
+
+.connecteur-top-3 {
+    fill: #1FDA4B;
+}
+
+.connecteur-side-3 {
+    fill: #0FBC37;
+}
+
+.connecteur-line-3 {
+    fill: none;
+    stroke: #FFFFFF;
+    stroke-miterlimit: 10;
+}
+
+.box-icon-3 {
+    fill: #FFFFFF;
+}
+
+.picto-3 {
+    fill: #0096E0;
+}
+
+.connecteur-top-red-3 {
+    fill: #DE0C20;
+}
+
+.connecteur-side-red-3 {
+    fill: #BD0314;
+}
+
+// Anim 4
+.ombre-4 {
+    opacity: 0.54;
+    fill: #D0E6F2;
+    enable-background: new;
+}
+
+.top-dalle-4 {
+    fill: #FFFFFF;
+    stroke: #C6DEEC;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
+
+.side-dalle-4 {
+    fill: #EFF6FA;
+    stroke: #C6DEEC;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
+
+.picto-4 {
+    fill: #009EE6;
+}
+
+.box-green-4 {
+    fill: #1FDA4B;
+}
+
+.line-box-4 {
+    fill: none;
+    stroke: #FFFFFF;
+    stroke-miterlimit: 10;
+}
+
+.line-connect-4 {
+    fill: #C81888;
+    stroke: #FF63C6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
+
+.front-connect-4 {
+    fill: #E30C95;
+    stroke: #FF63C6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
+
+.bottom-beez-4 {
+    fill: #009EE6;
+    stroke: #C6DEEC;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
+
+.left-beez-4 {
+    fill: #2CB3EB;
+    stroke: #C6DEEC;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
+
+.top-beez-4 {
+    fill: #009EE6;
+    stroke: #C6DEEC;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
+
+.trace-4 {
+    fill: none;
+    stroke: $secondary;
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
+
+.bordure-4 {
+    opacity: 0.4;
+    fill: none;
+    stroke: #009EE6;
+    stroke-miterlimit: 10;
+    enable-background: new;
+}

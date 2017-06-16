@@ -1,9 +1,6 @@
 .offer{
     display: inline-block;
     width: 24%;
-    .column-2 & {
-        width: 48%;
-    }
     > h2 {
         text-transform: uppercase;
         font-family: $fira-bold;
@@ -13,10 +10,6 @@
         padding: 25px 0;
         width: 90%;
         color: $white;
-        &:before{
-            content: '';
-
-        }
     }
     &.standard{
         .price{
@@ -59,14 +52,10 @@
 }
 
 .container-slider{
-    .column-2 &{
-        width: 45%;
-    }
     display: flex;
     flex-direction: column;
     width: 33%;
     align-items: flex-start;
-
 }
 
 .offer-spec{
@@ -103,12 +92,6 @@
     right: 0;
     z-index: 9;
     transition: $transition;
-    .column-3 & {
-        min-width: 960px;
-    }
-    .column-2 & {
-        min-width: 900px;
-    }
     &.sticky, &.sticky-stuck{
         background: $white;
         box-shadow: 0 0 50px rgba(0,0,0,0.1);
@@ -117,10 +100,6 @@
         display: flex;
         align-items: center;
     }
-}
-
-.wrapper-tarif-content{
-    position: relative;
 }
 
 .tarif-content{
@@ -150,17 +129,11 @@
     }
     &:before{
         left: 33%;
-        .column-2 &{
-            content: none;
-        }
     }
     &:after{
         transform: scale(1,1) !important;
         $left02: (33 + 16.08 + (67 * (4 / 3) / 100)) * 1%; // width-title-feature + width-offer + (width-content-feature * width-gutter-offer / 100 )
         left: $left02;
-        .column-3 &, .column-2 & {
-            content: none;
-        }
     }
     > ul {
         margin: 0;
@@ -174,20 +147,10 @@
             background: $white;
             box-shadow: 0px 2px 11.05px 1.95px rgba(0, 0, 0, 0.06);
             z-index: -1;
-            .column-2 & {
-                width: 26.4%;
-            }
         }
         &:before{
             $right02: (16.08 + (67 * (4 / 3) / 100)) * 1%; // width-offer + (width-content-feature * width-gutter-offer / 100 )
             right: $right02;
-            .column-3 &{
-                $right02: (16.08 + (67 * (28 / 2) / 100)) * 1%; // width-offer + (width-content-feature * width-gutter-offer / 100 )
-                right: $right02;
-            }
-            .column-2 & {
-                left: 45%;
-            }
         }
         &:after{
             right: 0;
@@ -200,9 +163,6 @@
         display: inline-block;
         width: 33%;
         margin: 0 0 1em;
-        .column-2 & {
-            width: 45%;
-        }
         > i {
             font-family: $fira-italic;
             display: block;
@@ -218,14 +178,6 @@
     left: 33%;
     display: flex;
     justify-content: space-between;
-    .column-2 & {
-        left: 45%;
-        > div {
-            width: 43.2%;
-            margin: 0 2.4%;
-        }
-    }
-
     > div {
         display: inline-block;
         width: 21.6%;
@@ -259,9 +211,6 @@
     > span{
         width: 25%;
         text-align: center;
-        .column-2 & {
-            width: 50%;
-        }
     }
     .icon-check{
         color: #0fbc37;
@@ -270,9 +219,6 @@
 
 .feature-title{
     width: 33%;
-    .column-2 &{
-        width: 45%;
-    }
 }
 
 .feature{
@@ -283,11 +229,8 @@
 
 .tarif-footer{
     display: flex;
-    margin: 20px 0 0 33%;
+    margin: 20px 0 5px 33%;
     justify-content: space-around;
-    .column-3 &, .column-2 &, .column-1 &{
-        display: none;
-    }
     .icon{
         width: 13px;
         height: 13px;
@@ -316,17 +259,14 @@
             }
         }
     }
+    .column-3 &, .column-2 &, .column-1 &{
+        display: none;
+    }
 }
 
 .container-tarifs{
     > div {
         min-width: 1200px;
-        .column-3 & {
-            min-width: 960px;
-        }
-        .column-2 & {
-            min-width: 900px;
-        }
     }  
 }
 
@@ -340,6 +280,76 @@
     padding: 0 0 0 1.2%;
     color: #808081;
     font-family: $fira-italic;
+}
+
+.column-3{
+    .container-tarifs{
+        > div {
+            min-width: 960px;
+        }
+    }
+    .tarif-header{
+        min-width: 960px;
+    }
+    .section-feature{
+        &:after{
+            content: none;
+        }
+        > ul{
+            &:before {
+                $right02: (16.08 + (67 * (28 / 2) / 100)) * 1%; // width-offer + (width-content-feature * width-gutter-offer / 100 )
+                right: $right02;
+            }
+        }
+    }
+}
+
+.column-2{
+    .offer{
+        width: 48%;
+    }
+    .container-slider{
+        width: 45%;
+    }
+    .tarif-header{
+        min-width: 900px;
+    }
+    .section-feature{
+        h3{
+            width: 45%;
+        }
+        &:before, &:after{
+            content: none;
+        }
+        > ul {
+            &:before, &:after{
+                width: 26.4%;
+            }
+            &:before{
+                left: 45%;
+            }
+        }
+    }
+    .color-column {
+        left: 45%;
+        > div {
+            width: 43.2%;
+            margin: 0 2.4%;
+        }
+    }
+    .feature-content {
+        > span {
+            width: 50%;
+        }
+    }
+    .feature-title{
+        width: 45%;
+    }
+    .container-tarifs{
+        > div {
+            min-width: 900px;
+        }
+    }
 }
 
 
@@ -361,9 +371,6 @@
             width: 32%;
         }
         .container-slider{
-            .column-2{
-
-            }
             width: 40%;
         }
         .feature-title{
@@ -394,7 +401,6 @@
             }
         }
     }
-
     .tarif-body{
         padding: 0 30px;
     }

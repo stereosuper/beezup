@@ -21,6 +21,7 @@ get_header(); ?>
         </div>
         
         <div class='page-intro-img'>
+            <?php the_post_thumbnail( 'full' ); ?>
             <p><?php the_field('benefit1'); ?></p>
             <p><?php the_field('benefit2'); ?></p>
         </div>
@@ -83,7 +84,7 @@ get_header(); ?>
                 </div>
                 <section class='container tarif-body'>
                             <?php if( have_rows('featuresSection') ){ ?>
-                            <div class='wrapper-tarif-content'>
+                            <div class='wrapper-tarif-content relative'>
 
                                 <?php if( have_rows('offers') ){ ?>
                                 <div class='color-column'>
