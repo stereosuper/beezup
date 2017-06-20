@@ -78,7 +78,7 @@ $(function(){
     scrollTo($('#menuFonctionnalites'));
 
     // Anim top home
-    animTopHome();
+    animTopHome($('#btnTopHome'));
     animSchema($('#schema'), windowWidth, tempo);
 
     //Anim fonctionnalités

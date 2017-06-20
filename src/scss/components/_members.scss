@@ -12,7 +12,7 @@
     font-family: $fira-medium;
     text-align: center;
     color: $white;
-    background: red;
+    background: $primary;
     .block-half &{
         &:nth-child(2){
             margin-top: 80px;
