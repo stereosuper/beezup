@@ -1,7 +1,7 @@
 var $ = require('jquery');
 
-var throttle = require('./throttle.js');
-window.requestAnimFrame = require('./requestAnimFrame.js');
+// var throttle = require('./throttle.js');
+// window.requestAnimFrame = require('./requestAnimFrame.js');
 
 // var TweenLite = require('gsap/TweenLite');
 var TimelineLite = require('gsap/TimelineLite');
@@ -17,7 +17,7 @@ module.exports = function(containersBees){
     function getMiddleInPage(elem){
         offset = elem.offset();
         
-        return{
+        return {
             top: offset.top + elem.outerHeight()/2,
             left: offset.left + elem.outerWidth()/2
         };
@@ -47,7 +47,7 @@ module.exports = function(containersBees){
             //     break;
         }
 
-        tlAnimBees[nbBee].to(elemToAnim, 3, {x: randomX, y: randomY, opacity: 0.2, delay: randomDelay});
+        tlAnimBees[nbBee].to(elemToAnim, 3, {x: randomX, y: randomY, opacity: 0.1, delay: randomDelay});
         
     }
 

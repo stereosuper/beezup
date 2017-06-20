@@ -11,6 +11,7 @@
     }
     .wrapper-about, .wrapper-links{
         a{
+            font-family: $fira-bold;
             color: $white;
             &:hover, &:focus{
                 color: $white;
@@ -20,6 +21,7 @@
     }
     .wrapper-about{
         margin: 0 125px 0 0;
+        font-size: 1.4rem;
         p{
             margin-bottom: 0;
         }
@@ -33,12 +35,8 @@
             }
         }
         a{
-            font-family: $fira-bold;
             text-decoration: none;
         }
-    }
-    .wrapper-social-newsletter{
-        flex: 0 0 270px;
     }
 }
 
@@ -74,31 +72,36 @@
     }
 }
 
-.social{
+.wrapper-social-newsletter{
+    flex: 0 0 270px;
+}
+
+.wrapper-social{
     display: inline-block;
     position: relative;
-    margin: 0;
-    &:before, &:after{
-        content: '';
-        display: block;
+    > .bees-top, > .bees-bottom{
         position: absolute;
-        background-position: 0 0;
-        background-repeat: no-repeat;
+        fill: $white;
     }
-    &:before{
+    > .bees-top{
         width: 26px;
         height: 22px;
         bottom: -10px;
         left: -32px;
-        background-image: url('../layoutImg/bees-left-white.svg');
     }
-    &:after{
+    > .bees-bottom{
         width: 30px;
         height: 18px;
-        top: -7px;
-        right: -28px;
-        background-image: url('../layoutImg/bees-right-white.svg');
+        top: -14px;
+        right: -32px;
     }
+}
+
+.social{
+    display: inline-block;
+    position: relative;
+    margin: 0;
+    z-index: 1;
     > li{
         display: inline-block;
         vertical-align: top;
@@ -119,7 +122,6 @@
         transform: translate3d(-50%, -50%, 0);
     }
     span{
-        display: block;
         width: 0;
         height: 0;
         overflow: hidden;
@@ -129,6 +131,7 @@
         position: relative;
     }
 }
+
 
 @media (max-width: $desktop){
     .footer{

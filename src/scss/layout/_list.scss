@@ -65,16 +65,7 @@
         padding: 0 45px;
         position: relative;
         margin: 0;
-        &:before{
-            width: 38px;
-            height: 15px;
-            position: absolute;
-            top: -30px;
-            left: 50%;
-            background: url('../layoutImg/bees-horizontal.svg') no-repeat !important;
-            transform: translate3d(-50%, -50%, 0);
-        }
-        &:after{
+        &:before, &:after{
             display: none;
         }
     }
@@ -113,7 +104,7 @@
         &:before{
             content: '';
             display: block;
-            padding-bottom: 70%;
+            padding: 0 0 70%;
         }
         > img{
             max-width: 80%;
@@ -123,6 +114,15 @@
             left: 50%;
             transform: translate3d(-50%, -50%, 0);
         }
+    }
+    .bees{
+        width: 38px;
+        height: 15px;
+        position: absolute;
+        top: -30px;
+        left: 50%;
+        fill: $white;
+        transform: translate3d(-50%, -50%, 0);
     }
 }
 
@@ -175,7 +175,7 @@
 .list-usefull{
     display: flex;
     flex-wrap: wrap;
-    >li{
+    > li{
         width: 33.3333%;
         margin: 5px 0;
         padding-right: 20px;
@@ -188,6 +188,7 @@
         }
     }
 }
+
 
 @media (max-width: $desktop){
     .list-picto{
@@ -231,12 +232,12 @@
             max-width: 400px;
             padding-top: 30px;
             margin: 0 auto 50px;
-            &:before{
-                top: 0;
-            }
             &:last-child{
                 margin-bottom: 0;
             }
+        }
+        .bees{
+            top: 0;
         }
     }
 
@@ -254,8 +255,9 @@
             }
         }
     }
+
     .list-usefull{
-        >li{
+        > li{
             width: 50%;
             &:nth-child(odd){
                 padding-left: 0;
@@ -283,8 +285,9 @@
             }
         }
     }
+
     .list-usefull{
-        >li{
+        > li{
             width: 100%;
             &:nth-child(odd), &:nth-child(even){
                 padding: 0;
