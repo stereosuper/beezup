@@ -22,8 +22,6 @@ get_header(); ?>
         
         <div class='page-intro-img'>
             <?php the_post_thumbnail( 'full' ); ?>
-            <p><?php the_field('benefit1'); ?></p>
-            <p><?php the_field('benefit2'); ?></p>
         </div>
 
     </section>
@@ -82,20 +80,21 @@ get_header(); ?>
                         <?php } ?>
                     </div>
                 </div>
-                <section class='container tarif-body'>
-                            <?php if( have_rows('featuresSection') ){ ?>
-                            <div class='wrapper-tarif-content relative'>
 
-                                <?php if( have_rows('offers') ){ ?>
+                <section class='container tarif-body'>
+                    <?php if( have_rows('featuresSection') ){ ?>
+                        <div class='wrapper-tarif-content relative'>
+
+                            <?php if( have_rows('offers') ){ ?>
                                 <div class='color-column'>
                                     <?php while( have_rows('offers') ){ the_row(); ?>
                                     <div class='<?php echo strtolower(get_sub_field("name")); ?>'></div>
                                     <?php } ?>
                                 </div>
-                                <?php } ?>
+                            <?php } ?>
 
-                                <ul class='tarif-content'>
-                                    <?php while( have_rows('featuresSection') ){ the_row(); ?>
+                            <ul class='tarif-content'>
+                                <?php while( have_rows('featuresSection') ){ the_row(); ?>
                                     <li class='section-feature'><ul>
 
                                         <h3><?php the_sub_field('title'); ?> <i><?php the_sub_field('subtitle'); ?></i></h3>
@@ -130,46 +129,43 @@ get_header(); ?>
                                     <?php } ?>
                                     </ul></li>
                                 <?php } ?>
-                                </ul>
-                            </div>
-                        <?php } ?>
-                            <div class='tarif-footer'>
-                                <span>
-                                    <svg class='icon js-bees' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-                                      <title>tripuce</title>
-                                      <path class='js-bee' d="M11.967 20.669c0 3.305-2.679 5.983-5.983 5.983s-5.983-2.679-5.983-5.983c0-3.305 2.679-5.983 5.983-5.983s5.983 2.679 5.983 5.983z"></path>
-                                      <path class='js-bee' d="M23.564 2.674c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
-                                      <path class='js-bee' d="M32.448 29.326c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
-                                    </svg>
-
-                                </span>
-                                <span>
-                                    <svg class='icon js-bees' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-                                        <title>tripuce</title>
-                                        <path class='js-bee' d="M11.967 20.669c0 3.305-2.679 5.983-5.983 5.983s-5.983-2.679-5.983-5.983c0-3.305 2.679-5.983 5.983-5.983s5.983 2.679 5.983 5.983z"></path>
-                                        <path class='js-bee' d="M23.564 2.674c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
-                                        <path class='js-bee' d="M32.448 29.326c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
-                                    </svg>
-
-                                </span>
-                                <span>
-                                    <svg class='icon js-bees' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-                                        <title>tripuce</title>
-                                        <path class='js-bee' d="M11.967 20.669c0 3.305-2.679 5.983-5.983 5.983s-5.983-2.679-5.983-5.983c0-3.305 2.679-5.983 5.983-5.983s5.983 2.679 5.983 5.983z"></path>
-                                        <path class='js-bee' d="M23.564 2.674c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
-                                        <path class='js-bee' d="M32.448 29.326c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
-                                    </svg>
-                                </span>
-                                <span>
-                                    <svg class='icon js-bees' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-                                        <title>tripuce</title>
-                                        <path class='js-bee' d="M11.967 20.669c0 3.305-2.679 5.983-5.983 5.983s-5.983-2.679-5.983-5.983c0-3.305 2.679-5.983 5.983-5.983s5.983 2.679 5.983 5.983z"></path>
-                                        <path class='js-bee' d="M23.564 2.674c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
-                                        <path class='js-bee' d="M32.448 29.326c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
-                                    </svg>
-
-                                </span>
-                            </div>
+                            </ul>
+                        </div>
+                    <?php } ?>
+                    
+                    <div class='tarif-footer'>
+                        <span>
+                            <svg class='icon js-bees' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>
+                                <path class='js-bee' d='M11.967 20.669c0 3.305-2.679 5.983-5.983 5.983s-5.983-2.679-5.983-5.983c0-3.305 2.679-5.983 5.983-5.983s5.983 2.679 5.983 5.983z'/>
+                                <path class='js-bee' d='M23.564 2.674c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z'/>
+                                <path class='js-bee' d='M32.448 29.326c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z'/>
+                            </svg>
+                        </span>
+                            
+                        <span>
+                            <svg class='icon js-bees' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>
+                                <path class='js-bee' d='M11.967 20.669c0 3.305-2.679 5.983-5.983 5.983s-5.983-2.679-5.983-5.983c0-3.305 2.679-5.983 5.983-5.983s5.983 2.679 5.983 5.983z'/>
+                                <path class='js-bee' d='M23.564 2.674c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z'/>
+                                <path class='js-bee' d='M32.448 29.326c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z'/>
+                            </svg>
+                        </span>
+                        
+                        <span>
+                            <svg class='icon js-bees' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>
+                                <path class='js-bee' d='M11.967 20.669c0 3.305-2.679 5.983-5.983 5.983s-5.983-2.679-5.983-5.983c0-3.305 2.679-5.983 5.983-5.983s5.983 2.679 5.983 5.983z'/>
+                                <path class='js-bee' d='M23.564 2.674c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z'/>
+                                <path class='js-bee' d='M32.448 29.326c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z'/>
+                            </svg>
+                        </span>
+                                
+                        <span>
+                            <svg class='icon js-bees' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>
+                                <path class='js-bee' d='M11.967 20.669c0 3.305-2.679 5.983-5.983 5.983s-5.983-2.679-5.983-5.983c0-3.305 2.679-5.983 5.983-5.983s5.983 2.679 5.983 5.983z'/>
+                                <path class='js-bee' d='M23.564 2.674c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z'/>
+                                <path class='js-bee' d='M32.448 29.326c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z'/>
+                            </svg>
+                        </span>
+                    </div>
 
                 </section>
             </div>
