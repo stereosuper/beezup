@@ -61,7 +61,7 @@
 						
 						<div class='container-menu-main'>
 							<?php wp_nav_menu( array( 'theme_location' => 'primary', 'container' => 'nav', 'menu_class' => 'menu-main', 'menu_id' => 'menuMain' ) ); ?>
-							<button id='btnDemo' class='btn' data-appointlet-organization='beezup' data-appointlet-service='32290'><?php _e('Demo', 'Beezup'); ?></button>
+							<button id='btnDemo' class='btn' data-appointlet-organization='beezup' data-appointlet-service='32290' type='button'><?php _e('Demo', 'Beezup'); ?></button>
 						</div>
 					</div>
 
