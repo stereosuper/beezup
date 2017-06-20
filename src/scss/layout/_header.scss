@@ -469,7 +469,7 @@
         align-items: flex-start;
         transform: translate(0,0);
         li{
-            margin: 20px 0;
+            margin: 15px 0;
         }
         a{
             font-size: 1.8rem;
@@ -498,7 +498,7 @@
 
     .container-menu-main{
         width: 340px;
-        padding: 0 0 50px 50px;
+        padding: 10px 0 50px 50px;
         position: absolute;
         margin: 0;
         top: 0;
@@ -563,14 +563,8 @@
     @media (max-height: 750px){
         .menu-main{
             li{
-                margin: 10px 0;
+                margin: 5px 0;
             }  
-        }
-
-        .container-menu-main{
-            > .btn{
-                margin: 20px 0 0;
-            }
         }
     }
 }
