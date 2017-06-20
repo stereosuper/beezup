@@ -10,14 +10,24 @@ get_header(); ?>
 	<section class='container wrapper-sticky'>
 		<img class='illus-responsive' src='<?php echo get_stylesheet_directory_uri(); ?>/layoutImg/block-beezup.png' srcset='<?php echo get_stylesheet_directory_uri(); ?>/layoutImg/block-beezup@2x.png 2x' alt=''>
 
-		<div class='block-half block-txt block-title-home' id='titleHome'>
-			<h1 class='title-home' data-before='<?php the_field('title'); ?>' data-after='<?php the_field('title2'); ?>'><?php the_field('title'); ?></h1>
-
-			<p id='introHome'><?php the_field('headerText'); ?></p>
+		<div class='block-half block-txt block-title-home'>
+			<h2 class='title-home h1'><?php the_field('title2'); ?></h2>
 
 			<?php if( get_field('headerBtn') ){ ?>
-				<button class='btn btn-arrow' id='btnTopHome' data-appointlet-organization='beezup' data-appointlet-service='32290'>
-					<span class='textToAnim' data-before="<?php the_field('headerBtn'); ?>" data-after="<?php if( get_field('headerBtn2') ){ the_field('headerBtn2'); } ?>"><?php the_field('headerBtn2'); ?></span>
+				<button class='btn' id='btnTopHome' type='button'>
+					<?php the_field('headerBtn'); ?>
+				</button>
+			<?php } ?>
+		</div>
+
+		<div class='block-half block-txt block-title-home-2' id='titleHome'>
+			<h1 class='title-home'><?php the_field('title'); ?></h1>
+
+			<p class='intro-home'><?php the_field('headerText'); ?></p>
+
+			<?php if( get_field('headerBtn2') ){ ?>
+				<button class='btn btn-arrow' data-appointlet-organization='beezup' data-appointlet-service='32290' type='button'>
+					<?php the_field('headerBtn2'); ?>
 					<svg class='icon icon-arrow-right'><use xlink:href='#icon-arrow-right'></use></svg>
 				</button>
 			<?php } ?>

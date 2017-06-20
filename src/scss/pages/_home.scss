@@ -15,16 +15,15 @@
     font-size: 4.5rem;
     word-wrap: break-word;
     text-align: center;
-    opacity: 0;
+    color: $text;
 }
 
-#introHome{
-    display: none;
-    padding: 20px 0 0;
-    opacity: 0;
+.intro-home{
+    padding: 30px 0;
+    margin: 0;
 }
 
-.block-title-home, .block-half.block-txt.block-title-home{
+.block-title-home, .block-title-home-2{
     width: 100%;
     max-width: 440px;
     padding: 0 0 100px;
@@ -32,13 +31,11 @@
     top: 0;
     margin: 0;
     z-index: 2;
-    > p{
-        margin: 0;
-    }
+    
 }
-
-#btnTopHome{
-    margin: 30px 0 0;
+.block-title-home-2{
+    top: auto;
+    bottom: 100px;
 }
 
 .wrapper-svg-home{
@@ -168,8 +165,11 @@
 }
 
 @media (max-width: $desktop-small){
-    .block-title-home, .block-half.block-txt.block-title-home{
-        max-width: 310px;
+    .block-title-home, .block-title-home-2{
+        max-width: 310px !important;
+    }
+    .block-title-home-2{
+        bottom: 50px;
     }
 
     .title-home{
@@ -178,16 +178,15 @@
 }
 
 @media (max-width: $tablet){
-    .block-title-home, .block-half.block-txt.block-title-home{
-        max-width: none;
-        padding: 0;
-        position: relative !important;
-        top: auto !important;
+    .block-title-home{
+        display: none;
     }
-
-    #introHome{
-        display: block !important;
-        opacity: 1 !important;
+    .block-title-home-2{
+        max-width: none !important;
+        padding: 0;
+        position: relative;
+        top: auto;
+        margin-top: 100px;
     }
 
     .wrapper-list-menu-home{
