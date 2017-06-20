@@ -21,12 +21,21 @@ get_header(); ?>
         </div>
         
         <div class='page-intro-img'>
+            <?php the_post_thumbnail( 'full' ); ?>
             <p><?php the_field('benefit1'); ?></p>
             <p><?php the_field('benefit2'); ?></p>
         </div>
 
     </section>
-    <div class='tarifs'>
+
+    <?php if( have_rows('offers') ){
+        $nbrOff = 0;
+        while( have_rows('offers') ){ the_row(); 
+            $nbrOff++;
+        }
+    } ?>
+
+    <div class='tarifs column-<?php echo $nbrOff;?>'>
         <div class='wrapper-sticky container-tarifs'>
             <div>
                 <div id='tarifHeader' class='tarif-header'>
@@ -34,29 +43,29 @@ get_header(); ?>
                         <div class='container-slider'>
                             <span><?php the_field('price'); ?></span>
                             <ul class='slider'>
-                                <li><button type='button'><?php _e('1 month', 'beezup'); ?></button></li>
-                                <li><button type='button'><?php _e('3 months', 'beezup'); ?></button></li>
-                                <li><button type='button'><?php _e('6 months', 'beezup'); ?></button></li>
-                                <li class='selected'><button type='button'><?php _e('1 year', 'beezup'); ?></button></li>
+                                <li class='js-price'><button class='js-btnPrice' data-price='price1' type='button'><?php _e('1 month', 'beezup'); ?></button></li>
+                                <li class='js-price'><button class='js-btnPrice' data-price='price2' type='button'><?php _e('3 months', 'beezup'); ?></button></li>
+                                <li class='js-price'><button class='js-btnPrice' data-price='price3' type='button'><?php _e('6 months', 'beezup'); ?></button></li>
+                                <li class='js-price selected'><button class='js-btnPrice' data-price='price4' type='button'><?php _e('1 year', 'beezup'); ?></button></li>
                             </ul>
                         </div>
 
                         <?php if( have_rows('offers') ){ ?>
-                        <div class='offers'>
+                        <div id='tarifOffers' class='offers'>
                             <?php while( have_rows('offers') ){ the_row(); ?>
                             <div class='offer <?php echo strtolower(get_sub_field("name")); ?>'>
                                 <h2><?php the_sub_field('name'); ?></h2>
                                 <div class='offer-spec'>
-                                    <span class='price hidden'>
+                                    <span class='js-fieldprice1 price hidden'>
                                         <?php the_sub_field('price1'); ?>
                                     </span>
-                                    <span class='price hidden'>
+                                    <span class='js-fieldprice2 price hidden'>
                                         <?php the_sub_field('price2'); ?>
                                     </span>
-                                    <span class='price hidden'>
+                                    <span class='js-fieldprice3 price hidden'>
                                         <?php the_sub_field('price3'); ?>
                                     </span>
-                                    <span class='price'>
+                                    <span class='js-fieldprice4 price'>
                                         <?php the_sub_field('price4'); ?>
                                     </span>
 
@@ -75,7 +84,16 @@ get_header(); ?>
                 </div>
                 <section class='container tarif-body'>
                             <?php if( have_rows('featuresSection') ){ ?>
-                            <div class='wrapper-tarif-content'>
+                            <div class='wrapper-tarif-content relative'>
+
+                                <?php if( have_rows('offers') ){ ?>
+                                <div class='color-column'>
+                                    <?php while( have_rows('offers') ){ the_row(); ?>
+                                    <div class='<?php echo strtolower(get_sub_field("name")); ?>'></div>
+                                    <?php } ?>
+                                </div>
+                                <?php } ?>
+
                                 <ul class='tarif-content'>
                                     <?php while( have_rows('featuresSection') ){ the_row(); ?>
                                     <li class='section-feature'><ul>
@@ -101,8 +119,6 @@ get_header(); ?>
                                                                 }
                                                             }elseif( get_sub_field('check') ){
                                                                 echo '<svg class="icon icon-check"><use xlink:href="#icon-check"></use></svg>';
-                                                            }else{
-                                                                echo '';
                                                             }
                                                             ?>
                                                         </span>
@@ -119,16 +135,39 @@ get_header(); ?>
                         <?php } ?>
                             <div class='tarif-footer'>
                                 <span>
-                                    <svg class='icon'><use xlink:href='#icon-tripuce'></use></svg>
+                                    <svg class='icon js-bees' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+                                      <title>tripuce</title>
+                                      <path class='js-bee' d="M11.967 20.669c0 3.305-2.679 5.983-5.983 5.983s-5.983-2.679-5.983-5.983c0-3.305 2.679-5.983 5.983-5.983s5.983 2.679 5.983 5.983z"></path>
+                                      <path class='js-bee' d="M23.564 2.674c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
+                                      <path class='js-bee' d="M32.448 29.326c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
+                                    </svg>
+
                                 </span>
                                 <span>
-                                    <svg class='icon'><use xlink:href='#icon-tripuce'></use></svg>
+                                    <svg class='icon js-bees' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+                                        <title>tripuce</title>
+                                        <path class='js-bee' d="M11.967 20.669c0 3.305-2.679 5.983-5.983 5.983s-5.983-2.679-5.983-5.983c0-3.305 2.679-5.983 5.983-5.983s5.983 2.679 5.983 5.983z"></path>
+                                        <path class='js-bee' d="M23.564 2.674c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
+                                        <path class='js-bee' d="M32.448 29.326c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
+                                    </svg>
+
                                 </span>
                                 <span>
-                                    <svg class='icon'><use xlink:href='#icon-tripuce'></use></svg>
+                                    <svg class='icon js-bees' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+                                        <title>tripuce</title>
+                                        <path class='js-bee' d="M11.967 20.669c0 3.305-2.679 5.983-5.983 5.983s-5.983-2.679-5.983-5.983c0-3.305 2.679-5.983 5.983-5.983s5.983 2.679 5.983 5.983z"></path>
+                                        <path class='js-bee' d="M23.564 2.674c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
+                                        <path class='js-bee' d="M32.448 29.326c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
+                                    </svg>
                                 </span>
                                 <span>
-                                    <svg class='icon'><use xlink:href='#icon-tripuce'></use></svg>
+                                    <svg class='icon js-bees' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+                                        <title>tripuce</title>
+                                        <path class='js-bee' d="M11.967 20.669c0 3.305-2.679 5.983-5.983 5.983s-5.983-2.679-5.983-5.983c0-3.305 2.679-5.983 5.983-5.983s5.983 2.679 5.983 5.983z"></path>
+                                        <path class='js-bee' d="M23.564 2.674c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
+                                        <path class='js-bee' d="M32.448 29.326c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z"></path>
+                                    </svg>
+
                                 </span>
                             </div>
 
@@ -137,15 +176,15 @@ get_header(); ?>
         </div>
     </div>
 
-        <section class='container'>
-            <?php if( get_field('note') ){ ?>
-                <p class='tarif-note'><?php the_field('note'); ?></p>
-            <?php } ?>
-        </section>
+    <section class='container'>
+        <?php if( get_field('note') ){ ?>
+            <p class='tarif-note'><?php the_field('note'); ?></p>
+        <?php } ?>
+    </section>
 
-        <section class='container'>
+    <section class='container'>
         <?php if( get_field('fontionnalitesTitle') ){ ?>
-            <h2 class='h1'><?php the_field('fontionnalitesTitle'); ?></h2>
+            <h2 class='h1 section-title'><?php the_field('fontionnalitesTitle'); ?></h2>
         <?php } ?>
 
         <?php if( have_rows('sections') ){ $i = 0; ?>
@@ -156,14 +195,14 @@ get_header(); ?>
                             <h3 class='h2'><?php the_sub_field('title'); ?></h3>
                         <?php } ?>
 
-                        <?php the_sub_field('text'); ?>
+                        <p><?php the_sub_field('text'); ?></p>
 
                         <?php if( get_sub_field('star') ){ ?>
                             <div class='star'><?php the_sub_field('star'); ?></div>
                         <?php } ?>
 
                         <?php if( get_sub_field('link') && get_sub_field('linkText') ){ ?>
-                            <a href='<?php the_sub_field('link'); ?>' class='link-arrow' title='<?php the_sub_field('linkText'); ?>'><?php the_sub_field('linkText'); ?></a>
+                            <a href='<?php the_sub_field('link'); ?>' class='link-arrow pink' title='<?php the_sub_field('linkText'); ?>'><?php the_sub_field('linkText'); ?></a>
                         <?php } ?>
                     </div>
 
@@ -173,12 +212,16 @@ get_header(); ?>
                 </div>
             <?php $i++; } ?>
         <?php } ?>
+    </section>
+    
+    <section class='container contact-us'>
+        <div>
+            <?php if( get_field('contactTitle') ){ ?>
+                <h2 class='h1'><?php the_field('contactTitle'); ?></h2>
+            <?php } ?>
 
-        <?php if( get_field('contactTitle') ){ ?>
-            <h2 class='h1'><?php the_field('contactTitle'); ?></h2>
-        <?php } ?>
-
-        <?php the_field('contactText'); ?>
+            <?php the_field('contactText'); ?>
+        </div>
 
         <?php get_template_part( 'includes/form' ); ?>
 

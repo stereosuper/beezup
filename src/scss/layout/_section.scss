@@ -36,6 +36,13 @@
         float: right;
         margin: 25px 0 0;
         color: $primary;
+        &.pink{
+            color: $secondary;
+            float: none;
+            &:after{
+                background: url('../layoutImg/arrow-right.svg') no-repeat;
+            }
+        }
         &:after{
             background: url('../layoutImg/arrow-right-blue.svg') no-repeat;
         }

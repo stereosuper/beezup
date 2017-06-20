@@ -10,10 +10,6 @@
         padding: 25px 0;
         width: 90%;
         color: $white;
-        &:before{
-            content: '';
-
-        }
     }
     &.standard{
         .price{
@@ -60,7 +56,6 @@
     flex-direction: column;
     width: 33%;
     align-items: flex-start;
-
 }
 
 .offer-spec{
@@ -91,6 +86,7 @@
 }
 
 .tarif-header{
+    min-width: 1200px;
     position: absolute;
     left: 0;
     right: 0;
@@ -106,59 +102,11 @@
     }
 }
 
-.wrapper-tarif-content{
+.tarif-content{
+    margin: 7px 0;
     position: relative;
-
-    $widthBloc : 16.08*90/100*1%;  // width-offer * width-offer-title / 100 -> produit en croix
-    
-    $leftBlue1 : 33% + 0.804%; // width feature-title + padding-left
-    $leftBlue2 : $leftBlue1 + $widthBloc + 0.804%*2 + (67 * (4 / 3) / 100); // left1 + width bloc bleu + padding + gutter
-
-    $leftBlue3 : $leftBlue2 + $widthBloc + 0.804%*2 + (67 * (4 / 3) / 100); // left2 + width bloc bleu + padding + gutter
-    $leftBlue4 : $leftBlue3 + $widthBloc + 0.804%*2 + (67 * (4 / 3) / 100); // left3 + width bloc bleu + padding + gutter
-
-
-    .tarif-content{
-        margin: 7px 0;
-        position: relative;
-
-        &:before, &:after{
-            content: '';
-            display: inline-block;
-            width: $widthBloc;
-            position: absolute;
-            top: -7px;
-            bottom: -7px;
-        }
-        &:before{
-            left: $leftBlue1; 
-            background: #6bb9e1;
-            z-index: -1;
-        }
-        &:after{
-            left: $leftBlue2;
-            background: #2890c6;
-            z-index: -2;
-        }
-    }
-
-    &:before, &:after{
-        content: '';
-        display: inline-block;
-        width: $widthBloc;
-        position: absolute;
-        top: -7px;
-        bottom: -7px;
-    }
-    &:before{
-        left: $leftBlue3; 
-        background: #2b5368;
-        z-index: -1;
-    }
-    &:after{
-        left: $leftBlue4;
-        background: #262729;
-        z-index: -2;
+    ul {
+        padding: 0;
     }
 }
 
@@ -222,6 +170,34 @@
     }
 }
 
+.color-column{
+    position: absolute;
+    top: -7px;
+    bottom: -7px;
+    right: 0;
+    left: 33%;
+    display: flex;
+    justify-content: space-between;
+    > div {
+        display: inline-block;
+        width: 21.6%;
+        margin: 0 1.2%;
+        z-index: -1;
+        &.standard{
+            background: #6bb9e1;
+        }
+        &.pro{
+            background: #2890c6;
+        }
+        &.expert{
+            background: #2b5368;
+        }
+        &.enterprise{
+            background: #262729;
+        }
+    }
+}
+
 .feature{
     display: flex;
     align-items: center;
@@ -230,6 +206,7 @@
 
 .feature-content{
     display: flex;
+    justify-content: space-between;
     flex: 1;
     > span{
         width: 25%;
@@ -244,12 +221,6 @@
     width: 33%;
 }
 
-.tarif-content{
-    ul{
-        padding: 0;
-    }
-}
-
 .feature{
     &:before, &:after{
         content: none;
@@ -258,7 +229,7 @@
 
 .tarif-footer{
     display: flex;
-    margin: 20px 0 0 33%;
+    margin: 20px 0 5px 33%;
     justify-content: space-around;
     .icon{
         width: 13px;
@@ -288,11 +259,14 @@
             }
         }
     }
+    .column-3 &, .column-2 &, .column-1 &{
+        display: none;
+    }
 }
 
 .container-tarifs{
     > div {
-        min-width: 1060px;
+        min-width: 1200px;
     }  
 }
 
@@ -308,12 +282,124 @@
     font-family: $fira-italic;
 }
 
+.column-3{
+    .container-tarifs{
+        > div {
+            min-width: 960px;
+        }
+    }
+    .tarif-header{
+        min-width: 960px;
+    }
+    .section-feature{
+        &:after{
+            content: none;
+        }
+        > ul{
+            &:before {
+                $right02: (16.08 + (67 * (28 / 2) / 100)) * 1%; // width-offer + (width-content-feature * width-gutter-offer / 100 )
+                right: $right02;
+            }
+        }
+    }
+}
+
+.column-2{
+    .offer{
+        width: 48%;
+    }
+    .container-slider{
+        width: 45%;
+    }
+    .tarif-header{
+        min-width: 900px;
+    }
+    .section-feature{
+        h3{
+            width: 45%;
+        }
+        &:before, &:after{
+            content: none;
+        }
+        > ul {
+            &:before, &:after{
+                width: 26.4%;
+            }
+            &:before{
+                left: 45%;
+            }
+        }
+    }
+    .color-column {
+        left: 45%;
+        > div {
+            width: 43.2%;
+            margin: 0 2.4%;
+        }
+    }
+    .feature-content {
+        > span {
+            width: 50%;
+        }
+    }
+    .feature-title{
+        width: 45%;
+    }
+    .container-tarifs{
+        > div {
+            min-width: 900px;
+        }
+    }
+}
+
 
 @media (max-width: 1120px){
     .container-tarifs{
         overflow: auto;
         border-left: 1px solid $secondary;
         border-right: 1px solid $secondary;
+    }
+    .column-3{
+        .color-column{
+            left: 40%;
+            > div {
+                width: 28.8%;
+                margin: 0 1.6%;
+            }
+        }
+        .offer{
+            width: 32%;
+        }
+        .container-slider{
+            width: 40%;
+        }
+        .feature-title{
+            width: 40%;
+        }
+        .feature-content{
+            span{
+                width: 33%;
+            }
+        }
+        .section-feature{
+            > ul{
+                &:before{
+                    right: auto;
+                    left: 60.4%;
+                    
+                }
+                &:after, &:before{
+                    width: 19.2%;
+                }
+            }
+            &:before{
+                left: 40%;
+                width: 19.2%;
+            }
+            h3 {
+                width: 40%;
+            }
+        }
     }
     .tarif-body{
         padding: 0 30px;

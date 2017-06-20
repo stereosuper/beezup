@@ -22,12 +22,14 @@ $(function(){
     var filterChannels = require('./filterChannels.js');
     var dropdown = require('./dropdown.js');
     var animBees = require('./animBees.js');
+    var animFonctionnalites = require('./animFonctionnalites.js');
 
     var body = $('body');
     var forms = $('form');
     var bees = $('.js-bees');
     // window.outerWidth returns the window width including the scroll, but it's not working with $(window).outerWidth
     var windowWidth = window.outerWidth, windowHeight = $(window).height();
+    var tempo = 0.4;
 
     // On window resize
     function resizeHandler(){
@@ -63,18 +65,24 @@ $(function(){
     sticky($('#btnDemo'), 15, {
         wrapper: false 
     });
-    sticky($('#tarifHeader'), 0);
+    sticky($('#tarifHeader'), 0, {
+        minimumWidth: 1200
+    });
     sticky($('#sideLinksNav'), 50, {
         unit: 'vh'
     });
 
+    
     // Fixed meu
     scrollTo($('#sideLinksNav'), true);
     scrollTo($('#menuFonctionnalites'));
 
     // Anim top home
     animTopHome();
-    animSchema($('#schema'), windowWidth);
+    animSchema($('#schema'), windowWidth, tempo);
+
+    //Anim fonctionnalités
+    animFonctionnalites(windowWidth, tempo);
     
     // Add url inputs
     addUrlInputs($('#addUrlInput'), $('#newInputsCount'));
@@ -89,6 +97,23 @@ $(function(){
             });
         });
     }
+
+    // Slider price tarif
+    $('#tarifHeader').find('.js-btnPrice').each(function () {
+        $(this).on('click', function () {
+            $('#tarifHeader').find('.js-price.selected').removeClass('selected');
+            $(this).parent().addClass('selected');
+
+            var price = $(this)[0].dataset.price;
+            var classPrice = '.js-field' + price;
+            $('#tarifOffers').find('.price:not("hidden")').addClass('hidden');
+            $('#tarifOffers').find(classPrice).removeClass('hidden');
+
+                
+        });
+    });
+
+    
 
     // Networks page: dinamically get channels by country
     filterChannels(wp, $('#channels'), $('#channelsCountrySelect'), $('#channelsSectorSelect'), $('#channelsList'));
