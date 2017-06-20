@@ -95,6 +95,7 @@ module.exports = function(schema, windowWidth){
 
     schema.on('mouseenter', 'a', function(){
         survol = $(this).data('size') === 'small' ? 30 : 45;
+        
         TweenLite.to(
             [$(this).children('.box-top'), $('[data-schema-text="' + $(this).attr('id') + '"]')],
             0.3, {y: '-' + survol + 'px', ease: easeOut}
