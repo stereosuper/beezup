@@ -16,6 +16,14 @@
         width: 22.5%;
         min-width: 200px;
         padding: 20px 0;
+        &:after{
+            height: 47px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: $white;
+        }
     }
     .nav{
         flex: 1;
@@ -394,10 +402,11 @@
             padding: 25px 30px 0;
         }
         .wrapper-logo{
-            transform: translate(0, -47px);
             padding: 0;
-            .bee{
-                display: none;
+            position: relative;
+            top: -47px;
+            &:after{
+                content: '';
             }
         }
     }
