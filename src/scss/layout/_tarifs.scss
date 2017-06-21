@@ -1,21 +1,21 @@
 .offer{
     display: inline-block;
     width: 24%;
-    > h2 {
-        text-transform: uppercase;
+    > h2{
+        width: 90%;
+        padding: 25px 0;
+        margin: 0 auto;
         font-family: $fira-bold;
         font-size: 1.6rem;
         text-align: center;
-        margin: 0 auto;
-        padding: 25px 0;
-        width: 90%;
+        text-transform: uppercase;
         color: $white;
     }
     &.standard{
         .price{
             color: #6bb9e1;
         }
-        > h2 {
+        > h2{
             background: #6bb9e1;
         }
     }
@@ -23,7 +23,7 @@
         .price{
             color: #2890c6;
         }
-        > h2 {
+        > h2{
             background: #2890c6;
         }
     }
@@ -31,7 +31,7 @@
         .price{
             color: #2b5368;
         }
-        > h2 {
+        > h2{
             background: #2b5368;
         }
     }
@@ -39,7 +39,7 @@
         .price{
             color: #262729;
         }
-        > h2 {
+        > h2{
             background: #262729;
         }
     }
@@ -53,8 +53,8 @@
 
 .container-slider{
     display: flex;
-    flex-direction: column;
     width: 33%;
+    flex-direction: column;
     align-items: flex-start;
 }
 
@@ -64,10 +64,10 @@
     align-items: center;
     padding: 30px 0 40px;
     background: $white;
-    box-shadow: 0px 2px 11.05px 1.95px rgba(0, 0, 0, 0.06); 
-    > a {
-        letter-spacing: 0;
+    box-shadow: 0 2px 11px 2px rgba(0, 0, 0, 0.06); 
+    > a{
         padding: 15px 42px 15px 19px;
+        letter-spacing: 0;
         .icon{
             right: 22px;
         }
@@ -80,8 +80,8 @@
     font-size: 3.5rem;
     .small{
         position: relative;
-        font-size: 2.2rem;
         top: -8px;
+        font-size: 2.2rem;
     }
 }
 
@@ -96,58 +96,50 @@
         background: $white;
         box-shadow: 0 0 50px rgba(0,0,0,0.1);
     }
-    > .container {
+    > .container{
         display: flex;
         align-items: center;
     }
 }
 
 .tarif-content{
-    margin: 7px 0;
     position: relative;
-    ul {
+    margin: 7px 0;
+    ul{
         padding: 0;
     }
 }
 
-.section-feature{
-    position: relative;
-    padding: 10px 0;
-    margin: 7px 0;
+.section-feature, .section-feature > div{
     &:before, &:after{
         content: '';
         display: inline-block;
         width: 16.08%;
-        height: auto;
         position: absolute;
         top: 0;
         bottom: 0;
-        border-radius: 0;
         background: $white;
-        box-shadow: 0px 2px 11.05px 1.95px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 2px 11px 2px rgba(0, 0, 0, 0.06);
         z-index: -1;
+    }
+}
+.section-feature{
+    padding: 10px 0;
+    position: relative;
+    margin: 7px 0;
+    &:before, &:after{
+        height: auto;
+        border-radius: 0;
     }
     &:before{
         left: 33%;
     }
     &:after{
-        transform: scale(1,1) !important;
+        transform: scale(1, 1) !important;
         $left02: (33 + 16.08 + (67 * (4 / 3) / 100)) * 1%; // width-title-feature + width-offer + (width-content-feature * width-gutter-offer / 100 )
         left: $left02;
     }
-    > ul {
-        margin: 0;
-        &:before, &:after{
-            content: '';
-            display: inline-block;
-            width: 16.08%;
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            background: $white;
-            box-shadow: 0px 2px 11.05px 1.95px rgba(0, 0, 0, 0.06);
-            z-index: -1;
-        }
+    > div{
         &:before{
             $right02: (16.08 + (67 * (4 / 3) / 100)) * 1%; // width-offer + (width-content-feature * width-gutter-offer / 100 )
             right: $right02;
@@ -157,28 +149,26 @@
         }
     }
     h3{
+        width: 33%;
+        margin: 0 0 1em;
         font-family: $fira-medium;
         font-size: 1.6rem;
         color: $primary;
-        display: inline-block;
-        width: 33%;
-        margin: 0 0 1em;
-        > i {
-            font-family: $fira-italic;
+        > i{
             display: block;
         }
     }
 }
 
 .color-column{
+    display: flex;
     position: absolute;
     top: -7px;
     bottom: -7px;
     right: 0;
     left: 33%;
-    display: flex;
     justify-content: space-between;
-    > div {
+    > div{
         display: inline-block;
         width: 21.6%;
         margin: 0 1.2%;
@@ -235,7 +225,7 @@
         width: 13px;
         height: 13px;
     }
-    > span{
+    > div{
         text-align: center;
         width: 24%;
         &:first-child{
@@ -265,7 +255,7 @@
 }
 
 .container-tarifs{
-    > div {
+    > div{
         min-width: 1200px;
     }  
 }
@@ -275,28 +265,23 @@
 }
 
 .tarif-note{
-    font-size: 1.4rem;
-    margin: 50px 0 0 33%;
     padding: 0 0 0 1.2%;
+    margin: 50px 0 0 33%;
+    font-size: 1.4rem;
     color: #808081;
     font-family: $fira-italic;
 }
 
 .column-3{
-    .container-tarifs{
-        > div {
-            min-width: 960px;
-        }
-    }
-    .tarif-header{
+    .container-tarifs > div, .tarif-header{
         min-width: 960px;
     }
     .section-feature{
         &:after{
             content: none;
         }
-        > ul{
-            &:before {
+        > div{
+            &:before{
                 $right02: (16.08 + (67 * (28 / 2) / 100)) * 1%; // width-offer + (width-content-feature * width-gutter-offer / 100 )
                 right: $right02;
             }
@@ -308,10 +293,10 @@
     .offer{
         width: 48%;
     }
-    .container-slider{
+    .container-slider, .feature-title{
         width: 45%;
     }
-    .tarif-header{
+    .container-tarifs > div, .tarif-header{
         min-width: 900px;
     }
     .section-feature{
@@ -321,7 +306,7 @@
         &:before, &:after{
             content: none;
         }
-        > ul {
+        > div{
             &:before, &:after{
                 width: 26.4%;
             }
@@ -330,39 +315,44 @@
             }
         }
     }
-    .color-column {
+    .color-column{
         left: 45%;
-        > div {
+        > div{
             width: 43.2%;
             margin: 0 2.4%;
         }
     }
-    .feature-content {
-        > span {
+    .feature-content{
+        > span{
             width: 50%;
         }
     }
-    .feature-title{
-        width: 45%;
-    }
-    .container-tarifs{
-        > div {
-            min-width: 900px;
-        }
+}
+
+.tarif-sections{
+    &:before{
+        content: '';
+        display: block;
+        height: 1px;
+        max-width: 360px;
+        margin: 6em auto 5.5em;
+        background: $primary;
+        opacity: 0.4;
     }
 }
 
 
 @media (max-width: 1120px){
     .container-tarifs{
-        overflow: auto;
         border-left: 1px solid $secondary;
         border-right: 1px solid $secondary;
+        overflow: auto;
     }
+
     .column-3{
         .color-column{
             left: 40%;
-            > div {
+            > div{
                 width: 28.8%;
                 margin: 0 1.6%;
             }
@@ -370,10 +360,7 @@
         .offer{
             width: 32%;
         }
-        .container-slider{
-            width: 40%;
-        }
-        .feature-title{
+        .container-slider, .feature-title{
             width: 40%;
         }
         .feature-content{
@@ -382,7 +369,7 @@
             }
         }
         .section-feature{
-            > ul{
+            > div{
                 &:before{
                     right: auto;
                     left: 60.4%;
@@ -396,39 +383,32 @@
                 left: 40%;
                 width: 19.2%;
             }
-            h3 {
+            h3{
                 width: 40%;
             }
         }
     }
-    .tarif-body{
+
+    .tarif-body, .tarifs{
         padding: 0 30px;
     }
-    .tarifs {
-        padding: 0 30px;
-    }
+
     .tarif-note{
         margin: 50px 0 0;
         padding: 0;
     }
+
     .tarif-header{
         position: static;
     }
 }
 
 @media (max-width: $phone){
-    .section-feature{
-        h3{
-            font-size: 1.4rem;
-        }
-    }
-    .feature-title{
+    .section-feature h3, .feature-title, .feature-content > span{
         font-size: 1.4rem;
     }
+
     .feature-content{
-        > span {
-            font-size: 1.4rem;
-        }
         .icon-check{
             width: 13px;
         }
