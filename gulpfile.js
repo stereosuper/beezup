@@ -64,15 +64,20 @@ gulp.task('layoutImg', function() {
 });
 
 gulp.task('js', function () {
-    return browserify('src/js/main.js')
+    return browserify({
+            entries: 'src/js/main.js', debug: true
+        })
         .transform(babelify.configure({
             presets: ['es2015']
         }))
         .bundle()
         .pipe(source('main.js'))
         .pipe(buffer())
-        .pipe($.uglify())
-        .pipe(gulp.dest('dest/wp-content/themes/beezup/js'));
+        .pipe($.sourcemaps.init({loadMaps: true}))
+        //.pipe($.uglify())
+        .pipe($.sourcemaps.write('./'))
+        .pipe(gulp.dest('dest/wp-content/themes/beezup/js'))
+        .pipe($.size({ title: 'js' }));
 });
 
 
