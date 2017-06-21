@@ -11,7 +11,7 @@
     </p>
 <?php } ?>
 
-<form method='post' action='<?php the_permalink(); ?>' class='<?php if( $success ) echo "success"; ?>'>
+<form method='post' action='<?php the_permalink(); ?>' class='<?php if( $success ) echo "success"; ?>' id='form-contact'>
     <div class='field <?php if($errorLastname) echo 'error'; ?>'>
         <label for='last_name'><?php _e('Last Name', 'beezup'); ?></label>
         <input type='text' name='last_name' id='last_name' value='<?php echo $lastname; ?>' required>
