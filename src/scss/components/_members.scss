@@ -11,8 +11,10 @@
     margin: 0;
     font-family: $fira-medium;
     text-align: center;
+    background-repeat: no-repeat;
+    background-position: 100% 100%;
+    background-size: cover;
     color: $white;
-    background: $primary;
     .block-half &{
         &:nth-child(2){
             margin-top: 80px;
@@ -39,16 +41,6 @@
     }
     &:before, &:after{
         display: none;
-    }
-    .photo{
-        position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        left: 0;
-        background-repeat: no-repeat;
-        background-position: 100% 100%;
-        background-size: cover;
     }
     .name, .job{
         display: block;
