@@ -2,7 +2,7 @@
     
 <?php while ( have_posts() ) : the_post(); ?>
     
-    <div class='post <?php if( is_sticky() && is_home() ) echo 'highlighted'; ?>'>
+    <div class='post <?php if( is_sticky() && is_home() ) echo 'highlighted'; ?>' itemscope itemtype='http://schema.org/Article'>
         <?php if( has_post_thumbnail() ){ ?>
             <a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>' class='post-img'>
                 <?php the_post_thumbnail('large'); ?>
@@ -12,19 +12,19 @@
         <div class='post-txt'>
             <div class='post-meta'>
                 <?php _e('Add on', 'beezup'); ?>
-                <a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>'><?php echo get_the_date(); ?></a>
+                <a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>'><time datetime='<?php the_time('c');?>' itemprop='dateCreated'><?php echo get_the_date(); ?></time></a>
                 <?php _e('in', 'beezup'); ?>
                 <?php echo get_the_category_list(); ?>
             </div>
 
             <h2>
-                <a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>'>
+                <a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>' itemprop='name'>
                     <?php the_title(); ?>
                 </a>
             </h2>
 
-            <a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>' class='excerpt'>
-                <div><?php the_excerpt(); ?></div>
+            <a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>' class='excerpt' itemprop='description'>
+                <?php the_excerpt(); ?>
             </a>
 
             <a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>' class='link-arrow'><?php _e('Lire la suite', 'beezup'); ?></a>
