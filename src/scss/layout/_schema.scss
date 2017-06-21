@@ -6,6 +6,9 @@
     overflow: visible !important;
     .bee{
         fill: $primary;
+        .js &{
+            opacity: 0;
+        }
     }
 }
 

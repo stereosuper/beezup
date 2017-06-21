@@ -114,8 +114,6 @@ module.exports = function(schema, windowWidth, tempo){
     TweenLite.set(billeys, {x: '-75px', y: '-40px', opacity: 1});
     billeys.eq(0).addClass('on');
 
-    TweenLite.set([beesBilleys.children('.js-bee'), beesProc.children('.js-bee')], {opacity: 0})
-
     schema.on('mouseenter', 'a', function(){
         rollover = $(this).data('size') === 'small' ? 30 : 45;
         
