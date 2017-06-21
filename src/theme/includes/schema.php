@@ -46,14 +46,14 @@
             <path class='primary' d='M484.9 240.3L667.4 47.1l-3.7-23.5-182.5 193.3zm482-40.9l-3.9-23.9L663.7 23.6l3.7 23.5z'/>
             <path class='box-right' d='M963 175.5L781 369l3.8 23.4 182.1-193z'/>
             <path class='box-bottom' d='M481.2 216.9l3.7 23.4 299.9 152.1L781 369z'/>
-            <ellipse class='box-bottom' cx='506.7' cy='241.2' transform='rotate(-15.73 506.764 241.222)' rx='3.5' ry='4.7'/>
-            <ellipse class='box-bottom' cx='516.3' cy='245.8' transform='rotate(-15.73 516.327 245.784)' rx='3.5' ry='4.7'/>
+            <ellipse class='box-bottom' cx='506.7' cy='241.2' rx='3.5' ry='4.7'/>
+            <ellipse class='box-bottom' cx='516.3' cy='245.8' rx='3.5' ry='4.7'/>
             <ellipse class='box-bottom' cx='613.7' cy='294.8' transform='rotate(-15.73 613.75 294.83) translate(24, 24)' rx='3.5' ry='3.8'/>
             <ellipse class='box-bottom' cx='624.5' cy='300.1' transform='rotate(-15.73 624.5 300.08) translate(24, 24)' rx='3.5' ry='3.8'/>
             <ellipse class='box-bottom' cx='635.4' cy='305.9' transform='rotate(-15.73 635.418 305.913) translate(24, 24)' rx='3.5' ry='3.8'/>
             <ellipse class='box-bottom' cx='646.3' cy='311.3' transform='rotate(-15.73 646.336 311.33) translate(24, 24)' rx='3.5' ry='3.8'/>
-            <ellipse class='box-bottom' cx='746.6' cy='363' transform='rotate(-15.73 746.696 362.98)' rx='3.5' ry='4.7'/>
-            <ellipse class='box-bottom' cx='756.2' cy='367.5' transform='rotate(-15.73 756.26 367.542)' rx='3.5' ry='4.7'/>
+            <ellipse class='box-bottom' cx='746.6' cy='363' rx='3.5' ry='4.7'/>
+            <ellipse class='box-bottom' cx='756.2' cy='367.5' rx='3.5' ry='4.7'/>
         </g>
         <g class='logo-marketplace'>
             <image width='370' height='310' transform='matrix(0.8, 0.42, -0.57, 0.61, 661.76, 27.56)' xlink:href='<?php echo get_template_directory_uri(); ?>/layoutImg/schema-market.png'/>
@@ -79,8 +79,8 @@
             <path class='primary' d='M833.9 145.3L949.4 20.1 945.7.6 830.2 125.9zm334-13.9l-3.9-19.9L945.7.6l3.7 19.5z'/>
             <path class='box-right' d='M1164 111.5L1049 237l3.8 19.4 115.1-125z'/>
             <path class='box-bottom' d='M830.2 125.9l3.7 19.4 218.9 111.1-3.8-19.4z'/>
-            <ellipse class='box-bottom' cx='958' cy='199.3' transform='rotate(-15.73 958.105 199.322)' rx='3.5' ry='3.8'/>
-            <ellipse class='box-bottom' cx='967.2' cy='203.6' transform='rotate(-15.73 967.272 203.656)' rx='3.5' ry='3.8'/>
+            <ellipse class='box-bottom' cx='958' cy='199.3' rx='3.5' ry='3.8'/>
+            <ellipse class='box-bottom' cx='967.2' cy='203.6' rx='3.5' ry='3.8'/>
         </g>
         <g class='logo-ads'>
             <image width='1058' height='510' transform='matrix(0.2, 0.1, -0.13, 0.15, 912.02, 51.48)' xlink:href='<?php echo get_template_directory_uri(); ?>/layoutImg/schema-ads.png'/>
@@ -137,8 +137,8 @@
             <path class='primary' d='M862.9 426.3l55.5-59.2-2.7-15.5-55.5 59.3zm282 55.1l-2.9-15.9-226.3-113.9 2.7 15.5z'/>
             <path class='box-right' d='M1142 465.5l-55 59.5 2.8 15.4 55.1-59z'/>
             <path class='box-bottom' d='M860.2 410.9l2.7 15.4 226.9 114.1-2.8-15.4z'/>
-            <ellipse class='box-bottom' cx='892.5' cy='434.4' transform='rotate(-15.73 892.518 434.42)' rx='3.5' ry='3.8'/>
-            <ellipse class='box-bottom' cx='884.1' cy='429.9' transform='rotate(-15.73 884.184 429.92)' rx='3.5' ry='3.8'/>
+            <ellipse class='box-bottom' cx='892.5' cy='434.4' rx='3.5' ry='3.8'/>
+            <ellipse class='box-bottom' cx='884.1' cy='429.9' rx='3.5' ry='3.8'/>
         </g>
         <g class='logo-comparator'>
             <image width='1115' height='385' transform='matrix(0.2, 0.1, -0.1, 0.11, 912.81, 366.47)' xlink:href='<?php echo get_template_directory_uri(); ?>/layoutImg/schema-comparator.png'/>
@@ -242,56 +242,52 @@
         <path class='proc-top' d='M797 459L683.8 578.4l-265.6-135 113.5-119.3z'/>
         <path class='proc-side' d='M796 453L682.8 572.4l-265.6-135-1-7 113.5-119.3L795 446z'/>
         <path class='proc-top' d='M795 446L681.8 565.4l-265.6-135 113.5-119.3z'/>
-        <ellipse class='proc-hole' cx='738.2' cy='528' transform='rotate(-87.265 738.123 527.938)' rx='3.3' ry='2.9'/>
-        <ellipse class='proc-hole' cx='744.8' cy='520.9' transform='rotate(-87.265 744.79 520.855)' rx='3.3' ry='2.9'/>
-        <ellipse class='proc-hole' cx='777.2' cy='486.9' transform='rotate(-87.265 777.184 486.856)' rx='3.3' ry='2.9'/>
-        <ellipse class='proc-hole' cx='784.3' cy='479.3' transform='rotate(-87.265 784.267 479.273)' rx='3.3' ry='2.9'/>
+        <ellipse class='proc-hole' cx='738.2' cy='528' rx='3.3' ry='2.9'/>
+        <ellipse class='proc-hole' cx='744.8' cy='520.9' rx='3.3' ry='2.9'/>
+        <ellipse class='proc-hole' cx='777.2' cy='486.9' rx='3.3' ry='2.9'/>
+        <ellipse class='proc-hole' cx='784.3' cy='479.3' rx='3.3' ry='2.9'/>
         <path class='connector-right' d='M681.8 565.4l1 7m1 6l1.8 11.9m.7 5.1l.8 4.9'/>
         <g id='grilles'>
-            <g>
-                <path class='blue' d='M743.8 484.7l-24-12.6 1.6-1.7 24.1 12.5z'/>
-                <path class='ventilation' d='M743.8 484.7l-24-12.6.2-.2 24.1 12.5z'/>
-                <path class='blue' d='M747.2 480.9l-23.9-12.5 1.5-1.7 24.2 12.5z'/>
-                <path class='ventilation' d='M747.2 480.9l-23.9-12.5.1-.3 24.2 12.5z'/>
-                <path class='blue' d='M751.1 477.1l-24-12.5 1.6-1.7 24.1 12.5z'/>
-                <path class='ventilation' d='M751.1 477.1l-24-12.5.2-.3 24.1 12.5z'/>
-                <path class='blue' d='M754.4 473.5l-23.9-12.6 1.6-1.7 24.1 12.5z'/>
-                <path class='ventilation' d='M754.4 473.5l-23.9-12.6.2-.3 24.1 12.5z'/>
-                <path class='blue' d='M758.2 469.7l-24-12.6 1.6-1.6 24.1 12.5z'/>
-                <path class='ventilation' d='M758.2 469.7l-24-12.6.2-.2 24.1 12.5z'/>
-                <path class='blue' d='M761.5 466l-23.9-12.6 1.5-1.7 24.1 12.5z'/>
-                <path class='ventilation' d='M761.5 466l-23.9-12.6.1-.3 24.1 12.5z'/>
-                <path class='blue' d='M765 462.2l-23.9-12.5 1.5-1.7 24.2 12.5z'/>
-                <path class='ventilation' d='M765 462.2l-23.9-12.5.1-.3 24.2 12.5z'/>
-                <path class='blue' d='M768.4 458.6L744.5 446l1.5-1.6 24.2 12.5z'/>
-                <path class='ventilation' d='M768.4 458.6L744.5 446l.1-.2 24.2 12.5z'/>
-                <path class='blue' d='M772.2 454.7l-24-12.6 1.6-1.7 24.1 12.5z'/>
-                <path class='ventilation' d='M772.2 454.7l-24-12.6.2-.2 24.1 12.5z'/>
-                <path class='blue' d='M775.7 451l-24-12.6 1.6-1.7 24.1 12.5z'/>
-                <path class='ventilation' d='M775.7 451l-24-12.6.2-.2 24.1 12.5z'/>
-            </g>
-            <g>
-                <path class='blue' d='M520.9 371.2L497 358.6l1.5-1.7 24.2 12.5z'/>
-                <path class='ventilation' d='M520.9 371.2L497 358.6l.1-.2 24.2 12.5z'/>
-                <path class='blue' d='M524.4 367.4l-24-12.5 1.6-1.7 24.1 12.5z'/>
-                <path class='ventilation' d='M524.4 367.4l-24-12.5.2-.3 24.1 12.5z'/>
-                <path class='blue' d='M528.2 363.6l-23.9-12.5 1.6-1.7 24.1 12.5z'/>
-                <path class='ventilation' d='M528.2 363.6l-23.9-12.5.1-.3 24.2 12.5z'/>
-                <path class='blue' d='M531.6 360l-23.9-12.6 1.5-1.7 24.2 12.5z'/>
-                <path class='ventilation' d='M531.6 360l-23.9-12.6.1-.3 24.1 12.5z'/>
-                <path class='blue' d='M535.4 356.2l-24-12.6 1.6-1.6 24.1 12.5z'/>
-                <path class='ventilation' d='M535.4 356.2l-24-12.6.2-.2 24.1 12.5z'/>
-                <path class='blue' d='M538.7 352.5l-24-12.6 1.6-1.7 24.1 12.5z'/>
-                <path class='ventilation' d='M538.7 352.5l-24-12.6.2-.3 24.1 12.5z'/>
-                <path class='blue' d='M542.2 348.7l-24-12.5 1.6-1.7 24.1 12.5z'/>
-                <path class='ventilation' d='M542.2 348.7l-24-12.5.2-.3 24.1 12.5z'/>
-                <path class='blue' d='M545.6 345.1l-24-12.6 1.6-1.6 24.1 12.5z'/>
-                <path class='ventilation' d='M545.6 345.1l-24-12.6.2-.2 24.1 12.5z'/>
-                <path class='blue' d='M549.3 341.2l-23.9-12.6 1.6-1.7 24.1 12.5z'/>
-                <path class='ventilation' d='M549.3 341.2l-23.9-12.6.2-.2 24.1 12.5z'/>
-                <path class='blue' d='M552.8 337.5l-23.9-12.6 1.6-1.7 24.1 12.5z'/>
-                <path class='ventilation' d='M552.8 337.5l-23.9-12.6.2-.2 24.1 12.5z'/>
-            </g>
+            <path class='blue' d='M743.8 484.7l-24-12.6 1.6-1.7 24.1 12.5z'/>
+            <path class='ventilation' d='M743.8 484.7l-24-12.6.2-.2 24.1 12.5z'/>
+            <path class='blue' d='M747.2 480.9l-23.9-12.5 1.5-1.7 24.2 12.5z'/>
+            <path class='ventilation' d='M747.2 480.9l-23.9-12.5.1-.3 24.2 12.5z'/>
+            <path class='blue' d='M751.1 477.1l-24-12.5 1.6-1.7 24.1 12.5z'/>
+            <path class='ventilation' d='M751.1 477.1l-24-12.5.2-.3 24.1 12.5z'/>
+            <path class='blue' d='M754.4 473.5l-23.9-12.6 1.6-1.7 24.1 12.5z'/>
+            <path class='ventilation' d='M754.4 473.5l-23.9-12.6.2-.3 24.1 12.5z'/>
+            <path class='blue' d='M758.2 469.7l-24-12.6 1.6-1.6 24.1 12.5z'/>
+            <path class='ventilation' d='M758.2 469.7l-24-12.6.2-.2 24.1 12.5z'/>
+            <path class='blue' d='M761.5 466l-23.9-12.6 1.5-1.7 24.1 12.5z'/>
+            <path class='ventilation' d='M761.5 466l-23.9-12.6.1-.3 24.1 12.5z'/>
+            <path class='blue' d='M765 462.2l-23.9-12.5 1.5-1.7 24.2 12.5z'/>
+            <path class='ventilation' d='M765 462.2l-23.9-12.5.1-.3 24.2 12.5z'/>
+            <path class='blue' d='M768.4 458.6L744.5 446l1.5-1.6 24.2 12.5z'/>
+            <path class='ventilation' d='M768.4 458.6L744.5 446l.1-.2 24.2 12.5z'/>
+            <path class='blue' d='M772.2 454.7l-24-12.6 1.6-1.7 24.1 12.5z'/>
+            <path class='ventilation' d='M772.2 454.7l-24-12.6.2-.2 24.1 12.5z'/>
+            <path class='blue' d='M775.7 451l-24-12.6 1.6-1.7 24.1 12.5z'/>
+            <path class='ventilation' d='M775.7 451l-24-12.6.2-.2 24.1 12.5z'/>
+            <path class='blue' d='M520.9 371.2L497 358.6l1.5-1.7 24.2 12.5z'/>
+            <path class='ventilation' d='M520.9 371.2L497 358.6l.1-.2 24.2 12.5z'/>
+            <path class='blue' d='M524.4 367.4l-24-12.5 1.6-1.7 24.1 12.5z'/>
+            <path class='ventilation' d='M524.4 367.4l-24-12.5.2-.3 24.1 12.5z'/>
+            <path class='blue' d='M528.2 363.6l-23.9-12.5 1.6-1.7 24.1 12.5z'/>
+            <path class='ventilation' d='M528.2 363.6l-23.9-12.5.1-.3 24.2 12.5z'/>
+            <path class='blue' d='M531.6 360l-23.9-12.6 1.5-1.7 24.2 12.5z'/>
+            <path class='ventilation' d='M531.6 360l-23.9-12.6.1-.3 24.1 12.5z'/>
+            <path class='blue' d='M535.4 356.2l-24-12.6 1.6-1.6 24.1 12.5z'/>
+            <path class='ventilation' d='M535.4 356.2l-24-12.6.2-.2 24.1 12.5z'/>
+            <path class='blue' d='M538.7 352.5l-24-12.6 1.6-1.7 24.1 12.5z'/>
+            <path class='ventilation' d='M538.7 352.5l-24-12.6.2-.3 24.1 12.5z'/>
+            <path class='blue' d='M542.2 348.7l-24-12.5 1.6-1.7 24.1 12.5z'/>
+            <path class='ventilation' d='M542.2 348.7l-24-12.5.2-.3 24.1 12.5z'/>
+            <path class='blue' d='M545.6 345.1l-24-12.6 1.6-1.6 24.1 12.5z'/>
+            <path class='ventilation' d='M545.6 345.1l-24-12.6.2-.2 24.1 12.5z'/>
+            <path class='blue' d='M549.3 341.2l-23.9-12.6 1.6-1.7 24.1 12.5z'/>
+            <path class='ventilation' d='M549.3 341.2l-23.9-12.6.2-.2 24.1 12.5z'/>
+            <path class='blue' d='M552.8 337.5l-23.9-12.6 1.6-1.7 24.1 12.5z'/>
+            <path class='ventilation' d='M552.8 337.5l-23.9-12.6.2-.2 24.1 12.5z'/>
         </g>
         <path class='cable-bg' d='M745.3 520.9l107.4 53.4c3.9 2 8.5-1.4 7.7-5.7l-11.2-68.1c-.7-4.4 3.8-7.7 7.7-5.7l12.5 6.3'/>
         <path class='cable js-cable-2 js-cable-box-4' d='M745.3 520.9l107.4 53.4c3.9 2 8.5-1.4 7.7-5.7l-11.2-68.1c-.7-4.4 3.8-7.7 7.7-5.7l12.5 6.3'/>
@@ -308,8 +304,8 @@
         <path class='cable js-cable-2 js-cable-box-3' d='M784.7 479.4l31.7 15c2.1 1 4.6.5 6.2-1.1l61.4-63.4'/>
 
         <path class='white' d='M664.9 449.6c-2.5-3.5-16.9-7.6-32.2-9.1-15.3-1.5-25.7 0-23.2 3.5.7 1-.8 2.5 1.5 3.5-2.2-3.4 9.8-5.6 23.1-4.2 13.5 1.4 26.5 5.3 28.9 8.8.1.1.2.3.2.4 1.9-.8 2.6-1.8 1.7-2.9zm-39.3-13.5c.3-1.7.7-3.4 1.2-5.2 3.3-12.1 10-21.6 14.9-21.2 3.8.3 5.4 6.7 4.3 15.4-3.4 2.4-7.2 6.9-10.5 12.7 3.2-4 6.7-6.8 9.6-7.7-.2.7-.4 1.5-.6 2.3-.5 1.9-1.1 3.8-1.8 5.5 1.4-2.4 2.7-5.1 3.8-8.1.5-.1 1.1 0 1.6 0 3.5.7 4.7 5.3 3.7 11.6 3.4-9.6 3.3-17.2-.7-18-.8-.2-1.8 0-2.8.4 2.6-11.2.6-20.3-4.7-20.7-5.6-.5-12.9 9-16.2 21.1-1.3 4.4-1.8 8.5-1.8 11.9zm-85.6-8.4c4.2.5 7.4-.4 9.6-2.9 3-3.3 2.1-6.2-2.9-8.6l-12.2-6-19.5 21.5 11.8 5.8c5.4 2.7 10.1 1.9 13.9-2.4 2.5-2.7 2.2-5.2-.7-7.4zm-10.3 6.2l-6.8-3.3 13.3-14.6 7.1 3.5c1.8.9 2.2 1.9 1.1 3.1-2 2.2-5.3 2.6-9.8 1.2l-2.3 2.6 1.5.7c3.2 1.6 3.8 3.5 1.8 5.7-1.9 1.8-3.7 2.2-5.9 1.1zm31.4-2.5c-6.4-3.1-11.9-2.1-16.6 3-4.9 5.4-3.9 9.8 3.1 13.2 2.7 1.3 5 2.2 6.9 2.7l2.9-3.2c-2.2-.6-4.3-1.4-6.2-2.4-4.2-2.1-5.3-4.1-3.4-6.3l12.5 6.1c6.9-5.5 7.1-10 .8-13.1zm-2.7 8.2l-8-3.9c2.3-2.2 4.7-2.6 7.2-1.4 2.8 1.3 3.1 3.1.8 5.3zm22.5 1.5c-6.4-3.1-11.9-2.1-16.6 3-4.9 5.4-3.9 9.8 3.1 13.2 2.7 1.3 5 2.2 6.9 2.7l2.9-3.2c-2.2-.6-4.3-1.4-6.2-2.4-4.2-2.1-5.3-4.1-3.4-6.3l12.5 6.1c6.9-5.6 7.1-10 .8-13.1zm-2.7 8.1l-8-3.9c2.3-2.2 4.7-2.6 7.2-1.4 2.8 1.4 3.1 3.2.8 5.3zm11.2.6l9.6 4.7-18.7 4.8-2.8 3 14.8 7.2 2.8-3-9.5-4.6 18.6-4.9 2.8-3.1-14.7-7.2zm14.8 13.3l11.9-13 4.8 2.4-11.9 13c-3.1 3.4-2.5 6.2 1.7 8.3 4.3 2.1 7.9 1.4 11.1-2l11.9-13 4.8 2.4-11.9 13c-5.2 5.7-11.6 6.8-19 3.1-7.5-3.8-8.6-8.5-3.4-14.2zm20.2 22.1l19.5-21.5 12.2 6c5 2.4 5.8 5.5 2.5 9.1-3.9 4.3-9.8 5.1-17.8 2.5l2.5-3.9c4.8 1.4 8.2 1.1 10.1-1 1.3-1.4 1-2.5-.8-3.4l-7.1-3.5-16.4 18-4.7-2.3z'/>
-        <ellipse class='proc-hole' cx='697.7' cy='570.9' transform='rotate(-87.265 697.687 570.873)' rx='3.3' ry='2.9'/>
-        <ellipse class='proc-hole' cx='704.7' cy='563' transform='rotate(-87.265 704.624 562.936)' rx='3.3' ry='2.9'/>
+        <ellipse class='proc-hole' cx='697.7' cy='570.9' rx='3.3' ry='2.9'/>
+        <ellipse class='proc-hole' cx='704.7' cy='563' rx='3.3' ry='2.9'/>
         <path class='cable-wrapper' d='M820.6 509c-1.1 0-2.1-.2-3.1-.7l-40.3-19.5c-1-.5-1.4-1.7-.9-2.7.5-1 1.7-1.4 2.7-.9l40.3 19.5c1.3.6 2.9.3 3.9-.7l67.7-70.9c.8-.8 2-.8 2.8-.1.8.8.8 2 .1 2.8L826 506.7c-1.5 1.5-3.4 2.3-5.4 2.3z'/>
         <path class='cable-wrapper' d='M818.6 497c-1.1 0-2.2-.2-3.2-.7l-31.6-15c-1-.5-1.4-1.7-1-2.7s1.7-1.4 2.7-1l31.7 15c1.3.6 2.9.3 3.9-.7l61.4-63.4c.8-.8 2-.8 2.8 0 .8.8.8 2 0 2.8L824 494.7c-1.5 1.5-3.4 2.3-5.4 2.3z'/>
     </g>
@@ -373,4 +369,58 @@
             </g>
         </g>
     </a>
+
+    <g class='js-bees-billeys'>
+        <circle class='js-bee bee' cx='403.5' cy='407.8' r='2'/>
+        <circle class='js-bee bee' cx='390.7' cy='432.8' r='2'/>
+        <circle class='js-bee bee' cx='405.5' cy='473.1' r='2'/>
+        <circle class='js-bee bee' cx='376.5' cy='459.1' r='2'/>
+        <circle class='js-bee bee' cx='374.2' cy='450.5' r='2'/>
+        <ellipse class='js-bee bee' cx='365.8' cy='444.2' rx='2' ry='2'/>
+        <ellipse class='js-bee bee' cx='370.1' cy='391.7' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='338.9' cy='396' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='372.1' cy='441' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='385.6' cy='460' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='365.8' cy='456.5' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='358.4' cy='443.3' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='348.9' cy='439.7' rx='0.8' ry='0.8'/>
+    </g>
+    <g class='js-bees-proc'>
+        <ellipse class='js-bee bee' cx='512.7' cy='310' rx='2' ry='2'/>
+        <ellipse class='js-bee bee' cx='520.7' cy='294.4' rx='2' ry='2'/>
+        <ellipse class='js-bee bee' cx='525.2' cy='302' rx='2' ry='2'/>
+        <ellipse class='js-bee bee' cx='538.8' cy='303.6' rx='2' ry='2'/>
+        <ellipse class='js-bee bee' cx='532.2' cy='306.2' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='529.5' cy='282.4' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='511.8' cy='295.9' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='531.3' cy='293' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='527.1' cy='271.6' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='818.9' cy='447.2' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='808.6' cy='428.4' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='804' cy='451.5' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='803.4' cy='472' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='827.8' cy='440.9' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='836.1' cy='434.8' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='817' cy='392.5' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='855.2' cy='399' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='823.8' cy='468.9' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='762.1' cy='418.2' rx='2' ry='2'/>
+        <ellipse class='js-bee bee' cx='783.7' cy='419.4' rx='2' ry='2'/>
+        <ellipse class='js-bee bee' cx='814.1' cy='436.2' rx='2' ry='2'/>
+        <ellipse class='js-bee bee' cx='810.1' cy='454.5' rx='2' ry='2'/>
+        <ellipse class='js-bee bee' cx='809.5' cy='444.1' rx='2' ry='2'/>
+        <ellipse class='js-bee bee' cx='670.6' cy='596.4' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='710.8' cy='647.8' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='679.1' cy='640' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='679.8' cy='629.1' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='684.1' cy='615.1' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='643.7' cy='594.5' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='664.1' cy='612.2' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='675.1' cy='614.4' rx='2' ry='2'/>
+        <ellipse class='js-bee bee' cx='710.1' cy='586.9' rx='2' ry='2'/>
+        <ellipse class='js-bee bee' cx='703.6' cy='605.1' rx='2' ry='2'/>
+        <ellipse class='js-bee bee' cx='672.5' cy='605.9' rx='2' ry='2'/>
+        <ellipse class='js-bee bee' cx='665' cy='599.6' rx='2' ry='2'/>
+        <ellipse class='js-bee bee' cx='633.2' cy='611.1' rx='2' ry='2'/>
+    </g>
 </svg>
