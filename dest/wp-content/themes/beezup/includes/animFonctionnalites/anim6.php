@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" id="anim6" viewBox="0 0 373.7 392.8">
+<svg xmlns="http://www.w3.org/2000/svg" style='overflow: visible' id="anim6" viewBox="0 0 373.7 392.8">
   <g id="graphe3">
-    <path id="ombre-6-1" d="M54.7 316.4l83.9-64.4 96.2 73.7-84.5 63.3-95.6-72.6z" class="ombre-6"/>
-    <g id='bloc-6-1'>
+    <path id="ombre-6-1" d="M54.7 316.4l83.9-64.4 96.2 73.7-84.5 63.3-95.6-72.6z" class="shade-6 ombre-6"/>
+    <g id='bloc-6-1' class='bloc-6'>
       <g id="rectangle">
         <path d="M235.9 271.6l-97.9-74-85.6 64.3 97.9 74 85.6-64.3z" class="top-dalle-6"/>
         <path d="M52.4 262.1v22.8l97.9 72.1v-21l-97.9-73.9z" class="side-dalle-6"/>
@@ -18,8 +18,8 @@
     </g>
   </g>
   <g id="indicateurs">
-    <path id="ombre-6-2" d="M5.9 138.5l59.4-45.1 35.6 28.9-59.7 44.4-35.3-28.2z" class="ombre-6"/>
-    <g id="bloc-6-2">
+    <path id="ombre-6-2" d="M5.9 138.5l59.4-45.1 35.6 28.9-59.7 44.4-35.3-28.2z" class="shade-6 ombre-6"/>
+    <g id="bloc-6-2" class='bloc-6'>
       <g id="rectangle_3_">
         <path d="M101.5 68.4l-35.9-29-60.4 45 36.2 29.2 60.1-45.2z" class="top-dalle-6"/>
         <path d="M5.3 84.4v12.8l36.3 28.4-.1-11.9L5.3 84.4z" class="side-dalle-6"/>
@@ -39,8 +39,8 @@
     </g>
   </g>
   <g id="graphe2">
-    <path id="ombre-6-3" d="M80.5 142.5l98.2-72.9L368 212.9l-98.8 71.9L80.5 142.5z" class="ombre-6-2"/>
-    <g id="bloc-6-3">
+    <path id="ombre-6-3" d="M80.5 142.5l98.2-72.9L368 212.9l-98.8 71.9L80.5 142.5z" class="shade-6 ombre-6-2"/>
+    <g id="bloc-6-3" class='bloc-6'>
       <g id="grahpe_x5F_barre">
         <g id="rectangle_1_">
           <path d="M369.1 190.9L178.2 47.4l-99.8 72.8 190.9 143.5 99.8-72.8z" class="top-dalle-6"/>
@@ -60,11 +60,11 @@
     </g>
   </g>
   <g id="graphe1">
-    <g id='ombre-6-4'>
+    <g id='ombre-6-4' class='shade-6'>
       <path id="SHADE_x2B_" d="M195.2 95.8l23.9-20 78.1 60.4-24.5 17.8-77.5-58.2z" class="ombre-6"/>
       <path id="SHADE-" d="M233.3 88.5l42.2-32.3 78.6 61.5-41.9 29.8-78.9-59z" class="ombre-6"/>
     </g>
-    <g id='bloc-6-4'>
+    <g id='bloc-6-4' class='bloc-6'>
       <g id="camembert">
         <g id="rectangle_2_">
           <path d="M354.6 62.4L274.9 1.8l-81.8 61.8 79.7 60.6 81.8-61.8z" class="top-dalle-6"/>

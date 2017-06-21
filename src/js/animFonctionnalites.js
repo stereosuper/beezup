@@ -215,11 +215,51 @@ module.exports = function(windowWidth, tempo){
         .to(b4, tempo, {opacity: 1, y: 0, delay: tempo, ease: bounce});
     }
 
+    function anim6(svg) {
+        var blocks = svg.find('.bloc-6');
+
+        var ombres = [
+            svg.find('#ombre-6-1'),
+            svg.find('#ombre-6-2'),
+            svg.find('#ombre-6-3'),
+            svg.find('#ombre-6-4')
+        ];
+        
+        console.log(blocks);
+
+        // Mieux gérer les timing + ombres sur le bloc du haut
+        
+        blocks.each(function (i, el) {
+            var tl = new TimelineLite({
+                onComplete: function () {
+                    tl.restart();  
+            }});
+            tl.to(el, 2, { y: -10, delay: i})
+                .add(
+                    TweenLite.to(ombres[i], 2, {opacity: 0.2, delay: -2})
+                )    
+            .to(el, 2, { y: -5 })
+                .add(
+                    TweenLite.to(ombres[i], 2, {opacity: 0.3, delay: -2})
+                )     
+            .to(el, 2, { y: -8 })
+                .add(
+                    TweenLite.to(ombres[i], 2, {opacity: 0.24, delay: -2})
+                )     
+            .to(el, 2, { y: 0 })
+                .add(
+                    TweenLite.to(ombres[i], 2, {opacity: 0.4, delay: -2})
+                );
+        })
+        
+    }
+
     anim1($('#anim1'));
     anim2($('#anim2'));
     anim3($('#anim3'));
     anim4($('#anim4'));
     anim5($('#anim5'));
+    anim6($('#anim6'));
 
 
 
