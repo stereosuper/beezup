@@ -91,19 +91,19 @@
     }
 
     .page-intro-title{
-        order: 2;
         width: 100%;
+        order: 2;
         .container-medium &{
             width: 100%;
         }
     }
 
     .page-intro-img{
+        width: 100%;
+        max-width: 400px;
+        padding-left: 0;
+        margin: 0 0 30px;
         flex: 0 1 auto;
         order: 1;
-        max-width: 200px;
-        width: 100%;
-        margin: 0 0 30px;
-        padding-left: 0;
     }
 }
