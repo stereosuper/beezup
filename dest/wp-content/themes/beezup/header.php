@@ -60,7 +60,7 @@
 						
 						<div class='container-menu-main'>
 							<?php wp_nav_menu( array( 'theme_location' => 'primary', 'container' => 'nav', 'menu_class' => 'menu-main', 'menu_id' => 'menuMain' ) ); ?>
-							<button id='btnDemo' class='btn' onclick="Calendly.showPopupWidget('https://calendly.com/communication-beezup');return false;" type='button'><?php _e('Demo', 'Beezup'); ?></button>
+							<button id='btnDemo' class='btn' onclick="Calendly.showPopupWidget('<?php the_field('calendly', 'options'); ?>');return false;" type='button'><?php _e('Demo', 'Beezup'); ?></button>
 						</div>
 					</div>
 
