@@ -19068,7 +19068,7 @@ module.exports = function (windowWidth, tempo) {
                 onComplete: function onComplete() {
                     tl.restart();
                 } });
-            tl.to(el, 2, { y: -10, delay: i }).add(TweenLite.to(ombres[i], 2, { opacity: 0.2, delay: -2 })).to(el, 2, { y: -5 }).add(TweenLite.to(ombres[i], 2, { opacity: 0.3, delay: -2 })).to(el, 2, { y: -8 }).add(TweenLite.to(ombres[i], 2, { opacity: 0.24, delay: -2 })).to(el, 2, { y: 0 }).add(TweenLite.to(ombres[i], 2, { opacity: 0.4, delay: -2 }));
+            tl.to(el, 2, { y: -10, delay: i * 0.2 }).add(TweenLite.to(ombres[i], 2, { opacity: 0.2, delay: -2 })).to(el, 2, { y: -5 }).add(TweenLite.to(ombres[i], 2, { opacity: 0.3, delay: -2 })).to(el, 2, { y: -8 }).add(TweenLite.to(ombres[i], 2, { opacity: 0.24, delay: -2 })).to(el, 2, { y: 0 }).add(TweenLite.to(ombres[i], 2, { opacity: 0.4, delay: -2 }));
         });
     }
 
@@ -19427,6 +19427,7 @@ $(function () {
     var dropdown = require('./dropdown.js');
     var animBees = require('./animBees.js');
     var animFonctionnalites = require('./animFonctionnalites.js');
+    var sliderPrices = require('./sliderPrices.js');
 
     var body = $('body');
     var forms = $('form');
@@ -19503,17 +19504,7 @@ $(function () {
     }
 
     // Slider price tarif
-    $('#tarifHeader').find('.js-btnPrice').each(function () {
-        $(this).on('click', function () {
-            $('#tarifHeader').find('.js-price.selected').removeClass('selected');
-            $(this).parent().addClass('selected');
-
-            var price = $(this)[0].dataset.price;
-            var classPrice = '.js-field' + price;
-            $('#tarifOffers').find('.price:not("hidden")').addClass('hidden');
-            $('#tarifOffers').find(classPrice).removeClass('hidden');
-        });
-    });
+    sliderPrices($('#tarifHeader'));
 
     // Networks page: dinamically get channels by country
     filterChannels(wp, $('#channels'), $('#channelsCountrySelect'), $('#channelsSectorSelect'), $('#channelsList'));
@@ -19541,7 +19532,7 @@ $(function () {
     $(document).on('scroll', throttle(function () {}, 60));
 });
 
-},{"./addUrlInputs.js":11,"./animBees.js":12,"./animFonctionnalites.js":13,"./animSchema.js":14,"./animTopHome.js":15,"./checkInputs.js":16,"./dropdown.js":17,"./filterChannels.js":18,"./langSwitcher.js":19,"./requestAnimFrame.js":21,"./scrollTo.js":22,"./sticky.js":23,"./throttle.js":24,"jquery":9,"js-cookie":10}],21:[function(require,module,exports){
+},{"./addUrlInputs.js":11,"./animBees.js":12,"./animFonctionnalites.js":13,"./animSchema.js":14,"./animTopHome.js":15,"./checkInputs.js":16,"./dropdown.js":17,"./filterChannels.js":18,"./langSwitcher.js":19,"./requestAnimFrame.js":21,"./scrollTo.js":22,"./sliderPrices.js":23,"./sticky.js":24,"./throttle.js":25,"jquery":9,"js-cookie":10}],21:[function(require,module,exports){
 "use strict";
 
 module.exports = function () {
@@ -19613,7 +19604,29 @@ module.exports = function (elt) {
     }, 10));
 };
 
-},{"./requestAnimFrame.js":21,"./throttle.js":24,"gsap/CSSPlugin":1,"gsap/ScrollToPlugin":2,"gsap/TweenLite":4,"jquery":9}],23:[function(require,module,exports){
+},{"./requestAnimFrame.js":21,"./throttle.js":25,"gsap/CSSPlugin":1,"gsap/ScrollToPlugin":2,"gsap/TweenLite":4,"jquery":9}],23:[function(require,module,exports){
+'use strict';
+
+var $ = require('jquery');
+
+module.exports = function (tarifHeader) {
+    if (!tarifHeader.length) return;
+
+    var price,
+        classPrice,
+        tarifOffers = $('#tarifOffers');
+
+    tarifHeader.on('click', '.js-btnPrice', function () {
+        $(this).parent().addClass('selected').siblings().removeClass('selected');
+
+        price = $(this)[0].dataset.price;
+        classPrice = '.js-field' + price;
+        tarifOffers.find('.price').addClass('hidden');
+        tarifOffers.find(classPrice).removeClass('hidden');
+    });
+};
+
+},{"jquery":9}],24:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -19729,7 +19742,7 @@ module.exports = function (stickyElt, givenPosition) {
     }, 10));
 };
 
-},{"./requestAnimFrame.js":21,"./throttle.js":24,"jquery":9}],24:[function(require,module,exports){
+},{"./requestAnimFrame.js":21,"./throttle.js":25,"jquery":9}],25:[function(require,module,exports){
 "use strict";
 
 module.exports = function (callback, delay) {
