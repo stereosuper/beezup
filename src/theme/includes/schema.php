@@ -1,4 +1,4 @@
-<svg id='schema' class='schema' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 1197 754'>
+<svg id='schema' class='schema' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 1197 754' height='754'>
     <defs>
         <clipPath id='clip-market' transform='translate(-104.17 -349.04)'>
             <polygon points='769.9 372.36 589.75 564.5 884.85 718.63 1065 526.49 769.9 372.36'/>
