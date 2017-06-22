@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" id="anim5" viewBox="0 0 381 311.4">
+<svg xmlns="http://www.w3.org/2000/svg" id="anim5" viewBox="0 0 381 311.4" height="311.4">
   <g id="ombre">
     <path id="ombre_3_" d="M376.5 182l-169 128.4L3.6 157.7 172.7 29.3z" class="ombre-5"/>
   </g>

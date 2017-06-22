@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" id="anim1" viewBox="0 0 445.5 408">
+<svg xmlns="http://www.w3.org/2000/svg" id="anim1" viewBox="0 0 445.5 408" height="408">
   <g id="Information">
     <path d="M374.4 86.6l-114.3 85.9-48.1-36 114.3-86z" class="couvercle1"/>
     <path d="M374.2 100.7l-114.1 85.6v-13.8l114.1-85.6z" class="bottom1"/>

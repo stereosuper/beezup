@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" id="anim2" viewBox="0 0 445.5 408" enable-background="new 0 0 445.5 408">
+<svg xmlns="http://www.w3.org/2000/svg" id="anim2" viewBox="0 0 445.5 408" height="408">
   <g id="jean">
     <path d="M206.6 156.3L86.8 67.9l51.7-37.8 119.8 88.4z" class="couvercle2"/>
     <path d="M206.6 232.3L86.8 143.9l51.7-37.8 119.8 88.4z" class="ombre2"/>

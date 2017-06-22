@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" style='overflow: visible' id="anim6" viewBox="0 0 373.7 392.8">
+<svg xmlns="http://www.w3.org/2000/svg" style='overflow: visible' id="anim6" viewBox="0 0 373.7 392.8" height="373.7">
   <g id="graphe3">
     <path id="ombre-6-1" d="M54.7 316.4l83.9-64.4 96.2 73.7-84.5 63.3-95.6-72.6z" class="shade-6 ombre-6"/>
     <g id='bloc-6-1' class='bloc-6'>

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" id="anim4" class='anim4' viewBox="0 0 573.6 526.8">
+<svg xmlns="http://www.w3.org/2000/svg" id="anim4" class='anim4' viewBox="0 0 573.6 526.8" height="526.8">
   <style>
     .ombre-4{opacity:0.54;fill:#D0E6F2;enable-background:new ;} .top-dalle-4{fill:#FFFFFF;stroke:#C6DEEC;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;} .side-dalle-4{fill:#EFF6FA;stroke:#C6DEEC;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;} .picto-4{fill:#009EE6;} .box-green-4{fill:#1FDA4B;} .line-box-4{fill:none;stroke:#FFFFFF;stroke-miterlimit:10;} .line-connect-4{fill:#C81888;stroke:#FF63C6;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;} .front-connect-4{fill:#E30C95;stroke:#FF63C6;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;} .bottom-beez-4{fill:#009EE6;stroke:#C6DEEC;stroke-linejoin:round;stroke-miterlimit:10;} .left-beez-4{fill:#2CB3EB;stroke:#C6DEEC;stroke-linejoin:round;stroke-miterlimit:10;} .top-beez-4{fill:#009EE6;stroke:#C6DEEC;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;}
   </style>
