@@ -1,3 +1,8 @@
+<?php
+    global $error, $errorSend, $success, $lastname, $errorLastname, $firstname, $errorFirstname,
+    $website, $errorPhone, $phone, $errorMail, $mail, $msg, $errorMsg, $spamUrl, $errorEmpty, $errorPhoneTxt, $errorMailTxt;
+?>
+
 <?php if( $error && $errorSend ){ ?>
     <p class='form-error'>
         <?php echo $errorSend; ?>
@@ -11,7 +16,7 @@
     </p>
 <?php } ?>
 
-<form method='post' action='<?php the_permalink(); ?>' class='<?php if( $success ) echo "success"; ?>' id='form-contact'>
+<form method='post' action='<?php the_permalink(); ?>#form-contact' class='<?php if( $success ) echo "success"; ?>' id='form-contact'>
     <div class='field <?php if($errorLastname) echo 'error'; ?>'>
         <label for='last_name'><?php _e('Last Name', 'beezup'); ?></label>
         <input type='text' name='last_name' id='last_name' value='<?php echo $lastname; ?>' required>
