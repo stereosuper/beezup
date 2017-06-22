@@ -306,6 +306,7 @@ select{
     .field-inline{
         display: inline-block;
         max-width: 220px;
+        vertical-align: top;
     }
     .btn-secondary{
         .js &{
