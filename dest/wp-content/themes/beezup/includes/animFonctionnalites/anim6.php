@@ -61,8 +61,8 @@
   </g>
   <g id="graphe1">
     <g id='ombre-6-4' class='shade-6'>
-      <path id="SHADE_x2B_" d="M195.2 95.8l23.9-20 78.1 60.4-24.5 17.8-77.5-58.2z" class="ombre-6"/>
-      <path id="SHADE-" d="M233.3 88.5l42.2-32.3 78.6 61.5-41.9 29.8-78.9-59z" class="ombre-6"/>
+      <path id="ombre-6-4-1" d="M195.2 95.8l23.9-20 78.1 60.4-24.5 17.8-77.5-58.2z" class="ombre-6"/>
+      <path id="ombre-6-4-2" d="M233.3 88.5l42.2-32.3 78.6 61.5-41.9 29.8-78.9-59z" class="ombre-6"/>
     </g>
     <g id='bloc-6-4' class='bloc-6'>
       <g id="camembert">

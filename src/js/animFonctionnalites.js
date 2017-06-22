@@ -234,7 +234,7 @@ module.exports = function(windowWidth, tempo){
                 onComplete: function () {
                     tl.restart();  
             }});
-            tl.to(el, 2, { y: -10, delay: i})
+            tl.to(el, 2, { y: -10, delay: i*0.2, })
                 .add(
                     TweenLite.to(ombres[i], 2, {opacity: 0.2, delay: -2})
                 )    
