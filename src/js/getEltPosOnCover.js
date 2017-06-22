@@ -1,5 +1,3 @@
-var $ = require('jquery');
-
 module.exports = function(container, imgRatio, imgW, imgH, elt){
     var containerH = container.outerHeight();
     var containerW = container.width();

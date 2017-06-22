@@ -19407,11 +19407,6 @@ module.exports = {
 var $ = require('jquery');
 var Cookies = require('js-cookie');
 
-// require('gsap');
-// require('gsap/CSSPlugin');
-// var TweenLite = require('gsap/TweenLite');
-
-
 $(function () {
 
     window.requestAnimFrame = require('./requestAnimFrame.js');
