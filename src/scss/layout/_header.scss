@@ -87,7 +87,6 @@
     z-index: 3;
     > li{
         display: inline-block;
-        margin: 0 0 0 2em;
     }
     a{
         color: $white;
@@ -96,10 +95,17 @@
             opacity: 0.6;
         }
     }
-    .icon{
-        width: 13px;
-        margin: -1px 10px 0 0;
+    span{
+        display: inline-block;
+        vertical-align: middle;
     }
+    .icon{
+        width: 14px;
+        margin: -1px 8px 0 0;
+    }
+}
+.head-connect{
+    margin: 0 0 0 2.8em;
 }
 
 .container-menu-main{
@@ -450,7 +456,7 @@
         display: flex;
         flex-direction: column;
         transition: $transition;
-        li{
+        > li{
             margin: 0 0 35px;
         }
         span{
