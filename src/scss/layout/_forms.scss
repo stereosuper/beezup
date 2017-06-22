@@ -73,6 +73,7 @@ input, textarea{
 }
 
 input{
+    height: 45px;
     &[type=email]{
         width: 365px;
     }
