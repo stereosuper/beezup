@@ -592,7 +592,7 @@ add_filter( 'rocket_cache_dynamic_cookies', 'beez_cookies' );
 /*-----------------------------------------------------------------------------------*/
 // Add defer attr to scripts
 function beezup_defer_attr($tag, $handle){
-    $scriptsToDefer = array('beezup-scripts', 'sendinblue-scripts', 'appointlet-scripts');
+    $scriptsToDefer = array('beezup-scripts', 'sendinblue-scripts', 'calendly-scripts');
    
     foreach( $scriptsToDefer as $script ){
         if( $script === $handle ){
@@ -613,12 +613,12 @@ function beezup_scripts(){
     wp_deregister_script( 'wp-embed' );
 	
     wp_register_script( 'beezup-scripts', get_template_directory_uri() . '/js/main.js', array(), BEEZUP_VERSION, true );
-    wp_register_script( 'sendinblue-scripts', 'https://my.sendinblue.com/public/theme/version4/assets/js/src/subscribe-validate.js', array(), 1489660964, true );
-    wp_register_script( 'appointlet-scripts', 'https://d35xd5ovpwtfyi.cloudfront.net/loader/loader.min.js', array(), null, true );
+    wp_register_script( 'sendinblue-scripts', 'https://my.sendinblue.com/public/theme/version4/assets/js/src/subscribe-validate.js', array(), null, true );
+    wp_register_script( 'calendly-scripts', 'https://calendly.com/assets/external/widget.js', array(), null, true );
     
     wp_enqueue_script( 'beezup-scripts');
     wp_enqueue_script( 'sendinblue-scripts');
-    wp_enqueue_script( 'appointlet-scripts');
+    wp_enqueue_script( 'calendly-scripts');
 
     // Pass some data to JS for networks page
     global $post;

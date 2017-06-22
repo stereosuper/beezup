@@ -22,8 +22,7 @@ body{
     color: $text;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background: url('../layoutImg/quadrillage.png') no-repeat;
-    background-position: 50% 30px;
+    background: url('../layoutImg/quadrillage.png') no-repeat 50% 30px;
 }
 
 h1, h2, h3, h4, h5, h6{
@@ -106,11 +105,17 @@ p{
 b, strong{
     font-family: $fira-bold;
     font-weight: 400;
+    i, em{
+        font-family: $fira-medium-italic;
+    }
 }
 
 i, em{
     font-family: $fira-italic;
     font-style: normal;
+    b, strong{
+        font-family: $fira-medium-italic;
+    }
 }
 
 blockquote, .star{
@@ -199,6 +204,10 @@ li{
             transform: scale(1, -1);
         }
     }
+    ol, ul{
+        padding: 0 0 0 25px;
+        margin: 1em 0;
+    }
 }
 ul{
     > li{
@@ -211,10 +220,6 @@ ul{
             border-radius: 50%;
             background: $secondary;
         }
-    }
-    ul{
-        padding: 0 0 0 25px;
-        margin: 1em 0;
     }
 }
 ol{
@@ -231,10 +236,6 @@ ol{
             font-family: $fira-medium;
             color: $secondary;
         }
-    }
-    ol{
-        padding: 0 0 0 25px;
-        margin: 1em 0;
     }
 }
 
@@ -291,19 +292,21 @@ code, pre{
     display: block;
     padding: 10px 15px;
     margin: 1em 0;
-    background: grey;
+    background: $grey;
 }
 
 hr{
     height: 1px;
+    width: 80vw;
     max-width: 250px;
     border: 0;
     margin: 4em auto 5em;
     background: $primary;
+    opacity: 0.4;
     &.large{
-        margin: 0 auto;
         height: 1px;
         max-width: 360px;
+        margin: 0 auto;
     }
 }
 
@@ -340,18 +343,24 @@ a{
     height: 1px;
     padding: 0;
     border: 0;
-    clip: rect(0 0 0 0);
     position: absolute;
     margin: -1px;
     overflow: hidden;
+    clip: rect(0 0 0 0);
 }
 
 .clearfix{
     @include clearfix;
 }
 
-.relative{
+.relative, .wrapper-sticky{
     position: relative;
+}
+.sticky{
+    position: fixed !important;
+}
+.sticky-stuck{
+    position: absolute;
 }
 
 .align-center{
@@ -367,7 +376,7 @@ a{
 .inline-b{
     display: inline-block;
     vertical-align: middle;
-    transform: translateY(-.1em);
+    transform: translateY(-0.1em);
 }
 
 .full-width{
@@ -452,18 +461,6 @@ a{
 
 .hide-desktop{
     display: none !important;
-}
-
-.sticky {
-    position: fixed !important;
-}
-
-.sticky-stuck{
-    position: absolute;
-}
-
-.wrapper-sticky{
-    position: relative;
 }
 
 .blue{
@@ -552,6 +549,7 @@ a{
     blockquote, .star{
         padding-right: #{2*$gutter};
     }
+
     .title-icon{
         margin-top: 3em;
     }

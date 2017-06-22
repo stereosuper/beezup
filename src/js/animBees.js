@@ -1,17 +1,15 @@
 var $ = require('jquery');
 
-// var throttle = require('./throttle.js');
-// window.requestAnimFrame = require('./requestAnimFrame.js');
-
-// var TweenLite = require('gsap/TweenLite');
 var TimelineLite = require('gsap/TimelineLite');
 
-module.exports = function(containersBees){
+
+module.exports = function(containersBees, timing = 3, returnTl, delay = 0){
+    
     if(!containersBees.length) return;
 
     var bees, containerMiddle, beeMiddle, directionBee,
         offset, nbCurrentBee = 0, tlAnimBees = [],
-        randomX, randomY, randomDelay;
+        randomX, randomY, randomDelay, opacity = returnTl ? 1 : 0.1;
 
 
     function getMiddleInPage(elem){
@@ -25,7 +23,7 @@ module.exports = function(containersBees){
 
     function animBee(elemToAnim, direction, nbBee){
         tlAnimBees[nbBee] = new TimelineLite({onComplete: function(){
-            tlAnimBees[nbBee].restart();
+            if(!returnTl) tlAnimBees[nbBee].restart();
         }});
 
         randomX = Math.random() * 40;
@@ -47,8 +45,11 @@ module.exports = function(containersBees){
             //     break;
         }
 
-        tlAnimBees[nbBee].to(elemToAnim, 3, {x: randomX, y: randomY, opacity: 0.1, delay: randomDelay});
-        
+        tlAnimBees[nbBee].to(elemToAnim, timing, {x: randomX, y: randomY, opacity: opacity, delay: delay+randomDelay});
+
+        if(returnTl){
+            tlAnimBees[nbBee].to(elemToAnim, timing, {opacity: 0});
+        }
     }
 
 
@@ -73,4 +74,7 @@ module.exports = function(containersBees){
             nbCurrentBee ++;
         });
     });
+
+
+    return tlAnimBees;
 }

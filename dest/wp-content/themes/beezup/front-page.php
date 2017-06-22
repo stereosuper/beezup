@@ -26,7 +26,7 @@ get_header(); ?>
 			<p class='intro-home'><?php the_field('headerText'); ?></p>
 
 			<?php if( get_field('headerBtn2') ){ ?>
-				<button class='btn btn-arrow' data-appointlet-organization='beezup' data-appointlet-service='32290' type='button'>
+				<button class='btn btn-arrow' onclick="Calendly.showPopupWidget('<?php the_field('calendly', 'options'); ?>');return false;" type='button'>
 					<?php the_field('headerBtn2'); ?>
 					<svg class='icon icon-arrow-right'><use xlink:href='#icon-arrow-right'></use></svg>
 				</button>
@@ -101,9 +101,9 @@ get_header(); ?>
 				<?php if( have_rows('people', 'options') ){ ?>
 					<ul class='members'>
 						<?php while( have_rows('people', 'options') ){ the_row(); ?>
-							<li class='member' style='background-image: url(<?php echo wp_get_attachment_image_url( get_sub_field('photo', 'options'), 'full' ); ?>);'>
-								<span class='name'><?php the_sub_field('name', 'options'); ?></span>
-								<span class='job '><?php the_sub_field('job', 'options'); ?></span>
+							<li class='member' style='background-image: url(<?php echo wp_get_attachment_image_url( get_sub_field('photo', 'options'), 'full' ); ?>);' itemscope itemtype='http://schema.org/Person'>
+								<span class='name' itemprop='name'><?php the_sub_field('name', 'options'); ?></span>
+								<span class='job' itemprop='jobTitle'><?php the_sub_field('job', 'options'); ?></span>
 								
 								<svg class='bees js-bees' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12.8 32.1'>	
 									<path class='js-bee' d='M9.4,30.3C9.4,30.3,9.4,30.3,9.4,30.3c0.5,0,0.9,0.4,0.9,0.8c0,0,0,0,0,0.1c0,0.5-0.4,0.9-0.9,0.9 s-0.9-0.4-0.9-0.9c0,0,0-0.1,0-0.1C8.5,30.7,8.9,30.3,9.4,30.3C9.4,30.3,9.4,30.3,9.4,30.3L9.4,30.3z'/>

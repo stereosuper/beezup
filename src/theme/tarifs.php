@@ -95,14 +95,14 @@ get_header(); ?>
 
                             <ul class='tarif-content'>
                                 <?php while( have_rows('featuresSection') ){ the_row(); ?>
-                                    <li class='section-feature'><ul>
+                                    <li class='section-feature'><div>
 
                                         <h3><?php the_sub_field('title'); ?> <i><?php the_sub_field('subtitle'); ?></i></h3>
 
                                         <?php if( have_rows('features') ){ ?>
 
                                             <?php while( have_rows('features') ){ the_row(); ?>
-                                            <li class='feature'>
+                                            <div class='feature'>
                                                 <span class='feature-title'><?php the_sub_field('title'); ?></span>
 
                                                 <?php if( have_rows('detail') ){ ?>
@@ -124,47 +124,47 @@ get_header(); ?>
                                                     <?php } ?>
                                                 </div>
                                             <?php } ?>
-                                            </li>
+                                            </div>
                                         <?php } ?>
                                     <?php } ?>
-                                    </ul></li>
+                                    </div></li>
                                 <?php } ?>
                             </ul>
                         </div>
                     <?php } ?>
                     
                     <div class='tarif-footer'>
-                        <span>
+                        <div>
                             <svg class='icon js-bees' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>
                                 <path class='js-bee' d='M11.967 20.669c0 3.305-2.679 5.983-5.983 5.983s-5.983-2.679-5.983-5.983c0-3.305 2.679-5.983 5.983-5.983s5.983 2.679 5.983 5.983z'/>
                                 <path class='js-bee' d='M23.564 2.674c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z'/>
                                 <path class='js-bee' d='M32.448 29.326c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z'/>
                             </svg>
-                        </span>
+                        </div>
                             
-                        <span>
+                        <div>
                             <svg class='icon js-bees' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>
                                 <path class='js-bee' d='M11.967 20.669c0 3.305-2.679 5.983-5.983 5.983s-5.983-2.679-5.983-5.983c0-3.305 2.679-5.983 5.983-5.983s5.983 2.679 5.983 5.983z'/>
                                 <path class='js-bee' d='M23.564 2.674c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z'/>
                                 <path class='js-bee' d='M32.448 29.326c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z'/>
                             </svg>
-                        </span>
+                        </div>
                         
-                        <span>
+                        <div>
                             <svg class='icon js-bees' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>
                                 <path class='js-bee' d='M11.967 20.669c0 3.305-2.679 5.983-5.983 5.983s-5.983-2.679-5.983-5.983c0-3.305 2.679-5.983 5.983-5.983s5.983 2.679 5.983 5.983z'/>
                                 <path class='js-bee' d='M23.564 2.674c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z'/>
                                 <path class='js-bee' d='M32.448 29.326c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z'/>
                             </svg>
-                        </span>
+                        </div>
                                 
-                        <span>
+                        <div>
                             <svg class='icon js-bees' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>
                                 <path class='js-bee' d='M11.967 20.669c0 3.305-2.679 5.983-5.983 5.983s-5.983-2.679-5.983-5.983c0-3.305 2.679-5.983 5.983-5.983s5.983 2.679 5.983 5.983z'/>
                                 <path class='js-bee' d='M23.564 2.674c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z'/>
                                 <path class='js-bee' d='M32.448 29.326c0 1.477-1.197 2.674-2.674 2.674s-2.674-1.197-2.674-2.674c0-1.477 1.197-2.674 2.674-2.674s2.674 1.197 2.674 2.674z'/>
                             </svg>
-                        </span>
+                        </div>
                     </div>
 
                 </section>
@@ -172,52 +172,51 @@ get_header(); ?>
         </div>
     </div>
 
-    <section class='container'>
-        <?php if( get_field('note') ){ ?>
+    <?php if( get_field('note') ){ ?>
+        <div class='container'>
             <p class='tarif-note'><?php the_field('note'); ?></p>
-        <?php } ?>
-    </section>
+        </div>
+    <?php } ?>
 
-    <section class='container'>
-        <?php if( get_field('fontionnalitesTitle') ){ ?>
+    <?php if( get_field('fontionnalitesTitle') ){ ?>
+        <section class='container tarif-sections'>
             <h2 class='h1 section-title'><?php the_field('fontionnalitesTitle'); ?></h2>
-        <?php } ?>
 
-        <?php if( have_rows('sections') ){ $i = 0; ?>
-            <?php while( have_rows('sections') ){ the_row(); ?>
-                <div class='subsection <?php echo ($i%2 !== 0 ? 'odd' : 'even') ?>'>
-                    <div class='subsection-text'>
-                        <?php if( get_sub_field('title') ){ ?>
-                            <h3 class='h2'><?php the_sub_field('title'); ?></h3>
-                        <?php } ?>
+            <?php if( have_rows('sections') ){ $i = 0; ?>
+                <?php while( have_rows('sections') ){ the_row(); ?>
+                    <div class='subsection <?php echo ($i%2 !== 0 ? 'odd' : 'even') ?>'>
+                        <div class='subsection-text'>
+                            <?php if( get_sub_field('title') ){ ?>
+                                <h3 class='h2'><?php the_sub_field('title'); ?></h3>
+                            <?php } ?>
 
-                        <p><?php the_sub_field('text'); ?></p>
+                            <p><?php the_sub_field('text'); ?></p>
 
-                        <?php if( get_sub_field('star') ){ ?>
-                            <div class='star'><?php the_sub_field('star'); ?></div>
-                        <?php } ?>
+                            <?php if( get_sub_field('star') ){ ?>
+                                <div class='star'><?php the_sub_field('star'); ?></div>
+                            <?php } ?>
 
-                        <?php if( get_sub_field('link') && get_sub_field('linkText') ){ ?>
-                            <a href='<?php the_sub_field('link'); ?>' class='link-arrow pink' title='<?php the_sub_field('linkText'); ?>'><?php the_sub_field('linkText'); ?></a>
-                        <?php } ?>
+                            <?php if( get_sub_field('link') && get_sub_field('linkText') ){ ?>
+                                <a href='<?php the_sub_field('link'); ?>' class='link-arrow pink' title='<?php the_sub_field('linkText'); ?>'><?php the_sub_field('linkText'); ?></a>
+                            <?php } ?>
+                        </div>
+
+                        <div class='subsection-illu'>
+                            <?php echo wp_get_attachment_image( get_sub_field('img'), 'full' ); ?>
+                        </div>
                     </div>
-
-                    <div class='subsection-illu'>
-                        <?php echo wp_get_attachment_image( get_sub_field('img'), 'full' ); ?>
-                    </div>
-                </div>
-            <?php $i++; } ?>
-        <?php } ?>
-    </section>
+                <?php $i++; } ?>
+            <?php } ?>
+        </section>
+     <?php } ?>
     
     <section class='container contact-us'>
-        <div>
-            <?php if( get_field('contactTitle') ){ ?>
+        <?php if( get_field('contactTitle') ){ ?>
+            <div>
                 <h2 class='h1'><?php the_field('contactTitle'); ?></h2>
-            <?php } ?>
-
-            <?php the_field('contactText'); ?>
-        </div>
+                <?php the_field('contactText'); ?>
+            </div>
+        <?php } ?>
 
         <?php get_template_part( 'includes/form' ); ?>
 

@@ -11,7 +11,7 @@
     </p>
 <?php } ?>
 
-<form method='post' action='<?php the_permalink(); ?>' class='<?php if( $success ) echo "success"; ?>'>
+<form method='post' action='<?php the_permalink(); ?>' class='<?php if( $success ) echo "success"; ?>' id='form-contact'>
     <div class='field <?php if($errorLastname) echo 'error'; ?>'>
         <label for='last_name'><?php _e('Last Name', 'beezup'); ?></label>
         <input type='text' name='last_name' id='last_name' value='<?php echo $lastname; ?>' required>
@@ -30,7 +30,7 @@
 
     <div class='field optionnal'>
         <label for='website'><?php _e('E-commerce(s) website(s)', 'beezup'); ?> <i>(<?php _e('optionnal', 'beezup'); ?>)</i></label>
-        <input type='url' name='website' id='webiste' value='<?php echo $website; ?>' placeholder='http://'>
+        <input type='url' name='website' id='website' value='<?php echo $website; ?>' placeholder='http://'>
         <button id='addUrlInput' class='btn-add' type='button'>
             <?php _e('Add', 'beezup'); ?>
             <svg class='icon icon-plus'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-plus'></use></svg>
@@ -47,8 +47,8 @@
     </div>
 
     <div class='field <?php if($errorMail) echo 'error'; ?>'>
-        <label for='email'><?php _e('Email', 'beezup'); ?></label>
-        <input type='email' name='email-contact' id='email' value='<?php echo $mail; ?>' required>
+        <label for='email-contact'><?php _e('Email', 'beezup'); ?></label>
+        <input type='email' name='email-contact' id='email-contact' value='<?php echo $mail; ?>' required>
         <?php if( $errorMail ){ ?>
             <svg class='icon'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-error'></use></svg>
         <?php } ?>
@@ -76,7 +76,7 @@
         </p>
     <?php } ?>
 
-    <button class='btn btn-arrow' type='submit' name='submit' for='form-contact'>
+    <button class='btn btn-arrow' type='submit' name='submit' form='form-contact'>
         <?php _e('Submit', 'beezup'); ?>
         <svg class='icon icon-arrow-right'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-arrow-right'></use></svg>
     </button>
