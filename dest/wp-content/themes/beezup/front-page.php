@@ -26,7 +26,7 @@ get_header(); ?>
 			<p class='intro-home'><?php the_field('headerText'); ?></p>
 
 			<?php if( get_field('headerBtn2') ){ ?>
-				<button class='btn btn-arrow' data-appointlet-organization='beezup' data-appointlet-service='32290' type='button'>
+				<button class='btn btn-arrow' onclick="Calendly.showPopupWidget('https://calendly.com/communication-beezup');return false;" type='button'>
 					<?php the_field('headerBtn2'); ?>
 					<svg class='icon icon-arrow-right'><use xlink:href='#icon-arrow-right'></use></svg>
 				</button>

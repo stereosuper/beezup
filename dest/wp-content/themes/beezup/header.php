@@ -12,6 +12,9 @@
 
 		<?php wp_head(); ?>
 
+		<!-- Calendly style -->
+		<link href='https://calendly.com/assets/external/widget.css' rel='stylesheet'>
+
 		<script>document.getElementsByTagName('html')[0].className = 'js';</script>
 	</head>
 
@@ -57,7 +60,7 @@
 						
 						<div class='container-menu-main'>
 							<?php wp_nav_menu( array( 'theme_location' => 'primary', 'container' => 'nav', 'menu_class' => 'menu-main', 'menu_id' => 'menuMain' ) ); ?>
-							<button id='btnDemo' class='btn' data-appointlet-organization='beezup' data-appointlet-service='32290' type='button'><?php _e('Demo', 'Beezup'); ?></button>
+							<button id='btnDemo' class='btn' onclick="Calendly.showPopupWidget('https://calendly.com/communication-beezup');return false;" type='button'><?php _e('Demo', 'Beezup'); ?></button>
 						</div>
 					</div>
 

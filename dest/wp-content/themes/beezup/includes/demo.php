@@ -6,7 +6,7 @@
 
         <p><?php the_field('blogDemoText', 'options'); ?></p>
 
-        <button class='btn btn-black btn-arrow' data-appointlet-organization='beezup' data-appointlet-service='32290' type='button'>
+        <button class='btn btn-black btn-arrow' onclick="Calendly.showPopupWidget('https://calendly.com/communication-beezup');return false;" type='button'>
             <?php the_field('blogDemoBtn', 'options'); ?>
             <svg class='icon'><use xlink:href='#icon-arrow-right'></use></svg>
         </button>
