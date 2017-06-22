@@ -212,7 +212,7 @@ get_header(); ?>
     
     <section class='container contact-us'>
         <?php if( get_field('contactTitle') ){ ?>
-            <div>
+            <div class='contact-us-txt'>
                 <h2 class='h1'><?php the_field('contactTitle'); ?></h2>
                 <?php the_field('contactText'); ?>
             </div>

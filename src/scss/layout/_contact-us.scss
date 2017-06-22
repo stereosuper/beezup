@@ -15,25 +15,27 @@
         background: $primary;
         opacity: 0.4;
     }
-    > div{
-        width: 50%;
-        padding: 0 10%;
-    }
     h2{
         margin: 0 0 30px;
     }
+}
+
+.contact-us-txt{
+    width: 50%;
+    padding: 0 10%;
 }
 
 
 @media (max-width: $desktop-small){
     .contact-us{
         flex-direction: column;
-        > div{
-            width: 100%;
-            padding: 0;
-        }
         h2{
             text-align: center;
         }
+    }
+
+    .contact-us-txt{
+        width: 100%;
+        padding: 0;
     }
 }
