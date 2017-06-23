@@ -109,6 +109,7 @@
     align-items: center;
     > .btn{
         right: calc((100% - 1150px) /2);
+        z-index: 1;
         backface-visibility: hidden;
     }
 }
