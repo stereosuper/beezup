@@ -155,4 +155,13 @@ if( $channelsTypeIndex && property_exists($channelsTypeIndex, 'items') ){
     }
 }
 
+
+/*-----------------------------------------------------------------------------------*/
+/* Clear wp-rocket cache
+/*-----------------------------------------------------------------------------------*/
+
+if( function_exists( 'rocket_clean_domain' ) ){
+    rocket_clean_domain();
+}
+
 ?>
