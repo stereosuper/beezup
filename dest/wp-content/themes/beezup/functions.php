@@ -222,7 +222,7 @@ function beezup_get_channels_to_display($channelsToDisplay, $noChannels){
             $output .= '>';
             $output .= '<a href="' . $partner->homeUrl . '" title="' . $name . '" target="_blank">';
             $output .= '<span>' . $name . '</span>';
-            $output .= '<img src="' . $partner->logoUrl . '" alt="' . $name . '-flux-e-commercebeezup">';
+            $output .= '<img src="' . $partner->logoUrl . '" alt="' . $name . '-flux-e-commerce-beezup">';
             $output .= '</a></li>';
         }
 
