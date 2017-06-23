@@ -19425,20 +19425,14 @@ $(function () {
     var sliderPrices = require('./sliderPrices.js');
 
     var body = $('body');
-    var forms = $('form');
-    var bees = $('.js-bees');
+
     // window.outerWidth returns the window width including the scroll, but it's not working with $(window).outerWidth
     var windowWidth = window.outerWidth,
         windowHeight = $(window).height();
     var tempo = 0.4;
 
-    // On window resize
-    function resizeHandler() {
-        windowWidth = window.outerWidth;
-        windowHeight = $(window).height();
-
-        langSwitcher.checkLangState(windowWidth);
-    }
+    // Petit hack dégueu pour IE11, les textes du schema etant décalés seulement sur ce browser
+    if (!window.ActiveXObject && "ActiveXObject" in window) body.addClass('ie11');
 
     // Lang Switcher
     body.on('click', '#current-language', function () {
@@ -19488,15 +19482,11 @@ $(function () {
     addUrlInputs($('#addUrlInput'), $('#newInputsCount'));
 
     // Remove form success opacity
-    if (forms.length) {
-        forms.each(function () {
-            $(this).on('click', function () {
-                if ($(this).hasClass('success')) {
-                    $(this).removeClass('success');
-                }
-            });
-        });
-    }
+    body.on('click', 'form', function () {
+        if ($(this).hasClass('success')) {
+            $(this).removeClass('success');
+        }
+    });
 
     // Slider price tarif
     sliderPrices($('#tarifHeader'));
@@ -19508,9 +19498,7 @@ $(function () {
     dropdown($('.js-btn-list'));
 
     // Bees anim
-    if (bees.length) {
-        animBees(bees);
-    }
+    animBees($('.js-bees'));
 
     // Cookies
     body.on('click', '#btnCookies', function (e) {
@@ -19521,10 +19509,13 @@ $(function () {
 
     $(window).on('resize', throttle(function () {
 
-        requestAnimFrame(resizeHandler);
-    }, 60)).on('load', function () {});
+        requestAnimFrame(function () {
+            windowWidth = window.outerWidth;
+            windowHeight = $(window).height();
 
-    $(document).on('scroll', throttle(function () {}, 60));
+            langSwitcher.checkLangState(windowWidth);
+        });
+    }, 60));
 });
 
 },{"./addUrlInputs.js":11,"./animBees.js":12,"./animFonctionnalites.js":13,"./animSchema.js":14,"./animTopHome.js":15,"./checkInputs.js":16,"./dropdown.js":17,"./filterChannels.js":18,"./langSwitcher.js":19,"./requestAnimFrame.js":21,"./scrollTo.js":22,"./sliderPrices.js":23,"./sticky.js":24,"./throttle.js":25,"jquery":9,"js-cookie":10}],21:[function(require,module,exports){
