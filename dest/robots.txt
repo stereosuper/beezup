@@ -1,5 +1,7 @@
 User-agent: *
 
+Disallow : /*?*
+
 Disallow: /cgi-bin
 
 Disallow: /wp-login.php
