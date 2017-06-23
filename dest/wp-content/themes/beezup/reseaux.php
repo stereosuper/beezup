@@ -9,11 +9,12 @@ $isNetworkPage = $post->ID === $networkPage;
 $fieldLang = get_field('lang', 'options');
 $defaultCountry = $fieldLang ? $fieldLang : 'FRA';
 
-$country = isset( $_GET['country'] ) ? $_GET['country'] : $defaultCountry;
-
 if( !session_id() ) session_start();
-if( isset( $_SESSION['country'] ) ){
-    $country = $_SESSION['country'];
+$country = isset( $_SESSION['country'] ) ? $_SESSION['country'] : $defaultCountry;
+
+if( isset( $_GET['country'] ) ){
+    $country = $_GET['country'];
+    $_SESSION['country'] = $country;
 }
 
 $dataToDisplay = beezup_get_data_to_display($isNetworkPage, $country, get_field('type'));
@@ -76,13 +77,13 @@ get_header(); ?>
                     <fieldset>
                         <?php echo beezup_get_sector_select(); ?>
                         <?php echo $countrySelect; ?>
-                        <div class='field-inline'>
-                            <input type='search' name='channels-search' id='channelsSearch' data-list='.channels-list'>
+                        <div class='field-inline channels-search'>
+                            <input type='search' name='' id='channelsSearch' data-list='.channels-list'>
                             <label for='channelsSearch'><?php _e('Search', 'beezup'); ?>...</label>
                             <svg class='icon'><use xlink:href='#icon-search'></use></svg>
                         </div>
 
-                        <button type='submit' name='filter' value='true' class='btn-secondary'>GO</button>
+                        <button type='submit' name='' value='true' class='btn-secondary'>GO</button>
                     </fieldset>
                 </form>
             <?php } ?>

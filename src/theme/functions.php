@@ -146,7 +146,7 @@ function beezup_get_sector_select(){
 
     if( !$channelsSectorIndex || !property_exists($channelsSectorIndex, 'items') ) return;
 
-    $output = '<div class="select"><select name="sector" id="channelsSectorSelect" class="channels-select-sector">';
+    $output = '<div class="select channels-select-sector"><select name="" id="channelsSectorSelect">';
     $output .= '<option value="all">' . __('All the sectors', 'beezup') . '</option>';
     
     foreach( $channelsSectorIndex->items as $sector ){

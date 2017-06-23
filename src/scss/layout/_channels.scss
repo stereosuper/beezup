@@ -4,7 +4,7 @@
     }
 }
 
-.channels-select-sector{
+.channels-select-sector, .channels-search{
     .no-js &{
         display: none;
     }
@@ -104,6 +104,12 @@
                 }
             }
         }
+    }
+}
+
+.js-btn-list{
+    .no-js &{
+        display: none;
     }
 }
 
