@@ -229,6 +229,7 @@
 @media (max-width: $tablet){
     .list-quotes{
         display: block;
+        margin: 40px 0;
         > li{
             display: block;
             width: 100%;
@@ -271,6 +272,10 @@
                 padding-right: 0;
             }
         }
+    }
+
+    .list-picto{
+        margin: 40px 0;
     }
 }
 
