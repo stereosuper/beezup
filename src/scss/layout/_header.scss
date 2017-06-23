@@ -16,14 +16,6 @@
         width: 22.5%;
         min-width: 200px;
         padding: 20px 0;
-        &:after{
-            height: 47px;
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: $white;
-        }
     }
     .nav{
         flex: 1;
@@ -243,6 +235,7 @@
     height: 24px;
     padding: 10px 0 10px 5px;
     position: relative;
+    align-self: flex-end;
     overflow: hidden;
     text-indent: -99em;
     span{
@@ -280,6 +273,14 @@
     display: inline-block;
     width: 120px;
     transition: $transition;
+    &:after{
+        height: 47px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: $white;
+    }
 }
 
 .bg-mobile-nav{
@@ -406,16 +407,21 @@
             transition: $transition;
         }
         .container{
-            justify-content: space-between;
             padding: 25px 30px 0;
         }
         .wrapper-logo{
+            display: flex;
+            width: 100%;
             padding: 0;
             position: relative;
             top: -47px;
-            &:after{
-                content: '';
-            }
+            justify-content: space-between;
+        }
+    }
+
+    .logo-header{
+        &:after{
+            content: '';
         }
     }
 

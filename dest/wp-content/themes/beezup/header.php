@@ -29,6 +29,8 @@
 						<a class='logo-header' href='<?php echo home_url('/'); ?>' title='BeezUP' rel='home'>
 							<img src='<?php echo get_template_directory_uri(); ?>/layoutImg/beezup-gestionnaire-de-flux-e-commerce.svg' alt='<?php _e("Beezup, gestionnaire de flux e-commerce", "beezup"); ?>'>
 						</a>
+
+						<button id='btnMenu' class='btn-menu' type='button'><?php _e('Open menu', 'beezup'); ?><span></span></button>
 					</div>
 					
 					<div class='nav'>	
@@ -64,7 +66,6 @@
 						</div>
 					</div>
 
-					<button id='btnMenu' class='btn-menu' type='button'><?php _e('Open menu', 'beezup'); ?><span></span></button>
 					<div id='bgMobile' class='bg-mobile-nav'></div>
 
 				</div>
