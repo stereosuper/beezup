@@ -69,9 +69,9 @@
 }
 
 .channels-type{
-    width: 30.75%;
-    padding: 63px 65px 33px;
-    right: 30px;
+    width: 30.66%;
+    padding: 65px 50px 36px 65px;
+    right: 31px;
     bottom: 0;
     &.top{
         top: 38px;
@@ -114,6 +114,12 @@
 }
 
 
+@media (max-width: $desktop-large){
+    .channels-type{
+        right: 30px;
+    }
+}
+
 @media (max-width: $desktop-small){
     .channels-type{
         padding: 48px 40px 25px;
@@ -122,13 +128,17 @@
 
 @media (max-width: $desktop){
     .channels-type{
-        display: inline-block;
-        position: relative;
         width: 100%;
         max-width: 330px;
         right: auto;
-        bottom: auto;
         padding: 48px 40px 25px;
+        &.top{
+            top: 39px;
+        }
+    }
+
+    .channels-form{
+        padding: 0 0 45px;
     }
 }
 
