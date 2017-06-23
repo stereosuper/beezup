@@ -31,7 +31,13 @@
     top: 0;
     margin: 0;
     z-index: 2;
-    
+}
+.block-title-home{
+    > .btn{
+        .no-js &{
+            display: none;
+        }
+    }
 }
 .block-title-home-2{
     top: auto;
