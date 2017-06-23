@@ -28,7 +28,7 @@
                                 <div class='small-post-image' style="background-image: url(<?php echo the_post_thumbnail_url('large'); ?>);"></div>
                             <?php } ?>
                             <h3 class='small-post-title'><?php the_title(); ?></h3>
-                            <span class='link-arrow'><?php _e('Lire la suite', 'beezup'); ?></span>
+                            <span class='link-arrow'><?php _e('Read more', 'beezup'); ?></span>
                         </a>
                     </li>
                 <?php } ?>

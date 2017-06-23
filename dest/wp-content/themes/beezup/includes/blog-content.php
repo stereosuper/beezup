@@ -27,7 +27,7 @@
                 <?php the_excerpt(); ?>
             </a>
 
-            <a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>' class='link-arrow'><?php _e('Lire la suite', 'beezup'); ?></a>
+            <a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>' class='link-arrow'><?php _e('Read more', 'beezup'); ?></a>
         </div>
     </div>
 
