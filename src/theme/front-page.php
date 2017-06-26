@@ -8,7 +8,8 @@ get_header(); ?>
 <?php if ( have_posts() ) : the_post(); ?>
 	
 	<section class='container wrapper-sticky'>
-		<img class='illus-responsive' src='<?php echo get_stylesheet_directory_uri(); ?>/layoutImg/block-beezup.png' srcset='<?php echo get_stylesheet_directory_uri(); ?>/layoutImg/block-beezup@2x.png 2x' alt=''>
+		<?php $imgResponsive = "<img class='illus-responsive' src='" . get_stylesheet_directory_uri() . "/layoutImg/block-beezup.png' srcset='" . get_stylesheet_directory_uri() . "/layoutImg/block-beezup@2x.png 2x' alt=''>"; ?>
+		<?php echo apply_filters( 'bj_lazy_load_html', $imgResponsive); ?>
 
 		<div class='block-half block-txt block-title-home'>
 			<h2 class='title-home h1'><?php the_field('title2'); ?></h2>
@@ -142,7 +143,7 @@ get_header(); ?>
 						</div>
 						
 						<div class='wrapper-logo'>
-							<?php echo wp_get_attachment_image( get_sub_field('logo'), 'medium' ); ?>
+							<?php echo apply_filters( 'bj_lazy_load_html', wp_get_attachment_image( get_sub_field('logo'), 'medium' )); ?>
 						</div>
 
 						<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 38 15' class='js-bees bees'>
@@ -171,7 +172,7 @@ get_header(); ?>
 			</div>
 			
 			<div class='block-half block-visu big-img'>
-				<?php echo wp_get_attachment_image( get_field('networkImg'), 'full' ); ?>
+				<?php echo apply_filters( 'bj_lazy_load_html', wp_get_attachment_image( get_field('networkImg'), 'full' )); ?>
 			</div>
 		</div>
 	</section>

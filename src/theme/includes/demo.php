@@ -12,5 +12,5 @@
         </button>
     </div>
 
-    <?php echo wp_get_attachment_image(get_field('blogDemoImg', 'options'), 'large'); ?>
+    <?php echo apply_filters( 'bj_lazy_load_html', wp_get_attachment_image(get_field('blogDemoImg', 'options'), 'large') ); ?>
 </div>
