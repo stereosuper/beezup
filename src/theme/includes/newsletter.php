@@ -17,7 +17,7 @@
                 <div class='container-newsletter'>
                     <div class='row mandatory-email field-inline'>
                         <input type='text' name='email' id='email'>
-                        <label for='email'>Votre adresse email</label>
+                        <label for='email'><?php _e('Your email address', 'beezup'); ?></label>
                     </div> 
                     <button class='btn-secondary' type='submit'>OK</button>
                 </div>

@@ -215,6 +215,7 @@ function beezup_get_channels_to_display($channelsToDisplay, $noChannels){
 
         foreach( $channelsToDisplay as $partner ){
             $name = $partner->name;
+            $img = '<img src="' . $partner->logoUrl . '" alt="' . $name . '-flux-e-commerce-beezup">';
             $output .= '<li';
             if( property_exists($partner, 'sectors') && isset($partner->sectors[0]) ){
                 $output .= ' data-sector="' . $partner->sectors[0] . '"';
@@ -222,7 +223,7 @@ function beezup_get_channels_to_display($channelsToDisplay, $noChannels){
             $output .= '>';
             $output .= '<a href="' . $partner->homeUrl . '" title="' . $name . '" target="_blank">';
             $output .= '<span>' . $name . '</span>';
-            $output .= '<img src="' . $partner->logoUrl . '" alt="' . $name . '-flux-e-commerce-beezup">';
+            $output .= apply_filters( 'bj_lazy_load_html', $img);
             $output .= '</a></li>';
         }
 
