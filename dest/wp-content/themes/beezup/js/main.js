@@ -18903,6 +18903,8 @@ module.exports = function (containersBees) {
 },{"gsap/TimelineLite":3,"jquery":9}],13:[function(require,module,exports){
 'use strict';
 
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
 var $ = require('jquery');
 
 var TweenLite = require('gsap/TweenLite');
@@ -18918,6 +18920,7 @@ module.exports = function (windowWidth, tempo) {
         easeIn = Power3.easeIn;
     var random,
         bounce = CustomEase.create('custom', 'M0,0 C0.4,0 0.593,0.983 0.6,1 0.662,0.916 0.664,0.88 0.7,0.88 0.742,0.88 0.8,0.985 0.814,0.998 0.825,0.994 1,1 1,1');
+    var revBounce = CustomEase.create('custom', 'M0,0 C0,0 0.061,-0.004 0.095,-0.015 0.178,-0.043 0.229,-0.074 0.315,-0.104 0.353,-0.118 0.38,-0.124 0.42,-0.13 0.441,-0.133 0.458,-0.132 0.48,-0.129 0.498,-0.126 0.513,-0.124 0.53,-0.115 0.566,-0.095 0.596,-0.078 0.625,-0.048 0.667,-0.004 0.694,0.035 0.725,0.091 0.767,0.169 0.788,0.223 0.82,0.309 0.86,0.421 0.879,0.487 0.91,0.604 0.949,0.757 1,1 1,1');
 
     function anim1(svg) {
         var tl = new TimelineLite({ onComplete: function onComplete() {
@@ -19057,9 +19060,7 @@ module.exports = function (windowWidth, tempo) {
     function anim6(svg) {
         var blocks = svg.find('.bloc-6');
 
-        var ombres = [svg.find('#ombre-6-1'), svg.find('#ombre-6-2'), svg.find('#ombre-6-3'), svg.find('#ombre-6-4')];
-
-        console.log(blocks);
+        var ombres = [svg.find('#ombre-6-1'), svg.find('#ombre-6-2'), svg.find('#ombre-6-3'), svg.find('#ombre-6-4-2')];
 
         // Mieux gérer les timing + ombres sur le bloc du haut
 
@@ -19072,12 +19073,96 @@ module.exports = function (windowWidth, tempo) {
         });
     }
 
+    function anim7(svg) {
+        var t1 = svg.find('#trace-7-1');
+        var t2 = svg.find('#trace-7-2');
+        var t3 = svg.find('#trace-7-3');
+        var t4 = svg.find('#trace-7-4');
+        var p1 = svg.find('#percent-7-1');
+        var p2 = svg.find('#percent-7-2');
+        var p3 = svg.find('#percent-7-3');
+        var p4 = svg.find('#percent-7-4');
+        var b1 = svg.find('#connecteur-7-1');
+        var b2 = svg.find('#connecteur-7-2');
+        var b3 = svg.find('#connecteur-7-3');
+        var b4 = svg.find('#connecteur-7-4');
+        var s2 = svg.find('#symbol-7-2');
+        var s4 = svg.find('#symbol-7-4');
+        var tl = new TimelineLite({
+            onComplete: function onComplete() {
+                reset();
+            } });
+        var tlReset = new TimelineLite({
+            onComplete: function onComplete() {
+                tl.restart();
+            } });
+
+        function reset() {
+            tlReset.staggerTo([b1, b2, b3, b4], tempo, { delay: tempo * 2, opacity: 0, y: -50, ease: easeOut }, 0.1).add([TweenLite.to([p1, p2, p3, p4], tempo * 2, { opacity: 0, ease: easeOut, delay: -tempo }), TweenLite.to([s2, s4], tempo * 2, { fill: '#0096E0', ease: easeOut, delay: -tempo })]);
+        }
+
+        tl.set([p1, p2, p3, p4], { opacity: 0, fill: '#0FA1E7' });
+        tl.set([b1, b2, b3, b4], { opacity: 0, y: -50 });
+        tl.set([s2, s4], { fill: '#0096E0' });
+        tl.set([t1, t2, t3, t4], { drawSVG: 0 });
+
+        tl.to(p1, tempo, { opacity: 1, ease: easeIn, delay: tempo * 2 }).to(b1, tempo, { opacity: 1, y: 0, delay: tempo, ease: bounce }).to(t1, tempo, { drawSVG: "0% 100%", ease: easeIn }).to(t1, tempo, { drawSVG: "100% 100%", ease: easeOut }).to(p2, tempo, { opacity: 1, ease: easeIn, delay: tempo * 2 }).to(b2, tempo, { opacity: 1, y: 0, delay: tempo, ease: bounce }).add([TweenLite.to(s2, tempo, { delay: -tempo, ease: easeIn, fill: '#BD0314' }), TweenLite.to(p2, tempo, { delay: -tempo, ease: easeIn, fill: '#DE0C20' })]).to(p3, tempo, { opacity: 1, ease: easeIn, delay: tempo * 2 }).to(b3, tempo, { opacity: 1, y: 0, delay: tempo, ease: bounce }).to(t3, tempo, { drawSVG: "0% 100%", ease: easeIn }).to(t3, tempo, { drawSVG: "100% 100%", ease: easeOut }).to(p4, tempo, { opacity: 1, ease: easeIn, delay: tempo * 2 }).to(b4, tempo, { opacity: 1, y: 0, delay: tempo, ease: bounce }).add([TweenLite.to(s4, tempo, { delay: -tempo, ease: easeIn, fill: '#24DA4B' }), TweenLite.to(p4, tempo, { delay: -tempo, ease: easeIn, fill: '#24DA4B' })]).to(t4, tempo, { drawSVG: "0% 100%", ease: easeIn }).to(t4, tempo, { drawSVG: "100% 100%", ease: easeOut });
+    }
+
+    function anim8(svg) {
+        var cartonContainer = svg.find('#cartons-8');
+        var tl = new TimelineLite();
+        var xMove = 48,
+            yMove = 36;
+        var lastCarton;
+        var loop = 0;
+        var loopT = 0;
+        var t1 = svg.find('#trace-8-1');
+        var t2 = svg.find('#trace-8-2');
+        var t3 = svg.find('#trace-8-3');
+
+        tl.set([t1, t2, t3], { drawSVG: '100% 100%' });
+
+        function resetLast(last, row) {
+            if (row == 3 || row == 0) {
+                tl.to(t3, tempo, { drawSVG: '0 100%', ease: easeIn, delay: tempo }).to(t3, tempo, { drawSVG: '0% 0%', ease: easeIn, delay: tempo }).to(t1, tempo, { drawSVG: '0 100%', ease: easeIn, delay: -tempo }).to(t1, tempo, { drawSVG: '0% 0%', ease: easeIn, delay: tempo, onComplete: loopMove });
+            } else if (row == 1) {
+                tl.to(t2, tempo, { drawSVG: '0 100%', ease: easeIn, delay: tempo }).to(t2, tempo, { drawSVG: '0% 0%', ease: easeIn, delay: tempo }).to(t1, tempo, { drawSVG: '0 100%', ease: easeIn, delay: -tempo }).to(t1, tempo, { drawSVG: '0% 0%', ease: easeIn, delay: tempo, onComplete: loopMove });
+            }
+            tl.set([t1, t2, t3], { drawSVG: '100% 100%' });
+            var newElt = last.clone().prependTo(cartonContainer);
+            newElt.attr('transform', 'matrix(1,0,0,1,' + xMove * -row + ',' + yMove * -row + ')');
+            last.remove();
+            TweenLite.fromTo(newElt, tempo, { y: '-=50', opacity: 0 }, _defineProperty({ delay: tempo * 2, y: '+=50', opacity: 1, ease: bounce }, 'delay', tempo * 5));
+        }
+
+        function loopMove() {
+            loop > 4 ? loop = 0 : loop = loop;
+            if (loop == 1) {
+                tl.to(svg.find('.carton'), tempo, { x: '+=' + xMove, y: '+=' + yMove, ease: easeOut, delay: tempo * 4 }).to(svg.find('#carton-3'), tempo, { y: '-=50', opacity: 0, ease: revBounce, onCompleteParams: [svg.find('#carton-3'), 3], onComplete: resetLast });
+            } else if (loop == 3) {
+                tl.to(svg.find('.carton'), tempo, { x: '+=' + xMove, y: '+=' + yMove, ease: easeOut, delay: tempo * 4 }).to(svg.find('#carton-2'), tempo, { y: '-=50', opacity: 0, ease: revBounce, onCompleteParams: [svg.find('#carton-2'), 1], onComplete: resetLast });
+            } else if (loop == 4) {
+                tl.to(svg.find('.carton'), tempo, { x: '+=' + xMove, y: '+=' + yMove, ease: easeOut, delay: tempo * 4 }).to(svg.find('#carton-1'), tempo, { y: '-=50', opacity: 0, ease: revBounce, onCompleteParams: [svg.find('#carton-1'), 0], onComplete: resetLast });
+            } else {
+                tl.to(svg.find('.carton'), tempo, { x: '+=' + xMove, y: '+=' + yMove, ease: easeOut, onComplete: loopMove, delay: tempo * 4 });
+            }
+            loop++;
+        }
+        loopMove();
+    }
+
+    function anim9(svg) {}
+
     anim1($('#anim1'));
     anim2($('#anim2'));
     anim3($('#anim3'));
     anim4($('#anim4'));
     anim5($('#anim5'));
     anim6($('#anim6'));
+    anim7($('#anim7'));
+    anim8($('#anim8'));
+    anim9($('#anim9'));
 };
 
 },{"gsap/TimelineLite":3,"gsap/TweenLite":4,"gsap/src/uncompressed/easing/CustomEase":6,"gsap/src/uncompressed/plugins/DrawSVGPlugin":7,"jquery":9}],14:[function(require,module,exports){
