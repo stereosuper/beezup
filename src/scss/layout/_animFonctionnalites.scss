@@ -3,12 +3,10 @@
     z-index: -1;
     &:before, &:after{
         content: '';
-        display: block;
         position: absolute;
         height: 300px;
         width: 200px;
         z-index: 1;
-        
     }
     &:before{
         bottom: -70px;
@@ -25,263 +23,197 @@
 }
 
 // Anim1
-.couvercle1 {
-    fill: #FFFFFF;
-    stroke: #E1EEF5;
+.top1, .bottom1, .left1{
+    stroke: #e1eef5;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
-
-.bottom1 {
-    fill: #EFF6FB;
-    stroke: #E1EEF5;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+.bottom1, .left1, .cable1, .cable-wrapper1{
     stroke-miterlimit: 10;
 }
-
-.left1 {
-    fill: #FBFDFE;
-    stroke: #E1EEF5;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
+.top1{
+    fill: $white;
 }
-
-.trace1 {
+.bottom1{
+    fill: #eff6fb;
+}
+.left1{
+    fill: #fbfdfe;
+}
+.cable1{
     opacity: 0.8;
     fill: none;
     stroke: $secondary;
     stroke-width: 4;
     stroke-linecap: round;
     stroke-linejoin: round;
-    stroke-miterlimit: 10;
-    enable-background: new;
 }
-
-.bordure1 {
+.cable-wrapper1{
     opacity: 0.4;
     fill: none;
     stroke: #009EE6;
-    stroke-miterlimit: 10;
-    enable-background: new;
 }
 
 // Anim2
-.couvercle2 {
-    fill: #FFFFFF;
-    stroke: #C6DDEB;
+.top2, .bottom2, .left2, .plus-top2{
+    stroke: #c6ddeb;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
-
-.ombre2 {
+.top2{
+    fill: $white;
+}
+.shadow2{
     opacity: 0.12;
     fill: #009EE6;
-    enable-background: new;
 }
-
-.left2 {
+.left2{
     fill: #FBFDFE;
-    stroke: #C6DDEB;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
 }
-
-.bottom2 {
+.bottom2{
     fill: #EFF6FA;
-    stroke: #C6DDEB;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
 }
-
-.texte2 {
-    enable-background: new;
-}
-
-.textBlue2 {
-    fill: #009AE1;
-}
-
-.plusSide2 {
-    fill: #CD1087;
-}
-
-.plusCouvercle2 {
+.plus-top2{
     fill: #E90094;
-    stroke: #C6DDEB;
+}
+.plus-text2{
+    fill: $white;
+    font-family: $fira-medium;
+    font-size: 32px;
+}
+.cable2, .cable-wrapper2{
+    fill: none;
     stroke-miterlimit: 10;
 }
-
-.textPlus2 {
-    fill: #FFFFFF;
-    font-family: $fira-medium;
-    font-size: 32.3302px;
-}
-
-.trace2 {
+.cable2{
     opacity: 0.8;
-    fill: none;
     stroke: $secondary;
     stroke-width: 4;
     stroke-linecap: round;
     stroke-linejoin: round;
-    stroke-miterlimit: 10;
-    enable-background: new;
 }
-
-.bordure2 {
+.cable-wrapper2{
     opacity: 0.4;
-    fill: none;
     stroke: #009EE6;
-    stroke-miterlimit: 10;
 }
 
-//Anim3 
-.ombre-3 {
+// Anim3
+.top-3, .bottom-3{
+    stroke: #c5dcea;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
+.top-3{
+    fill: $white;
+}
+.bottom-3{
+    fill: #EDF5FA;
+}
+.shadow-3{
     opacity: 0.12;
     fill: #45AFE0;
-    enable-background: new;
 }
-
-.trace-3 {
-    opacity: 0.8;
+.cable-3, .cable-wrapper-3, .connector-line-3{
     fill: none;
+    stroke-miterlimit: 10;
+}
+.cable-3{
+    opacity: 0.8;
     stroke: $secondary;
     stroke-width: 4;
     stroke-linecap: round;
     stroke-linejoin: round;
-    stroke-miterlimit: 10;
-    enable-background: new;
 }
-
-.bordure-3 {
+.cable-wrapper-3{
     opacity: 0.4;
-    fill: none;
     stroke: #019EE6;
-    stroke-miterlimit: 10;
 }
-
-.couvercle-3 {
-    fill: #FFFFFF;
-    stroke: #C5DCEA;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
+.connector-line-3{
+    stroke: $white;
 }
-
-.bottom-3 {
-    fill: #EDF5FA;
-    stroke: #C5DCEA;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
-}
-
-.connecteur-top-3 {
+.connector-top-3{
     fill: #1FDA4B;
 }
-
-.connecteur-side-3 {
+.connector-side-3{
     fill: #0FBC37;
 }
-
-.connecteur-line-3 {
-    fill: none;
-    stroke: #FFFFFF;
-    stroke-miterlimit: 10;
+.box-icon-3{
+    fill: $white;
 }
-
-.box-icon-3 {
-    fill: #FFFFFF;
-}
-
-.picto-3 {
+.picto-3{
     fill: #0096E0;
 }
-
-.connecteur-top-red-3 {
+.connector-top-red-3{
     fill: #DE0C20;
 }
-
-.connecteur-side-red-3 {
+.connector-side-red-3{
     fill: #BD0314;
 }
 
 // Anim 4
-.ombre-4 {
+.shadow-4{
     opacity: 0.54;
     fill: #D0E6F2;
-    enable-background: new;
 }
-
-.top-dalle-4 {
-    fill: #FFFFFF;
+.top-dalle-4{
+    fill: $white;
     stroke: #C6DEEC;
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
-
-.side-dalle-4 {
+.side-dalle-4{
     fill: #EFF6FA;
     stroke: #C6DEEC;
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
-
-.picto-4 {
+.picto-4{
     fill: #009EE6;
 }
-
-.box-green-4 {
+.box-green-4{
     fill: #1FDA4B;
 }
-
-.line-box-4 {
+.line-box-4{
     fill: none;
-    stroke: #FFFFFF;
+    stroke: $white;
     stroke-miterlimit: 10;
 }
-
-.line-connect-4 {
+.line-connect-4{
     fill: #C81888;
     stroke: #FF63C6;
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
-
-.front-connect-4 {
+.front-connect-4{
     fill: #E30C95;
     stroke: #FF63C6;
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
-
-.bottom-beez-4 {
+.bottom-beez-4{
     fill: #009EE6;
     stroke: #C6DEEC;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
-
-.left-beez-4 {
+.left-beez-4{
     fill: #2CB3EB;
     stroke: #C6DEEC;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
-
-.top-beez-4 {
+.top-beez-4{
     fill: #009EE6;
     stroke: #C6DEEC;
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
-
-.trace-4 {
+.trace-4{
     fill: none;
     stroke: $secondary;
     stroke-width: 4;
@@ -289,193 +221,186 @@
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
-
-.bordure-4 {
+.bordure-4{
     opacity: 0.4;
     fill: none;
     stroke: #009EE6;
     stroke-miterlimit: 10;
-    enable-background: new;
 }
-
 .anim4{
     transform: scale(1.3) translate(-42px);
 }
 
 // Anim5
-.ombre-5 {
+.ombre-5{
     opacity: 0.12;
     fill: #45AFE0;
-    enable-background: new;
 }
 
-.top-dalle-5 {
-    fill: #FFFFFF;
+.top-dalle-5{
+    fill: $white;
     stroke: #C5DCEA;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
 
-.bottom-dalle-5 {
+.bottom-dalle-5{
     fill: #EDF5FA;
     stroke: #C5DCEA;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
 
-.top-box-5 {
+.top-box-5{
     fill: #1FDA4B;
 }
 
-.side-box-5 {
+.side-box-5{
     fill: #0FBC37;
 }
 
-.line-box-5 {
+.line-box-5{
     fill: none;
-    stroke: #FFFFFF;
+    stroke: $white;
     stroke-miterlimit: 10;
 }
 
-.hour-blue-5 {
+.hour-blue-5{
     fill: #0FA1E7;
 }
 
-.connecteur-top-red-3 {
+.connecteur-top-red-3{
     fill: #DE0C20;
 }
 
-.connecteur-side-red-5 {
+.connecteur-side-red-5{
     fill: #BE091A;
 }
 
-.txt-black-5 {
+.txt-black-5{
     fill: #1D1D1B;
 }
 
 // Anim6
-    .ombre-6 {
-        opacity: 0.47;
-        fill: #D0E6F2;
-        enable-background: new;
-    }
+.ombre-6{
+    opacity: 0.47;
+    fill: #D0E6F2;
+}
 
-    .top-dalle-6 {
-        fill: #FFFFFF;
-        stroke: #C6DEEC;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-        stroke-miterlimit: 10;
-    }
+.top-dalle-6{
+    fill: $white;
+    stroke: #C6DEEC;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
 
-    .side-dalle-6 {
-        fill: #ECF4F9;
-        stroke: #C4DBE9;
-        stroke-linejoin: round;
-        stroke-miterlimit: 10;
-    }
+.side-dalle-6{
+    fill: #ECF4F9;
+    stroke: #C4DBE9;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
 
-    .elt-graph-6 {
-        fill: #DCECF5;
-    }
+.elt-graph-6{
+    fill: #DCECF5;
+}
 
-    .side-box-green-6 {
-        fill: #31BC38;
-    }
+.side-box-green-6{
+    fill: #31BC38;
+}
 
-    .top-box-green-6 {
-        fill: #3ADA4B;
-    }
+.top-box-green-6{
+    fill: #3ADA4B;
+}
 
-    .path-blue-6 {
-        fill: none;
-        stroke: #009AE1;
-        stroke-width: 3;
-        stroke-miterlimit: 10;
-    }
+.path-blue-6{
+    fill: none;
+    stroke: #009AE1;
+    stroke-width: 3;
+    stroke-miterlimit: 10;
+}
 
-    .path-black-6 {
-        fill: none;
-        stroke: #000000;
-        stroke-width: 3;
-        stroke-miterlimit: 10;
-    }
+.path-black-6{
+    fill: none;
+    stroke: #000000;
+    stroke-width: 3;
+    stroke-miterlimit: 10;
+}
 
-    .ombre-6 {
-        opacity: 0.4;
-        fill: #D0E6F2;
-        enable-background: new;
-    }
+.ombre-6{
+    opacity: 0.4;
+    fill: #D0E6F2;
+}
 
-    .path-list-6 {
-        fill: #E9EDEF;
-    }
+.path-list-6{
+    fill: #E9EDEF;
+}
 
-    .bullet-list-6 {
-        fill: #259AE0;
-    }
+.bullet-list-6{
+    fill: #259AE0;
+}
 
-    .bullet-list-6-2 {
-        fill: #A6D1E7;
-    }
+.bullet-list-6-2{
+    fill: #A6D1E7;
+}
 
-    .ombre-6-2 {
-        opacity: 0.54;
-        fill: #D0E6F2;
-        enable-background: new;
-    }
+.ombre-6-2{
+    opacity: 0.54;
+    fill: #D0E6F2;
+}
 
-    .bottom-box-blue-6 {
-        fill: #070A96;
-    }
+.bottom-box-blue-6{
+    fill: #070A96;
+}
 
-    .top-box-blue-6 {
-        fill: #0F15D9;
-    }
+.top-box-blue-6{
+    fill: #0F15D9;
+}
 
-    .bottom-box-pink-6 {
-        fill: #C81888;
-    }
+.bottom-box-pink-6{
+    fill: #C81888;
+}
 
-    .top-box-pink-6 {
-        fill: #E30F94;
-    }
+.top-box-pink-6{
+    fill: #E30F94;
+}
 
 // Anim7
-.top-grey-7 {
+.top-grey-7{
     fill: #F0F0F0;
     stroke: #C5DCEA;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
 
-.front-grey-7 {
+.front-grey-7{
     fill: #E2E2E2;
     stroke: #C5DCEA;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
 
-.side-grey-7 {
+.side-grey-7{
     fill: #E8E8E8;
     stroke: #C5DCEA;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
 
-.text-green-7 {
+.text-green-7{
     fill: #24DA4B;
 }
 
 // Anim8
-.ombre-8 {
+.ombre-8{
     opacity: 0.54;
     fill-rule: evenodd;
     clip-rule: evenodd;
     fill: #D0E6F2;
 }
 
-.bottom-dalle-8 {
+.bottom-dalle-8{
     fill-rule: evenodd;
     clip-rule: evenodd;
     fill: #EFF6FA;
@@ -485,19 +410,19 @@
     stroke-miterlimit: 10;
 }
 
-.c-letter-8 {
+.c-letter-8{
     fill: #F31E00;
 }
 
-.discount-letter-8 {
+.discount-letter-8{
     fill: #213847;
 }
 
-.point-letter-8 {
+.point-letter-8{
     fill: #EA2D00;
 }
 
-.side-red-7 {
+.side-red-7{
     fill-rule: evenodd;
     clip-rule: evenodd;
     fill: #BE081A;
@@ -506,7 +431,7 @@
     stroke-miterlimit: 10;
 }
 
-.top-red-7 {
+.top-red-7{
     fill-rule: evenodd;
     clip-rule: evenodd;
     fill: #DE0B20;
@@ -515,11 +440,11 @@
     stroke-miterlimit: 10;
 }
 
-.yellow-amaz-8 {
+.yellow-amaz-8{
     fill: #FF9400;
 }
 
-.top-yellow-8 {
+.top-yellow-8{
     fill-rule: evenodd;
     clip-rule: evenodd;
     fill: #FF9C00;
@@ -529,7 +454,7 @@
     stroke-miterlimit: 10;
 }
 
-.side-yellow-8 {
+.side-yellow-8{
     fill: #EF9200;
     stroke: #FED492;
     stroke-linecap: round;
@@ -537,17 +462,17 @@
     stroke-miterlimit: 10;
 }
 
-.top-tapis-8 {
+.top-tapis-8{
     fill: #EFF6FA;
     stroke: #C6DEEC;
     stroke-miterlimit: 10;
 }
 
-.side-tapis-8 {
+.side-tapis-8{
     fill: #A7C3D5;
 }
 
-.circle-tapis-8 {
+.circle-tapis-8{
     fill: none;
     stroke: #C6DEEC;
     stroke-linecap: round;
@@ -555,13 +480,13 @@
     stroke-miterlimit: 10;
 }
 
-.square-red-8 {
+.square-red-8{
     fill-rule: evenodd;
     clip-rule: evenodd;
     fill: #DE0B20;
 }
 
-.square-yellow-8 {
+.square-yellow-8{
     fill-rule: evenodd;
     clip-rule: evenodd;
     fill: #EF9200;

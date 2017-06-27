@@ -121,7 +121,7 @@ get_header(); ?>
                                     <?php $j == 4 ? $classIllu = 'subsection-illu with-gradient' : $classIllu = 'subsection-illu' ?>
                                     <div class='<?php echo $classIllu ?>'>
                                         <!--<?php echo wp_get_attachment_image( get_sub_field('img'), 'full' ); ?>-->
-                                        <?php get_template_part( 'includes/animFonctionnalites/anim'.$j ); ?>
+                                        <?php get_template_part( 'includes/fonctionnalites/anim'.$j ); ?>
                                     </div>
                                 </div>
                             <?php $j++;} ?>
