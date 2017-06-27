@@ -224,196 +224,123 @@
 }
 
 // Anim5
-.ombre-5{
+.shadow-5{
     opacity: 0.12;
     fill: #45AFE0;
 }
-
+.top-dalle-5, .bottom-dalle-5{
+    stroke: #c5dcea;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
 .top-dalle-5{
     fill: $white;
-    stroke: #C5DCEA;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
 }
-
 .bottom-dalle-5{
     fill: #EDF5FA;
-    stroke: #C5DCEA;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
 }
-
 .top-box-5{
     fill: #1FDA4B;
 }
-
 .side-box-5{
     fill: #0FBC37;
 }
-
 .line-box-5{
     fill: none;
     stroke: $white;
     stroke-miterlimit: 10;
 }
-
 .hour-blue-5{
     fill: #0FA1E7;
 }
-
-.connecteur-top-red-3{
-    fill: #DE0C20;
-}
-
-.connecteur-side-red-5{
+.connector-side-red-5{
     fill: #BE091A;
 }
-
 .txt-black-5{
     fill: #1D1D1B;
 }
 
 // Anim6
-.ombre-6{
-    opacity: 0.47;
+.shadow-6{
+    opacity: 0.4;
     fill: #D0E6F2;
 }
-
-.top-dalle-6{
-    fill: $white;
+.shadow-6-2{
+    opacity: 0.54;
+    fill: #D0E6F2;
+}
+.top-dalle-6, .side-dalle-6{
     stroke: #C6DEEC;
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
-
+.top-dalle-6{
+    fill: $white;
+}
 .side-dalle-6{
     fill: #ECF4F9;
-    stroke: #C4DBE9;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
 }
-
 .elt-graph-6{
     fill: #DCECF5;
 }
-
 .side-box-green-6{
     fill: #31BC38;
 }
-
 .top-box-green-6{
     fill: #3ADA4B;
 }
-
+.path-blue-6, .path-black-6{
+    fill: none;
+    stroke-width: 3;
+    stroke-miterlimit: 10;
+}
 .path-blue-6{
-    fill: none;
     stroke: #009AE1;
-    stroke-width: 3;
-    stroke-miterlimit: 10;
 }
-
 .path-black-6{
-    fill: none;
     stroke: #000000;
-    stroke-width: 3;
-    stroke-miterlimit: 10;
 }
-
-.ombre-6{
-    opacity: 0.4;
-    fill: #D0E6F2;
-}
-
 .path-list-6{
     fill: #E9EDEF;
 }
-
 .bullet-list-6{
     fill: #259AE0;
 }
-
 .bullet-list-6-2{
     fill: #A6D1E7;
 }
-
-.ombre-6-2{
-    opacity: 0.54;
-    fill: #D0E6F2;
-}
-
 .bottom-box-blue-6{
     fill: #070A96;
 }
-
 .top-box-blue-6{
     fill: #0F15D9;
 }
-
 .bottom-box-pink-6{
     fill: #C81888;
 }
-
 .top-box-pink-6{
     fill: #E30F94;
 }
 
 // Anim7
+.top-grey-7, .front-grey-7, .side-grey-7{
+    stroke: #c5dcea;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
 .top-grey-7{
     fill: #F0F0F0;
-    stroke: #C5DCEA;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
 }
-
 .front-grey-7{
     fill: #E2E2E2;
-    stroke: #C5DCEA;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
 }
-
 .side-grey-7{
     fill: #E8E8E8;
-    stroke: #C5DCEA;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
 }
-
 .text-green-7{
     fill: #24DA4B;
 }
-
-// Anim8
-.ombre-8{
-    opacity: 0.54;
-    fill-rule: evenodd;
-    clip-rule: evenodd;
-    fill: #D0E6F2;
-}
-
-.bottom-dalle-8{
-    fill-rule: evenodd;
-    clip-rule: evenodd;
-    fill: #EFF6FA;
-    stroke: #C6DEEC;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
-}
-
-.c-letter-8{
-    fill: #F31E00;
-}
-
-.discount-letter-8{
-    fill: #213847;
-}
-
-.point-letter-8{
-    fill: #EA2D00;
-}
-
 .side-red-7{
     fill-rule: evenodd;
     clip-rule: evenodd;
@@ -422,7 +349,6 @@
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
-
 .top-red-7{
     fill-rule: evenodd;
     clip-rule: evenodd;
@@ -432,20 +358,41 @@
     stroke-miterlimit: 10;
 }
 
+// Anim8
+.shadow-8{
+    opacity: 0.54;
+    fill-rule: evenodd;
+    clip-rule: evenodd;
+    fill: #D0E6F2;
+}
+.bottom-dalle-8{
+    fill-rule: evenodd;
+    clip-rule: evenodd;
+    fill: #EFF6FA;
+    stroke: #C6DEEC;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-miterlimit: 10;
+}
+.c-letter-8{
+    fill: #F31E00;
+}
+.discount-letter-8{
+    fill: #213847;
+}
+.point-letter-8{
+    fill: #EA2D00;
+}
 .yellow-amaz-8{
     fill: #FF9400;
 }
-
 .top-yellow-8{
-    fill-rule: evenodd;
-    clip-rule: evenodd;
     fill: #FF9C00;
     stroke: #FED492;
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
-
 .side-yellow-8{
     fill: #EF9200;
     stroke: #FED492;
@@ -453,17 +400,14 @@
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
-
 .top-tapis-8{
     fill: #EFF6FA;
     stroke: #C6DEEC;
     stroke-miterlimit: 10;
 }
-
 .side-tapis-8{
     fill: #A7C3D5;
 }
-
 .circle-tapis-8{
     fill: none;
     stroke: #C6DEEC;
@@ -471,13 +415,11 @@
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
-
 .square-red-8{
     fill-rule: evenodd;
     clip-rule: evenodd;
     fill: #DE0B20;
 }
-
 .square-yellow-8{
     fill-rule: evenodd;
     clip-rule: evenodd;
