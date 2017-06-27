@@ -155,19 +155,17 @@
     opacity: 0.54;
     fill: #D0E6F2;
 }
-.top-dalle-4{
-    fill: $white;
-    stroke: #C6DEEC;
+.top-dalle-4, .side-dalle-4{
+    stroke: #c6deec;
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
+.top-dalle-4{
+    fill: $white;
+}
 .side-dalle-4{
     fill: #EFF6FA;
-    stroke: #C6DEEC;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
 }
 .picto-4{
     fill: #009EE6;
@@ -180,52 +178,46 @@
     stroke: $white;
     stroke-miterlimit: 10;
 }
-.line-connect-4{
-    fill: #C81888;
-    stroke: #FF63C6;
+.line-connect-4, .front-connect-4{
+    stroke: #ff63c6;
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
+.line-connect-4{
+    fill: #C81888;
+}
 .front-connect-4{
     fill: #E30C95;
-    stroke: #FF63C6;
-    stroke-linecap: round;
+}
+.bottom-beez-4, .left-beez-4, .top-beez-4{
+    stroke: #c6deec;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
 .bottom-beez-4{
     fill: #009EE6;
-    stroke: #C6DEEC;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
 }
 .left-beez-4{
     fill: #2CB3EB;
-    stroke: #C6DEEC;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
 }
 .top-beez-4{
     fill: #009EE6;
-    stroke: #C6DEEC;
     stroke-linecap: round;
-    stroke-linejoin: round;
+}
+.cable-4, .cable-wrapper-4{
+    fill: none;
     stroke-miterlimit: 10;
 }
-.trace-4{
-    fill: none;
+.cable-4{
     stroke: $secondary;
     stroke-width: 4;
     stroke-linecap: round;
     stroke-linejoin: round;
-    stroke-miterlimit: 10;
 }
-.bordure-4{
+.cable-wrapper-4{
     opacity: 0.4;
-    fill: none;
     stroke: #009EE6;
-    stroke-miterlimit: 10;
 }
 .anim4{
     transform: scale(1.3) translate(-42px);

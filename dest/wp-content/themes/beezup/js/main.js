@@ -18975,24 +18975,25 @@ module.exports = function (windowWidth, tempo) {
         tl4.to(t4, tempo, { drawSVG: '0% 100%', ease: easeIn }).to(t4, tempo * 2, { drawSVG: '100% 100%', ease: easeOut, delay: tempo });
     }
 
-    function anim4(svg) {
-        var blocks = [svg.find('#bloc-1'), svg.find('#bloc-2'), svg.find('#bloc-3'), svg.find('#bloc-4'), svg.find('#bloc-5'), svg.find('#bloc-6'), svg.find('#bloc-7'), svg.find('#bloc-8')];
-        var checks = [svg.find('#check-1'), svg.find('#check-2'), svg.find('#check-3'), svg.find('#check-4'), svg.find('#check-5'), svg.find('#check-6'), svg.find('#check-7'), svg.find('#check-8')];
+    function animImport(svg) {
+        var blocks = svg.find('.anim4-block').toArray().reverse();
+        var checks = svg.find('.anim4-check').toArray().reverse();
         var containerBlocks = svg.find('#blocks');
+        var cable = svg.find('#cable-4');
         var tlLoop = new TimelineLite({ delay: tempo * 2 });
         var tlCheck = new TimelineLite({ delay: tempo * 2 });
         var yMove = -50,
-            xMove = 66;
-        var lastBloc, lastElt;
-        var idLoop = 8;
-        var tuyau = svg.find('#trace-4');
+            xMove = 66,
+            lastBloc,
+            lastElt,
+            idLoop = 8;
 
         function loopMove() {
             idLoop = idLoop < 1 ? 8 : idLoop;
 
             lastBloc = blocks[blocks.length - 1];
-            lastElt = lastBloc.clone().appendTo(containerBlocks);
-            lastElt.attr('transform', 'matrix(1,0,0,1,' + xMove * -idLoop + ',' + yMove * -idLoop + ')');
+            lastElt = $(lastBloc).clone().appendTo(containerBlocks);
+            TweenLite.set(lastElt, { x: xMove * -idLoop, y: yMove * -idLoop });
             blocks.unshift(lastElt);
             tlCheck.set(lastElt.find('.anim4-check'), { y: -50, opacity: 0 });
 
@@ -19013,10 +19014,10 @@ module.exports = function (windowWidth, tempo) {
 
             var currentCheck = checks[j - 1];
 
-            tlCheck.fromTo(tuyau, tempo, { drawSVG: 0 }, { drawSVG: '0% 100%', ease: easeIn }).to(tuyau, tempo, { drawSVG: '100% 100%', delay: tempo * 2, ease: easeOut }).to(currentCheck, tempo, { opacity: 1, delay: -tempo * 2, ease: easeIn, onComplete: loopMove }).to(currentCheck, tempo, { y: 0, ease: bounce, delay: -tempo * 2 });
+            tlCheck.fromTo(cable, tempo, { drawSVG: 0 }, { drawSVG: '0% 100%', ease: easeIn }).to(cable, tempo, { drawSVG: '100% 100%', delay: tempo * 2, ease: easeOut }).to(currentCheck, tempo, { opacity: 1, delay: -tempo * 2, ease: easeIn, onComplete: loopMove }).to(currentCheck, tempo, { y: 0, ease: bounce, delay: -tempo * 2 });
         }
 
-        tlCheck.set(tuyau, { drawSVG: 0 });
+        tlCheck.set(cable, { drawSVG: 0 });
         tlCheck.set([checks[3], checks[2], checks[1], checks[0]], { y: -50, opacity: 0 });
         checkMove();
     }
@@ -19151,7 +19152,7 @@ module.exports = function (windowWidth, tempo) {
     animMapping($('#animMapping'));
     animImpact($('#animImpact'));
     animChoose($('#animChoose'));
-    anim4($('#anim4'));
+    animImport($('#animImport'));
     anim5($('#anim5'));
     anim6($('#anim6'));
     anim7($('#anim7'));
