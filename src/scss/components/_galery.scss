@@ -9,10 +9,12 @@
             display: none;
         }
     }
-    a{
+    a, div{
         display: flex;
         height: 105px;
         overflow: hidden;
+    }
+    a{
         &:hover, &:focus{
             opacity: 0.6;
         }

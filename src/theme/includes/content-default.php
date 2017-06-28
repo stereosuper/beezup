@@ -16,9 +16,7 @@
                             <?php foreach( $images as $image ){ ?>
                             <?php $img = "<img src='" . $image['sizes']['medium'] . "' alt='" . $image['alt'] . "'>"; ?>
                             <li>
-                                <a href='<?php echo $image['url']; ?>' title='<?php echo $image['caption']; ?>'>
-                                    <?php echo apply_filters( 'bj_lazy_load_html', $img); ?>
-                                </a>
+                                <div><?php echo apply_filters( 'bj_lazy_load_html', $img); ?></div>
                             </li>
                             <?php } ?>
                         </ul>
