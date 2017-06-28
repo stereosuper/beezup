@@ -118,10 +118,9 @@ get_header(); ?>
                                             <a href='<?php the_sub_field('link'); ?>' class='link-arrow' title='<?php the_sub_field('linkText'); ?>'><?php the_sub_field('linkText'); ?></a>
                                         <?php } ?>
                                     </div>
-                                    <?php $j == 4 ? $classIllu = 'subsection-illu with-gradient' : $classIllu = 'subsection-illu' ?>
+                                    <?php $classIllu = get_sub_field('anim') == 4 ? 'subsection-illu with-gradient' : 'subsection-illu'; ?>
                                     <div class='<?php echo $classIllu ?>'>
-                                        <!--<?php echo wp_get_attachment_image( get_sub_field('img'), 'full' ); ?>-->
-                                        <?php get_template_part( 'includes/fonctionnalites/anim'.$j ); ?>
+                                        <?php get_template_part( 'includes/fonctionnalites/anim'.get_sub_field('anim') ); ?>
                                     </div>
                                 </div>
                             <?php $j++;} ?>

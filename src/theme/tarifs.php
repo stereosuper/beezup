@@ -201,8 +201,9 @@ get_header(); ?>
                             <?php } ?>
                         </div>
 
-                        <div class='subsection-illu'>
-                            <?php echo wp_get_attachment_image( get_sub_field('img'), 'full' ); ?>
+                        <?php $classIllu = get_sub_field('anim') == 4 ? 'subsection-illu with-gradient' : 'subsection-illu'; ?>
+                        <div class='<?php echo $classIllu ?>'>
+                            <?php get_template_part( 'includes/fonctionnalites/anim'.get_sub_field('anim') ); ?>
                         </div>
                     </div>
                 <?php $i++; } ?>
