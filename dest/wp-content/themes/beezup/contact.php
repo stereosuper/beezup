@@ -3,7 +3,7 @@
 Template Name: Contact
 */
 
-include_once( 'includes/form-handler.php' );
+// include_once( 'includes/form-handler.php' );
 
 get_header(); ?>
 
@@ -30,7 +30,8 @@ get_header(); ?>
 
     <section class='container relative'>
         <div class='block-half is-alone'>
-            <?php get_template_part( 'includes/form' ); ?>
+            <?php // get_template_part( 'includes/form' ); ?>
+            <?php get_template_part( 'includes/sib-form' ); ?>
         </div>
 
         <?php if( have_rows('people', 'options') ){ ?>

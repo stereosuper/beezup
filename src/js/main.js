@@ -78,7 +78,7 @@ $(function(){
     animFonctionnalites(windowWidth, tempo);
     
     // Add url inputs
-    addUrlInputs($('#addUrlInput'), $('#newInputsCount'));
+    // addUrlInputs($('#addUrlInput'), $('#newInputsCount'));
 
     // Remove form success opacity
     body.on('click', 'form', function(){

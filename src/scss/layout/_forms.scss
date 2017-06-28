@@ -152,33 +152,33 @@ select{
     }
 }
 
-.field.error, .form-error, .form-success{
-    .icon{
-        width: 30px;
-        height: 15px;
-        position: absolute;
-        left: -40px;
-        top: 55px;
-    }
-}
+// .field.error, .form-error, .form-success{
+//     .icon{
+//         width: 30px;
+//         height: 15px;
+//         position: absolute;
+//         left: -40px;
+//         top: 55px;
+//     }
+// }
 
-.field{
-    position: relative;
-    &.error{
-        color: $error;
-        input, textarea{
-            border-color: $error;
-        }
-    }
-    .btn-add{
-        position: absolute;
-        top: 55px;
-        left: 340px;
-        .no-js &{
-            display: none;
-        }
-    }
-}
+// .field{
+//     position: relative;
+//     &.error{
+//         color: $error;
+//         input, textarea{
+//             border-color: $error;
+//         }
+//     }
+//     .btn-add{
+//         position: absolute;
+//         top: 55px;
+//         left: 340px;
+//         .no-js &{
+//             display: none;
+//         }
+//     }
+// }
 
 .field-inline{
     position: relative;
@@ -203,24 +203,24 @@ select{
     }
 }
 
-.form-success, .form-error{
-    position: relative;
-    font-size: 1.4rem;
-    font-family: $fira-medium;
-    .icon{
-        top: 0;
-        bottom: 1px;
-        margin: auto;
-    }
-}
+// .form-success, .form-error{
+//     position: relative;
+//     font-size: 1.4rem;
+//     font-family: $fira-medium;
+//     .icon{
+//         top: 0;
+//         bottom: 1px;
+//         margin: auto;
+//     }
+// }
 
-.form-success{
-    color: $success;
-}
+// .form-success{
+//     color: $success;
+// }
 
-.form-error{
-    color: $error;
-}
+// .form-error{
+//     color: $error;
+// }
 
 .container-newsletter{
     display: flex;
@@ -256,45 +256,53 @@ select{
         }
     }
 }
-.mandatory-email{
-    &.needsfilled{
-        &:before{
-            content: '';
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            bottom: -8px;
-            left: -8px;
-            border-style: solid;
-            border-width: 2px;
-            background: $white;
-            z-index: -1;
-        }
-    }
-    &.needsfilled{
-        &:before{
-            border-color: $error;
-        }
-        .message_area{
-            margin-top: 4px !important;
-        }
-    }
-    .message_area{
-        background: none !important;
-        border: 0 !important;
-        color: $error !important;
-        margin-right: -45px;
-        font-family: $fira-bold;
-        text-align: center;
-        button{
-            display: none;
-        }
+.message_area{
+    background: none !important;
+    border: 0 !important;
+    color: $error !important;
+    margin-right: -45px;
+    font-family: $fira-bold;
+    button{
+        display: none;
     }
 }
 .newsletter{
     input{
         width: 100%;
         border-right: 0;
+    }
+    .message_area{
+        text-align: center;
+    }
+    .mandatory-email{
+        &.needsfilled{
+            &:before{
+                content: '';
+                position: absolute;
+                top: -8px;
+                right: -8px;
+                bottom: -8px;
+                left: -8px;
+                border-style: solid;
+                border-width: 2px;
+                background: $white;
+                z-index: -1;
+            }
+        }
+        &.needsfilled{
+            &:before{
+                border-color: $error;
+            }
+            .message_area{
+                margin-top: 4px !important;
+            }
+        }
+    }
+}
+
+.sib-form{
+    .message_area{
+        font-size: 1.4rem;
     }
 }
 
@@ -340,17 +348,17 @@ select{
 }
 
 
-@media (max-width: $desktop-large){
-    .field.error, .form-success, .form-error{
-        .icon{
-            left: -35px;
-        }
-    }
+// @media (max-width: $desktop-large){
+//     .field.error, .form-success, .form-error{
+//         .icon{
+//             left: -35px;
+//         }
+//     }
 
-    .form-success{
-        margin-left: 32px;
-    }
-}
+//     .form-success{
+//         margin-left: 32px;
+//     }
+// }
 
 @media (max-width: $desktop){
     .channels-form{
@@ -363,13 +371,13 @@ select{
     }
 }
 
-@media (max-width: $phone){
-    .field{
-        .btn-add{
-            position: relative;
-            top: 0;
-            left: 0;
-            margin: 5px 0 0;
-        }
-    }
-}
+// @media (max-width: $phone){
+//     .field{
+//         .btn-add{
+//             position: relative;
+//             top: 0;
+//             left: 0;
+//             margin: 5px 0 0;
+//         }
+//     }
+// }
