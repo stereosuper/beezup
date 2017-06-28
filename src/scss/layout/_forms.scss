@@ -257,10 +257,11 @@ select{
     }
 }
 .message_area{
-    background: none !important;
+    max-width: 100%;
     border: 0 !important;
-    color: $error !important;
     margin-right: -45px;
+    background: none !important;
+    color: $error !important;
     font-family: $fira-bold;
     button{
         display: none;
