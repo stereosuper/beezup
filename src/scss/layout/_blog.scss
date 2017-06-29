@@ -393,12 +393,11 @@
     }
 
     .blog-form{
-        display: block;
         .js &{
             padding-top: 90px;
         }
         > .dropdown{
-            width: 100%;
+            width: calc(100% - 60px);
             max-width: 330px;
             .no-js &{
                 position: static;
@@ -406,12 +405,11 @@
             }
         }
         > .searchform{
+            width: 330px;
+            max-width: 100%;
             float: none;
-            .field-inline{
-                display: inline-block;
-            }
             input{
-                width: 330px;
+                width: 100%;
             }
         }
     }
