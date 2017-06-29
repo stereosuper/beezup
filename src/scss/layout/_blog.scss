@@ -162,6 +162,9 @@
 .excerpt{
     text-decoration: none;
     color: $text;
+    &:hover, &:focus{
+        color: $text;
+    }
 }
 
 .post-categories{
