@@ -11,7 +11,7 @@
 	<section class='container-medium page-intro'>
 
 		<div class='page-intro-title blog-title'>
-			<?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
+			<?php // if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
 
 			<h1 class='page-title'><?php echo $displayResults . ' ' . __('for', 'beezup') . ' "' . get_search_query() . '"'; ?></h1>
 		</div>

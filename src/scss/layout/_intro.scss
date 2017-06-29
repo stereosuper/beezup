@@ -49,26 +49,26 @@
 }
 
 
-.breadcrumbs{
-    position: relative;
-    margin: 0 0 10px;
-    z-index: 1;
-    font-size: 1.3rem;
-    color: $primary;
-    a{
-        text-decoration: none;
-        color: $primary;
-        &:hover, &:focus{
-            color: $secondary;
-        }
-    }
-    .breadcrumb_last{
-        color: $text;
-    }
-    + h1{
-        margin: 0 0 1em;
-    }
-}
+// .breadcrumbs{
+//     position: relative;
+//     margin: 0 0 10px;
+//     z-index: 1;
+//     font-size: 1.3rem;
+//     color: $primary;
+//     a{
+//         text-decoration: none;
+//         color: $primary;
+//         &:hover, &:focus{
+//             color: $secondary;
+//         }
+//     }
+//     .breadcrumb_last{
+//         color: $text;
+//     }
+//     + h1{
+//         margin: 0 0 1em;
+//     }
+// }
 
 .title-time{
     display: block;

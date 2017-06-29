@@ -32,7 +32,7 @@ get_header(); ?>
 	<section class='container page-intro'>
         
         <div class='page-intro-title'>
-            <?php if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
+            <?php // if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
 
             <h1 class='page-title'>
                 <?php get_field('title') ? the_field('title') : the_title(); ?>
