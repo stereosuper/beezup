@@ -24,19 +24,20 @@
         }
     }
     .page-template-contact &{
-        width: calc(16.6666% - #{$gutter});
+        width: calc(18% - #{$gutter});
         position: absolute;
+        background: red;
+        // &:nth-child(1){
+        //     top: 150px;
+        //     left: $gutter;
+        // }
         &:nth-child(1){
-            top: 150px;
-            left: $gutter;
+            top: 70px;
+            right: 2*$gutter;
         }
         &:nth-child(2){
-            top: 70px;
-            right: $gutter;
-        }
-        &:nth-child(3){
-            top: 300px;
-            right: calc(16.6666% + #{2*$gutter});
+            top: 200px;
+            right: calc(18% + #{3*$gutter});
         }
     }
     &:before, &:after{

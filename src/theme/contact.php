@@ -28,29 +28,31 @@ get_header(); ?>
         </div>
 	</section>
 
-    <section class='container relative'>
+    <section class='container-medium relative'>
         <div class='block-half is-alone'>
             <?php // get_template_part( 'includes/form' ); ?>
             <?php get_template_part( 'includes/sib-form' ); ?>
         </div>
 
-        <?php if( have_rows('people', 'options') ){ ?>
+        <?php if( have_rows('people', 'options') ){ $count = 0; ?>
             <ul class='members'>
-                <?php while( have_rows('people', 'options') ){ the_row(); ?>
-                    <li class='member' style='background-image: url(<?php echo wp_get_attachment_image_url( get_sub_field('photo', 'options'), 'full' ); ?>);' itemscope itemtype='http://schema.org/Person'>
-                    <span class='name' itemprop='name'><?php the_sub_field('name', 'options'); ?></span>
-                    <span class='job' itemprop='jobTitle'><?php the_sub_field('job', 'options'); ?></span>
-                        
-                        <svg class='bees js-bees' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12.8 32.1'>	
-							<path class='js-bee' d='M9.4,30.3C9.4,30.3,9.4,30.3,9.4,30.3c0.5,0,0.9,0.4,0.9,0.8c0,0,0,0,0,0.1c0,0.5-0.4,0.9-0.9,0.9 s-0.9-0.4-0.9-0.9c0,0,0-0.1,0-0.1C8.5,30.7,8.9,30.3,9.4,30.3C9.4,30.3,9.4,30.3,9.4,30.3L9.4,30.3z'/>
-							<path class='js-bee' d='M2.5,25.3c0.5,0,0.8,0.4,0.8,0.8c0,0.5-0.4,0.8-0.8,0.8s-0.8-0.4-0.8-0.8C1.7,25.6,2.1,25.3,2.5,25.3 C2.5,25.3,2.5,25.3,2.5,25.3L2.5,25.3z'/>
-							<path class='js-bee' d='M8.5,19.4c0.9,0,1.7,0.8,1.7,1.7c0,0.9-0.8,1.7-1.7,1.7S6.8,22,6.8,21.1c0,0,0,0,0,0 C6.8,20.1,7.6,19.4,8.5,19.4C8.5,19.4,8.5,19.4,8.5,19.4L8.5,19.4z'/>
-							<circle class='js-bee' cx='6' cy='17.7' r='0.9'/>
-							<path class='js-bee' d='M1.7,11.8c0.9,0,1.7,0.8,1.7,1.7c0,0.9-0.8,1.7-1.7,1.7S0,14.4,0,13.5C0,12.6,0.8,11.8,1.7,11.8 C1.7,11.8,1.7,11.8,1.7,11.8L1.7,11.8z'/>
-							<path class='js-bee' d='M11.9,8.4c0.4,0,0.8,0.4,0.8,0.8c0,0.5-0.4,0.8-0.8,0.8s-0.8-0.4-0.8-0.8C11.1,8.8,11.5,8.4,11.9,8.4 C11.9,8.4,11.9,8.4,11.9,8.4L11.9,8.4z'/>
-							<circle class='js-bee' cx='6' cy='0.9' r='0.9'/>
-						</svg>
-                    </li>
+                <?php while( have_rows('people', 'options') ){ $count ++; the_row(); ?>
+                    <?php if($count < 3){ ?>
+                        <li class='member' style='background-image: url(<?php echo wp_get_attachment_image_url( get_sub_field('photo', 'options'), 'full' ); ?>);' itemscope itemtype='http://schema.org/Person'>
+                        <span class='name' itemprop='name'><?php the_sub_field('name', 'options'); ?></span>
+                        <span class='job' itemprop='jobTitle'><?php the_sub_field('job', 'options'); ?></span>
+                            
+                            <svg class='bees js-bees' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12.8 32.1'>	
+                                <path class='js-bee' d='M9.4,30.3C9.4,30.3,9.4,30.3,9.4,30.3c0.5,0,0.9,0.4,0.9,0.8c0,0,0,0,0,0.1c0,0.5-0.4,0.9-0.9,0.9 s-0.9-0.4-0.9-0.9c0,0,0-0.1,0-0.1C8.5,30.7,8.9,30.3,9.4,30.3C9.4,30.3,9.4,30.3,9.4,30.3L9.4,30.3z'/>
+                                <path class='js-bee' d='M2.5,25.3c0.5,0,0.8,0.4,0.8,0.8c0,0.5-0.4,0.8-0.8,0.8s-0.8-0.4-0.8-0.8C1.7,25.6,2.1,25.3,2.5,25.3 C2.5,25.3,2.5,25.3,2.5,25.3L2.5,25.3z'/>
+                                <path class='js-bee' d='M8.5,19.4c0.9,0,1.7,0.8,1.7,1.7c0,0.9-0.8,1.7-1.7,1.7S6.8,22,6.8,21.1c0,0,0,0,0,0 C6.8,20.1,7.6,19.4,8.5,19.4C8.5,19.4,8.5,19.4,8.5,19.4L8.5,19.4z'/>
+                                <circle class='js-bee' cx='6' cy='17.7' r='0.9'/>
+                                <path class='js-bee' d='M1.7,11.8c0.9,0,1.7,0.8,1.7,1.7c0,0.9-0.8,1.7-1.7,1.7S0,14.4,0,13.5C0,12.6,0.8,11.8,1.7,11.8 C1.7,11.8,1.7,11.8,1.7,11.8L1.7,11.8z'/>
+                                <path class='js-bee' d='M11.9,8.4c0.4,0,0.8,0.4,0.8,0.8c0,0.5-0.4,0.8-0.8,0.8s-0.8-0.4-0.8-0.8C11.1,8.8,11.5,8.4,11.9,8.4 C11.9,8.4,11.9,8.4,11.9,8.4L11.9,8.4z'/>
+                                <circle class='js-bee' cx='6' cy='0.9' r='0.9'/>
+                            </svg>
+                        </li>
+                    <?php } ?>
                 <?php } ?>
             </ul>
         <?php } ?>
