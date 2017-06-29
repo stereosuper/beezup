@@ -364,6 +364,7 @@
 
 @media (max-width: $desktop-small){
     .header{
+        height: 80px;
         z-index: auto;
         &.deployed{
             .nav, .container-menu-head{

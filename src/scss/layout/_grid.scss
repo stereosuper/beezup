@@ -29,6 +29,12 @@
 
 @media (max-width: $desktop-small){
     .main{
-        padding: 2em 0 2em;
+        padding: 4em 0 2em;
+    }
+}
+
+@media (max-width: $phone){
+    .main{
+        padding: 3em 0 2em;
     }
 }
