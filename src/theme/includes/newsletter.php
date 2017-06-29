@@ -8,7 +8,7 @@
         </div>
         <form id='theform' name='theform' action='https://my.sendinblue.com/users/subscribeembed/js_id/2kqou/id/2' onsubmit='return false;' class='newsletter js-inline-form'>
             <input type='hidden' name='js_id' id='js_id' value='2kqou'>
-            <input type='hidden' name='listid' id='listid' value='6'>
+            <input type='hidden' name='listid' id='listid' value='50'>
             <input type='hidden' name='from_url' id='from_url' value='yes'>
             <input type='hidden' name='hdn_email_txt' id='hdn_email_txt' value=''>
             <div class='sib-container'>
