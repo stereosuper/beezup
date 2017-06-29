@@ -78,6 +78,7 @@
 .dropdown-list{
     margin: 0;
     > li{
+        padding: 0;
         margin: 0 0 20px;
         font-size: 1.8rem;
         &:before, &:after{
@@ -116,9 +117,10 @@
     }
 }
 
+
 @media (max-width: $phone){
     .dropdown-list{
-        >li{
+        > li{
             font-size: 1.5rem;
             margin-bottom: 15px;
         }

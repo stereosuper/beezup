@@ -13,6 +13,7 @@
     width: 44%;
     > li{
         display: flex;
+        padding: 0;
         margin: 0 0 30px;
         font-family: $fira-medium;
         &:before, &:after{
@@ -28,6 +29,7 @@
         flex: 1;
     }
 }
+
 
 @media (max-width: $desktop-small){
     .benefits{

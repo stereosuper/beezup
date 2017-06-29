@@ -191,6 +191,7 @@ ol, ul{
     margin: 1em 0;
 }
 li{
+    padding: 0 0 0 45px;
     position: relative;
     &:before, &:after{
         content: '';
@@ -200,7 +201,7 @@ li{
         width: 16px;
         height: 6px;
         top: 7px;
-        left: -56px;
+        left: 0;
         background: url('../layoutImg/puce.svg') no-repeat;
     }
     &:nth-child(even){
@@ -220,7 +221,7 @@ ul{
             width: 5px;
             height: 5px;
             top: 8px;
-            left: -34px; 
+            left: 22px;
             border-radius: 50%;
             background: $secondary;
         }
@@ -236,7 +237,7 @@ ol{
         &:before{
             content: counter(ol-counter)'.';
             top: 0;
-            left: -35px;
+            left: 20px;
             font-family: $fira-medium;
             color: $secondary;
         }
@@ -511,18 +512,6 @@ a{
         &.wide{
             width: 100vw;
             margin: 20px 0 20px calc((100vw - 100%)/-2);
-        }
-    }
-
-    .container-small{
-        li{
-            padding: 0 0 0 50px;
-            &:after {
-                left: 0;
-            }
-            &:before{
-                left: 25px; 
-            }
         }
     }
 
