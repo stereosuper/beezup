@@ -14,14 +14,16 @@ $(function(){
     var scrollTo = require('./scrollTo.js');
     var animTopHome = require('./animTopHome.js');
     var animSchema = require('./animSchema.js');
-    var addUrlInputs = require('./addUrlInputs.js');
+    // var addUrlInputs = require('./addUrlInputs.js');
     var filterChannels = require('./filterChannels.js');
     var dropdown = require('./dropdown.js');
     var animBees = require('./animBees.js');
     var animFonctionnalites = require('./animFonctionnalites.js');
     var sliderPrices = require('./sliderPrices.js');
+    var submenu = require('./submenu.js');
 
     var body = $('body');
+    var menuMain = $('#menuMain');
 
     // window.outerWidth returns the window width including the scroll, but it's not working with $(window).outerWidth
     var windowWidth = window.outerWidth, windowHeight = $(window).height();
@@ -45,11 +47,14 @@ $(function(){
     });
 
     // Header rollover
-    $('#menuMain').on('mouseenter', '> li', function(){
+    menuMain.on('mouseenter', '> li', function(){
         $(this).siblings().addClass('off');
     }).on('mouseleave', '> li', function(){
         $(this).siblings().removeClass('off');
     });
+
+    // Submenus
+    submenu(menuMain);
 
     // Newsletter inputs
     checkInputs($('.js-inline-form'));
@@ -115,6 +120,8 @@ $(function(){
             windowHeight = $(window).height();
 
             langSwitcher.checkLangState(windowWidth);
+
+            submenu(menuMain);
         });
 
     }, 60));

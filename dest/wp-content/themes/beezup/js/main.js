@@ -18797,22 +18797,6 @@ return jQuery;
 
 var $ = require('jquery');
 
-module.exports = function (btn, hiddenInputCount) {
-    if (!btn.length && !hiddenInputCount) return;
-
-    var inputCount = 0;
-
-    btn.on('click', function () {
-        inputCount++;
-        $(this).parent().append('<input type="url" name="website' + inputCount + '" value="" placeholder="http://" class="new-input">').find(hiddenInputCount).val(inputCount);
-    });
-};
-
-},{"jquery":9}],12:[function(require,module,exports){
-'use strict';
-
-var $ = require('jquery');
-
 var TimelineLite = require('gsap/TimelineLite');
 
 module.exports = function (containersBees) {
@@ -18900,7 +18884,7 @@ module.exports = function (containersBees) {
     return tlAnimBees;
 };
 
-},{"gsap/TimelineLite":3,"jquery":9}],13:[function(require,module,exports){
+},{"gsap/TimelineLite":3,"jquery":9}],12:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -19145,7 +19129,7 @@ module.exports = function (windowWidth, tempo) {
     animStock($('#animStock'));
 };
 
-},{"gsap/TimelineLite":3,"gsap/TweenLite":4,"gsap/src/uncompressed/easing/CustomEase":6,"gsap/src/uncompressed/plugins/DrawSVGPlugin":7,"jquery":9}],14:[function(require,module,exports){
+},{"gsap/TimelineLite":3,"gsap/TweenLite":4,"gsap/src/uncompressed/easing/CustomEase":6,"gsap/src/uncompressed/plugins/DrawSVGPlugin":7,"jquery":9}],13:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -19262,7 +19246,7 @@ module.exports = function (schema, windowWidth, tempo) {
     createTimeline();
 };
 
-},{"./animBees.js":12,"gsap/TimelineLite":3,"gsap/TweenLite":4,"gsap/src/uncompressed/easing/CustomEase":6,"gsap/src/uncompressed/plugins/DrawSVGPlugin":7,"jquery":9}],15:[function(require,module,exports){
+},{"./animBees.js":11,"gsap/TimelineLite":3,"gsap/TweenLite":4,"gsap/src/uncompressed/easing/CustomEase":6,"gsap/src/uncompressed/plugins/DrawSVGPlugin":7,"jquery":9}],14:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -19279,7 +19263,7 @@ module.exports = function (btnTopHome) {
     });
 };
 
-},{"gsap/TweenLite":4,"jquery":9}],16:[function(require,module,exports){
+},{"gsap/TweenLite":4,"jquery":9}],15:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -19288,7 +19272,7 @@ module.exports = function (input) {
     input.val() !== '' ? input.addClass('on') : input.removeClass('on');
 };
 
-},{"jquery":9}],17:[function(require,module,exports){
+},{"jquery":9}],16:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -19307,7 +19291,7 @@ module.exports = function (forms) {
     });
 };
 
-},{"./checkInput.js":16,"jquery":9}],18:[function(require,module,exports){
+},{"./checkInput.js":15,"jquery":9}],17:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -19327,7 +19311,7 @@ module.exports = function (btn) {
     });
 };
 
-},{"jquery":9}],19:[function(require,module,exports){
+},{"jquery":9}],18:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -19445,7 +19429,7 @@ module.exports = function (wp, wrapper, countrySelect, sectorSelect, channelsLis
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"./checkInput.js":16,"hideseek":8,"jquery":9}],20:[function(require,module,exports){
+},{"./checkInput.js":15,"hideseek":8,"jquery":9}],19:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -19485,7 +19469,7 @@ module.exports = {
     clickOnLanguage: clickOnLanguage
 };
 
-},{"gsap/CSSPlugin":1,"gsap/TweenLite":4,"jquery":9}],21:[function(require,module,exports){
+},{"gsap/CSSPlugin":1,"gsap/TweenLite":4,"jquery":9}],20:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -19501,14 +19485,16 @@ $(function () {
     var scrollTo = require('./scrollTo.js');
     var animTopHome = require('./animTopHome.js');
     var animSchema = require('./animSchema.js');
-    var addUrlInputs = require('./addUrlInputs.js');
+    // var addUrlInputs = require('./addUrlInputs.js');
     var filterChannels = require('./filterChannels.js');
     var dropdown = require('./dropdown.js');
     var animBees = require('./animBees.js');
     var animFonctionnalites = require('./animFonctionnalites.js');
     var sliderPrices = require('./sliderPrices.js');
+    var submenu = require('./submenu.js');
 
     var body = $('body');
+    var menuMain = $('#menuMain');
 
     // window.outerWidth returns the window width including the scroll, but it's not working with $(window).outerWidth
     var windowWidth = window.outerWidth,
@@ -19531,11 +19517,14 @@ $(function () {
     });
 
     // Header rollover
-    $('#menuMain').on('mouseenter', '> li', function () {
+    menuMain.on('mouseenter', '> li', function () {
         $(this).siblings().addClass('off');
     }).on('mouseleave', '> li', function () {
         $(this).siblings().removeClass('off');
     });
+
+    // Submenus
+    submenu(menuMain);
 
     // Newsletter inputs
     checkInputs($('.js-inline-form'));
@@ -19598,11 +19587,13 @@ $(function () {
             windowHeight = $(window).height();
 
             langSwitcher.checkLangState(windowWidth);
+
+            submenu(menuMain);
         });
     }, 60));
 });
 
-},{"./addUrlInputs.js":11,"./animBees.js":12,"./animFonctionnalites.js":13,"./animSchema.js":14,"./animTopHome.js":15,"./checkInputs.js":17,"./dropdown.js":18,"./filterChannels.js":19,"./langSwitcher.js":20,"./requestAnimFrame.js":22,"./scrollTo.js":23,"./sliderPrices.js":24,"./sticky.js":25,"./throttle.js":26,"jquery":9,"js-cookie":10}],22:[function(require,module,exports){
+},{"./animBees.js":11,"./animFonctionnalites.js":12,"./animSchema.js":13,"./animTopHome.js":14,"./checkInputs.js":16,"./dropdown.js":17,"./filterChannels.js":18,"./langSwitcher.js":19,"./requestAnimFrame.js":21,"./scrollTo.js":22,"./sliderPrices.js":23,"./sticky.js":24,"./submenu.js":25,"./throttle.js":26,"jquery":9,"js-cookie":10}],21:[function(require,module,exports){
 "use strict";
 
 module.exports = function () {
@@ -19611,7 +19602,7 @@ module.exports = function () {
        };
 }();
 
-},{}],23:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -19674,7 +19665,7 @@ module.exports = function (elt) {
     }, 10));
 };
 
-},{"./requestAnimFrame.js":22,"./throttle.js":26,"gsap/CSSPlugin":1,"gsap/ScrollToPlugin":2,"gsap/TweenLite":4,"jquery":9}],24:[function(require,module,exports){
+},{"./requestAnimFrame.js":21,"./throttle.js":26,"gsap/CSSPlugin":1,"gsap/ScrollToPlugin":2,"gsap/TweenLite":4,"jquery":9}],23:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -19696,7 +19687,7 @@ module.exports = function (tarifHeader) {
     });
 };
 
-},{"jquery":9}],25:[function(require,module,exports){
+},{"jquery":9}],24:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -19812,7 +19803,33 @@ module.exports = function (stickyElt, givenPosition) {
     }, 10));
 };
 
-},{"./requestAnimFrame.js":22,"./throttle.js":26,"jquery":9}],26:[function(require,module,exports){
+},{"./requestAnimFrame.js":21,"./throttle.js":26,"jquery":9}],25:[function(require,module,exports){
+'use strict';
+
+var $ = require('jquery');
+
+module.exports = function (nav) {
+    if (!nav.length) return;
+
+    var submenus = nav.find('.sub-menu');
+
+    if (!submenus.length) return;
+
+    var navLeft = nav.offset().left;
+    var item;
+    var menu;
+
+    submenus.each(function () {
+        item = $(this).parents('li');
+        menu = $(this).children('ul');
+
+        menu.css({
+            'marginLeft': item.offset().left + item.width() / 2 - menu.width() / 2 - navLeft
+        });
+    });
+};
+
+},{"jquery":9}],26:[function(require,module,exports){
 "use strict";
 
 module.exports = function (callback, delay) {
@@ -19835,6 +19852,6 @@ module.exports = function (callback, delay) {
     };
 };
 
-},{}]},{},[21])
+},{}]},{},[20])
 
 //# sourceMappingURL=main.js.map

@@ -447,6 +447,18 @@ function beezup_css_attributes_filter($var){
 }
 add_filter( 'nav_menu_css_class', 'beezup_css_attributes_filter' );
 
+// Add a div around submenus
+class Child_Wrap extends Walker_Nav_Menu{
+    function start_lvl(&$output, $depth){
+        $indent = str_repeat('\t', $depth);
+        $output .= "\n$indent<div class=\"sub-menu\"><ul>\n";
+    }
+    function end_lvl(&$output, $depth){
+        $indent = str_repeat('\t', $depth);
+        $output .= "$indent</ul></div>\n";
+    }
+} 
+
 
 /*-----------------------------------------------------------------------------------*/
 /* Sidebar & Widgets
