@@ -3,6 +3,8 @@ global.jQuery = $;
 
 require('hideseek');
 
+var checkInput = require('./checkInput.js');
+
 module.exports = function(wp, wrapper, countrySelect, sectorSelect, channelsList){
     if(!wp || !wrapper.length || !channelsList.length) return;
 
@@ -14,13 +16,17 @@ module.exports = function(wp, wrapper, countrySelect, sectorSelect, channelsList
 
     function attachSearchEvent(){
         if(!search.length) return;
+
+        var txt = '';
             
         search.off().hideseek().on('_after', function(){
-            if(channels.filter(':visible').length){
-                sectorError.html('');
-            }else{
-                sectorError.html(wp.noChannelsSearch);
-            }
+            txt = channels.filter(':visible').length ? '' : wp.noChannelsSearch;
+            sectorError.html(txt);
+            $(this).parent().delay(500).queue(function(){ $(this).removeClass('loading').dequeue(); });
+        }).on('keydown', function(e){
+            if(e.which !== 13) $(this).parent().addClass('loading');
+        }).on('change input', function(){
+            checkInput($(this));
         });
     }
 
@@ -42,6 +48,10 @@ module.exports = function(wp, wrapper, countrySelect, sectorSelect, channelsList
             sectorError.html('');
         }
     }
+
+    form.on('submit', function(e){
+        e.preventDefault();
+    });
 
     if(countrySelect.length){
         countrySelect.on('change', function(){
@@ -96,6 +106,5 @@ module.exports = function(wp, wrapper, countrySelect, sectorSelect, channelsList
         });
     }
 
-    attachSearchEvent();
-    
+    attachSearchEvent();   
 }

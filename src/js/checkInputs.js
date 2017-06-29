@@ -1,11 +1,9 @@
 var $ = require('jquery');
 
+var checkInput = require('./checkInput.js');
+
 module.exports = function(forms){
     if(!forms.length) return;
-
-    function checkInput(input){
-        input.val() !== '' ? input.addClass('on') : input.removeClass('on');
-    }
 
     forms.each(function(){
         $(this).find('input').each(function(){

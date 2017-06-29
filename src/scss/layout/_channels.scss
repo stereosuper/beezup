@@ -10,6 +10,26 @@
     }
 }
 
+.channels-search{
+    > .loader{
+        width: 35px;
+        top: 15px;
+        right: 10px;
+        left: auto;
+        margin: 0;
+        fill: $primary;
+    }
+    > .icon{
+        transition: $transition 0.3s;
+    }
+    &.loading{
+        > .icon{
+            opacity: 0;
+            transition: $transition;
+        }
+    }
+}
+
 .channels{
     min-height: 280px;
     padding-top: 5px;

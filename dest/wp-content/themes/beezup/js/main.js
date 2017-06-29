@@ -19284,12 +19284,19 @@ module.exports = function (btnTopHome) {
 
 var $ = require('jquery');
 
+module.exports = function (input) {
+    input.val() !== '' ? input.addClass('on') : input.removeClass('on');
+};
+
+},{"jquery":9}],17:[function(require,module,exports){
+'use strict';
+
+var $ = require('jquery');
+
+var checkInput = require('./checkInput.js');
+
 module.exports = function (forms) {
     if (!forms.length) return;
-
-    function checkInput(input) {
-        input.val() !== '' ? input.addClass('on') : input.removeClass('on');
-    }
 
     forms.each(function () {
         $(this).find('input').each(function () {
@@ -19300,7 +19307,7 @@ module.exports = function (forms) {
     });
 };
 
-},{"jquery":9}],17:[function(require,module,exports){
+},{"./checkInput.js":16,"jquery":9}],18:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -19320,7 +19327,7 @@ module.exports = function (btn) {
     });
 };
 
-},{"jquery":9}],18:[function(require,module,exports){
+},{"jquery":9}],19:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -19328,6 +19335,8 @@ var $ = require('jquery');
 global.jQuery = $;
 
 require('hideseek');
+
+var checkInput = require('./checkInput.js');
 
 module.exports = function (wp, wrapper, countrySelect, sectorSelect, channelsList) {
     if (!wp || !wrapper.length || !channelsList.length) return;
@@ -19340,12 +19349,18 @@ module.exports = function (wp, wrapper, countrySelect, sectorSelect, channelsLis
     function attachSearchEvent() {
         if (!search.length) return;
 
+        var txt = '';
+
         search.off().hideseek().on('_after', function () {
-            if (channels.filter(':visible').length) {
-                sectorError.html('');
-            } else {
-                sectorError.html(wp.noChannelsSearch);
-            }
+            txt = channels.filter(':visible').length ? '' : wp.noChannelsSearch;
+            sectorError.html(txt);
+            $(this).parent().delay(500).queue(function () {
+                $(this).removeClass('loading').dequeue();
+            });
+        }).on('keydown', function (e) {
+            if (e.which !== 13) $(this).parent().addClass('loading');
+        }).on('change input', function () {
+            checkInput($(this));
         });
     }
 
@@ -19367,6 +19382,10 @@ module.exports = function (wp, wrapper, countrySelect, sectorSelect, channelsLis
             sectorError.html('');
         }
     }
+
+    form.on('submit', function (e) {
+        e.preventDefault();
+    });
 
     if (countrySelect.length) {
         countrySelect.on('change', function () {
@@ -19426,7 +19445,7 @@ module.exports = function (wp, wrapper, countrySelect, sectorSelect, channelsLis
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"hideseek":8,"jquery":9}],19:[function(require,module,exports){
+},{"./checkInput.js":16,"hideseek":8,"jquery":9}],20:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -19466,7 +19485,7 @@ module.exports = {
     clickOnLanguage: clickOnLanguage
 };
 
-},{"gsap/CSSPlugin":1,"gsap/TweenLite":4,"jquery":9}],20:[function(require,module,exports){
+},{"gsap/CSSPlugin":1,"gsap/TweenLite":4,"jquery":9}],21:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -19547,11 +19566,11 @@ $(function () {
     // addUrlInputs($('#addUrlInput'), $('#newInputsCount'));
 
     // Remove form success opacity
-    body.on('click', 'form', function () {
-        if ($(this).hasClass('success')) {
-            $(this).removeClass('success');
-        }
-    });
+    // body.on('click', 'form', function(){
+    //     if($(this).hasClass('success')){
+    //         $(this).removeClass('success');
+    //     }
+    // });
 
     // Slider price tarif
     sliderPrices($('#tarifHeader'));
@@ -19583,7 +19602,7 @@ $(function () {
     }, 60));
 });
 
-},{"./addUrlInputs.js":11,"./animBees.js":12,"./animFonctionnalites.js":13,"./animSchema.js":14,"./animTopHome.js":15,"./checkInputs.js":16,"./dropdown.js":17,"./filterChannels.js":18,"./langSwitcher.js":19,"./requestAnimFrame.js":21,"./scrollTo.js":22,"./sliderPrices.js":23,"./sticky.js":24,"./throttle.js":25,"jquery":9,"js-cookie":10}],21:[function(require,module,exports){
+},{"./addUrlInputs.js":11,"./animBees.js":12,"./animFonctionnalites.js":13,"./animSchema.js":14,"./animTopHome.js":15,"./checkInputs.js":17,"./dropdown.js":18,"./filterChannels.js":19,"./langSwitcher.js":20,"./requestAnimFrame.js":22,"./scrollTo.js":23,"./sliderPrices.js":24,"./sticky.js":25,"./throttle.js":26,"jquery":9,"js-cookie":10}],22:[function(require,module,exports){
 "use strict";
 
 module.exports = function () {
@@ -19592,7 +19611,7 @@ module.exports = function () {
        };
 }();
 
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -19655,7 +19674,7 @@ module.exports = function (elt) {
     }, 10));
 };
 
-},{"./requestAnimFrame.js":21,"./throttle.js":25,"gsap/CSSPlugin":1,"gsap/ScrollToPlugin":2,"gsap/TweenLite":4,"jquery":9}],23:[function(require,module,exports){
+},{"./requestAnimFrame.js":22,"./throttle.js":26,"gsap/CSSPlugin":1,"gsap/ScrollToPlugin":2,"gsap/TweenLite":4,"jquery":9}],24:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -19677,7 +19696,7 @@ module.exports = function (tarifHeader) {
     });
 };
 
-},{"jquery":9}],24:[function(require,module,exports){
+},{"jquery":9}],25:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -19793,7 +19812,7 @@ module.exports = function (stickyElt, givenPosition) {
     }, 10));
 };
 
-},{"./requestAnimFrame.js":21,"./throttle.js":25,"jquery":9}],25:[function(require,module,exports){
+},{"./requestAnimFrame.js":22,"./throttle.js":26,"jquery":9}],26:[function(require,module,exports){
 "use strict";
 
 module.exports = function (callback, delay) {
@@ -19816,6 +19835,6 @@ module.exports = function (callback, delay) {
     };
 };
 
-},{}]},{},[20])
+},{}]},{},[21])
 
 //# sourceMappingURL=main.js.map

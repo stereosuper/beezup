@@ -81,11 +81,11 @@ $(function(){
     // addUrlInputs($('#addUrlInput'), $('#newInputsCount'));
 
     // Remove form success opacity
-    body.on('click', 'form', function(){
-        if($(this).hasClass('success')){
-            $(this).removeClass('success');
-        }
-    });
+    // body.on('click', 'form', function(){
+    //     if($(this).hasClass('success')){
+    //         $(this).removeClass('success');
+    //     }
+    // });
 
     // Slider price tarif
     sliderPrices($('#tarifHeader'));
