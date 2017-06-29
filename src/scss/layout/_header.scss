@@ -48,12 +48,11 @@
             transform: translate3d(0, 0, 0);
         }
         .current-language-nav-item{
-            font-family: $fira;
-            color: $black;
+            color: $text;
         }
         .icon-arrow-down{
             transform: rotate(-90deg);
-            fill: $black;
+            fill: $text;
             transition: $transition;
         }
     }
@@ -301,7 +300,6 @@
         position: relative;
         z-index: 2;
         cursor: pointer;
-        background: $primary;
         transition: color $transition;
     }
     .icon-arrow-down{
@@ -312,6 +310,13 @@
     }
     li{
         margin: 0 8px 0 0;
+    }
+    a{
+        text-decoration: none;
+        color: $white;
+        &:hover, &:focus{
+            color: $text;
+        }
     }
     .other-language-items{
         display: flex;
@@ -443,7 +448,6 @@
         .current-language-nav-item{
             width: 100%;
             text-align: center;
-            background: #469ce0;
         }
         .other-language-items{
             flex-direction: column;
@@ -580,6 +584,12 @@
             li{
                 margin: 5px 0;
             }  
+        }
+
+        .mlp-lang-switcher{
+            li{
+                margin: 10px 0 0;
+            }
         }
     }
 }
