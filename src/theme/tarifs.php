@@ -68,7 +68,7 @@ get_header(); ?>
                                     </span>
 
                                     <?php if( get_sub_field('url') ){ ?>
-                                        <a href='<?php the_field('url'); ?>' class='btn btn-arrow'>
+                                        <a href='<?php the_sub_field('url'); ?>' class='btn btn-arrow'>
                                             <?php the_field('btn'); ?>
                                             <svg class='icon'><use xlink:href='#icon-arrow-right'></use></svg>
                                         </a>
