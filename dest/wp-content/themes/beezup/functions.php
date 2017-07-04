@@ -185,7 +185,7 @@ function beezup_get_types_pages($channelsByType, $subPages, $country, $postID){
         }else{
             $output .= '<li>';
             $output .= '<span>0' . $count . '.</span> ';
-            $output .= '<a href="' . $subPage->guid . '"?country="' . $country . '" class="link-arrow">' . $subPage->post_title . '</a>';
+            $output .= '<a href="' . get_permalink($subPage->ID) . '?country=' . $country . '" class="link-arrow">' . $subPage->post_title . '</a>';
         }
         $output .= '</li>';
     }
