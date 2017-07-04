@@ -308,9 +308,11 @@ select{
 }
 
 .channels-form{
+    .select, .field-inline{
+        margin: 0 20px 0 0;
+    }
     .select{
         max-width: 195px;
-        margin: 0 20px 0 0;
     }
     .field-inline{
         display: inline-block;
@@ -363,10 +365,7 @@ select{
 
 @media (max-width: $desktop){
     .channels-form{
-        .select{
-            margin-bottom: 10px;
-        }
-        .field-inline{
+        .select, .field-inline{
             margin-bottom: 15px;
         }
     }
