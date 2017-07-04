@@ -39,7 +39,6 @@
     </g>
 
     <g>
-        
         <path id='shadow-6-3' d='M80.5 142.5l98.2-72.9L368 212.9l-98.8 71.9L80.5 142.5z' class='shade-6 shadow-6 shadow-6-2'/>
         <path id='shadow-6-4' d='M233.3 88.5l42.2-32.3 78.6 61.5-41.9 29.8-78.9-59z' class='shade-6 shadow-6'/>
 
