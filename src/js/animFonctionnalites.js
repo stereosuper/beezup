@@ -172,6 +172,8 @@ module.exports = function(windowWidth, tempo){
         var blocks = svg.find('.bloc-6');
         var shadows = svg.find('.shade-6').toArray();
 
+        console.log(blocks, shadows);
+
         // Mieux gérer les timing + ombres sur le bloc du haut
         blocks.each(function(i, el){
             var tl = new TimelineLite({onComplete: function(){
