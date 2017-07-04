@@ -75,14 +75,14 @@ get_header(); ?>
                     <?php } ?>
 
                     <fieldset>
-                        <?php echo beezup_get_sector_select(); ?>
-                        <?php echo $countrySelect; ?>
                         <div class='field-inline channels-search'>
                             <input type='search' name='' id='channelsSearch' data-list='.channels-list'>
                             <label for='channelsSearch'><?php _e('Search', 'beezup'); ?>...</label>
                             <svg class='icon'><use xlink:href='#icon-search'></use></svg>
                             <?php get_template_part( 'includes/loader' ); ?>
                         </div>
+                        <?php echo $countrySelect; ?>
+                        <?php echo beezup_get_sector_select(); ?>
 
                         <button type='submit' name='' value='true' class='btn-secondary'>GO</button>
                     </fieldset>
