@@ -454,79 +454,44 @@
 .top-red-9{
     fill: #DE0B20;
 }
-.st13, .st14{
+.top-presse, .bottom-presse{
     stroke: #7BC6EA;
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
-.st13{
+.top-presse{
     fill: #2DB3EB;
 }
-.st14{
+.bottom-presse, .hole-9, .beez-9{
     fill: #269EE5;
 }
-.st15{
-    fill: #269EE5;
+.hole-9{
     stroke: #C7DEEC;
     stroke-miterlimit: 10;
 }
-.st16{
-    opacity: 0.8;
-    fill: none;
-    stroke: $white;
-    stroke-width: 4;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
-} 
-.st17{
-    opacity: 0.4;
-    fill: none;
-    stroke: #4BB8EB;
-    stroke-miterlimit: 10;
-}
-.st18{
-    fill: #269EE5;
+.beez-9, .left-beez-9, .shelf, .side-shelf{
     stroke: #C6DEEC;
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-miterlimit: 10;
 }
-.st19{
+.left-beez-9{
     fill: #2DB3EB;
-    stroke: #C6DEEC;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
 }
-.st20{
+.shadow-shelf{
     opacity: 0.2;
     fill: #CCE2EE;
 }
-.st21{
+.shelf{
     fill: $white;
-    stroke: #C6DEEC;
     stroke-width: 0.75;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
 }
-.st22{
+.shadow-shelf-2{
     opacity: 0.4;
     fill: #CCE2EE;
 }
-.st23{
+.side-shelf{
     fill: #EFF6FA;
-    stroke: #C6DEEC;
     stroke-width: 0.75;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-miterlimit: 10;
-}
-.st24{
-    fill: none;
-    stroke: #009EE6;
-    stroke-linecap: round;
-    stroke-miterlimit: 10;
 }

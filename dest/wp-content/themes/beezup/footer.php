@@ -65,8 +65,10 @@
                                 </svg>
                             </div>
 
-                            <h3><?php the_field('newsletterTitle', 'options'); ?></h3>
-                            <?php get_template_part( 'includes/newsletter' ); ?>
+                            <?php if(get_field('newsletterId', 'options')){ ?>
+                                <h3><?php the_field('newsletterTitle', 'options'); ?></h3>
+                                <?php get_template_part( 'includes/newsletter' ); ?>
+                            <?php } ?>
                         </div>
                     </div>
                 </div>
