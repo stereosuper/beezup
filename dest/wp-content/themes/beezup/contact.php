@@ -31,7 +31,11 @@ get_header(); ?>
     <section class='container-medium relative'>
         <div class='block-half is-alone'>
             <?php // get_template_part( 'includes/form' ); ?>
-            <?php get_template_part( 'includes/sib-form' ); ?>
+            <?php
+                if(get_field('contactId', 'options')){
+                    get_template_part( 'includes/sib-form' );
+                }
+            ?>
         </div>
 
         <?php if( have_rows('people', 'options') ){ $count = 0; ?>
