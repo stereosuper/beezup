@@ -38,15 +38,9 @@ module.exports = function(windowWidth, tempo){
     }
 
     function animChoose(svg){
-        var tlBox = new TimelineLite();
-        var tl1 = new TimelineLite({delay: tempo*2, onComplete: function(){
-            tl1.restart();
-        }});
-        var tl2 = new TimelineLite({delay: tempo*6, onComplete: function(){
-            tl2.restart();
-        }});
-        var tl4 = new TimelineLite({delay: tempo*14, onComplete: function(){
-            tl4.restart();
+        var tlBox = new TimelineLite({ onComplete: reset });
+        var tlReset = new TimelineLite({onComplete: function(){
+            tlBox.restart();
         }});
 
         var t1 = svg.find('#cable-3-1');
@@ -58,28 +52,27 @@ module.exports = function(windowWidth, tempo){
         var c3 = svg.find('#connector-3-3');
         var c4 = svg.find('#connector-3-4');
 
-        tlBox.set([c1, c2, c3, c4], {y: -50, opacity: 0});
-        tl1.set(t1, {drawSVG: 0});
-        tl2.set(t2, {drawSVG: 0});
-        tl4.set(t4, {drawSVG: 0});
+        function reset(){
+            tlReset.staggerTo([c1, c2, c3, c4], tempo, {delay: tempo*2, opacity: 0, y: -50, ease: easeOut}, 0.1);
+        }
+
+        tlBox.set([c1, c2, c3, c4], { y: -50, opacity: 0 });
+        tlBox.set([t1, t2, t4], { drawSVG: 0 });
         
         tlBox.to(c1, tempo, {opacity: 1, ease: easeIn })
-             .to(c1, tempo * 2, {y: 0, ease: bounce, delay: -tempo})
-             .to(c2, tempo, {opacity: 1, ease: easeIn, delay: tempo*2})
+             .to(c1, tempo * 2, { y: 0, ease: bounce, delay: -tempo })
+             .to(t1, tempo, {drawSVG: '0% 100%', ease: easeIn})
+             .to(t1, tempo*2, {drawSVG: '100% 100%', ease: easeOut})
+             .to(c2, tempo, {opacity: 1, ease: easeIn, delay: tempo})
              .to(c2, tempo * 2, {y: 0, ease: bounce, delay: -tempo})
-             .to(c3, tempo, {opacity: 1, ease: easeIn, delay: tempo*2})
+             .to(t2, tempo, {drawSVG: '0% 100%', ease: easeIn})
+             .to(t2, tempo*2, {drawSVG: '100% 100%', ease: easeOut})
+             .to(c3, tempo, {opacity: 1, ease: easeIn, delay: tempo})
              .to(c3, tempo * 2, {y: 0, ease: bounce, delay: -tempo})
-             .to(c4, tempo, {opacity: 1, ease: easeIn, delay: tempo*2})
-             .to(c4, tempo * 2, {y: 0, ease: bounce, delay: -tempo});
-        
-        tl1.to(t1, tempo, {drawSVG: '0% 100%', ease: easeIn})
-           .to(t1, tempo*2, {drawSVG: '100% 100%', ease: easeOut, delay: tempo});
-        
-        tl2.to(t2, tempo, {drawSVG: '0% 100%', ease: easeIn})
-           .to(t2, tempo*2, {drawSVG: '100% 100%', ease: easeOut, delay: tempo});
-        
-        tl4.to(t4, tempo, {drawSVG: '0% 100%', ease: easeIn})
-           .to(t4, tempo*2, {drawSVG: '100% 100%', ease: easeOut, delay: tempo});
+             .to(c4, tempo, {opacity: 1, ease: easeIn, delay: tempo*4})
+             .to(c4, tempo * 2, { y: 0, ease: bounce, delay: -tempo })
+             .to(t4, tempo, {drawSVG: '0% 100%', ease: easeIn})
+             .to(t4, tempo*2, {drawSVG: '100% 100%', ease: easeOut});
     }
 
     function animImport(svg){
