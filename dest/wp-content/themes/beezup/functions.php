@@ -36,7 +36,7 @@ function beezup_get_channels_by_type($channelsTypeIndex, $channelsForOneLang){
 }
 
 function beezup_get_all_channels($channelsIndex, $currentLang){
-    $channelsTypeIndex = beezup_get_data_transient( 'channels_type_index_' . $currentLang, 'lov/ChannelType', array('accept-language' => $currentLang) );
+    $channelsTypeIndex = beezup_get_data_transient( 'channels_type_index_' . $currentLang, 'lov/ChannelType', array('headers' => array('Accept-Language' => $currentLang)) );
 
     if( !$channelsIndex || !property_exists($channelsIndex, 'items') ) return;
 
@@ -60,7 +60,7 @@ function beezup_get_all_channels($channelsIndex, $currentLang){
 function beezup_get_data_to_display($isNetworkPage, $country, $type){
     $currentLang = get_field('lang2', 'options');
 
-    $channelsIndex = beezup_get_data_transient( 'channels_index_' . $currentLang, 'lov/www_ChannelCountry', array('accept-language' => $currentLang) );
+    $channelsIndex = beezup_get_data_transient( 'channels_index_' . $currentLang, 'lov/www_ChannelCountry', array('headers' => array('Accept-Language' => $currentLang)) );
 
     $allChannelsArray = beezup_get_all_channels($channelsIndex, $currentLang);
     $allChannels = $allChannelsArray['allChannels'];
@@ -142,7 +142,7 @@ function beezup_get_country_select($channelsIndex, $country){
 function beezup_get_sector_select(){
     $currentLang = get_field('lang2', 'options');
 
-    $channelsSectorIndex = beezup_get_data_transient( 'channels_sector_index' . $currentLang, 'lov/ParamSector', array('accept-language' => $currentLang) );
+    $channelsSectorIndex = beezup_get_data_transient( 'channels_sector_index' . $currentLang, 'lov/ParamSector', array('headers' => array('Accept-Language' => $currentLang)) );
 
     if( !$channelsSectorIndex || !property_exists($channelsSectorIndex, 'items') ) return;
 

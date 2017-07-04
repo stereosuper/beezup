@@ -23,7 +23,7 @@ foreach( $sites as $site ){
     echo( 'Transient for channels index ' . $lang . ' deleted. <br>' );
 
     // Création - Liste des liste de channels par pays
-    $transientChannelsIndex = beezup_get_data_transient( 'channels_index_' . $lang, 'lov/www_ChannelCountry', array('accept-language' => $lang) );
+    $transientChannelsIndex = beezup_get_data_transient( 'channels_index_' . $lang, 'lov/www_ChannelCountry', array('headers' => array('Accept-Language' => $lang)) );
     $allChannelsIndex[] = $transientChannelsIndex;
     if( $transientChannelsIndex ){
         echo( 'Transient for channels index ' . $lang . ' created. <br>' );
@@ -37,7 +37,7 @@ foreach( $sites as $site ){
     echo( 'Transient for channels type index ' . $lang . ' deleted. <br>' );
 
     // Création - Liste des types
-    $transientChannelsTypeIndex = beezup_get_data_transient( 'channels_type_index' . $lang, 'lov/ChannelType', array('accept-language' => $lang) );
+    $transientChannelsTypeIndex = beezup_get_data_transient( 'channels_type_index' . $lang, 'lov/ChannelType', array('headers' => array('Accept-Language' => $lang)) );
     $allChannelsTypeIndex[] = $transientChannelsTypeIndex;
     if( $transientChannelsIndex ){
         echo( 'Transient for channels type index ' . $lang . ' created. <br>' );
@@ -51,7 +51,7 @@ foreach( $sites as $site ){
     echo( 'Transient for channels sector index ' . $lang . ' deleted. <br>' );
 
     // Création - Liste des secteurs
-    $transientChannelsSectorIndex = beezup_get_data_transient( 'channels_sector_index' . $lang, 'lov/ParamSector', array('accept-language' => $lang) );
+    $transientChannelsSectorIndex = beezup_get_data_transient( 'channels_sector_index' . $lang, 'lov/ParamSector', array('headers' => array('Accept-Language' => $lang)) );
     if( $transientChannelsSectorIndex ){
         echo( 'Transient for channels sector index ' . $lang . ' created. <br>' );
     }else{
