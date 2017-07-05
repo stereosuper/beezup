@@ -28,14 +28,20 @@
 }
 
 .subsection-illu{
+    max-width: 100%;
     flex: 1;
     transform: rotate(-10deg);
+    text-align: center;
+    > svg {
+        max-width: 100%;
+    }
 }
 
 .subsection-text{
     width: 58%;
     margin: 0 70px 0 0;
     padding: 0 0 0 $col;
+    max-width: 100%;
     > .link-arrow{
         display: inline-block;
         float: right;
