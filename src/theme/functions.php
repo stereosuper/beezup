@@ -276,7 +276,7 @@ add_action( 'init', 'beezup_unregister_tags' );
 
 // Sort object in an array by their name properties
 function beezup_sort_by_name($a, $b){
-    return strcmp($a->name, $b->name);
+    return strcasecmp($a->name, $b->name);
 }
 
 
