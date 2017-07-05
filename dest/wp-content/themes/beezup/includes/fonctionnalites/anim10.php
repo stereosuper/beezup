@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" id="animModules" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 356.2 356.2">
+<svg xmlns="http://www.w3.org/2000/svg" id="animModules" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 356.2 356.2" height='356.2'>
   <g>
     <path d="M190.6 87.5l-85.5-62.6-78.6 60.7 85.3 61.7 11.7-8.9 8.7 6.3 48.2-36.1-8.8-6.7z" class="shadow-6"/>
     <path d="M25.9 59.8v22.8l85.9 62.3v-21L25.9 59.8z" class="bottom-dalle-10"/>

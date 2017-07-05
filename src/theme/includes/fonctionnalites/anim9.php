@@ -1,4 +1,4 @@
-<svg xmlns='http://www.w3.org/2000/svg' id='animStock' viewBox='0 0 538.5 420'>
+<svg xmlns='http://www.w3.org/2000/svg' id='animStock' viewBox='0 0 538.5 420' height='420'>
     <g>
         <path d='M196.1 46.3l64.8 49.8-47.5 35.5-64.8-49.8 47.5-35.5z' class='shadow-4'/>
         <path d='M196.3 30.3l64.8 49.8-48.2 34.6L148 64.9l48.3-34.6z' class='top-dalle-4'/>
