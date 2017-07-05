@@ -217,10 +217,13 @@ function beezup_get_channels_to_display($channelsToDisplay, $noChannels){
             $name = $partner->name;
             $img = '<img src="' . $partner->logoUrl . '" alt="' . $name . '-flux-e-commerce-beezup">';
             $output .= '<li';
-            if( property_exists($partner, 'sectors') && isset($partner->sectors[0]) ){
-                $output .= ' data-sector="' . $partner->sectors[0] . '"';
+            $output .= ' data-sector="';
+            if( property_exists($partner, 'sectors') && isset($partner->sectors) ){
+                foreach($partner->sectors as $sector){
+                    $output .= $sector . ',';
+                }
             }
-            $output .= '>';
+            $output .= '">';
             $output .= '<a href="' . $partner->homeUrl . '" title="' . $name . '" target="_blank">';
             $output .= '<span>' . $name . '</span>';
             $output .= apply_filters( 'bj_lazy_load_html', $img);
@@ -273,7 +276,7 @@ add_action( 'init', 'beezup_unregister_tags' );
 
 // Sort object in an array by their name properties
 function beezup_sort_by_name($a, $b){
-    return strcmp($a->name, $b->name);
+    return strcasecmp($a->name, $b->name);
 }
 
 

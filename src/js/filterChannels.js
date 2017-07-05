@@ -33,7 +33,11 @@ module.exports = function(wp, wrapper, countrySelect, sectorSelect, channelsList
     function filterBySector(sector){
         channels.removeClass('hidden');
         if(sector !== 'all'){
-            channels.not('[data-sector="' + sector + '"]').addClass('hidden');
+            channels.each(function(){
+                if($.inArray(sector, $(this).data('sector').split(',')) < 0){
+                    $(this).addClass('hidden');
+                }
+            });
         }
 
         if(!sectorError.length) return;
