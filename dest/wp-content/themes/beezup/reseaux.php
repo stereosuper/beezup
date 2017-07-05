@@ -63,7 +63,7 @@ get_header(); ?>
     
     <section class='block-full block-pale no-pad above-title'>
         <div class='container wrapper-channels-filters'>
-            <?php $subPages = get_pages( array('child_of' => $networkPage) ); ?>
+            <?php $subPages = get_pages( array('sort_column' => 'menu_order', 'child_of' => $networkPage) ); ?>
             <?php $typePages = beezup_get_types_pages($channelsByType, $subPages, $country, $post->ID); ?>
             <?php if( $typePages ){ ?>
                 <div class='channels-type dropdown js-dropdown closed'>
