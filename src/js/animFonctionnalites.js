@@ -172,7 +172,6 @@ module.exports = function(windowWidth, tempo){
         var blocks = svg.find('.bloc-6');
         var shadows = svg.find('.shade-6').toArray();
 
-        console.log(blocks, shadows);
 
         // Mieux gérer les timing + ombres sur le bloc du haut
         blocks.each(function(i, el){
@@ -318,13 +317,13 @@ module.exports = function(windowWidth, tempo){
         tl.set(t1, { drawSVG: 0 });
 
         tl.to(t2, tempo, { drawSVG: "0 100%", ease: easeIn })
-          .to(t2, tempo, { drawSVG: 0, ease: easeOut })
+          .to(t2, tempo*2, { drawSVG: 0, ease: easeOut, delay: tempo })
           .to(t1, tempo, { drawSVG: "0 100%", ease: easeIn })
-          .to(t1, tempo, { drawSVG: "100% 100%", ease: easeOut })
+          .to(t1, tempo*2, { drawSVG: "100% 100%", ease: easeOut, delay: tempo  })
           .fromTo(t2, tempo, {drawSVG: '100% 100%'}, { drawSVG: "0 100%", ease: easeIn })
-          .to(t2, tempo, { drawSVG: 0, ease: easeOut })
+          .to(t2, tempo*2, { drawSVG: 0, ease: easeOut, delay: tempo })
           .to(t3, tempo, { drawSVG: "0 100%", ease: easeIn })
-          .to(t3, tempo, { drawSVG: 0, ease: easeOut });
+          .to(t3, tempo*2, { drawSVG: 0, ease: easeOut, delay: tempo });
 
     }
 
