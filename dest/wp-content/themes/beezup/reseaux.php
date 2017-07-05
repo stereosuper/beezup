@@ -62,37 +62,9 @@ get_header(); ?>
     </section>
     
     <section class='block-full block-pale no-pad above-title'>
-        <div class='container relative'>
-
-            <?php $countrySelect = beezup_get_country_select($channelsIndex, $country); ?>
-            
-            <?php if( $countrySelect ){ ?>
-                <form action='<?php the_permalink(); ?>' method='GET' class='js-inline-form channels-form'>
-                    <?php if( get_field('form') ){ ?>
-                        <legend><?php the_field('form'); ?></legend>
-                    <?php }elseif( get_field('form', $networkPage) ){ ?>
-                        <legend><?php the_field('form', $networkPage); ?></legend>
-                    <?php } ?>
-
-                    <fieldset>
-                        <div class='field-inline channels-search'>
-                            <input type='search' name='' id='channelsSearch' data-list='.channels-list'>
-                            <label for='channelsSearch'><?php _e('Search', 'beezup'); ?>...</label>
-                            <svg class='icon'><use xlink:href='#icon-search'></use></svg>
-                            <?php get_template_part( 'includes/loader' ); ?>
-                        </div>
-                        <?php echo $countrySelect; ?>
-                        <?php echo beezup_get_sector_select(); ?>
-
-                        <button type='submit' name='' value='true' class='btn-secondary'>GO</button>
-                    </fieldset>
-                </form>
-            <?php } ?>
-
-
+        <div class='container wrapper-channels-filters'>
             <?php $subPages = get_pages( array('child_of' => $networkPage) ); ?>
             <?php $typePages = beezup_get_types_pages($channelsByType, $subPages, $country, $post->ID); ?>
-
             <?php if( $typePages ){ ?>
                 <div class='channels-type dropdown js-dropdown closed'>
                     <ul class='dropdown-list'>
@@ -114,6 +86,30 @@ get_header(); ?>
                         <svg class='icon'><use xlink:href='#icon-close'></use></svg>
                     </button>
                 </div>
+            <?php } ?>
+
+            <?php $countrySelect = beezup_get_country_select($channelsIndex, $country); ?>
+            <?php if( $countrySelect ){ ?>
+                <form action='<?php the_permalink(); ?>' method='GET' class='js-inline-form channels-form'>
+                    <?php if( get_field('form') ){ ?>
+                        <legend><?php the_field('form'); ?></legend>
+                    <?php }elseif( get_field('form', $networkPage) ){ ?>
+                        <legend><?php the_field('form', $networkPage); ?></legend>
+                    <?php } ?>
+
+                    <fieldset>
+                        <div class='field-inline channels-search'>
+                            <input type='search' name='' id='channelsSearch' data-list='.channels-list'>
+                            <label for='channelsSearch'><?php _e('Search', 'beezup'); ?>...</label>
+                            <svg class='icon'><use xlink:href='#icon-search'></use></svg>
+                            <?php get_template_part( 'includes/loader' ); ?>
+                        </div>
+                        <?php echo $countrySelect; ?>
+                        <?php echo beezup_get_sector_select(); ?>
+
+                        <button type='submit' name='' value='true' class='btn-secondary'>GO</button>
+                    </fieldset>
+                </form>
             <?php } ?>
         </div>
     </section>

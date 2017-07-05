@@ -88,10 +88,16 @@
     }
 }
 
+.wrapper-channels-filters{
+    display: flex;
+    position: relative;
+    justify-content: flex-end;
+}
+
 .channels-type{
     width: 30.66%;
     padding: 65px 50px 36px 65px;
-    right: 31px;
+    left: $gutter*2;
     bottom: 0;
     &.top{
         top: 38px;
@@ -147,10 +153,13 @@
 }
 
 @media (max-width: $desktop){
+    .wrapper-channels-filters{
+        display: block;
+    }
+
     .channels-type{
         width: 100%;
         max-width: 330px;
-        right: auto;
         padding: 48px 40px 25px;
         &.top{
             top: 39px;
