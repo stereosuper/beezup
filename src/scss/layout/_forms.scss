@@ -247,13 +247,14 @@ select{
             color: $success !important;
             border: 2px solid $success !important;
             padding: 14px 8px;
-            font-family: $fira-bold;
             font-size: 1.4rem;
             text-align: center;
-            button{
-                display: none;
-            }
         }
+    }
+}
+.sib-container{
+    > .message_area{
+        color: $success !important;
     }
 }
 .message_area{

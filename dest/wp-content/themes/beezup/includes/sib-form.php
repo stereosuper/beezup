@@ -8,7 +8,7 @@
         </div>
         <form class="description sib-form" id="theform" name="theform" action="https://my.sendinblue.com/users/subscribeembed/js_id/2kqou/id/<?php the_field('contactId', 'options'); ?>" onsubmit="return false;">
             <input type="hidden" name="js_id" id="js_id" value="2kqou">
-            <input type="hidden" name="listid" id="listid" value="50|63">
+            <input type="hidden" name="listid" id="listid" value="<?php the_field('contactLists', 'options'); ?>">
             <input type="hidden" name="from_url" id="from_url" value="yes">
             <input type="hidden" name="hdn_email_txt" id="hdn_email_txt" value="">
             <div class="sib-container rounded">

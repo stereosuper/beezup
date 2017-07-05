@@ -28,7 +28,7 @@ get_header(); ?>
         </div>
 	</section>
 
-    <?php if(get_field('contactId', 'options')){ ?>
+    <?php if(get_field('contactId', 'options') && get_field('contactLists', 'options')){ ?>
         <section class='container-medium relative'>
             <div class='block-half is-alone'>
                 <?php // get_template_part( 'includes/form' ); ?>
