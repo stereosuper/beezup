@@ -18969,7 +18969,7 @@ module.exports = function (windowWidth, tempo) {
             tlCheck.set(lastElt.find('.anim4-check'), { y: -50, opacity: 0 });
 
             tlLoop.to(blocks, tempo * 2, { x: '+=' + xMove, y: '+=' + yMove, ease: easeIn, delay: tempo, onComplete: function onComplete() {
-                    blocks[blocks.length - 1].remove();
+                    $(blocks[blocks.length - 1]).remove();
                     blocks.pop();
                     checkMove(idLoop);
                 } });
