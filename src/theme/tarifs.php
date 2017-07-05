@@ -127,7 +127,7 @@ get_header(); ?>
                                             </div>
                                         <?php } ?>
                                     <?php } ?>
-                                    </div></li>
+                                    </div><svg class='icon icon-swipe'><use xlink:href='#icon-swipe'></use></svg></li>
                                 <?php } ?>
                             </ul>
                         </div>

@@ -113,7 +113,6 @@
 .section-feature, .section-feature > div{
     &:before, &:after{
         content: '';
-        display: inline-block;
         width: 16.08%;
         position: absolute;
         top: 0;
@@ -157,6 +156,14 @@
         > i{
             display: block;
         }
+    }
+    .icon-swipe{
+        display: none;
+        position: absolute;
+        top: -14px;
+        left: 33%;
+        font-size: 3.5rem;
+        margin: 0 0 0 -90px;
     }
 }
 
@@ -345,11 +352,23 @@
 }
 
 
-@media (max-width: 1120px){
+@media (max-width: 1200px){
     .container-tarifs{
-        border-left: 1px solid $secondary;
-        border-right: 1px solid $secondary;
         overflow: auto;
+    }
+
+    .tarifs{
+        position: relative;
+        &:after{
+            content: '';
+            width: 16px;
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            right: $gutter*2;
+            z-index: 2;
+            background: url(../layoutImg/shade.png);
+        }
     }
 
     .column-3{
@@ -392,8 +411,12 @@
         }
     }
 
-    .tarif-body, .tarifs{
+    .tarifs{
         padding: 0 30px;
+    }
+
+    .tarif-body{
+        padding: 0 30px 0 0;
     }
 
     .tarif-note{
@@ -403,6 +426,15 @@
 
     .tarif-header{
         position: static;
+        > .container{
+            padding-left: 0;
+        }
+    }
+
+    .section-feature{
+        .icon-swipe{
+            display: block;
+        }
     }
 }
 
@@ -414,6 +446,16 @@
     .feature-content{
         .icon-check{
             width: 13px;
+        }
+    }
+}
+
+@media (max-width: $phone-small){
+    .section-feature{
+        .icon-swipe{
+            top: -11px;
+            left: 26%;
+            font-size: 3rem;
         }
     }
 }
