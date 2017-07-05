@@ -19019,8 +19019,6 @@ module.exports = function (windowWidth, tempo) {
         var blocks = svg.find('.bloc-6');
         var shadows = svg.find('.shade-6').toArray();
 
-        console.log(blocks, shadows);
-
         // Mieux gérer les timing + ombres sur le bloc du haut
         blocks.each(function (i, el) {
             var tl = new TimelineLite({ onComplete: function onComplete() {
@@ -19110,20 +19108,6 @@ module.exports = function (windowWidth, tempo) {
 
     function animStock(svg) {}
 
-    function animModules(svg) {
-        var t1 = svg.find('#cable-10-1');
-        var t2 = svg.find('#cable-10-2');
-        var t3 = svg.find('#cable-10-3');
-        var tl = new TimelineLite({ onComplete: function onComplete() {
-                tl.restart();
-            } });
-
-        tl.set([t2, t3], { drawSVG: '100% 100%' });
-        tl.set(t1, { drawSVG: 0 });
-
-        tl.to(t2, tempo, { drawSVG: "0 100%", ease: easeIn }).to(t2, tempo, { drawSVG: 0, ease: easeOut }).to(t1, tempo, { drawSVG: "0 100%", ease: easeIn }).to(t1, tempo, { drawSVG: "100% 100%", ease: easeOut }).fromTo(t2, tempo, { drawSVG: '100% 100%' }, { drawSVG: "0 100%", ease: easeIn }).to(t2, tempo, { drawSVG: 0, ease: easeOut }).to(t3, tempo, { drawSVG: "0 100%", ease: easeIn }).to(t3, tempo, { drawSVG: 0, ease: easeOut });
-    }
-
     animMapping($('#animMapping'));
     animImpact($('#animImpact'));
     animChoose($('#animChoose'));
@@ -19133,7 +19117,6 @@ module.exports = function (windowWidth, tempo) {
     animOptimize($('#animOptimize'));
     animOrders($('#animOrders'));
     animStock($('#animStock'));
-    animModules($('#animModules'));
 };
 
 },{"gsap/TimelineLite":3,"gsap/TweenLite":4,"gsap/src/uncompressed/easing/CustomEase":6,"gsap/src/uncompressed/plugins/DrawSVGPlugin":7,"jquery":9}],13:[function(require,module,exports){
@@ -19358,7 +19341,11 @@ module.exports = function (wp, wrapper, countrySelect, sectorSelect, channelsLis
     function filterBySector(sector) {
         channels.removeClass('hidden');
         if (sector !== 'all') {
-            channels.not('[data-sector="' + sector + '"]').addClass('hidden');
+            channels.each(function () {
+                if ($.inArray(sector, $(this).data('sector').split(',')) < 0) {
+                    $(this).addClass('hidden');
+                }
+            });
         }
 
         if (!sectorError.length) return;
