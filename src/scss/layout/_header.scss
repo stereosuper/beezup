@@ -540,6 +540,7 @@
         transform: translate3d(100%, 0, 0);
         transition: $transition 0.2s;
         > .btn{
+            position: static !important;
             padding: 0;
             margin: 10px 0 0;
             font-size: 1.8rem;
@@ -596,6 +597,7 @@
 
         .mlp-lang-switcher{
             li{
+                text-align: center;
                 margin: 10px 0 0;
             }
         }
