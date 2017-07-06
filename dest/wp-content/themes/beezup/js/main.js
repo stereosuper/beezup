@@ -18908,6 +18908,11 @@ module.exports = function (body, windowWidth, tempo) {
 
     var animMappingTl,
         animMappingRunning = false;
+    var animTl = [],
+        animRunning = [];
+    var windowHeight = $(window).height();
+
+    var animSvg = $('.js-animSvg');
 
     function animMapping(svg) {
         if (!svg.length) return;
@@ -18920,7 +18925,7 @@ module.exports = function (body, windowWidth, tempo) {
 
         TweenLite.set([cable1, cable2], { drawSVG: 0 });
 
-        tl.set([cable1, cable2], { drawSVG: 0 }).to(cable1, tempo, { drawSVG: '0% 100%', ease: easeIn }).to(cable1, tempo, { drawSVG: '100% 100%', ease: easeOut }).to(cable2, tempo, { drawSVG: '0% 100%', ease: easeIn, delay: tempo * 2 }).to(cable2, tempo, { drawSVG: '100% 100%', ease: easeOut });
+        tl.to(cable1, tempo, { drawSVG: '0% 100%', ease: easeIn }).to(cable1, tempo, { drawSVG: '100% 100%', ease: easeOut }).to(cable2, tempo, { drawSVG: '0% 100%', ease: easeIn, delay: tempo * 2 }).to(cable2, tempo, { drawSVG: '100% 100%', ease: easeOut });
 
         return tl;
     }
@@ -18928,19 +18933,21 @@ module.exports = function (body, windowWidth, tempo) {
     function animImpact(svg) {
         if (!svg.length) return;
 
-        var tl = new TimelineLite({ onComplete: function onComplete() {
+        var tl = new TimelineLite({ paused: true, onComplete: function onComplete() {
                 tl.restart();
             } });
         var cable = svg.find('#cable-2');
+        TweenLite.set(cable, { drawSVG: 0 });
 
-        tl.set(cable, { drawSVG: 0 }).to(cable, tempo, { drawSVG: '0% 100%', ease: easeOut, delay: tempo }).to(cable, tempo, { drawSVG: '100% 100%', ease: easeOut, delay: tempo * 2 });
+        tl.to(cable, tempo, { drawSVG: '0% 100%', ease: easeOut, delay: tempo }).to(cable, tempo, { drawSVG: '100% 100%', ease: easeOut, delay: tempo * 2 });
+
+        return tl;
     }
 
     function animChoose(svg) {
         if (!svg.length) return;
 
-        var tlBox = new TimelineLite({ onComplete: reset });
-        var tlReset = new TimelineLite({ onComplete: function onComplete() {
+        var tlBox = new TimelineLite({ paused: true, onComplete: function onComplete() {
                 tlBox.restart();
             } });
 
@@ -18953,14 +18960,12 @@ module.exports = function (body, windowWidth, tempo) {
         var c3 = svg.find('#connector-3-3');
         var c4 = svg.find('#connector-3-4');
 
-        function reset() {
-            tlReset.staggerTo([c1, c2, c3, c4], tempo, { delay: tempo * 2, opacity: 0, y: -50, ease: easeOut }, 0.1);
-        }
+        TweenLite.set([c1, c2, c3, c4], { y: -50, opacity: 0 });
+        TweenLite.set([t1, t2, t4], { drawSVG: 0 });
 
-        tlBox.set([c1, c2, c3, c4], { y: -50, opacity: 0 });
-        tlBox.set([t1, t2, t4], { drawSVG: 0 });
+        tlBox.to(c1, tempo, { opacity: 1, ease: easeIn }).to(c1, tempo * 2, { y: 0, ease: bounce, delay: -tempo }).to(t1, tempo, { drawSVG: '0% 100%', ease: easeIn }).to(t1, tempo * 2, { drawSVG: '100% 100%', ease: easeOut }).to(c2, tempo, { opacity: 1, ease: easeIn, delay: tempo }).to(c2, tempo * 2, { y: 0, ease: bounce, delay: -tempo }).to(t2, tempo, { drawSVG: '0% 100%', ease: easeIn }).to(t2, tempo * 2, { drawSVG: '100% 100%', ease: easeOut }).to(c3, tempo, { opacity: 1, ease: easeIn, delay: tempo }).to(c3, tempo * 2, { y: 0, ease: bounce, delay: -tempo }).to(c4, tempo, { opacity: 1, ease: easeIn, delay: tempo * 4 }).to(c4, tempo * 2, { y: 0, ease: bounce, delay: -tempo }).to(t4, tempo, { drawSVG: '0% 100%', ease: easeIn }).to(t4, tempo * 2, { drawSVG: '100% 100%', ease: easeOut }).staggerTo([c1, c2, c3, c4], tempo, { delay: tempo * 2, opacity: 0, y: -50, ease: easeOut }, 0.1);
 
-        tlBox.to(c1, tempo, { opacity: 1, ease: easeIn }).to(c1, tempo * 2, { y: 0, ease: bounce, delay: -tempo }).to(t1, tempo, { drawSVG: '0% 100%', ease: easeIn }).to(t1, tempo * 2, { drawSVG: '100% 100%', ease: easeOut }).to(c2, tempo, { opacity: 1, ease: easeIn, delay: tempo }).to(c2, tempo * 2, { y: 0, ease: bounce, delay: -tempo }).to(t2, tempo, { drawSVG: '0% 100%', ease: easeIn }).to(t2, tempo * 2, { drawSVG: '100% 100%', ease: easeOut }).to(c3, tempo, { opacity: 1, ease: easeIn, delay: tempo }).to(c3, tempo * 2, { y: 0, ease: bounce, delay: -tempo }).to(c4, tempo, { opacity: 1, ease: easeIn, delay: tempo * 4 }).to(c4, tempo * 2, { y: 0, ease: bounce, delay: -tempo }).to(t4, tempo, { drawSVG: '0% 100%', ease: easeIn }).to(t4, tempo * 2, { drawSVG: '100% 100%', ease: easeOut });
+        return tlBox;
     }
 
     function animImport(svg) {
@@ -19024,16 +19029,17 @@ module.exports = function (body, windowWidth, tempo) {
         var b3 = svg.find('#connector-5-3');
         var b4 = svg.find('#connector-5-4');
         var t2 = svg.find('#txt-5-2');
-        var tl = new TimelineLite({ onComplete: reset });
-        var tlReset = new TimelineLite({ onComplete: function onComplete() {
+        var tl = new TimelineLite({ paused: true, onComplete: function onComplete() {
                 tl.restart();
             } });
 
-        function reset() {
-            tlReset.staggerTo([b1, b2, b3, b4], tempo, { delay: tempo * 2, opacity: 0, y: -50, ease: easeOut }, 0.1).add([TweenLite.to([h1, h2, h3, h4], tempo * 2, { opacity: 0, ease: easeOut, delay: -tempo }), TweenLite.to(t2, tempo * 2, { fill: '#0096E0', ease: easeOut, delay: -tempo })]);
-        }
+        TweenLite.set([h1, h2, h3, h4], { opacity: 0, fill: '#0FA1E7' });
+        TweenLite.set([b1, b2, b3, b4], { opacity: 0, y: -50 });
+        TweenLite.set(t2, { fill: '#0096E0' });
 
-        tl.set([h1, h2, h3, h4], { opacity: 0, fill: '#0FA1E7' }).set([b1, b2, b3, b4], { opacity: 0, y: -50 }).set(t2, { fill: '#0096E0' }).to(h1, tempo, { opacity: 1, ease: easeIn, delay: tempo * 2 }).to(b1, tempo, { opacity: 1, y: 0, delay: tempo, ease: bounce }).to(h2, tempo, { opacity: 1, ease: easeIn, delay: tempo * 2 }).to(b2, tempo, { opacity: 1, y: 0, delay: tempo, ease: bounce }).add([TweenLite.to(t2, tempo, { delay: -tempo, ease: easeIn, fill: '#1D1D1B' }), TweenLite.to(h2, tempo, { delay: -tempo, ease: easeIn, fill: '#DE0C20' })]).to(h3, tempo, { opacity: 1, ease: easeIn, delay: tempo * 2 }).to(b3, tempo, { opacity: 1, y: 0, delay: tempo, ease: bounce }).to(h4, tempo, { opacity: 1, ease: easeIn, delay: tempo * 2 }).to(b4, tempo, { opacity: 1, y: 0, delay: tempo, ease: bounce });
+        tl.to(h1, tempo, { opacity: 1, ease: easeIn, delay: tempo * 2 }).to(b1, tempo, { opacity: 1, y: 0, delay: tempo, ease: bounce }).to(h2, tempo, { opacity: 1, ease: easeIn, delay: tempo * 2 }).to(b2, tempo, { opacity: 1, y: 0, delay: tempo, ease: bounce }).add([TweenLite.to(t2, tempo, { delay: -tempo, ease: easeIn, fill: '#1D1D1B' }), TweenLite.to(h2, tempo, { delay: -tempo, ease: easeIn, fill: '#DE0C20' })]).to(h3, tempo, { opacity: 1, ease: easeIn, delay: tempo * 2 }).to(b3, tempo, { opacity: 1, y: 0, delay: tempo, ease: bounce }).to(h4, tempo, { opacity: 1, ease: easeIn, delay: tempo * 2 }).to(b4, tempo, { opacity: 1, y: 0, delay: tempo, ease: bounce }).staggerTo([b1, b2, b3, b4], tempo, { delay: tempo * 2, opacity: 0, y: -50, ease: easeOut }, 0.1).add([TweenLite.to([h1, h2, h3, h4], tempo * 2, { opacity: 0, ease: easeOut, delay: -tempo }), TweenLite.to(t2, tempo * 2, { fill: '#0096E0', ease: easeOut, delay: -tempo })]);
+
+        return tl;
     }
 
     function animStats(svg) {
@@ -19068,23 +19074,20 @@ module.exports = function (body, windowWidth, tempo) {
         var b4 = svg.find('#connector-7-4');
         var s2 = svg.find('#symbol-7-2');
         var s4 = svg.find('#symbol-7-4');
-        var tl = new TimelineLite({ onComplete: reset });
-        var tlReset = new TimelineLite({ onComplete: function onComplete() {
+        var tl = new TimelineLite({ paused: true, onComplete: function onComplete() {
                 tl.restart();
             } });
 
-        function reset() {
-            tlReset.staggerTo([b1, b2, b3, b4], tempo, { delay: tempo * 2, opacity: 0, y: -50, ease: easeOut }, 0.1).add([TweenLite.to([p1, p2, p3, p4], tempo * 2, { opacity: 0, ease: easeOut, delay: -tempo }), TweenLite.to([s2, s4], tempo * 2, { fill: '#0096E0', ease: easeOut, delay: -tempo })]);
-        }
+        tl.to(p1, tempo, { opacity: 1, ease: easeIn, delay: tempo * 2 }).to(b1, tempo, { opacity: 1, y: 0, delay: tempo, ease: bounce }).to(t1, tempo, { drawSVG: '0% 100%', ease: easeIn }).to(t1, tempo, { drawSVG: '100% 100%', ease: easeOut }).to(p2, tempo, { opacity: 1, ease: easeIn, delay: tempo * 2 }).to(b2, tempo, { opacity: 1, y: 0, delay: tempo, ease: bounce }).add([TweenLite.to(s2, tempo, { delay: -tempo, ease: easeIn, fill: '#BD0314' }), TweenLite.to(p2, tempo, { delay: -tempo, ease: easeIn, fill: '#DE0C20' })]).to(p3, tempo, { opacity: 1, ease: easeIn, delay: tempo * 2 }).to(b3, tempo, { opacity: 1, y: 0, delay: tempo, ease: bounce }).to(t3, tempo, { drawSVG: '0% 100%', ease: easeIn }).to(t3, tempo, { drawSVG: '100% 100%', ease: easeOut }).to(p4, tempo, { opacity: 1, ease: easeIn, delay: tempo * 2 }).to(b4, tempo, { opacity: 1, y: 0, delay: tempo, ease: bounce }).add([TweenLite.to(s4, tempo, { delay: -tempo, ease: easeIn, fill: '#24DA4B' }), TweenLite.to(p4, tempo, { delay: -tempo, ease: easeIn, fill: '#24DA4B' })]).to(t4, tempo, { drawSVG: '0% 100%', ease: easeIn }).to(t4, tempo, { drawSVG: '100% 100%', ease: easeOut }).staggerTo([b1, b2, b3, b4], tempo, { delay: tempo * 2, opacity: 0, y: -50, ease: easeOut }, 0.1).add([TweenLite.to([p1, p2, p3, p4], tempo * 2, { opacity: 0, ease: easeOut, delay: -tempo }), TweenLite.to([s2, s4], tempo * 2, { fill: '#0096E0', ease: easeOut, delay: -tempo })]);
 
-        tl.set([p1, p2, p3, p4], { opacity: 0, fill: '#0FA1E7' }).set([b1, b2, b3, b4], { opacity: 0, y: -50 }).set([s2, s4], { fill: '#0096E0' }).set([t1, t2, t3, t4], { drawSVG: 0 }).to(p1, tempo, { opacity: 1, ease: easeIn, delay: tempo * 2 }).to(b1, tempo, { opacity: 1, y: 0, delay: tempo, ease: bounce }).to(t1, tempo, { drawSVG: '0% 100%', ease: easeIn }).to(t1, tempo, { drawSVG: '100% 100%', ease: easeOut }).to(p2, tempo, { opacity: 1, ease: easeIn, delay: tempo * 2 }).to(b2, tempo, { opacity: 1, y: 0, delay: tempo, ease: bounce }).add([TweenLite.to(s2, tempo, { delay: -tempo, ease: easeIn, fill: '#BD0314' }), TweenLite.to(p2, tempo, { delay: -tempo, ease: easeIn, fill: '#DE0C20' })]).to(p3, tempo, { opacity: 1, ease: easeIn, delay: tempo * 2 }).to(b3, tempo, { opacity: 1, y: 0, delay: tempo, ease: bounce }).to(t3, tempo, { drawSVG: '0% 100%', ease: easeIn }).to(t3, tempo, { drawSVG: '100% 100%', ease: easeOut }).to(p4, tempo, { opacity: 1, ease: easeIn, delay: tempo * 2 }).to(b4, tempo, { opacity: 1, y: 0, delay: tempo, ease: bounce }).add([TweenLite.to(s4, tempo, { delay: -tempo, ease: easeIn, fill: '#24DA4B' }), TweenLite.to(p4, tempo, { delay: -tempo, ease: easeIn, fill: '#24DA4B' })]).to(t4, tempo, { drawSVG: '0% 100%', ease: easeIn }).to(t4, tempo, { drawSVG: '100% 100%', ease: easeOut });
+        return tl;
     }
 
     function animOrders(svg) {
         if (!svg.length) return;
 
         var boxes = svg.find('#boxes-8');
-        var tl = new TimelineLite();
+        var tl = new TimelineLite({ paused: true });
         var xMove = 48,
             yMove = 36;
         var loop = 0,
@@ -19093,7 +19096,7 @@ module.exports = function (body, windowWidth, tempo) {
         var t2 = svg.find('#cable-8-2');
         var t3 = svg.find('#cable-8-3');
 
-        tl.set([t1, t2, t3], { drawSVG: '100% 100%' });
+        TweenLite.set([t1, t2, t3], { drawSVG: '100% 100%' });
 
         function resetLast(last, row) {
             if (row === 3 || row === 0) {
@@ -19102,7 +19105,7 @@ module.exports = function (body, windowWidth, tempo) {
                 tl.to(t2, tempo, { drawSVG: '0 100%', ease: easeIn, delay: tempo }).to(t2, tempo, { drawSVG: '0% 0%', ease: easeIn, delay: tempo }).to(t1, tempo, { drawSVG: '0 100%', ease: easeIn, delay: -tempo }).to(t1, tempo, { drawSVG: '0% 0%', ease: easeIn, delay: tempo, onComplete: loopMove });
             }
 
-            tl.set([t1, t2, t3], { drawSVG: '100% 100%' });
+            TweenLite.set([t1, t2, t3], { drawSVG: '100% 100%' });
             newElt = last.clone().prependTo(boxes);
             TweenLite.set(newElt, { x: xMove * -row, y: yMove * -row });
             last.remove();
@@ -19130,6 +19133,7 @@ module.exports = function (body, windowWidth, tempo) {
             loop++;
         }
         loopMove();
+        return tl;
     }
 
     function animStock(svg) {
@@ -19251,39 +19255,75 @@ module.exports = function (body, windowWidth, tempo) {
         var t1 = svg.find('#cable-10-1');
         var t2 = svg.find('#cable-10-2');
         var t3 = svg.find('#cable-10-3');
-        var tl = new TimelineLite({ onComplete: function onComplete() {
+        var tl = new TimelineLite({ paused: true, onComplete: function onComplete() {
                 tl.restart();
             } });
 
-        tl.set([t2, t3], { drawSVG: '100% 100%' }).set(t1, { drawSVG: 0 }).to(t2, tempo, { drawSVG: "0 100%", ease: easeIn }).to(t2, tempo * 2, { drawSVG: 0, ease: easeOut, delay: tempo }).to(t1, tempo, { drawSVG: "0 100%", ease: easeIn }).to(t1, tempo * 2, { drawSVG: "100% 100%", ease: easeOut, delay: tempo }).fromTo(t2, tempo, { drawSVG: '100% 100%' }, { drawSVG: "0 100%", ease: easeIn }).to(t2, tempo * 2, { drawSVG: 0, ease: easeOut, delay: tempo }).to(t3, tempo, { drawSVG: "0 100%", ease: easeIn }).to(t3, tempo * 2, { drawSVG: 0, ease: easeOut, delay: tempo });
+        TweenLite.set([t2, t3], { drawSVG: '100% 100%' });
+        TweenLite.set(t1, { drawSVG: 0 });
+
+        tl.to(t2, tempo, { drawSVG: "0 100%", ease: easeIn }).to(t2, tempo * 2, { drawSVG: 0, ease: easeOut, delay: tempo }).to(t1, tempo, { drawSVG: "0 100%", ease: easeIn }).to(t1, tempo * 2, { drawSVG: "100% 100%", ease: easeOut, delay: tempo }).fromTo(t2, tempo, { drawSVG: '100% 100%' }, { drawSVG: "0 100%", ease: easeIn }).to(t2, tempo * 2, { drawSVG: 0, ease: easeOut, delay: tempo }).to(t3, tempo, { drawSVG: "0 100%", ease: easeIn }).to(t3, tempo * 2, { drawSVG: 0, ease: easeOut, delay: tempo });
+
+        return tl;
     }
 
     function scrollHandler() {
         var scrollTop = $(document).scrollTop();
-
-        if (scrollTop > 50 && scrollTop < 1500) {
-            if (!animMappingRunning) {
-                animMappingTl.play();
-                animMappingRunning = true;
+        animSvg.each(function (i) {
+            //console.log(scrollTop, $(this).data('offsetTop') + windowHeight - $(this).data('height'));
+            if (scrollTop + windowHeight - $(this).data('height') > $(this).data('offsetTop') && scrollTop < $(this).data('offsetTop') + $(this).data('height')) {
+                if (!animRunning[i]) {
+                    animTl[i].play();
+                    animRunning[i] = true;
+                    console.log(i, 'play');
+                }
+            } else {
+                if (animRunning[i]) {
+                    animTl[i].pause();
+                    animRunning[i] = false;
+                    console.log(i, 'stop');
+                }
             }
-        } else {
-            if (animMappingRunning) {
-                animMappingTl.pause();
-                animMappingRunning = false;
-            }
-        }
+        });
     }
 
-    animMappingTl = animMapping($('#animMapping'));
-    animImpact($('#animImpact'));
-    animChoose($('#animChoose'));
-    animImport($('#animImport'));
-    animHistory($('#animHistory'));
-    animStats($('#animStats'));
-    animOptimize($('#animOptimize'));
-    animOrders($('#animOrders'));
-    animStock($('#animStock'));
-    animModules($('#animModules'));
+    animSvg.each(function (i) {
+        var tl;
+        switch ($(this).attr('id')) {
+            case 'animMapping':
+                animTl[i] = animMapping($(this));
+                break;
+            case 'animImpact':
+                animTl[i] = animImpact($(this));
+                break;
+            case 'animChoose':
+                animTl[i] = animChoose($(this));
+                break;
+            // case 'animImport': tl = animImport($(this))
+            //     break
+            case 'animHistory':
+                animTl[i] = animHistory($(this));
+                break;
+            // case 'animStats': tl = animStats($(this))
+            //     break
+            case 'animOptimize':
+                animTl[i] = animOptimize($(this));
+                break;
+            case 'animOrders':
+                animTl[i] = animOrders($(this));
+                break;
+            // case 'animStock': animTl[i] = animStock($(this))
+            //     break
+            case 'animModules':
+                animTl[i] = animModules($(this));
+                break;
+        }
+        animRunning[i] = false;
+        $(this).data({
+            'offsetTop': $(this).offset().top,
+            'height': $(this).height()
+        });
+    });
 
     $(document).on('scroll', throttle(function () {
         requestAnimFrame(scrollHandler);
@@ -19612,9 +19652,9 @@ var checkLangState = function checkLangState(windowWidth) {
     langHeight = listLang.height();
 
     if (windowWidth > 960) {
-        TweenLite.to(eltsToMove, 0.3, { y: '0px' });
+        TweenLite.to(eltsToMove, 0.3, { rotation: '0.01deg', z: 0.01, y: '0px', force3D: true });
     } else {
-        langOpen ? TweenLite.to(eltsToMove, 0.3, { y: '0px' }) : TweenLite.to(eltsToMove, 0.3, { y: langHeight + 'px' });
+        langOpen ? TweenLite.to(eltsToMove, 0.3, { y: '0px' }) : TweenLite.to(eltsToMove, 0.3, { rotation: '0.01deg', z: 0.01, y: langHeight + 'px', force3D: true });
     }
 };
 
@@ -19623,7 +19663,7 @@ var clickOnLanguage = function clickOnLanguage(windowWidth) {
     containerMenuHead.toggleClass('open');
 
     if (windowWidth <= 960) {
-        langOpen ? TweenLite.to(eltsToMove, 0.3, { y: langHeight + 'px', rotation: 0.01 }) : TweenLite.to(eltsToMove, 0.3, { y: '0px' });
+        langOpen ? TweenLite.to(eltsToMove, 0.3, { rotation: '0.01deg', z: 0.01, y: langHeight + 'px', force3D: true }) : TweenLite.to(eltsToMove, 0.3, { rotation: '0.01deg', z: 0.01, y: '0px', force3D: true });
     }
 
     langOpen = !langOpen;
@@ -19660,39 +19700,36 @@ $(function () {
 
     var body = $('body');
     var menuMain = $('#menuMain');
+    var containersMenu = $('#containerMenuMain, #containerMenuHead');
 
     // window.outerWidth returns the window width including the scroll, but it's not working with $(window).outerWidth
     var windowWidth = window.outerWidth,
         windowHeight = $(window).height();
     var tempo = 0.4;
-
     var rtime;
     var timeout = false;
     var delta = 200;
-
-    function resizeHandler() {
-        windowWidth = window.outerWidth;
-        windowHeight = $(window).height();
-        langSwitcher.checkLangState(windowWidth);
-        submenu(menuMain);
-        $('#containerMenuMain').addClass('no-transition');
-        $('#containerMenuHead').addClass('no-transition');
-        rtime = new Date();
-        if (timeout === false) {
-            timeout = true;
-            setTimeout(resizeend, delta);
-        }
-        console.log('lo');
-    }
 
     function resizeend() {
         if (new Date() - rtime < delta) {
             setTimeout(resizeend, delta);
         } else {
             timeout = false;
-            $('#containerMenuHead').removeClass('no-transition');
-            $('#containerMenuMain').removeClass('no-transition');
-            console.log('ol');
+            containersMenu.removeClass('no-transition');
+        }
+    }
+
+    function resizeHandler() {
+        windowWidth = window.outerWidth;
+        windowHeight = $(window).height();
+        langSwitcher.checkLangState(windowWidth);
+        submenu(menuMain);
+        // No transition on resize 
+        containersMenu.addClass('no-transition');
+        rtime = new Date();
+        if (timeout === false) {
+            timeout = true;
+            setTimeout(resizeend, delta);
         }
     }
 

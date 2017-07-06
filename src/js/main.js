@@ -24,38 +24,35 @@ $(function(){
 
     var body = $('body');
     var menuMain = $('#menuMain');
+    var containersMenu = $('#containerMenuMain, #containerMenuHead');
 
     // window.outerWidth returns the window width including the scroll, but it's not working with $(window).outerWidth
     var windowWidth = window.outerWidth, windowHeight = $(window).height();
     var tempo = 0.4;
-
     var rtime;
     var timeout = false;
     var delta = 200;
+    
+    function resizeend() {
+        if (new Date() - rtime < delta) {
+            setTimeout(resizeend, delta);
+        } else {
+            timeout = false;
+            containersMenu.removeClass('no-transition');
+        }
+    }
 
     function resizeHandler() {
         windowWidth = window.outerWidth;
         windowHeight = $(window).height();
         langSwitcher.checkLangState(windowWidth);
         submenu(menuMain);
-        $('#containerMenuMain').addClass('no-transition');
-        $('#containerMenuHead').addClass('no-transition');
+        // No transition on resize 
+        containersMenu.addClass('no-transition');
         rtime = new Date();
         if (timeout === false) {
             timeout = true;
             setTimeout(resizeend, delta);
-        }
-        console.log('lo');
-    }
-
-    function resizeend() {
-        if (new Date() - rtime < delta) {
-            setTimeout(resizeend, delta);
-        } else {
-            timeout = false;
-            $('#containerMenuHead').removeClass('no-transition');
-            $('#containerMenuMain').removeClass('no-transition');
-            console.log('ol');
         }
     }
 

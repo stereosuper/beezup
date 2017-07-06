@@ -1,4 +1,4 @@
-<svg xmlns='http://www.w3.org/2000/svg' id='animOptimize' viewBox='0 0 445.8 386.7' height='386.7'>
+<svg xmlns='http://www.w3.org/2000/svg' class='js-animSvg' id='animOptimize' viewBox='0 0 445.8 386.7' height='386.7'>
     <path class='shadow-7' d='M142.2 188.6L55.7 254 1.2 214.8l87.1-66.4z'/>
 
     <path id='cable-7-1' class='cable1' d='M135 136.4l128.8-97.3'/>

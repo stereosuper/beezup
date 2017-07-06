@@ -1,4 +1,4 @@
-<svg xmlns='http://www.w3.org/2000/svg' id='animHistory' viewBox='0 0 381 311.4' height='311.4'>
+<svg xmlns='http://www.w3.org/2000/svg' class='js-animSvg' id='animHistory' viewBox='0 0 381 311.4' height='311.4'>
     <path d='M376.5 182l-169 128.4L3.6 157.7 172.7 29.3z' class='shadow-5'/>
     
     <g>

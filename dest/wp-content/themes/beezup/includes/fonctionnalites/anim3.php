@@ -1,4 +1,4 @@
-<svg xmlns='http://www.w3.org/2000/svg' id='animChoose' style='transform: rotate(-10deg)' viewBox='0 0 419.2 344.5' height='344.5'>
+<svg xmlns='http://www.w3.org/2000/svg' class='js-animSvg' id='animChoose' style='transform: rotate(-10deg)' viewBox='0 0 419.2 344.5' height='344.5'>
     <g id='sofa'>
         <path d='M142.7 129.6L46.1 179 0 130l96.7-49.3z' class='shadow-3'/>
         
