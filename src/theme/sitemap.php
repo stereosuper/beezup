@@ -17,19 +17,18 @@ get_header(); ?>
 	<?php get_template_part('includes/content-default'); ?>
 
 	<section class='container-small'>
-		<h2><?php _e('Pages'); ?></h2>
+		<?php $posts = get_posts( array('post_type' => 'post', 'orderby' => 'title', 'posts_per_page' => -1, 'order' => 'ASC') ); ?>
+
+		<?php if($posts){ ?>
+			<h2><?php _e('Pages'); ?></h2>
+		<?php } ?>
 		<ul class='list-black'>
 			<?php wp_list_pages( array('post_type' => 'page', 'title_li' => '') ); ?>
 		</ul>
 
-		<?php
-			function listPosts($postType, $tax){
-				$options = $tax ? array( array('taxonomy' => 'types', 'field' => 'slug', 'terms' => $tax) ) : '';
-				$posts = get_posts( array('post_type' => $postType, 'orderby' => 'title', 'posts_per_page' => -1, 'order' => 'ASC', 'tax_query' => $options) );
-
-				if(!$posts)
-					echo '<p>Nothing was found</p>';
-
+		<?php if($posts){ ?>
+			<h2><?php _e('Blog', 'beezup'); ?></h2>
+			<?php
 				$output = "<ul class='list-black'>";
 				foreach( $posts as $post ){
 					$output .= '<li>';
@@ -41,11 +40,8 @@ get_header(); ?>
 				$output .= '</ul>';
 
 				echo $output;
-			}
-		?>
-
-		<h2><?php _e('Blog', 'beezup'); ?></h2>
-		<?php listPosts('post', ''); ?>
+			?>
+		<?php } ?>
 	</section>
 
 <?php else : ?>
