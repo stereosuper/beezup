@@ -26,7 +26,7 @@ var clickOnLanguage = function(windowWidth){
     containerMenuHead.toggleClass('open');
     
     if(windowWidth <= 960){
-        langOpen ? TweenLite.to(eltsToMove, 0.3, { y: langHeight + 'px' }) : TweenLite.to(eltsToMove, 0.3, { y: '0px' });
+        langOpen ? TweenLite.to(eltsToMove, 0.3, { y: langHeight + 'px', rotation: 0.01 }) : TweenLite.to(eltsToMove, 0.3, { y: '0px' });
     }
 
     langOpen = !langOpen;
