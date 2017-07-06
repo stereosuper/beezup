@@ -11,19 +11,22 @@ var throttle = require('./throttle.js');
 
 module.exports = function(body, windowWidth, tempo){
     if(!body.hasClass('page-template-fonctionnalites')) return;
+    
     if(windowWidth < 581) return;
+
+
+    var windowHeight = $(window).height();
+    var scrollTop;
+
+    var animTl = [], animRunning = [];
+    var animSvg = $('.js-animSvg');
 
     var easeOut = Power3.easeOut, easeIn = Power3.easeIn;
     var bounce = CustomEase.create('custom', 'M0,0 C0.4,0 0.593,0.983 0.6,1 0.662,0.916 0.664,0.88 0.7,0.88 0.742,0.88 0.8,0.985 0.814,0.998 0.825,0.994 1,1 1,1');
     var revBounce = CustomEase.create('custom', 'M0,0 C0,0 0.061,-0.004 0.095,-0.015 0.178,-0.043 0.229,-0.074 0.315,-0.104 0.353,-0.118 0.38,-0.124 0.42,-0.13 0.441,-0.133 0.458,-0.132 0.48,-0.129 0.498,-0.126 0.513,-0.124 0.53,-0.115 0.566,-0.095 0.596,-0.078 0.625,-0.048 0.667,-0.004 0.694,0.035 0.725,0.091 0.767,0.169 0.788,0.223 0.82,0.309 0.86,0.421 0.879,0.487 0.91,0.604 0.949,0.757 1,1 1,1');
 
-    var animMappingTl, animMappingRunning = false;
-    var animTl = [], animRunning = [];
-    var windowHeight = $(window).height();
-
-    var animSvg = $('.js-animSvg');
-
-    function animMapping(svg) {
+    
+    function animMapping(svg){
         if(!svg.length) return;
 
         var tl = new TimelineLite({paused: true, onComplete: function(){
@@ -216,7 +219,6 @@ module.exports = function(body, windowWidth, tempo){
         if(!svg.length) return;
 
         var t1 = svg.find('#cable-7-1');
-        var t2 = svg.find('#cable-7-2');
         var t3 = svg.find('#cable-7-3');
         var t4 = svg.find('#cable-7-4');
         var p1 = svg.find('#percent-7-1');
@@ -386,6 +388,7 @@ module.exports = function(body, windowWidth, tempo){
 
         // remove a gameboy in counter
         gameboyCount.html(gameboyCount.html() - 1);
+        
         tl.to(t1, tempo, {drawSVG: '0 100%', delay: tempo*4})
           .to(t1, tempo, {drawSVG: '100% 100%'})
           .to(t3, tempo, {drawSVG: '0 100%'})
@@ -457,7 +460,7 @@ module.exports = function(body, windowWidth, tempo){
             }, tempo*3000);
           }});
 
-        tl.play();
+        return tl;
     }
 
     function animModules(svg){
@@ -487,9 +490,9 @@ module.exports = function(body, windowWidth, tempo){
 
 
     function scrollHandler(){
-        var scrollTop = $(document).scrollTop();
-        animSvg.each(function (i) {
-            //console.log(scrollTop, $(this).data('offsetTop') + windowHeight - $(this).data('height'));
+        scrollTop = $(document).scrollTop();
+        
+        animSvg.each(function(i){
             if(scrollTop + windowHeight - $(this).data('height') > $(this).data('offsetTop') && scrollTop < $(this).data('offsetTop') + $(this).data('height')){
                 if(!animRunning[i]){
                     animTl[i].play();
@@ -500,37 +503,38 @@ module.exports = function(body, windowWidth, tempo){
                 if(animRunning[i]){
                     animTl[i].pause();
                     animRunning[i] = false;
-                    console.log(i, 'stop');
+                    console.log('stop' + i);
                 }
             }
         });
     }
     
-    animSvg.each(function (i) {
-        var tl;
-        switch ($(this).attr('id')) {
-            case 'animMapping': animTl[i] = animMapping($(this))
-                break
-            case 'animImpact': animTl[i] = animImpact($(this))
-                break
-            case 'animChoose': animTl[i] = animChoose($(this))
-                break
-            // case 'animImport': tl = animImport($(this))
-            //     break
-            case 'animHistory': animTl[i] = animHistory($(this))
-                break
-            // case 'animStats': tl = animStats($(this))
-            //     break
-            case 'animOptimize': animTl[i] = animOptimize($(this))
-                break
-            case 'animOrders': animTl[i] = animOrders($(this))
-                break
-            // case 'animStock': animTl[i] = animStock($(this))
-            //     break
-            case 'animModules': animTl[i] = animModules($(this))
-                break    
+    animSvg.each(function(i){
+        switch($(this).attr('id')){
+            case 'animMapping': animTl[i] = animMapping($(this));
+                break;
+            case 'animImpact': animTl[i] = animImpact($(this));
+                break;
+            case 'animChoose': animTl[i] = animChoose($(this));
+                break;
+            // case 'animImport': tl = animImport($(this));
+            //     break;
+            case 'animHistory': animTl[i] = animHistory($(this));
+                break;
+            // case 'animStats': tl = animStats($(this));
+            //     break;
+            case 'animOptimize': animTl[i] = animOptimize($(this));
+                break;
+            case 'animOrders': animTl[i] = animOrders($(this));
+                break;
+            case 'animStock': animTl[i] = animStock($(this));
+                break;
+            case 'animModules': animTl[i] = animModules($(this));
+                break;
         }
+
         animRunning[i] = false;
+
         $(this).data({
             'offsetTop': $(this).offset().top,
             'height' : $(this).height()
