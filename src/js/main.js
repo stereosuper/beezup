@@ -29,6 +29,36 @@ $(function(){
     var windowWidth = window.outerWidth, windowHeight = $(window).height();
     var tempo = 0.4;
 
+    var rtime;
+    var timeout = false;
+    var delta = 200;
+
+    function resizeHandler() {
+        windowWidth = window.outerWidth;
+        windowHeight = $(window).height();
+        langSwitcher.checkLangState(windowWidth);
+        submenu(menuMain);
+        $('#containerMenuMain').addClass('no-transition');
+        $('#containerMenuHead').addClass('no-transition');
+        rtime = new Date();
+        if (timeout === false) {
+            timeout = true;
+            setTimeout(resizeend, delta);
+        }
+        console.log('lo');
+    }
+
+    function resizeend() {
+        if (new Date() - rtime < delta) {
+            setTimeout(resizeend, delta);
+        } else {
+            timeout = false;
+            $('#containerMenuHead').removeClass('no-transition');
+            $('#containerMenuMain').removeClass('no-transition');
+            console.log('ol');
+        }
+    }
+
 
     // Petit hack dégueu pour IE11, les textes du schema etant décalés seulement sur ce browser
     if(!(window.ActiveXObject) && "ActiveXObject" in window) body.addClass('ie11');
@@ -112,18 +142,8 @@ $(function(){
     });
 
 
-
-    $(window).on('resize', throttle(function(){
-
-        requestAnimFrame(function(){
-            windowWidth = window.outerWidth;
-            windowHeight = $(window).height();
-
-            langSwitcher.checkLangState(windowWidth);
-
-            submenu(menuMain);
-        });
-
+    $(window).on('resize', throttle(function () {
+        requestAnimFrame(resizeHandler);
     }, 60));
 
 });

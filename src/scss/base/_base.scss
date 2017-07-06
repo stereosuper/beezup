@@ -340,6 +340,10 @@ a{
     overflow: hidden;
 }
 
+.no-transition {
+    transition: none !important;
+}
+
 .hidden{
     display: none !important;
 }
