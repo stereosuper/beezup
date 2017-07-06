@@ -15,9 +15,9 @@ var checkLangState = function(windowWidth){
     langHeight = listLang.height();
     
     if(windowWidth > 960){
-        TweenLite.to(eltsToMove, 0.3, { y: '0px' });
+        TweenLite.to(eltsToMove, 0.3, {  rotation: '0.01deg', z: 0.01, y: '0px', force3D:true });
     }else{
-        langOpen ? TweenLite.to(eltsToMove, 0.3, { y: '0px' }) : TweenLite.to(eltsToMove, 0.3, { y: langHeight + 'px' });
+        langOpen ? TweenLite.to(eltsToMove, 0.3, { y: '0px' }) : TweenLite.to(eltsToMove, 0.3, { rotation: '0.01deg', z: 0.01, y: langHeight + 'px' , force3D:true});
     }
 }    
 
@@ -26,7 +26,7 @@ var clickOnLanguage = function(windowWidth){
     containerMenuHead.toggleClass('open');
     
     if(windowWidth <= 960){
-        langOpen ? TweenLite.to(eltsToMove, 0.3, { y: langHeight + 'px', rotation: 0.01 }) : TweenLite.to(eltsToMove, 0.3, { y: '0px' });
+        langOpen ? TweenLite.to(eltsToMove, 0.3, {  rotation: '0.01deg', z: 0.01, y: langHeight + 'px', force3D:true }) : TweenLite.to(eltsToMove, 0.3, { rotation: '0.01deg', z: 0.01, y: '0px', force3D:true});
     }
 
     langOpen = !langOpen;

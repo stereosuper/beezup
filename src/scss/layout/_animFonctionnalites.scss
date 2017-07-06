@@ -583,3 +583,12 @@
     stroke-linecap: round;
     stroke-linejoin: round;
 }
+
+@media (max-width: $phone){
+    .cable1, .cable2, .cable-3, .cable-4{
+        stroke: none;
+    }
+    .check-no-mobile{
+        opacity: 0;
+    }
+}

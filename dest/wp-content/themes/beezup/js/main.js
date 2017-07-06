@@ -19456,9 +19456,9 @@ var checkLangState = function checkLangState(windowWidth) {
     langHeight = listLang.height();
 
     if (windowWidth > 960) {
-        TweenLite.to(eltsToMove, 0.3, { y: '0px' });
+        TweenLite.to(eltsToMove, 0.3, { rotation: '0.01deg', z: 0.01, y: '0px', force3D: true });
     } else {
-        langOpen ? TweenLite.to(eltsToMove, 0.3, { y: '0px' }) : TweenLite.to(eltsToMove, 0.3, { y: langHeight + 'px' });
+        langOpen ? TweenLite.to(eltsToMove, 0.3, { y: '0px' }) : TweenLite.to(eltsToMove, 0.3, { rotation: '0.01deg', z: 0.01, y: langHeight + 'px', force3D: true });
     }
 };
 
@@ -19467,7 +19467,7 @@ var clickOnLanguage = function clickOnLanguage(windowWidth) {
     containerMenuHead.toggleClass('open');
 
     if (windowWidth <= 960) {
-        langOpen ? TweenLite.to(eltsToMove, 0.3, { y: langHeight + 'px', rotation: 0.01 }) : TweenLite.to(eltsToMove, 0.3, { y: '0px' });
+        langOpen ? TweenLite.to(eltsToMove, 0.3, { rotation: '0.01deg', z: 0.01, y: langHeight + 'px', force3D: true }) : TweenLite.to(eltsToMove, 0.3, { rotation: '0.01deg', z: 0.01, y: '0px', force3D: true });
     }
 
     langOpen = !langOpen;
@@ -19504,39 +19504,36 @@ $(function () {
 
     var body = $('body');
     var menuMain = $('#menuMain');
+    var containersMenu = $('#containerMenuMain, #containerMenuHead');
 
     // window.outerWidth returns the window width including the scroll, but it's not working with $(window).outerWidth
     var windowWidth = window.outerWidth,
         windowHeight = $(window).height();
     var tempo = 0.4;
-
     var rtime;
     var timeout = false;
     var delta = 200;
-
-    function resizeHandler() {
-        windowWidth = window.outerWidth;
-        windowHeight = $(window).height();
-        langSwitcher.checkLangState(windowWidth);
-        submenu(menuMain);
-        $('#containerMenuMain').addClass('no-transition');
-        $('#containerMenuHead').addClass('no-transition');
-        rtime = new Date();
-        if (timeout === false) {
-            timeout = true;
-            setTimeout(resizeend, delta);
-        }
-        console.log('lo');
-    }
 
     function resizeend() {
         if (new Date() - rtime < delta) {
             setTimeout(resizeend, delta);
         } else {
             timeout = false;
-            $('#containerMenuHead').removeClass('no-transition');
-            $('#containerMenuMain').removeClass('no-transition');
-            console.log('ol');
+            containersMenu.removeClass('no-transition');
+        }
+    }
+
+    function resizeHandler() {
+        windowWidth = window.outerWidth;
+        windowHeight = $(window).height();
+        langSwitcher.checkLangState(windowWidth);
+        submenu(menuMain);
+        // No transition on resize 
+        containersMenu.addClass('no-transition');
+        rtime = new Date();
+        if (timeout === false) {
+            timeout = true;
+            setTimeout(resizeend, delta);
         }
     }
 
