@@ -110,7 +110,7 @@ $(function(){
     animSchema($('#schema'), windowWidth, tempo);
 
     //Anim fonctionnalités
-    animFonctionnalites(windowWidth, tempo);
+    animFonctionnalites(body, windowWidth, tempo);
     
     // Add url inputs
     // addUrlInputs($('#addUrlInput'), $('#newInputsCount'));

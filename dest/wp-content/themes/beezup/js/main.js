@@ -18894,7 +18894,8 @@ var TimelineLite = require('gsap/TimelineLite');
 require('gsap/src/uncompressed/plugins/DrawSVGPlugin');
 require('gsap/src/uncompressed/easing/CustomEase');
 
-module.exports = function (windowWidth, tempo) {
+module.exports = function (body, windowWidth, tempo) {
+    if (!body.hasClass('page-template-fonctionnalites')) return;
     if (windowWidth < 581) return;
 
     var easeOut = Power3.easeOut,
@@ -18903,6 +18904,8 @@ module.exports = function (windowWidth, tempo) {
     var revBounce = CustomEase.create('custom', 'M0,0 C0,0 0.061,-0.004 0.095,-0.015 0.178,-0.043 0.229,-0.074 0.315,-0.104 0.353,-0.118 0.38,-0.124 0.42,-0.13 0.441,-0.133 0.458,-0.132 0.48,-0.129 0.498,-0.126 0.513,-0.124 0.53,-0.115 0.566,-0.095 0.596,-0.078 0.625,-0.048 0.667,-0.004 0.694,0.035 0.725,0.091 0.767,0.169 0.788,0.223 0.82,0.309 0.86,0.421 0.879,0.487 0.91,0.604 0.949,0.757 1,1 1,1');
 
     function animMapping(svg) {
+        if (!svg.length) return;
+
         var tl = new TimelineLite({ onComplete: function onComplete() {
                 tl.restart();
             } });
@@ -18913,6 +18916,8 @@ module.exports = function (windowWidth, tempo) {
     }
 
     function animImpact(svg) {
+        if (!svg.length) return;
+
         var tl = new TimelineLite({ onComplete: function onComplete() {
                 tl.restart();
             } });
@@ -18922,6 +18927,8 @@ module.exports = function (windowWidth, tempo) {
     }
 
     function animChoose(svg) {
+        if (!svg.length) return;
+
         var tlBox = new TimelineLite({ onComplete: reset });
         var tlReset = new TimelineLite({ onComplete: function onComplete() {
                 tlBox.restart();
@@ -18947,6 +18954,8 @@ module.exports = function (windowWidth, tempo) {
     }
 
     function animImport(svg) {
+        if (!svg.length) return;
+
         var blocks = svg.find('.anim4-block').toArray().reverse();
         var checks = svg.find('.anim4-check').toArray().reverse();
         var containerBlocks = svg.find('#blocks');
@@ -18994,6 +19003,8 @@ module.exports = function (windowWidth, tempo) {
     }
 
     function animHistory(svg) {
+        if (!svg.length) return;
+
         var h1 = svg.find('#hour-5-1');
         var h2 = svg.find('#hour-5-2');
         var h3 = svg.find('#hour-5-3');
@@ -19016,10 +19027,11 @@ module.exports = function (windowWidth, tempo) {
     }
 
     function animStats(svg) {
+        if (!svg.length) return;
+
         var blocks = svg.find('.bloc-6');
         var shadows = svg.find('.shade-6').toArray();
 
-        // Mieux gérer les timing + ombres sur le bloc du haut
         blocks.each(function (i, el) {
             var tl = new TimelineLite({ onComplete: function onComplete() {
                     tl.restart();
@@ -19030,6 +19042,8 @@ module.exports = function (windowWidth, tempo) {
     }
 
     function animOptimize(svg) {
+        if (!svg.length) return;
+
         var t1 = svg.find('#cable-7-1');
         var t2 = svg.find('#cable-7-2');
         var t3 = svg.find('#cable-7-3');
@@ -19057,6 +19071,8 @@ module.exports = function (windowWidth, tempo) {
     }
 
     function animOrders(svg) {
+        if (!svg.length) return;
+
         var boxes = svg.find('#boxes-8');
         var tl = new TimelineLite();
         var xMove = 48,
@@ -19106,9 +19122,24 @@ module.exports = function (windowWidth, tempo) {
         loopMove();
     }
 
-    function animStock(svg) {}
+    function animStock(svg) {
+        if (!svg.length) return;
+
+        var gameboyCount = svg.find('#gameboyCount');
+        var keyboardCount = svg.find('#keyboardCount');
+        var joystickCount = svg.find('#joystickCount');
+        var gameboys = svg.find('.js-gameboy');
+        var keyboards = svg.find('.js-keyboard');
+        var joysticks = svg.find('.js-joystick');
+
+        console.log(gameboyCount.html());
+        console.log(keyboardCount.html());
+        console.log(joystickCount.html());
+    }
 
     function animModules(svg) {
+        if (!svg.length) return;
+
         var t1 = svg.find('#cable-10-1');
         var t2 = svg.find('#cable-10-2');
         var t3 = svg.find('#cable-10-3');
@@ -19116,10 +19147,7 @@ module.exports = function (windowWidth, tempo) {
                 tl.restart();
             } });
 
-        tl.set([t2, t3], { drawSVG: '100% 100%' });
-        tl.set(t1, { drawSVG: 0 });
-
-        tl.to(t2, tempo, { drawSVG: "0 100%", ease: easeIn }).to(t2, tempo * 2, { drawSVG: 0, ease: easeOut, delay: tempo }).to(t1, tempo, { drawSVG: "0 100%", ease: easeIn }).to(t1, tempo * 2, { drawSVG: "100% 100%", ease: easeOut, delay: tempo }).fromTo(t2, tempo, { drawSVG: '100% 100%' }, { drawSVG: "0 100%", ease: easeIn }).to(t2, tempo * 2, { drawSVG: 0, ease: easeOut, delay: tempo }).to(t3, tempo, { drawSVG: "0 100%", ease: easeIn }).to(t3, tempo * 2, { drawSVG: 0, ease: easeOut, delay: tempo });
+        tl.set([t2, t3], { drawSVG: '100% 100%' }).set(t1, { drawSVG: 0 }).to(t2, tempo, { drawSVG: "0 100%", ease: easeIn }).to(t2, tempo * 2, { drawSVG: 0, ease: easeOut, delay: tempo }).to(t1, tempo, { drawSVG: "0 100%", ease: easeIn }).to(t1, tempo * 2, { drawSVG: "100% 100%", ease: easeOut, delay: tempo }).fromTo(t2, tempo, { drawSVG: '100% 100%' }, { drawSVG: "0 100%", ease: easeIn }).to(t2, tempo * 2, { drawSVG: 0, ease: easeOut, delay: tempo }).to(t3, tempo, { drawSVG: "0 100%", ease: easeIn }).to(t3, tempo * 2, { drawSVG: 0, ease: easeOut, delay: tempo });
     }
 
     animMapping($('#animMapping'));
@@ -19467,7 +19495,7 @@ var clickOnLanguage = function clickOnLanguage(windowWidth) {
     containerMenuHead.toggleClass('open');
 
     if (windowWidth <= 960) {
-        langOpen ? TweenLite.to(eltsToMove, 0.3, { y: langHeight + 'px' }) : TweenLite.to(eltsToMove, 0.3, { y: '0px' });
+        langOpen ? TweenLite.to(eltsToMove, 0.3, { y: langHeight + 'px', rotation: 0.01 }) : TweenLite.to(eltsToMove, 0.3, { y: '0px' });
     }
 
     langOpen = !langOpen;
@@ -19509,6 +19537,36 @@ $(function () {
     var windowWidth = window.outerWidth,
         windowHeight = $(window).height();
     var tempo = 0.4;
+
+    var rtime;
+    var timeout = false;
+    var delta = 200;
+
+    function resizeHandler() {
+        windowWidth = window.outerWidth;
+        windowHeight = $(window).height();
+        langSwitcher.checkLangState(windowWidth);
+        submenu(menuMain);
+        $('#containerMenuMain').addClass('no-transition');
+        $('#containerMenuHead').addClass('no-transition');
+        rtime = new Date();
+        if (timeout === false) {
+            timeout = true;
+            setTimeout(resizeend, delta);
+        }
+        console.log('lo');
+    }
+
+    function resizeend() {
+        if (new Date() - rtime < delta) {
+            setTimeout(resizeend, delta);
+        } else {
+            timeout = false;
+            $('#containerMenuHead').removeClass('no-transition');
+            $('#containerMenuMain').removeClass('no-transition');
+            console.log('ol');
+        }
+    }
 
     // Petit hack dégueu pour IE11, les textes du schema etant décalés seulement sur ce browser
     if (!window.ActiveXObject && "ActiveXObject" in window) body.addClass('ie11');
@@ -19558,7 +19616,7 @@ $(function () {
     animSchema($('#schema'), windowWidth, tempo);
 
     //Anim fonctionnalités
-    animFonctionnalites(windowWidth, tempo);
+    animFonctionnalites(body, windowWidth, tempo);
 
     // Add url inputs
     // addUrlInputs($('#addUrlInput'), $('#newInputsCount'));
@@ -19590,15 +19648,7 @@ $(function () {
     });
 
     $(window).on('resize', throttle(function () {
-
-        requestAnimFrame(function () {
-            windowWidth = window.outerWidth;
-            windowHeight = $(window).height();
-
-            langSwitcher.checkLangState(windowWidth);
-
-            submenu(menuMain);
-        });
+        requestAnimFrame(resizeHandler);
     }, 60));
 });
 
