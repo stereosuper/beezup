@@ -19045,16 +19045,22 @@ module.exports = function (body, windowWidth, tempo) {
     function animStats(svg) {
         if (!svg.length) return;
 
+        var tl = new TimelineLite({ paused: true, onComplete: function onComplete() {
+                tl.restart();
+            } });
+        var subTl = [];
+
         var blocks = svg.find('.bloc-6');
         var shadows = svg.find('.shade-6').toArray();
 
         blocks.each(function (i, el) {
-            var tl = new TimelineLite({ onComplete: function onComplete() {
-                    tl.restart();
-                } });
+            subTl[i] = new TimelineLite();
 
-            tl.to(el, 2, { y: -10, delay: i * 0.2 }).to(shadows[i], 2, { opacity: 0.2, delay: -2 }).to(el, 2, { y: -5 }).to(shadows[i], 2, { opacity: 0.3, delay: -2 }).to(el, 2, { y: -8 }).to(shadows[i], 2, { opacity: 0.24, delay: -2 }).to(el, 2, { y: 0 }).to(shadows[i], 2, { opacity: 0.4, delay: -2 });
+            subTl[i].to(el, 2, { y: -10, delay: i * 0.2 }).to(shadows[i], 2, { opacity: 0.2, delay: -2 }).to(el, 2, { y: -5 }).to(shadows[i], 2, { opacity: 0.3, delay: -2 }).to(el, 2, { y: -8 }).to(shadows[i], 2, { opacity: 0.24, delay: -2 }).to(el, 2, { y: 0 }).to(shadows[i], 2, { opacity: 0.4, delay: -2 });
         });
+
+        tl.add(subTl);
+        return tl;
     }
 
     function animOptimize(svg) {
@@ -19303,8 +19309,9 @@ module.exports = function (body, windowWidth, tempo) {
             case 'animHistory':
                 animTl[i] = animHistory($(this));
                 break;
-            // case 'animStats': tl = animStats($(this));
-            //     break;
+            case 'animStats':
+                animTl[i] = animStats($(this));
+                break;
             case 'animOptimize':
                 animTl[i] = animOptimize($(this));
                 break;
