@@ -1,4 +1,4 @@
-<svg xmlns='http://www.w3.org/2000/svg' id='animImport' class='anim4' viewBox='0 0 573.6 526.8' height='526.8'>
+<svg xmlns='http://www.w3.org/2000/svg' class='anim4' id='animImport' viewBox='0 0 573.6 526.8' height='526.8'>
     <path d='M527.4 95.7L.9 491.4l46.2 35.5 526.5-395.6-46.2-35.6z' class='shadow-4'/>
   
     <g id='blocks'>

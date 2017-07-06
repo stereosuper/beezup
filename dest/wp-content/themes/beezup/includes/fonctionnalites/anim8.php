@@ -1,4 +1,4 @@
-<svg xmlns='http://www.w3.org/2000/svg' id='animOrders' style='overflow:visible' viewBox='0 0 455.2 384.8' height='384.8'>
+<svg xmlns='http://www.w3.org/2000/svg' class='js-animSvg' id='animOrders' style='overflow:visible' viewBox='0 0 455.2 384.8' height='384.8'>
     <g>
         <path d='M377.1 78.5l-63.7 48.1 7.5 5.8-5.2 3.9 34.3 27.1 6-4.4 26.2 20.3 63.7-48.1-68.8-52.7z' class='shadow-8'/>
         <path d='M313.8 111.7l68.5 51.7v12.7l-68.5-52.5v-11.9z' class='bottom-dalle-8'/>

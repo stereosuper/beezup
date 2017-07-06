@@ -1,4 +1,4 @@
-<svg xmlns='http://www.w3.org/2000/svg' id='animImpact' viewBox='0 0 445.5 408' height='408'>
+<svg xmlns='http://www.w3.org/2000/svg' class='js-animSvg' id='animImpact' viewBox='0 0 445.5 408' height='408'>
     <path d='M206.6 156.3L86.8 67.9l51.7-37.8 119.8 88.4z' class='top2'/>
     <path d='M206.6 232.3L86.8 143.9l51.7-37.8 119.8 88.4z' class='shadow2'/>
     <path d='M206.6 156.3l51.7-37.8v14.3l-51.7 37.8z' class='left2'/>
