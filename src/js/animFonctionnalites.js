@@ -5,28 +5,42 @@ var TimelineLite = require('gsap/TimelineLite');
 require('gsap/src/uncompressed/plugins/DrawSVGPlugin');
 require('gsap/src/uncompressed/easing/CustomEase');
 
+window.requestAnimFrame = require('./requestAnimFrame.js');
+var throttle = require('./throttle.js');
 
-module.exports = function(windowWidth, tempo){
+
+module.exports = function(body, windowWidth, tempo){
+    if(!body.hasClass('page-template-fonctionnalites')) return;
     if(windowWidth < 581) return;
 
     var easeOut = Power3.easeOut, easeIn = Power3.easeIn;
     var bounce = CustomEase.create('custom', 'M0,0 C0.4,0 0.593,0.983 0.6,1 0.662,0.916 0.664,0.88 0.7,0.88 0.742,0.88 0.8,0.985 0.814,0.998 0.825,0.994 1,1 1,1');
     var revBounce = CustomEase.create('custom', 'M0,0 C0,0 0.061,-0.004 0.095,-0.015 0.178,-0.043 0.229,-0.074 0.315,-0.104 0.353,-0.118 0.38,-0.124 0.42,-0.13 0.441,-0.133 0.458,-0.132 0.48,-0.129 0.498,-0.126 0.513,-0.124 0.53,-0.115 0.566,-0.095 0.596,-0.078 0.625,-0.048 0.667,-0.004 0.694,0.035 0.725,0.091 0.767,0.169 0.788,0.223 0.82,0.309 0.86,0.421 0.879,0.487 0.91,0.604 0.949,0.757 1,1 1,1');
 
+    var animMappingTl, animMappingRunning = false;
+
     function animMapping(svg){
-        var tl = new TimelineLite({onComplete: function(){
+        if(!svg.length) return;
+
+        var tl = new TimelineLite({paused: true, onComplete: function(){
             tl.restart();
         }});
         var cable1 = svg.find('#cable1'), cable2 = svg.find('#cable2');
+
+        TweenLite.set([cable1, cable2], { drawSVG: 0 });
 
         tl.set([cable1, cable2], { drawSVG: 0 })
           .to(cable1, tempo, {drawSVG: '0% 100%', ease: easeIn})
           .to(cable1, tempo, {drawSVG: '100% 100%', ease: easeOut})
           .to(cable2, tempo, {drawSVG: '0% 100%', ease: easeIn, delay: tempo*2})
           .to(cable2, tempo, {drawSVG: '100% 100%', ease: easeOut});
+
+        return tl;
     }
 
     function animImpact(svg){
+        if(!svg.length) return;
+
         var tl = new TimelineLite({onComplete: function(){
             tl.restart();
         }});
@@ -38,6 +52,8 @@ module.exports = function(windowWidth, tempo){
     }
 
     function animChoose(svg){
+        if(!svg.length) return;
+
         var tlBox = new TimelineLite({ onComplete: reset });
         var tlReset = new TimelineLite({onComplete: function(){
             tlBox.restart();
@@ -76,6 +92,8 @@ module.exports = function(windowWidth, tempo){
     }
 
     function animImport(svg){
+        if(!svg.length) return;
+
         var blocks = svg.find('.anim4-block').toArray().reverse();
         var checks = svg.find('.anim4-check').toArray().reverse();
         var containerBlocks = svg.find('#blocks');
@@ -129,6 +147,8 @@ module.exports = function(windowWidth, tempo){
     }
 
     function animHistory(svg){
+        if(!svg.length) return;
+
         var h1 = svg.find('#hour-5-1');
         var h2 = svg.find('#hour-5-2');
         var h3 = svg.find('#hour-5-3');
@@ -169,11 +189,11 @@ module.exports = function(windowWidth, tempo){
     }
 
     function animStats(svg){
+        if(!svg.length) return;
+
         var blocks = svg.find('.bloc-6');
         var shadows = svg.find('.shade-6').toArray();
 
-
-        // Mieux gérer les timing + ombres sur le bloc du haut
         blocks.each(function(i, el){
             var tl = new TimelineLite({onComplete: function(){
                 tl.restart();  
@@ -191,6 +211,8 @@ module.exports = function(windowWidth, tempo){
     }
 
     function animOptimize(svg) {
+        if(!svg.length) return;
+
         var t1 = svg.find('#cable-7-1');
         var t2 = svg.find('#cable-7-2');
         var t3 = svg.find('#cable-7-3');
@@ -247,6 +269,8 @@ module.exports = function(windowWidth, tempo){
     }
 
     function animOrders(svg){
+        if(!svg.length) return;
+
         var boxes = svg.find('#boxes-8');
         var tl = new TimelineLite();
         var xMove = 48, yMove = 36;
@@ -302,10 +326,50 @@ module.exports = function(windowWidth, tempo){
     }
 
     function animStock(svg){
-        
+        if(!svg.length) return;
+
+        var tl = new TimelineLite({onComplete: function(){
+            //tl.restart();
+        }});
+
+        var t1 = svg.find('#cable-9-1');
+        var t2 = svg.find('#cable-9-2');
+        var t3 = svg.find('#cable-9-3');
+        var t4 = svg.find('#cable-9-4');
+
+        var gameboyCount = svg.find('#gameboyCount');
+        var keyboardCount = svg.find('#keyboardCount');
+        var joystickCount = svg.find('#joystickCount');
+        var gameboys = svg.find('.js-gameboy');
+        var keyboards = svg.find('.js-keyboard');
+        var joysticks = svg.find('.js-joystick');
+        var clone;
+
+        function synchObjectNumber(counter, objects){
+            var firstObject = objects.eq(0);
+
+            if(counter !== objects.length){
+                for(var i = 0; i < counter; i++){
+                    clone = firstObject.clone();
+                    TweenLite.set(clone, {y: '-='+5*i});
+                    objects.before(clone);
+                }
+                firstObject.remove();
+            }
+        }
+
+        synchObjectNumber(gameboyCount.html(), gameboys);
+        synchObjectNumber(keyboardCount.html(), keyboards);
+        synchObjectNumber(joystickCount.html(), joysticks);
+
+        gameboyCount.html(gameboyCount.html() - 1);
+        tl.set([t1], {drawSVG: '0'})
+          .to(t1, tempo, {drawSVG: '100%'});
     }
 
     function animModules(svg){
+        if(!svg.length) return;
+
         var t1 = svg.find('#cable-10-1');
         var t2 = svg.find('#cable-10-2');
         var t3 = svg.find('#cable-10-3');
@@ -314,21 +378,37 @@ module.exports = function(windowWidth, tempo){
         }});
         
         tl.set([t2, t3], {drawSVG: '100% 100%'})
-        tl.set(t1, { drawSVG: 0 });
-
-        tl.to(t2, tempo, { drawSVG: "0 100%", ease: easeIn })
-          .to(t2, tempo*2, { drawSVG: 0, ease: easeOut, delay: tempo })
-          .to(t1, tempo, { drawSVG: "0 100%", ease: easeIn })
-          .to(t1, tempo*2, { drawSVG: "100% 100%", ease: easeOut, delay: tempo  })
-          .fromTo(t2, tempo, {drawSVG: '100% 100%'}, { drawSVG: "0 100%", ease: easeIn })
-          .to(t2, tempo*2, { drawSVG: 0, ease: easeOut, delay: tempo })
-          .to(t3, tempo, { drawSVG: "0 100%", ease: easeIn })
-          .to(t3, tempo*2, { drawSVG: 0, ease: easeOut, delay: tempo });
+          .set(t1, {drawSVG: 0})
+          .to(t2, tempo, {drawSVG: "0 100%", ease: easeIn})
+          .to(t2, tempo*2, {drawSVG: 0, ease: easeOut, delay: tempo})
+          .to(t1, tempo, {drawSVG: "0 100%", ease: easeIn})
+          .to(t1, tempo*2, {drawSVG: "100% 100%", ease: easeOut, delay: tempo})
+          .fromTo(t2, tempo, {drawSVG: '100% 100%'}, { drawSVG: "0 100%", ease: easeIn})
+          .to(t2, tempo*2, {drawSVG: 0, ease: easeOut, delay: tempo})
+          .to(t3, tempo, {drawSVG: "0 100%", ease: easeIn})
+          .to(t3, tempo*2, {drawSVG: 0, ease: easeOut, delay: tempo});
 
     }
 
 
-    animMapping($('#animMapping'));
+    function scrollHandler(){
+        var scrollTop = $(document).scrollTop();
+
+        if(scrollTop > 50 && scrollTop < 1500){
+            if(!animMappingRunning){
+                animMappingTl.play();
+                animMappingRunning = true;
+            }
+        }else{
+            if(animMappingRunning){
+                animMappingTl.pause();
+                animMappingRunning = false;
+            }
+        }
+    }
+
+
+    animMappingTl = animMapping($('#animMapping'));
     animImpact($('#animImpact'));
     animChoose($('#animChoose'));
     animImport($('#animImport'));
@@ -338,4 +418,9 @@ module.exports = function(windowWidth, tempo){
     animOrders($('#animOrders'));
     animStock($('#animStock'));
     animModules($('#animModules'));
+
+
+    $(document).on('scroll', throttle(function(){
+        requestAnimFrame(scrollHandler);
+    }, 10));
 }
