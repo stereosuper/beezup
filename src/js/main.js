@@ -9,6 +9,7 @@ $(function(){
     window.requestAnimFrame = require('./requestAnimFrame.js');
     var throttle = require('./throttle.js');
     var checkInputs = require('./checkInputs.js');
+    var noTransition = require('./noTransition.js');
     var langSwitcher = require('./langSwitcher.js');
     var sticky = require('./sticky.js');
     var scrollTo = require('./scrollTo.js');
@@ -29,34 +30,14 @@ $(function(){
     // window.outerWidth returns the window width including the scroll, but it's not working with $(window).outerWidth
     var windowWidth = window.outerWidth, windowHeight = $(window).height();
     var tempo = 0.4;
-    var rtime;
-    var timeout = false;
-    var delta = 200;
-    
-    function resizeend() {
-        if (new Date() - rtime < delta) {
-            setTimeout(resizeend, delta);
-        } else {
-            timeout = false;
-            containersMenu.removeClass('no-transition');
-        }
-    }
 
     function resizeHandler() {
         windowWidth = window.outerWidth;
         windowHeight = $(window).height();
         langSwitcher.checkLangState(windowWidth);
-        submenu(menuMain);
-        // No transition on resize 
-        containersMenu.addClass('no-transition');
-        rtime = new Date();
-        if (timeout === false) {
-            timeout = true;
-            setTimeout(resizeend, delta);
-        }
+        submenu(menuMain);        
     }
-
-
+    
     // Petit hack dégueu pour IE11, les textes du schema etant décalés seulement sur ce browser
     if(!(window.ActiveXObject) && "ActiveXObject" in window) body.addClass('ie11');
 
@@ -82,6 +63,9 @@ $(function(){
 
     // Submenus
     submenu(menuMain);
+
+    // No transition on resize 
+    noTransition(containersMenu);
 
     // Newsletter inputs
     checkInputs($('.js-inline-form'));

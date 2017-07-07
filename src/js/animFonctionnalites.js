@@ -529,13 +529,11 @@ module.exports = function(wrapper, windowWidth, tempo){
                 if(!animRunning[i]){
                     animTl[i].play();
                     animRunning[i] = true;
-                    console.log(i, 'play');
                 }
             }else{
                 if(animRunning[i]){
                     animTl[i].pause();
                     animRunning[i] = false;
-                    console.log('stop' + i);
                 }
             }
         });
