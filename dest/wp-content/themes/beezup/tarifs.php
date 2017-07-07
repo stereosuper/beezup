@@ -201,7 +201,15 @@ get_header(); ?>
                             <?php } ?>
                         </div>
 
-                        <?php $classIllu = get_sub_field('anim') == 4 ? 'subsection-illu with-gradient' : 'subsection-illu'; ?>
+                        <?php 
+                        if(get_sub_field('anim') == 4 ){
+                             $classIllu = 'subsection-illu with-gradient';
+                        }else if(get_sub_field('anim') == 3 || get_sub_field('anim') == 7){
+                             $classIllu = 'subsection-illu with-gradient-right';
+                        }else {
+                            $classIllu = 'subsection-illu';
+                        }
+                        ?>
                         <div class='<?php echo $classIllu ?>'>
                             <?php get_template_part( 'includes/fonctionnalites/anim'.get_sub_field('anim') ); ?>
                         </div>

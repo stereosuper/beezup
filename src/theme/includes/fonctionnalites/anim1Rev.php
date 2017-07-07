@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" id="animMappingRev" viewBox="0 0 445.5 408">
+<svg xmlns="http://www.w3.org/2000/svg" class='js-animSvg' id="animMapping" viewBox="0 0 445.5 408" height='408'>
   <path d="M120.8 50.5l114.3 86-48.1 36L72.7 86.6l48.1-36.1z" class="top1"/>
   <path d="M72.9 86.9L187 172.5v13.8L72.9 100.7V86.9z" class="bottom1"/>
   <path d="M187 172.5l48.1-36v12.6L187 186.3v-13.8z" class="left1"/>

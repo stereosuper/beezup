@@ -104,6 +104,9 @@ module.exports = function(body, windowWidth, tempo){
         var checks = svg.find('.anim4-check').toArray().reverse();
         var containerBlocks = svg.find('#blocks');
         var cable = svg.find('#cable-4');
+        var tl = new TimelineLite({ paused: true, onComplete: function(){
+            tl.restart();   
+        }});
         var tlLoop = new TimelineLite({ delay: tempo * 2 });
         var tlCheck = new TimelineLite({ delay: tempo * 2 });
         var yMove = -50, xMove = 66, lastBloc, lastElt, idLoop = 8;
@@ -115,7 +118,7 @@ module.exports = function(body, windowWidth, tempo){
             lastElt = $(lastBloc).clone().appendTo(containerBlocks);
             TweenLite.set(lastElt, {x: xMove * -idLoop, y: yMove * -idLoop});
             blocks.unshift(lastElt);
-            tlCheck.set(lastElt.find('.anim4-check'), {y: -50, opacity: 0});
+            TweenLite.set(lastElt.find('.anim4-check'), {y: -50, opacity: 0});
 
             tlLoop.to(blocks, tempo*2, {x: '+=' + xMove, y: '+=' + yMove, ease: easeIn, delay: tempo, onComplete: function(){
                 $(blocks[blocks.length - 1]).remove();
@@ -147,8 +150,8 @@ module.exports = function(body, windowWidth, tempo){
                    .to(currentCheck, tempo, {y: 0, ease: bounce, delay: -tempo*2});
         }
 
-        tlCheck.set(cable, {drawSVG: 0});
-        tlCheck.set([checks[3], checks[2], checks[1], checks[0]], {y: -50, opacity: 0});
+        TweenLite.set(cable, {drawSVG: 0});
+        TweenLite.set([checks[3], checks[2], checks[1], checks[0]], {y: -50, opacity: 0});
         checkMove();
     }
 
@@ -241,6 +244,10 @@ module.exports = function(body, windowWidth, tempo){
             tl.restart();
         }});
 
+        TweenLite.set([p1, p2, p3, p4], { opacity: 0, fill: '#0FA1E7' });
+        TweenLite.set([b1, b2, b3, b4], { opacity: 0, y: -50 });
+        TweenLite.set([s2, s4], { fill: '#0096E0' });
+        TweenLite.set([t1, t3, t4], { drawSVG: 0 });
 
         tl.to(p1, tempo, {opacity: 1, ease: easeIn, delay: tempo*2})
           .to(b1, tempo, {opacity: 1, y: 0, delay: tempo, ease: bounce})
