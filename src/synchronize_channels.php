@@ -5,7 +5,47 @@
 /*-----------------------------------------------------------------------------------*/
 require_once( 'wp-load.php' );
 
-// Get all the sites of the multisite installation
+
+/*-----------------------------------------------------------------------------------*/
+/* Security
+/*-----------------------------------------------------------------------------------*/
+// get headers
+function beez_get_headers(){ 
+    foreach( $_SERVER as $name => $value ){ 
+        if( substr($name, 0, 5) == 'HTTP_' ){ 
+            $name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5))))); 
+            $headers[$name] = $value; 
+        }else if( $name == 'CONTENT_TYPE' ){ 
+            $headers['Content-Type'] = $value; 
+        }else if( $name == 'CONTENT_LENGTH' ){ 
+            $headers['Content-Length'] = $value; 
+        } 
+    } 
+    return $headers; 
+}
+
+// redirect to WP 404
+function beez_redirect_404(){
+    global $wp_query;
+    $wp_query->set_404();
+    status_header( 404 );
+    get_template_part( 404 );
+    exit();
+}
+
+if( $_SERVER['REQUEST_METHOD'] !== 'POST' ){
+    beez_redirect_404();
+}
+
+$h = beez_get_headers();
+if( $h['Sharedsecretkey'] !== 'WeL0v3WWW!' ){
+    beez_redirect_404();
+}
+
+
+/*-----------------------------------------------------------------------------------*/
+/* Get all the sites of the multisite installation
+/*-----------------------------------------------------------------------------------*/
 $sites = get_sites();
 
 

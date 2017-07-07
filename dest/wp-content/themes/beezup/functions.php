@@ -122,8 +122,11 @@ function beezup_get_country_select($channelsIndex, $country){
     if( !$channelsIndex || !property_exists($channelsIndex, 'items') ) return;
 
     $output = '<div class="select"><select name="country" id="channelsCountrySelect">';
+    $countries = $channelsIndex->items;
+
+    usort($countries, 'beezup_sort_by_translationText');
     
-    foreach( $channelsIndex->items as $channel ){
+    foreach( $countries as $channel ){
         $code = $channel->codeIdentifier;
         
         $output .= '<option value="' . $code . '"';
@@ -146,10 +149,13 @@ function beezup_get_sector_select(){
 
     if( !$channelsSectorIndex || !property_exists($channelsSectorIndex, 'items') ) return;
 
+    $sectors = $channelsSectorIndex->items;
+    usort($sectors, 'beezup_sort_by_translationText');
+
     $output = '<div class="select channels-select-sector"><select name="" id="channelsSectorSelect">';
     $output .= '<option value="all">' . __('All the sectors', 'beezup') . '</option>';
     
-    foreach( $channelsSectorIndex->items as $sector ){
+    foreach( $sectors as $sector ){
         $code = $sector->codeIdentifier;
         
         $output .= '<option value="' . $code . '"';
@@ -226,7 +232,7 @@ function beezup_get_channels_to_display($channelsToDisplay, $noChannels){
             $output .= '">';
             $output .= '<a href="' . $partner->homeUrl . '" title="' . $name . '" target="_blank">';
             $output .= '<span>' . $name . '</span>';
-            $output .= apply_filters( 'bj_lazy_load_html', $img);
+            $output .= $img;
             $output .= '</a></li>';
         }
 
@@ -274,9 +280,27 @@ function beezup_unregister_tags(){
 }
 add_action( 'init', 'beezup_unregister_tags' );
 
+// Convert accent
+function beezup_convert_accent($string){
+    $trans = array('é' => 'e', 'É' => 'E', '&eacute;' => 'e', '&aacute;' => 'a', 'á' => 'a', 'À' => 'A', '&iacute;' => 'i', 'í' => 'i', 'ó' => 'o', '&oacute;' => 'o', '&uacute;' => 'u', 'ú' => 'u', '&ouml;' => 'u', 'ü' => 'u');
+
+    return strtr($string, $trans);    
+}
+
 // Sort object in an array by their name properties
 function beezup_sort_by_name($a, $b){
-    return strcasecmp($a->name, $b->name);
+    $a = beezup_convert_accent($a->name);
+    $b = beezup_convert_accent($b->name);
+
+    return strcasecmp($a, $b);
+}
+
+// Sort object in an array by their translationText properties
+function beezup_sort_by_translationText($a, $b){
+    $a = beezup_convert_accent($a->translationText);
+    $b = beezup_convert_accent($b->translationText);
+
+    return strcasecmp($a, $b);
 }
 
 
