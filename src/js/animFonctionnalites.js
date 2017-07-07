@@ -104,12 +104,10 @@ module.exports = function(body, windowWidth, tempo){
         var checks = svg.find('.anim4-check').toArray().reverse();
         var containerBlocks = svg.find('#blocks');
         var cable = svg.find('#cable-4');
-        var tl = new TimelineLite({ paused: true, onComplete: function(){
-            tl.restart();   
-        }});
-        var tlLoop = new TimelineLite({ delay: tempo * 2 });
-        var tlCheck = new TimelineLite({ delay: tempo * 2 });
+        var tlCheck = new TimelineLite({ paused: true, delay: tempo * 2 });
         var yMove = -50, xMove = 66, lastBloc, lastElt, idLoop = 8;
+        var currentCheck;
+        var tweenCheck1, tweenCheck2;
 
         function loopMove(){
             idLoop = idLoop < 1 ? 8 : idLoop;
@@ -120,15 +118,23 @@ module.exports = function(body, windowWidth, tempo){
             blocks.unshift(lastElt);
             TweenLite.set(lastElt.find('.anim4-check'), {y: -50, opacity: 0});
 
-            tlLoop.to(blocks, tempo*2, {x: '+=' + xMove, y: '+=' + yMove, ease: easeIn, delay: tempo, onComplete: function(){
+            TweenLite.to(blocks, tempo*2, {x: '+=' + xMove, y: '+=' + yMove, ease: easeIn, delay: tempo, onComplete: function(){
                 $(blocks[blocks.length - 1]).remove();
                 blocks.pop();
-                checkMove(idLoop);
+                checkMove(false, idLoop);
+                
             }});
             idLoop--;
         }
 
-        function checkMove(i = 8){
+        function addLastTweens(){
+            tweenCheck1 = TweenLite.to(currentCheck, tempo, { opacity: 1, delay: -tempo * 2, ease: easeIn });
+            tweenCheck2 = TweenLite.to(currentCheck, tempo, { y: 0, ease: bounce, delay: -tempo * 2, onComplete: loopMove });
+
+            tlCheck.add(tweenCheck1).add(tweenCheck2);
+        }
+
+        function checkMove(first, i = 8){
             var j = i - 4 < 1 ? i + 4 : i - 4;
 
             checks = [
@@ -142,17 +148,30 @@ module.exports = function(body, windowWidth, tempo){
                 svg.find('#check-8')
             ];
 
-            var currentCheck = checks[j - 1];
+            currentCheck = checks[j - 1];
 
-            tlCheck.fromTo(cable, tempo, {drawSVG: 0}, {drawSVG: '0% 100%', ease: easeIn})
-                   .to(cable, tempo, { drawSVG: '100% 100%', delay: tempo*2, ease: easeOut})
-                   .to(currentCheck, tempo, {opacity: 1, delay: -tempo*2, ease: easeIn, onComplete: loopMove})
-                   .to(currentCheck, tempo, {y: 0, ease: bounce, delay: -tempo*2});
+            if (!first) {
+                tweenCheck1.kill();
+                tweenCheck2.kill();
+                tlCheck.remove([tweenCheck1, tweenCheck2]);
+
+                addLastTweens();
+
+                tlCheck.restart();
+            }
         }
 
         TweenLite.set(cable, {drawSVG: 0});
         TweenLite.set([checks[3], checks[2], checks[1], checks[0]], {y: -50, opacity: 0});
-        checkMove();
+        
+        checkMove(true);
+        
+        tlCheck.fromTo(cable, tempo, { drawSVG: 0 }, { drawSVG: '0% 100%', ease: easeIn })
+            .to(cable, tempo, { drawSVG: '100% 100%', delay: tempo * 2, ease: easeOut });
+        
+        addLastTweens();
+
+        return tlCheck;
     }
 
     function animHistory(svg){
@@ -521,6 +540,7 @@ module.exports = function(body, windowWidth, tempo){
             }
         });
     }
+
     
     animSvg.each(function(i){
         switch($(this).attr('id')){
@@ -530,8 +550,8 @@ module.exports = function(body, windowWidth, tempo){
                 break;
             case 'animChoose': animTl[i] = animChoose($(this));
                 break;
-            // case 'animImport': tl = animImport($(this));
-            //     break;
+            case 'animImport': animTl[i] = animImport($(this));
+                break;
             case 'animHistory': animTl[i] = animHistory($(this));
                 break;
             case 'animStats': animTl[i] = animStats($(this));
