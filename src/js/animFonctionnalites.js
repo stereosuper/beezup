@@ -104,9 +104,10 @@ module.exports = function(wrapper, windowWidth, tempo){
         var checks = svg.find('.anim4-check').toArray().reverse();
         var containerBlocks = svg.find('#blocks');
         var cable = svg.find('#cable-4');
-        var tlLoop = new TimelineLite({ delay: tempo * 2 });
-        var tlCheck = new TimelineLite({ delay: tempo * 2 });
+        var tlCheck = new TimelineLite({ paused: true, delay: tempo * 2 });
         var yMove = -50, xMove = 66, lastBloc, lastElt, idLoop = 8;
+        var currentCheck;
+        var tweenCheck1, tweenCheck2;
 
         function loopMove(){
             idLoop = idLoop < 1 ? 8 : idLoop;
@@ -115,17 +116,25 @@ module.exports = function(wrapper, windowWidth, tempo){
             lastElt = $(lastBloc).clone().appendTo(containerBlocks);
             TweenLite.set(lastElt, {x: xMove * -idLoop, y: yMove * -idLoop});
             blocks.unshift(lastElt);
-            tlCheck.set(lastElt.find('.anim4-check'), {y: -50, opacity: 0});
+            TweenLite.set(lastElt.find('.anim4-check'), {y: -50, opacity: 0});
 
-            tlLoop.to(blocks, tempo*2, {x: '+=' + xMove, y: '+=' + yMove, ease: easeIn, delay: tempo, onComplete: function(){
+            TweenLite.to(blocks, tempo*2, {x: '+=' + xMove, y: '+=' + yMove, ease: easeIn, delay: tempo, onComplete: function(){
                 $(blocks[blocks.length - 1]).remove();
                 blocks.pop();
-                checkMove(idLoop);
+                checkMove(false, idLoop);
+                
             }});
             idLoop--;
         }
 
-        function checkMove(i = 8){
+        function addLastTweens(){
+            tweenCheck1 = TweenLite.to(currentCheck, tempo, { opacity: 1, delay: -tempo * 2, ease: easeIn });
+            tweenCheck2 = TweenLite.to(currentCheck, tempo, { y: 0, ease: bounce, delay: -tempo * 2, onComplete: loopMove });
+
+            tlCheck.add(tweenCheck1).add(tweenCheck2);
+        }
+
+        function checkMove(first, i = 8){
             var j = i - 4 < 1 ? i + 4 : i - 4;
 
             checks = [
@@ -139,17 +148,30 @@ module.exports = function(wrapper, windowWidth, tempo){
                 svg.find('#check-8')
             ];
 
-            var currentCheck = checks[j - 1];
+            currentCheck = checks[j - 1];
 
-            tlCheck.fromTo(cable, tempo, {drawSVG: 0}, {drawSVG: '0% 100%', ease: easeIn})
-                   .to(cable, tempo, { drawSVG: '100% 100%', delay: tempo*2, ease: easeOut})
-                   .to(currentCheck, tempo, {opacity: 1, delay: -tempo*2, ease: easeIn, onComplete: loopMove})
-                   .to(currentCheck, tempo, {y: 0, ease: bounce, delay: -tempo*2});
+            if (!first) {
+                tweenCheck1.kill();
+                tweenCheck2.kill();
+                tlCheck.remove([tweenCheck1, tweenCheck2]);
+
+                addLastTweens();
+
+                tlCheck.restart();
+            }
         }
 
-        tlCheck.set(cable, {drawSVG: 0});
-        tlCheck.set([checks[3], checks[2], checks[1], checks[0]], {y: -50, opacity: 0});
-        checkMove();
+        TweenLite.set(cable, {drawSVG: 0});
+        TweenLite.set([checks[3], checks[2], checks[1], checks[0]], {y: -50, opacity: 0});
+        
+        checkMove(true);
+        
+        tlCheck.fromTo(cable, tempo, { drawSVG: 0 }, { drawSVG: '0% 100%', ease: easeIn })
+            .to(cable, tempo, { drawSVG: '100% 100%', delay: tempo * 2, ease: easeOut });
+        
+        addLastTweens();
+
+        return tlCheck;
     }
 
     function animHistory(svg){
@@ -241,6 +263,10 @@ module.exports = function(wrapper, windowWidth, tempo){
             tl.restart();
         }});
 
+        TweenLite.set([p1, p2, p3, p4], { opacity: 0, fill: '#0FA1E7' });
+        TweenLite.set([b1, b2, b3, b4], { opacity: 0, y: -50 });
+        TweenLite.set([s2, s4], { fill: '#0096E0' });
+        TweenLite.set([t1, t3, t4], { drawSVG: 0 });
 
         tl.to(p1, tempo, {opacity: 1, ease: easeIn, delay: tempo*2})
           .to(b1, tempo, {opacity: 1, y: 0, delay: tempo, ease: bounce})
@@ -514,6 +540,7 @@ module.exports = function(wrapper, windowWidth, tempo){
             }
         });
     }
+
     
     animSvg.each(function(i){
         switch($(this).attr('id')){
@@ -523,8 +550,8 @@ module.exports = function(wrapper, windowWidth, tempo){
                 break;
             case 'animChoose': animTl[i] = animChoose($(this));
                 break;
-            // case 'animImport': tl = animImport($(this));
-            //     break;
+            case 'animImport': animTl[i] = animImport($(this));
+                break;
             case 'animHistory': animTl[i] = animHistory($(this));
                 break;
             case 'animStats': animTl[i] = animStats($(this));
