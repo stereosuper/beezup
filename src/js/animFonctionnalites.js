@@ -9,8 +9,8 @@ window.requestAnimFrame = require('./requestAnimFrame.js');
 var throttle = require('./throttle.js');
 
 
-module.exports = function(body, windowWidth, tempo){
-    if(!body.hasClass('page-template-fonctionnalites')) return;
+module.exports = function(wrapper, windowWidth, tempo){
+    if(!wrapper.length) return;
     
     if(windowWidth < 581) return;
 
@@ -19,7 +19,7 @@ module.exports = function(body, windowWidth, tempo){
     var scrollTop;
 
     var animTl = [], animRunning = [];
-    var animSvg = $('.js-animSvg');
+    var animSvg = wrapper.find('.js-animSvg');
 
     var easeOut = Power3.easeOut, easeIn = Power3.easeIn;
     var bounce = CustomEase.create('custom', 'M0,0 C0.4,0 0.593,0.983 0.6,1 0.662,0.916 0.664,0.88 0.7,0.88 0.742,0.88 0.8,0.985 0.814,0.998 0.825,0.994 1,1 1,1');

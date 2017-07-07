@@ -18897,8 +18897,8 @@ require('gsap/src/uncompressed/easing/CustomEase');
 window.requestAnimFrame = require('./requestAnimFrame.js');
 var throttle = require('./throttle.js');
 
-module.exports = function (body, windowWidth, tempo) {
-    if (!body.hasClass('page-template-fonctionnalites')) return;
+module.exports = function (wrapper, windowWidth, tempo) {
+    if (!wrapper.length) return;
 
     if (windowWidth < 581) return;
 
@@ -18907,7 +18907,7 @@ module.exports = function (body, windowWidth, tempo) {
 
     var animTl = [],
         animRunning = [];
-    var animSvg = $('.js-animSvg');
+    var animSvg = wrapper.find('.js-animSvg');
 
     var easeOut = Power3.easeOut,
         easeIn = Power3.easeIn;
@@ -19790,7 +19790,7 @@ $(function () {
     animSchema($('#schema'), windowWidth, tempo);
 
     //Anim fonctionnalités
-    animFonctionnalites(body, windowWidth, tempo);
+    animFonctionnalites($('#animsFonctionnalites'), windowWidth, tempo);
 
     // Add url inputs
     // addUrlInputs($('#addUrlInput'), $('#newInputsCount'));

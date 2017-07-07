@@ -107,7 +107,7 @@ $(function(){
     animSchema($('#schema'), windowWidth, tempo);
 
     //Anim fonctionnalités
-    animFonctionnalites(body, windowWidth, tempo);
+    animFonctionnalites($('#animsFonctionnalites'), windowWidth, tempo);
     
     // Add url inputs
     // addUrlInputs($('#addUrlInput'), $('#newInputsCount'));

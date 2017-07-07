@@ -49,7 +49,7 @@ get_header(); ?>
         </div>
     </section>
 
-    <div class='container relative'>
+    <div class='container relative' id='animsFonctionnalites'>
         <div class='wrapper-sticky'>
 
             <?php if( have_rows('sections') ){ ?>

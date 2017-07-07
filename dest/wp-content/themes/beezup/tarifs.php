@@ -179,7 +179,7 @@ get_header(); ?>
     <?php } ?>
 
     <?php if( get_field('fontionnalitesTitle') ){ ?>
-        <section class='container tarif-sections'>
+        <section class='container tarif-sections' id='animsFonctionnalites'>
             <h2 class='h1 section-title'><?php the_field('fontionnalitesTitle'); ?></h2>
 
             <?php if( have_rows('sections') ){ $i = 0; ?>
