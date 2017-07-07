@@ -11,19 +11,22 @@ var throttle = require('./throttle.js');
 
 module.exports = function(body, windowWidth, tempo){
     if(!body.hasClass('page-template-fonctionnalites')) return;
+    
     if(windowWidth < 581) return;
+
+
+    var windowHeight = $(window).height();
+    var scrollTop;
+
+    var animTl = [], animRunning = [];
+    var animSvg = $('.js-animSvg');
 
     var easeOut = Power3.easeOut, easeIn = Power3.easeIn;
     var bounce = CustomEase.create('custom', 'M0,0 C0.4,0 0.593,0.983 0.6,1 0.662,0.916 0.664,0.88 0.7,0.88 0.742,0.88 0.8,0.985 0.814,0.998 0.825,0.994 1,1 1,1');
     var revBounce = CustomEase.create('custom', 'M0,0 C0,0 0.061,-0.004 0.095,-0.015 0.178,-0.043 0.229,-0.074 0.315,-0.104 0.353,-0.118 0.38,-0.124 0.42,-0.13 0.441,-0.133 0.458,-0.132 0.48,-0.129 0.498,-0.126 0.513,-0.124 0.53,-0.115 0.566,-0.095 0.596,-0.078 0.625,-0.048 0.667,-0.004 0.694,0.035 0.725,0.091 0.767,0.169 0.788,0.223 0.82,0.309 0.86,0.421 0.879,0.487 0.91,0.604 0.949,0.757 1,1 1,1');
 
-    var animMappingTl, animMappingRunning = false;
-    var animTl = [], animRunning = [];
-    var windowHeight = $(window).height();
-
-    var animSvg = $('.js-animSvg');
-
-    function animMapping(svg) {
+    
+    function animMapping(svg){
         if(!svg.length) return;
 
         var tl = new TimelineLite({paused: true, onComplete: function(){
@@ -193,15 +196,18 @@ module.exports = function(body, windowWidth, tempo){
     function animStats(svg){
         if(!svg.length) return;
 
+        var tl = new TimelineLite({paused: true, onComplete: function(){
+            tl.restart();  
+        }});
+        var subTl = [];
+
         var blocks = svg.find('.bloc-6');
         var shadows = svg.find('.shade-6').toArray();
 
         blocks.each(function(i, el){
-            var tl = new TimelineLite({onComplete: function(){
-                tl.restart();  
-            }});
+            subTl[i] = new TimelineLite();
             
-            tl.to(el, 2, {y: -10, delay: i*0.2})
+            subTl[i].to(el, 2, {y: -10, delay: i*0.2})
               .to(shadows[i], 2, {opacity: 0.2, delay: -2})
               .to(el, 2, {y: -5})
               .to(shadows[i], 2, {opacity: 0.3, delay: -2})   
@@ -210,13 +216,15 @@ module.exports = function(body, windowWidth, tempo){
               .to(el, 2, {y: 0})
               .to(shadows[i], 2, {opacity: 0.4, delay: -2});
         });
+
+        tl.add(subTl);
+        return tl;
     }
 
     function animOptimize(svg) {
         if(!svg.length) return;
 
         var t1 = svg.find('#cable-7-1');
-        var t2 = svg.find('#cable-7-2');
         var t3 = svg.find('#cable-7-3');
         var t4 = svg.find('#cable-7-4');
         var p1 = svg.find('#percent-7-1');
@@ -326,8 +334,8 @@ module.exports = function(body, windowWidth, tempo){
     function animStock(svg){
         if(!svg.length) return;
 
-        var tl = new TimelineLite({onComplete: function(){
-            //tl.restart();
+        var tl = new TimelineLite({paused: true, onComplete: function(){
+            tl.restart();
         }});
 
         var t1 = svg.find('#cable-9-1');
@@ -338,31 +346,127 @@ module.exports = function(body, windowWidth, tempo){
         var gameboyCount = svg.find('#gameboyCount');
         var keyboardCount = svg.find('#keyboardCount');
         var joystickCount = svg.find('#joystickCount');
-        var gameboys = svg.find('.js-gameboy');
-        var keyboards = svg.find('.js-keyboard');
-        var joysticks = svg.find('.js-joystick');
+
         var clone;
 
-        function synchObjectNumber(counter, objects){
-            var firstObject = objects.eq(0);
+        function addObject(object, y = 5){
+            clone = object.clone();
+            TweenLite.set(clone, {y: '-='+(50+y), opacity: 0});
+            object.parent().append(clone);
+            TweenLite.to(clone, tempo, {y: '+=50', opacity: 1});
+        }
 
-            if(counter !== objects.length){
-                for(var i = 0; i < counter; i++){
-                    clone = firstObject.clone();
-                    TweenLite.set(clone, {y: '-='+5*i});
-                    objects.before(clone);
+        function removeObject(object){
+            TweenLite.to(object, tempo, {y: '-=50', opacity: 0, onComplete: function(){
+                object.remove();
+            }});            
+        }
+
+        function synchObjectNumber(counter, objects){
+            if(counter == objects.length) return;
+
+            var i = 0, nbObjects = objects.length;
+
+            if(counter > nbObjects){
+                i = nbObjects;
+                for(i; i < counter; i++){
+                    addObject(objects.eq(0), 5*i);
                 }
-                firstObject.remove();
+            }else{
+                for(i; i < nbObjects; i++){
+                    removeObject(objects.eq(nbObjects - 1-i));
+                    nbObjects -= 1;
+                    if(nbObjects == counter) break;
+                }
             }
         }
 
-        synchObjectNumber(gameboyCount.html(), gameboys);
-        synchObjectNumber(keyboardCount.html(), keyboards);
-        synchObjectNumber(joystickCount.html(), joysticks);
+        function synchCounter(counter, objectsLength){
+            counter.html(objectsLength);
+        }
 
+        synchObjectNumber(gameboyCount.html(), svg.find('.js-gameboy'));
+        synchObjectNumber(keyboardCount.html(), svg.find('.js-keyboard'));
+        synchObjectNumber(joystickCount.html(), svg.find('.js-joystick'));
+
+        TweenLite.set([t1, t3], {drawSVG: 0});
+        TweenLite.set([t2, t4], {drawSVG: '100% 100%'});
+
+        // remove a gameboy in counter
         gameboyCount.html(gameboyCount.html() - 1);
-        tl.set([t1], {drawSVG: '0'})
-          .to(t1, tempo, {drawSVG: '100%'});
+        
+        tl.to(t1, tempo, {drawSVG: '0 100%', delay: tempo*4})
+          .to(t1, tempo, {drawSVG: '100% 100%'})
+          .to(t3, tempo, {drawSVG: '0 100%'})
+          .to(t3, tempo, {drawSVG: '100% 100%', onComplete: function(){
+            // remove a gameboy in objects
+            synchObjectNumber(gameboyCount.html(), svg.find('.js-gameboy'));
+            setTimeout(function(){
+                // add a keyboard in objects
+                addObject(svg.find('.js-keyboard').eq(0));
+            }, tempo*3000);
+          }})
+          .to(t4, tempo, {drawSVG: '0 100%', delay: tempo*4})
+          .to(t4, tempo, {drawSVG: 0})
+          .to(t2, tempo, {drawSVG: '0 100%'})
+          .to(t2, tempo, {drawSVG: 0, onComplete: function(){
+            // add a keyboard in counter
+            synchCounter(keyboardCount, svg.find('.js-keyboard').length);
+            setTimeout(function(){
+                // remove a joystick in counter
+                joystickCount.html(parseInt(joystickCount.html()) - 1);
+            }, tempo*3000);
+          }})
+          .set([t1, t3], {drawSVG: 0})
+          .set([t2, t4], {drawSVG: '100% 100%'})
+          .to(t1, tempo, {drawSVG: '0 100%', delay: tempo*4})
+          .to(t1, tempo, {drawSVG: '100% 100%'})
+          .to(t3, tempo, {drawSVG: '0 100%'})
+          .to(t3, tempo, {drawSVG: '100% 100%', onComplete: function(){
+            // remove a joystick in objects
+            synchObjectNumber(joystickCount.html(), svg.find('.js-joystick'));
+            setTimeout(function(){
+                // add a gameboy in objects
+                addObject(svg.find('.js-gameboy').eq(3));
+            }, tempo*3000);
+          }})
+          .to(t4, tempo, {drawSVG: '0 100%', delay: tempo*4})
+          .to(t4, tempo, {drawSVG: 0})
+          .to(t2, tempo, {drawSVG: '0 100%'})
+          .to(t2, tempo, {drawSVG: 0, onComplete: function(){
+            // add a gameboy in counter
+            synchCounter(gameboyCount, svg.find('.js-gameboy').length);
+            setTimeout(function(){
+                // remove a keyboard in counter
+                keyboardCount.html(parseInt(keyboardCount.html()) - 1);
+            }, tempo*3000);
+          }})
+          .set([t1, t3], {drawSVG: 0})
+          .set([t2, t4], {drawSVG: '100% 100%'})
+          .to(t1, tempo, {drawSVG: '0 100%', delay: tempo*4})
+          .to(t1, tempo, {drawSVG: '100% 100%'})
+          .to(t3, tempo, {drawSVG: '0 100%'})
+          .to(t3, tempo, {drawSVG: '100% 100%', onComplete: function(){
+            // remove a keyboard in objects
+            synchObjectNumber(keyboardCount.html(), svg.find('.js-keyboard'));
+            setTimeout(function(){
+                // add a joystick in objects
+                addObject(svg.find('.js-joystick').eq(1));
+            }, tempo*3000);
+          }})
+          .to(t4, tempo, {drawSVG: '0 100%', delay: tempo*4})
+          .to(t4, tempo, {drawSVG: 0})
+          .to(t2, tempo, {drawSVG: '0 100%'})
+          .to(t2, tempo, {drawSVG: 0, onComplete: function(){
+            // add a joystick in counter
+            synchCounter(joystickCount, svg.find('.js-joystick').length);
+            setTimeout(function(){
+                // remove a gameboy in counter
+                gameboyCount.html(parseInt(gameboyCount.html()) - 1);
+            }, tempo*3000);
+          }});
+
+        return tl;
     }
 
     function animModules(svg){
@@ -392,9 +496,9 @@ module.exports = function(body, windowWidth, tempo){
 
 
     function scrollHandler(){
-        var scrollTop = $(document).scrollTop();
-        animSvg.each(function (i) {
-            //console.log(scrollTop, $(this).data('offsetTop') + windowHeight - $(this).data('height'));
+        scrollTop = $(document).scrollTop();
+        
+        animSvg.each(function(i){
             if(scrollTop + windowHeight - $(this).data('height') > $(this).data('offsetTop') && scrollTop < $(this).data('offsetTop') + $(this).data('height')){
                 if(!animRunning[i]){
                     animTl[i].play();
@@ -405,37 +509,38 @@ module.exports = function(body, windowWidth, tempo){
                 if(animRunning[i]){
                     animTl[i].pause();
                     animRunning[i] = false;
-                    console.log(i, 'stop');
+                    console.log('stop' + i);
                 }
             }
         });
     }
     
-    animSvg.each(function (i) {
-        var tl;
-        switch ($(this).attr('id')) {
-            case 'animMapping': animTl[i] = animMapping($(this))
-                break
-            case 'animImpact': animTl[i] = animImpact($(this))
-                break
-            case 'animChoose': animTl[i] = animChoose($(this))
-                break
-            // case 'animImport': tl = animImport($(this))
-            //     break
-            case 'animHistory': animTl[i] = animHistory($(this))
-                break
-            // case 'animStats': tl = animStats($(this))
-            //     break
-            case 'animOptimize': animTl[i] = animOptimize($(this))
-                break
-            case 'animOrders': animTl[i] = animOrders($(this))
-                break
-            // case 'animStock': animTl[i] = animStock($(this))
-            //     break
-            case 'animModules': animTl[i] = animModules($(this))
-                break    
+    animSvg.each(function(i){
+        switch($(this).attr('id')){
+            case 'animMapping': animTl[i] = animMapping($(this));
+                break;
+            case 'animImpact': animTl[i] = animImpact($(this));
+                break;
+            case 'animChoose': animTl[i] = animChoose($(this));
+                break;
+            // case 'animImport': tl = animImport($(this));
+            //     break;
+            case 'animHistory': animTl[i] = animHistory($(this));
+                break;
+            case 'animStats': animTl[i] = animStats($(this));
+                break;
+            case 'animOptimize': animTl[i] = animOptimize($(this));
+                break;
+            case 'animOrders': animTl[i] = animOrders($(this));
+                break;
+            case 'animStock': animTl[i] = animStock($(this));
+                break;
+            case 'animModules': animTl[i] = animModules($(this));
+                break;
         }
+
         animRunning[i] = false;
+
         $(this).data({
             'offsetTop': $(this).offset().top,
             'height' : $(this).height()
