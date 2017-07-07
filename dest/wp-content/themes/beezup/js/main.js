@@ -19309,13 +19309,11 @@ module.exports = function (wrapper, windowWidth, tempo) {
                 if (!animRunning[i]) {
                     animTl[i].play();
                     animRunning[i] = true;
-                    console.log(i, 'play');
                 }
             } else {
                 if (animRunning[i]) {
                     animTl[i].pause();
                     animRunning[i] = false;
-                    console.log('stop' + i);
                 }
             }
         });
@@ -19368,7 +19366,7 @@ module.exports = function (wrapper, windowWidth, tempo) {
     }, 10));
 };
 
-},{"./requestAnimFrame.js":21,"./throttle.js":26,"gsap/TimelineLite":3,"gsap/TweenLite":4,"gsap/src/uncompressed/easing/CustomEase":6,"gsap/src/uncompressed/plugins/DrawSVGPlugin":7,"jquery":9}],13:[function(require,module,exports){
+},{"./requestAnimFrame.js":22,"./throttle.js":27,"gsap/TimelineLite":3,"gsap/TweenLite":4,"gsap/src/uncompressed/easing/CustomEase":6,"gsap/src/uncompressed/plugins/DrawSVGPlugin":7,"jquery":9}],13:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -19723,6 +19721,7 @@ $(function () {
     window.requestAnimFrame = require('./requestAnimFrame.js');
     var throttle = require('./throttle.js');
     var checkInputs = require('./checkInputs.js');
+    var noTransition = require('./noTransition.js');
     var langSwitcher = require('./langSwitcher.js');
     var sticky = require('./sticky.js');
     var scrollTo = require('./scrollTo.js');
@@ -19744,31 +19743,12 @@ $(function () {
     var windowWidth = window.outerWidth,
         windowHeight = $(window).height();
     var tempo = 0.4;
-    var rtime;
-    var timeout = false;
-    var delta = 200;
-
-    function resizeend() {
-        if (new Date() - rtime < delta) {
-            setTimeout(resizeend, delta);
-        } else {
-            timeout = false;
-            containersMenu.removeClass('no-transition');
-        }
-    }
 
     function resizeHandler() {
         windowWidth = window.outerWidth;
         windowHeight = $(window).height();
         langSwitcher.checkLangState(windowWidth);
         submenu(menuMain);
-        // No transition on resize 
-        containersMenu.addClass('no-transition');
-        rtime = new Date();
-        if (timeout === false) {
-            timeout = true;
-            setTimeout(resizeend, delta);
-        }
     }
 
     // Petit hack dégueu pour IE11, les textes du schema etant décalés seulement sur ce browser
@@ -19795,6 +19775,9 @@ $(function () {
 
     // Submenus
     submenu(menuMain);
+
+    // No transition on resize 
+    noTransition(containersMenu);
 
     // Newsletter inputs
     checkInputs($('.js-inline-form'));
@@ -19855,7 +19838,44 @@ $(function () {
     }, 60));
 });
 
-},{"./animBees.js":11,"./animFonctionnalites.js":12,"./animSchema.js":13,"./animTopHome.js":14,"./checkInputs.js":16,"./dropdown.js":17,"./filterChannels.js":18,"./langSwitcher.js":19,"./requestAnimFrame.js":21,"./scrollTo.js":22,"./sliderPrices.js":23,"./sticky.js":24,"./submenu.js":25,"./throttle.js":26,"jquery":9,"js-cookie":10}],21:[function(require,module,exports){
+},{"./animBees.js":11,"./animFonctionnalites.js":12,"./animSchema.js":13,"./animTopHome.js":14,"./checkInputs.js":16,"./dropdown.js":17,"./filterChannels.js":18,"./langSwitcher.js":19,"./noTransition.js":21,"./requestAnimFrame.js":22,"./scrollTo.js":23,"./sliderPrices.js":24,"./sticky.js":25,"./submenu.js":26,"./throttle.js":27,"jquery":9,"js-cookie":10}],21:[function(require,module,exports){
+'use strict';
+
+var $ = require('jquery');
+
+window.requestAnimFrame = require('./requestAnimFrame.js');
+var throttle = require('./throttle.js');
+
+var rtime;
+var timeout = false;
+var delta = 200;
+
+module.exports = function (el) {
+
+    function resizeend() {
+        if (new Date() - rtime < delta) {
+            setTimeout(resizeend, delta);
+        } else {
+            timeout = false;
+            el.removeClass('no-transition');
+        }
+    }
+
+    function resizeHandler() {
+        el.addClass('no-transition');
+        rtime = new Date();
+        if (timeout === false) {
+            timeout = true;
+            setTimeout(resizeend, delta);
+        }
+    }
+
+    $(window).on('resize', throttle(function () {
+        requestAnimFrame(resizeHandler);
+    }, 60));
+};
+
+},{"./requestAnimFrame.js":22,"./throttle.js":27,"jquery":9}],22:[function(require,module,exports){
 "use strict";
 
 module.exports = function () {
@@ -19864,7 +19884,7 @@ module.exports = function () {
        };
 }();
 
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -19927,7 +19947,7 @@ module.exports = function (elt) {
     }, 10));
 };
 
-},{"./requestAnimFrame.js":21,"./throttle.js":26,"gsap/CSSPlugin":1,"gsap/ScrollToPlugin":2,"gsap/TweenLite":4,"jquery":9}],23:[function(require,module,exports){
+},{"./requestAnimFrame.js":22,"./throttle.js":27,"gsap/CSSPlugin":1,"gsap/ScrollToPlugin":2,"gsap/TweenLite":4,"jquery":9}],24:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -19949,7 +19969,7 @@ module.exports = function (tarifHeader) {
     });
 };
 
-},{"jquery":9}],24:[function(require,module,exports){
+},{"jquery":9}],25:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -20065,7 +20085,7 @@ module.exports = function (stickyElt, givenPosition) {
     }, 10));
 };
 
-},{"./requestAnimFrame.js":21,"./throttle.js":26,"jquery":9}],25:[function(require,module,exports){
+},{"./requestAnimFrame.js":22,"./throttle.js":27,"jquery":9}],26:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -20091,7 +20111,7 @@ module.exports = function (nav) {
     });
 };
 
-},{"jquery":9}],26:[function(require,module,exports){
+},{"jquery":9}],27:[function(require,module,exports){
 "use strict";
 
 module.exports = function (callback, delay) {
