@@ -483,7 +483,7 @@
     fill: #2DB3EB;
 }
 .shadow-shelf{
-    opacity: 0.2;
+    opacity: 0.3;
     fill: #CCE2EE;
 }
 .shelf{
@@ -491,94 +491,88 @@
     stroke-width: 0.75;
 }
 .shadow-shelf-2{
-    opacity: 0.4;
+    opacity: 0.25;
     fill: #CCE2EE;
 }
 .side-shelf{
     fill: #EFF6FA;
     stroke-width: 0.75;
 }
+.text-9{
+    font-weight: 800;
+    font-size: 13px;
+}
 
-.bottom-dalle-10 {
+.bees-9{
+    fill: $primary;
+    > .bee{
+        opacity: 0;
+    }
+}
+
+.bottom-dalle-10, .top-dalle-10, .circle-api-10{
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.bottom-dalle-10{
     fill: #ECF4F9;
     stroke: #C4DBE9;
-    stroke-linecap: round;
-    stroke-linejoin: round;
 }
-
-.top-dalle-10 {
-    fill: #FFFFFF;
+.top-dalle-10{
+    fill: $white;
     stroke: #C6DEEC;
+}
+.side-api-10, .top-api-10{
+    stroke: #FF63C6;
     stroke-linecap: round;
     stroke-linejoin: round;
 }
-
-.side-api-10 {
+.side-api-10{
     fill: #C81888;
-    stroke: #FF63C6;
-    stroke-linecap: round;
-    stroke-linejoin: round;
 }
-
-.top-api-10 {
+.top-api-10{
     fill: #E30F95;
-    stroke: #FF63C6;
-    stroke-linecap: round;
-    stroke-linejoin: round;
 }
-
-.circle-api-10 {
+.circle-api-10{
     fill: #C71887;
     stroke: #FF63C5;
-    stroke-linecap: round;
-    stroke-linejoin: round;
 }
-
-.cable-wrapper-10 {
+.cable-wrapper-10{
     opacity: 0.4;
     fill: none;
     stroke: #4BB8EB;
     stroke-miterlimit: 10;
-    enable-background: new;
 }
-
-.under-box-11 {
+.under-box-11{
     opacity: 0.54;
     fill: #E1E1E1;
-    enable-background: new;
 }
-
-.side-blue-10 {
+.side-blue-10, .top-blue-10{
+    stroke: #7373DF;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.side-blue-10{
     fill: #070A96;
-    stroke: #7373DF;
-    stroke-linecap: round;
-    stroke-linejoin: round;
 }
-
-.top-blue-10 {
+.top-blue-10{
     fill: #2221DC;
-    stroke: #7373DF;
-    stroke-linecap: round;
-    stroke-linejoin: round;
 }
-
-.etc-10 {
+.etc-10{
     fill: #269EE5;
 }
-
-.side-orange-10 {
+.side-orange-10, .top-orange-10{
+    stroke: #FFD696;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.side-orange-10{
     fill: #EF9200;
-    stroke: #FFD696;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+}
+.top-orange-10{
+    fill: #FB9C02;
 }
 
-.top-orange-10 {
-    fill: #FB9C02;
-    stroke: #FFD696;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-}
 
 @media (max-width: $phone){
     .cable1, .cable2, .cable-3, .cable-4{

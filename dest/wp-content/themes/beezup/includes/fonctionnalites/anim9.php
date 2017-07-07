@@ -1,4 +1,4 @@
-<svg xmlns='http://www.w3.org/2000/svg' class='js-animSvg' id='animStock' viewBox='0 0 408 357' height='357'>
+<svg xmlns='http://www.w3.org/2000/svg' class='js-animSvg' id='animStock' viewBox='0 0 408 357' height='357' style='overflow:visible'>
     <g>
         <path d='M154.1 16l64.8 49.8-47.5 35.5-64.8-49.8L154.1 16z' class='shadow-4'/>
         <path d='M154.3 0l64.8 49.8-48.2 34.6L106 34.6 154.3 0z' class='top-dalle-4'/>
@@ -11,7 +11,7 @@
         <path d='M141.3 28.1v4L126.2 43v-3.7l15.1-11.2z' class='side-green-9'/>
         <path d='M126.3 39.3l-16.5-12.9v2.4l-.1 2.5 1.1-.7L126.3 43v-3.7z' class='side-green-9'/>
         <path d='M124.8 15.2l-15.1 11.2 16.5 12.9 15.1-11.2-16.5-12.9z' class='top-green-9'/>
-        <text transform='rotate(-37 113.1 -172.4)' class='box-icon-3' id='joystickCount' data-number='3'>3</text>
+        <text transform='rotate(-37 113.1 -172.4)' class='box-icon-3 text-9' id='joystickCount' data-number='3'>3</text>
     </g>
 
     <g>
@@ -25,7 +25,7 @@
 
         <path d='M87.8 66.7v3.9l-15 11v-3.7l15-11.2zm-15 15l-.1-3.8L56.2 65v4.6l.9-.7 15.7 12.8z' class='line-connect-4'/>
         <path d='M71.3 53.8L56.2 65l16.5 12.9 15.1-11.2-16.5-12.9z' class='top-box-pink-6'/>
-        <text transform='rotate(-37 143.1 -73.5)' class='box-icon-3'  id='keyboardCount'>1</text>
+        <text transform='rotate(-37 143.1 -73.5)' class='box-icon-3 text-9'  id='keyboardCount'>1</text>
     </g>
 
     <g>
@@ -41,7 +41,7 @@
         <path d='M21.2 116.5L4.7 103.6l-.1 4.6 1-.7 15.6 12.8v-3.8z' class='left-red-9'/>
         <path d='M19.7 92.4L4.6 103.6l16.5 12.9 15.1-11.2-16.5-12.9z' class='top-red-9'/>
 
-        <text transform='rotate(-37 176.8 23.6)' class='box-icon-3' id='gameboyCount'>5</text>
+        <text transform='rotate(-37 176.8 23.6)' class='box-icon-3 text-9' id='gameboyCount'>5</text>
     </g>
 
     <path d='M178 97.5l-51.9 36.8V148l51.9-37.3V97.5zM118.8 129l7.3 5.3V148l-7.1-5.4-.2-13.6z' class='top-presse'/>
@@ -105,6 +105,7 @@
         <g class='js-gameboy'>
             <path d='M299 267.9l-20.4-15.4c-1.4-1.1-3.7-1.1-5.1-.1l-14.3 10.4c-1.4 1-1.4 2.7 0 3.8l20.4 15.4c1.4 1.1 3.7 1.1 5.1.1l14.3-10.4c1.4-1.1 1.4-2.8 0-3.8zm-1 3l-14.3 10.4c-.8.6-2.2.6-3.1 0l-20.4-15.4c-.8-.6-.8-1.7 0-2.3l14.3-10.4c.8-.6 2.2-.6 3.1 0l20.4 15.4c.8.7.8 1.7 0 2.3z' class='picto-4'/>
             <path d='M298 265.5l-20.4-15.4c-.8-.6-2.2-.7-3.1 0l-14.3 10.4c-.8.6-.8 1.6 0 2.3l20.4 15.4c.8.6 2.2.7 3.1 0l14.3-10.4c.8-.6.8-1.6 0-2.3zm-14.3 7.4c.3.2.3.6 0 .8-.3.2-.7.2-1 0l-1.5-1.2-1.5 1.1c-.3.2-.7.2-1 0s-.3-.6 0-.8l1.5-1.1-1.5-1.2c-.3-.2-.3-.6 0-.8.3-.2.7-.2 1 0l1.5 1.2 1.5-1.1c.3-.2.7-.2 1 0s.3.6 0 .8l-1.5 1.1 1.5 1.2zm1.5-12.4l-11.2 8.1c-.6.4-1.5.4-2 0l-8.2-6.2c-.6-.4-.6-1.1 0-1.5l11.2-8.1c.6-.4 1.5-.4 2 0l8.2 6.2c.6.4.6 1 0 1.5zm5.1 8.3c-.6.4-1.5.4-2 0-.6-.4-.6-1.1 0-1.5s1.5-.4 2 0c.6.4.6 1.1 0 1.5zm0-4.5c-.6.4-1.5.4-2 0-.6-.4-.6-1.1 0-1.5s1.5-.4 2 0c.6.4.6 1.1 0 1.5z' class='box-icon-3'/>
+            <path d='M264.8,261.7l8.2,6.1l11.2-8.1l-8.2-6.2L264.8,261.7z' class='box-icon-3'/>
             <path d='M299 264.8l-20.4-15.4c-1.4-1.1-3.7-1.1-5.1-.1l-14.3 10.4c-1.4 1-1.4 2.7 0 3.8l20.4 15.4c1.4 1.1 3.7 1.1 5.1.1l14.3-10.4c1.4-1 1.4-2.7 0-3.8zm-1 3l-14.3 10.4c-.8.6-2.2.6-3.1 0l-20.4-15.5c-.8-.6-.8-1.7 0-2.3l14.3-10.4c.8-.6 2.2-.6 3.1 0l20.4 15.4c.8.8.8 1.8 0 2.4z' class='picto-4'/>
             <path d='M277.1 252.8c-.6-.4-1.5-.4-2 0l-11.2 8.1c-.6.4-.6 1.1 0 1.5l8.2 6.2c.6.4 1.5.4 2 0l11.2-8.1c.6-.4.6-1.1 0-1.5l-8.2-6.2zm-4.1 15l-8.2-6.2 11.2-8.1 8.2 6.2-11.2 8.1zm10.7 2.1c-.3-.2-.7-.2-1 0l-1.5 1.1-1.5-1.2c-.3-.2-.7-.2-1 0s-.3.5 0 .8l1.5 1.2-1.5 1.1c-.3.2-.3.5 0 .8.3.2.7.2 1 0l1.5-1.1 1.5 1.2c.3.2.7.2 1 0s.3-.5 0-.8l-1.5-1.2 1.5-1.1c.3-.3.3-.6 0-.8zm4.6-2.6c-.6.4-.6 1.1 0 1.5s1.5.4 2 0c.6-.4.6-1.1 0-1.5-.5-.4-1.4-.4-2 0zm0-4.5c-.6.4-.6 1.1 0 1.5s1.5.4 2 0c.6-.4.6-1.1 0-1.5-.5-.4-1.4-.4-2 0z' class='picto-4'/>
         </g>
@@ -112,4 +113,43 @@
 
     <path d='M273.8 356.4v-82l7-5.7v82l-7 5.7zm3-3.6l1-.8v-1.2l-1 .8v1.2zm1-78.2l-1 .8v1.2l1-.8v-1.2zm0 4.3l-1 .8v1.2l1-.8v-1.2zm0 4.2l-1 .8v1.2l1-.8v-1.2zm-1 5v1.2l1-.8v-1.2l-1 .8zm1 3.5l-1 .8v1.2l1-.8v-1.2zm0 4.2l-1 .8v1.2l1-.8v-1.2zm-1 5v1.2l1-.8V300l-1 .8zm1 3.5l-1 .8v1.2l1-.8v-1.2zm0 4.2l-1 .8v1.2l1-.8v-1.2zm-1 5v1.2l1-.8v-1.2l-1 .8zm1 3.5l-1 .8v1.2l1-.8V317zm0 4.2l-1 .8v1.2l1-.8v-1.2zm-1 5.1v1.2l1-.8v-1.2l-1 .8zm1 3.4l-1 .8v1.2l1-.8v-1.2zm0 4.2l-1 .8v1.2l1-.8v-1.2zm-1 5.1v1.2l1-.8v-1.2l-1 .8zm1 3.4l-1 .8v1.2l1-.8v-1.2zm0 4.2l-1 .8v1.2l1-.8v-1.2z' class='shelf'/>
     <path d='M267.2 350.7v-82l6.7 5.7v82l-6.7-5.7zm2.9 1.3l.9.8v-1.2l-.9-.8v1.2zm1-76.6l-.9-.8v1.2l.9.8v-1.2zm0 4.2l-1-.8v1.2l1 .8v-1.2zm0 4.2l-1-.8v1.2l1 .8v-1.2zm-1 3.5v1.2l.9.8v-1.2l-.9-.8zm1 5l-1-.8v1.2l1 .8v-1.2zm0 4.2l-1-.8v1.2l1 .8v-1.2zm-1 3.5v1.2l.9.8v-1.2l-.9-.8zm1 5l-1-.8v1.2l1 .8V305zm0 4.3l-1-.8v1.2l1 .8v-1.2zm-1 3.4v1.2l.9.8v-1.2l-.9-.8zm1 5l-1-.8v1.2l1 .8v-1.2zm0 4.3l-1-.8v1.2l1 .8V322zm-1 3.4v1.2l.9.8v-1.2l-.9-.8zm1 5l-1-.8v1.2l1 .8v-1.2zm0 4.3l-1-.8v1.2l1 .8v-1.2zm-1 3.4v1.2l.9.8v-1.2l-.9-.8zm1 5l-1-.8v1.2l1 .8v-1.2zm0 4.3l-1-.8v1.2l1 .8v-1.2z' class='shelf'/>
+
+    <g class='bees-9' id='bees-count-1' transform='translate(-380, -360)'>
+        <circle class='js-bee bee' cx='390.7' cy='432.8' r='2'/>
+        <circle class='js-bee bee' cx='405.5' cy='473.1' r='2'/>
+        <circle class='js-bee bee' cx='376.5' cy='459.1' r='2'/>
+        <circle class='js-bee bee' cx='374.2' cy='450.5' r='2'/>
+        <ellipse class='js-bee bee' cx='365.8' cy='444.2' rx='2' ry='2'/>
+        <ellipse class='js-bee bee' cx='372.1' cy='441' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='385.6' cy='460' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='365.8' cy='456.5' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='358.4' cy='443.3' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='348.9' cy='439.7' rx='0.8' ry='0.8'/>
+    </g>
+
+    <g class='bees-9' id='bees-count-2' transform='translate(-330, -400)'>
+        <circle class='js-bee bee' cx='390.7' cy='432.8' r='2'/>
+        <circle class='js-bee bee' cx='405.5' cy='473.1' r='2'/>
+        <circle class='js-bee bee' cx='376.5' cy='459.1' r='2'/>
+        <circle class='js-bee bee' cx='374.2' cy='450.5' r='2'/>
+        <ellipse class='js-bee bee' cx='365.8' cy='444.2' rx='2' ry='2'/>
+        <ellipse class='js-bee bee' cx='372.1' cy='441' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='385.6' cy='460' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='365.8' cy='456.5' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='358.4' cy='443.3' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='348.9' cy='439.7' rx='0.8' ry='0.8'/>
+    </g>
+
+    <g class='bees-9' id='bees-count-3' transform='translate(-275, -440)'>
+        <circle class='js-bee bee' cx='390.7' cy='432.8' r='2'/>
+        <circle class='js-bee bee' cx='405.5' cy='473.1' r='2'/>
+        <circle class='js-bee bee' cx='376.5' cy='459.1' r='2'/>
+        <circle class='js-bee bee' cx='374.2' cy='450.5' r='2'/>
+        <ellipse class='js-bee bee' cx='365.8' cy='444.2' rx='2' ry='2'/>
+        <ellipse class='js-bee bee' cx='372.1' cy='441' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='385.6' cy='460' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='365.8' cy='456.5' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='358.4' cy='443.3' rx='0.8' ry='0.8'/>
+        <ellipse class='js-bee bee' cx='348.9' cy='439.7' rx='0.8' ry='0.8'/>
+    </g>
 </svg>

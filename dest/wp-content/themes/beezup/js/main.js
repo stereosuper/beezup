@@ -18897,6 +18897,8 @@ require('gsap/src/uncompressed/easing/CustomEase');
 window.requestAnimFrame = require('./requestAnimFrame.js');
 var throttle = require('./throttle.js');
 
+var animBees = require('./animBees.js');
+
 module.exports = function (wrapper, windowWidth, tempo) {
     if (!wrapper.length) return;
 
@@ -19185,6 +19187,16 @@ module.exports = function (wrapper, windowWidth, tempo) {
         var keyboardCount = svg.find('#keyboardCount');
         var joystickCount = svg.find('#joystickCount');
 
+        var bees1 = svg.find('#bees-count-1');
+        var bees2 = svg.find('#bees-count-2');
+        var bees3 = svg.find('#bees-count-3');
+        var beesTl1 = animBees(bees1, tempo, true, tempo * 2);
+        var beesTl1SmallDelay = animBees(bees1, tempo, true, tempo);
+        var beesTl2 = animBees(bees2, tempo, true, tempo * 2);
+        var beesTl2SmallDelay = animBees(bees2, tempo, true, tempo);
+        var beesTl3 = animBees(bees3, tempo, true, tempo * 2);
+        var beesTl3SmallDelay = animBees(bees3, tempo, true, tempo);
+
         var clone;
 
         function addObject(object) {
@@ -19236,49 +19248,49 @@ module.exports = function (wrapper, windowWidth, tempo) {
         // remove a gameboy in counter
         gameboyCount.html(gameboyCount.html() - 1);
 
-        tl.to(t1, tempo, { drawSVG: '0 100%', delay: tempo * 4 }).to(t1, tempo, { drawSVG: '100% 100%' }).to(t3, tempo, { drawSVG: '0 100%' }).to(t3, tempo, { drawSVG: '100% 100%', onComplete: function onComplete() {
+        tl.add(beesTl1).to(t1, tempo, { drawSVG: '0 100%' }).to(t1, tempo, { drawSVG: '100% 100%' }).to(t3, tempo, { drawSVG: '0 100%' }).to(t3, tempo, { drawSVG: '100% 100%', onComplete: function onComplete() {
                 // remove a gameboy in objects
                 synchObjectNumber(gameboyCount.html(), svg.find('.js-gameboy'));
                 setTimeout(function () {
                     // add a keyboard in objects
                     addObject(svg.find('.js-keyboard').eq(0));
-                }, tempo * 3000);
-            } }).to(t4, tempo, { drawSVG: '0 100%', delay: tempo * 4 }).to(t4, tempo, { drawSVG: 0 }).to(t2, tempo, { drawSVG: '0 100%' }).to(t2, tempo, { drawSVG: 0, onComplete: function onComplete() {
+                }, tempo * 5000);
+            } }).to(t4, tempo, { drawSVG: '0 100%', delay: tempo * 6 }).to(t4, tempo, { drawSVG: 0 }).to(t2, tempo, { drawSVG: '0 100%' }).add([beesTl2SmallDelay, TweenLite.to(t2, tempo, { drawSVG: 0, onComplete: function onComplete() {
                 // add a keyboard in counter
                 synchCounter(keyboardCount, svg.find('.js-keyboard').length);
                 setTimeout(function () {
                     // remove a joystick in counter
                     joystickCount.html(parseInt(joystickCount.html()) - 1);
-                }, tempo * 3000);
-            } }).set([t1, t3], { drawSVG: 0 }).set([t2, t4], { drawSVG: '100% 100%' }).to(t1, tempo, { drawSVG: '0 100%', delay: tempo * 4 }).to(t1, tempo, { drawSVG: '100% 100%' }).to(t3, tempo, { drawSVG: '0 100%' }).to(t3, tempo, { drawSVG: '100% 100%', onComplete: function onComplete() {
+                }, tempo * 5000);
+            } })]).add(beesTl3).set([t1, t3], { drawSVG: 0 }).set([t2, t4], { drawSVG: '100% 100%' }).to(t1, tempo, { drawSVG: '0 100%' }).to(t1, tempo, { drawSVG: '100% 100%' }).to(t3, tempo, { drawSVG: '0 100%' }).to(t3, tempo, { drawSVG: '100% 100%', onComplete: function onComplete() {
                 // remove a joystick in objects
                 synchObjectNumber(joystickCount.html(), svg.find('.js-joystick'));
                 setTimeout(function () {
                     // add a gameboy in objects
                     addObject(svg.find('.js-gameboy').eq(3));
-                }, tempo * 3000);
-            } }).to(t4, tempo, { drawSVG: '0 100%', delay: tempo * 4 }).to(t4, tempo, { drawSVG: 0 }).to(t2, tempo, { drawSVG: '0 100%' }).to(t2, tempo, { drawSVG: 0, onComplete: function onComplete() {
+                }, tempo * 5000);
+            } }).to(t4, tempo, { drawSVG: '0 100%', delay: tempo * 6 }).to(t4, tempo, { drawSVG: 0 }).to(t2, tempo, { drawSVG: '0 100%' }).add([beesTl1SmallDelay, TweenLite.to(t2, tempo, { drawSVG: 0, onComplete: function onComplete() {
                 // add a gameboy in counter
                 synchCounter(gameboyCount, svg.find('.js-gameboy').length);
                 setTimeout(function () {
                     // remove a keyboard in counter
                     keyboardCount.html(parseInt(keyboardCount.html()) - 1);
-                }, tempo * 3000);
-            } }).set([t1, t3], { drawSVG: 0 }).set([t2, t4], { drawSVG: '100% 100%' }).to(t1, tempo, { drawSVG: '0 100%', delay: tempo * 4 }).to(t1, tempo, { drawSVG: '100% 100%' }).to(t3, tempo, { drawSVG: '0 100%' }).to(t3, tempo, { drawSVG: '100% 100%', onComplete: function onComplete() {
+                }, tempo * 5000);
+            } })]).add(beesTl2).set([t1, t3], { drawSVG: 0 }).set([t2, t4], { drawSVG: '100% 100%' }).to(t1, tempo, { drawSVG: '0 100%' }).to(t1, tempo, { drawSVG: '100% 100%' }).to(t3, tempo, { drawSVG: '0 100%' }).to(t3, tempo, { drawSVG: '100% 100%', onComplete: function onComplete() {
                 // remove a keyboard in objects
                 synchObjectNumber(keyboardCount.html(), svg.find('.js-keyboard'));
                 setTimeout(function () {
                     // add a joystick in objects
                     addObject(svg.find('.js-joystick').eq(1));
-                }, tempo * 3000);
-            } }).to(t4, tempo, { drawSVG: '0 100%', delay: tempo * 4 }).to(t4, tempo, { drawSVG: 0 }).to(t2, tempo, { drawSVG: '0 100%' }).to(t2, tempo, { drawSVG: 0, onComplete: function onComplete() {
+                }, tempo * 5000);
+            } }).to(t4, tempo, { drawSVG: '0 100%', delay: tempo * 6 }).to(t4, tempo, { drawSVG: 0 }).to(t2, tempo, { drawSVG: '0 100%' }).add([beesTl3SmallDelay, TweenLite.to(t2, tempo, { drawSVG: 0, onComplete: function onComplete() {
                 // add a joystick in counter
                 synchCounter(joystickCount, svg.find('.js-joystick').length);
                 setTimeout(function () {
                     // remove a gameboy in counter
                     gameboyCount.html(parseInt(gameboyCount.html()) - 1);
-                }, tempo * 3000);
-            } });
+                }, tempo * 5000);
+            } })]);
 
         return tl;
     }
@@ -19366,7 +19378,7 @@ module.exports = function (wrapper, windowWidth, tempo) {
     }, 10));
 };
 
-},{"./requestAnimFrame.js":22,"./throttle.js":27,"gsap/TimelineLite":3,"gsap/TweenLite":4,"gsap/src/uncompressed/easing/CustomEase":6,"gsap/src/uncompressed/plugins/DrawSVGPlugin":7,"jquery":9}],13:[function(require,module,exports){
+},{"./animBees.js":11,"./requestAnimFrame.js":22,"./throttle.js":27,"gsap/TimelineLite":3,"gsap/TweenLite":4,"gsap/src/uncompressed/easing/CustomEase":6,"gsap/src/uncompressed/plugins/DrawSVGPlugin":7,"jquery":9}],13:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');

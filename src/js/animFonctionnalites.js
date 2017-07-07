@@ -8,6 +8,8 @@ require('gsap/src/uncompressed/easing/CustomEase');
 window.requestAnimFrame = require('./requestAnimFrame.js');
 var throttle = require('./throttle.js');
 
+var animBees = require('./animBees.js');
+
 
 module.exports = function(wrapper, windowWidth, tempo){
     if(!wrapper.length) return;
@@ -373,6 +375,16 @@ module.exports = function(wrapper, windowWidth, tempo){
         var keyboardCount = svg.find('#keyboardCount');
         var joystickCount = svg.find('#joystickCount');
 
+        var bees1 = svg.find('#bees-count-1');
+        var bees2 = svg.find('#bees-count-2');
+        var bees3 = svg.find('#bees-count-3');
+        var beesTl1 = animBees(bees1, tempo, true, tempo*2);
+        var beesTl1SmallDelay = animBees(bees1, tempo, true, tempo);
+        var beesTl2 = animBees(bees2, tempo, true, tempo*2);
+        var beesTl2SmallDelay = animBees(bees2, tempo, true, tempo);
+        var beesTl3 = animBees(bees3, tempo, true, tempo*2);
+        var beesTl3SmallDelay = animBees(bees3, tempo, true, tempo);
+
         var clone;
 
         function addObject(object, y = 5){
@@ -421,7 +433,8 @@ module.exports = function(wrapper, windowWidth, tempo){
         // remove a gameboy in counter
         gameboyCount.html(gameboyCount.html() - 1);
         
-        tl.to(t1, tempo, {drawSVG: '0 100%', delay: tempo*4})
+        tl.add(beesTl1)
+          .to(t1, tempo, {drawSVG: '0 100%'})
           .to(t1, tempo, {drawSVG: '100% 100%'})
           .to(t3, tempo, {drawSVG: '0 100%'})
           .to(t3, tempo, {drawSVG: '100% 100%', onComplete: function(){
@@ -430,22 +443,23 @@ module.exports = function(wrapper, windowWidth, tempo){
             setTimeout(function(){
                 // add a keyboard in objects
                 addObject(svg.find('.js-keyboard').eq(0));
-            }, tempo*3000);
+            }, tempo*5000);
           }})
-          .to(t4, tempo, {drawSVG: '0 100%', delay: tempo*4})
+          .to(t4, tempo, {drawSVG: '0 100%', delay: tempo*6})
           .to(t4, tempo, {drawSVG: 0})
           .to(t2, tempo, {drawSVG: '0 100%'})
-          .to(t2, tempo, {drawSVG: 0, onComplete: function(){
+          .add([beesTl2SmallDelay, TweenLite.to(t2, tempo, {drawSVG: 0, onComplete: function(){
             // add a keyboard in counter
             synchCounter(keyboardCount, svg.find('.js-keyboard').length);
             setTimeout(function(){
                 // remove a joystick in counter
                 joystickCount.html(parseInt(joystickCount.html()) - 1);
-            }, tempo*3000);
-          }})
+            }, tempo*5000);
+          }})])
+          .add(beesTl3)
           .set([t1, t3], {drawSVG: 0})
           .set([t2, t4], {drawSVG: '100% 100%'})
-          .to(t1, tempo, {drawSVG: '0 100%', delay: tempo*4})
+          .to(t1, tempo, {drawSVG: '0 100%'})
           .to(t1, tempo, {drawSVG: '100% 100%'})
           .to(t3, tempo, {drawSVG: '0 100%'})
           .to(t3, tempo, {drawSVG: '100% 100%', onComplete: function(){
@@ -454,22 +468,23 @@ module.exports = function(wrapper, windowWidth, tempo){
             setTimeout(function(){
                 // add a gameboy in objects
                 addObject(svg.find('.js-gameboy').eq(3));
-            }, tempo*3000);
+            }, tempo*5000);
           }})
-          .to(t4, tempo, {drawSVG: '0 100%', delay: tempo*4})
+          .to(t4, tempo, {drawSVG: '0 100%', delay: tempo*6})
           .to(t4, tempo, {drawSVG: 0})
           .to(t2, tempo, {drawSVG: '0 100%'})
-          .to(t2, tempo, {drawSVG: 0, onComplete: function(){
+          .add([beesTl1SmallDelay, TweenLite.to(t2, tempo, {drawSVG: 0, onComplete: function(){
             // add a gameboy in counter
             synchCounter(gameboyCount, svg.find('.js-gameboy').length);
             setTimeout(function(){
                 // remove a keyboard in counter
                 keyboardCount.html(parseInt(keyboardCount.html()) - 1);
-            }, tempo*3000);
-          }})
+            }, tempo*5000);
+          }})])
+          .add(beesTl2)
           .set([t1, t3], {drawSVG: 0})
           .set([t2, t4], {drawSVG: '100% 100%'})
-          .to(t1, tempo, {drawSVG: '0 100%', delay: tempo*4})
+          .to(t1, tempo, {drawSVG: '0 100%'})
           .to(t1, tempo, {drawSVG: '100% 100%'})
           .to(t3, tempo, {drawSVG: '0 100%'})
           .to(t3, tempo, {drawSVG: '100% 100%', onComplete: function(){
@@ -478,19 +493,19 @@ module.exports = function(wrapper, windowWidth, tempo){
             setTimeout(function(){
                 // add a joystick in objects
                 addObject(svg.find('.js-joystick').eq(1));
-            }, tempo*3000);
+            }, tempo*5000);
           }})
-          .to(t4, tempo, {drawSVG: '0 100%', delay: tempo*4})
+          .to(t4, tempo, {drawSVG: '0 100%', delay: tempo*6})
           .to(t4, tempo, {drawSVG: 0})
           .to(t2, tempo, {drawSVG: '0 100%'})
-          .to(t2, tempo, {drawSVG: 0, onComplete: function(){
+          .add([beesTl3SmallDelay, TweenLite.to(t2, tempo, {drawSVG: 0, onComplete: function(){
             // add a joystick in counter
             synchCounter(joystickCount, svg.find('.js-joystick').length);
             setTimeout(function(){
                 // remove a gameboy in counter
                 gameboyCount.html(parseInt(gameboyCount.html()) - 1);
-            }, tempo*3000);
-          }});
+            }, tempo*5000);
+          }})]);
 
         return tl;
     }
