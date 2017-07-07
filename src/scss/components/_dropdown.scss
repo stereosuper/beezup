@@ -118,6 +118,14 @@
 }
 
 
+@media (max-width: $desktop-large){
+    .dropdown-list{
+        > li{
+            font-size: 1.7rem;
+        }
+    }
+}
+
 @media (max-width: $phone){
     .dropdown-list{
         > li{
