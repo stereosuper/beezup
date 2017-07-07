@@ -226,7 +226,7 @@ function beezup_get_channels_to_display($channelsToDisplay, $noChannels){
             $output .= '">';
             $output .= '<a href="' . $partner->homeUrl . '" title="' . $name . '" target="_blank">';
             $output .= '<span>' . $name . '</span>';
-            $output .= apply_filters( 'bj_lazy_load_html', $img);
+            $output .= $img;
             $output .= '</a></li>';
         }
 
