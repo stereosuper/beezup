@@ -40,6 +40,13 @@
                             <a class="btn move" href="#"><i class="fa fa-arrows"></i></a><br>	<!--<a class="btn btn-danger delete"  href="#"><i class="fa fa-trash-o fa-inverse"></i></a>-->
                         </div>
                     </div>
+                    <div class="row">
+                        <label class="lbl-tinyltr"><?php _e('Phone', 'beezup'); ?></label>
+                        <input type="text" name="TEL" id="TEL" value="">
+                        <div class="clear" style="clear:both;"></div>							<div class="hidden-btns">
+                            <a class="btn move" href="#"><i class="fa fa-arrows"></i></a><br>	<!--<a class="btn btn-danger delete"  href="#"><i class="fa fa-trash-o fa-inverse"></i></a>-->
+                        </div>
+                    </div>
                     <div class="row mandatory-email">
                         <label class="lbl-tinyltr"><?php _e('Email', 'beezup'); ?></label>
                         <input type="text" name="email" id="email" value="">
