@@ -34,7 +34,7 @@
                         </div>
                     </div>
                     <div class="row optionnal">
-                        <label class="lbl-tinyltr"><?php _e('E-commerce(s) website(s)', 'beezup'); ?> <i>(<?php _e('optionnal', 'beezup'); ?>)</i></label>
+                        <label class="lbl-tinyltr"><?php _e('E-commerce(s) website(s)', 'beezup'); ?> <i>(<?php _e('optional', 'beezup'); ?>)</i></label>
                         <input type="text" name="STORE_LIST" id="STORE_LIST" value="">
                         <div class="clear" style="clear:both;"></div>							<div class="hidden-btns">
                             <a class="btn move" href="#"><i class="fa fa-arrows"></i></a><br>	<!--<a class="btn btn-danger delete"  href="#"><i class="fa fa-trash-o fa-inverse"></i></a>-->
