@@ -232,6 +232,7 @@
     background: $primary;
     &.small{
         padding: 2.8em #{4*$gutter};
+        margin: 0;
     }
     .container-newsletter{
         width: 300px;
