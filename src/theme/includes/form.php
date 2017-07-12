@@ -36,7 +36,7 @@
         </div>
 
         <div class='field optionnal'>
-            <label for='website'><?php _e('E-commerce(s) website(s)', 'beezup'); ?> <i>(<?php _e('optionnal', 'beezup'); ?>)</i></label>
+            <label for='website'><?php _e('E-commerce(s) website(s)', 'beezup'); ?> <i>(<?php _e('optional', 'beezup'); ?>)</i></label>
             <input type='url' name='website' id='website' value='<?php echo $website; ?>' placeholder='http://'>
             <button id='addUrlInput' class='btn-add' type='button'>
                 <?php _e('Add', 'beezup'); ?>

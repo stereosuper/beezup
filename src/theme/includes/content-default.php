@@ -23,6 +23,20 @@
                         <?php } ?>
                     </div>
                 </section>
+            <?php }elseif( get_row_layout() == 'newsletter' ){ ?>
+                <section class='container-small'>
+                    <div class='blog-newsletter small'>
+                        <div class='newsletter-txt'>
+                            <?php if( get_field('blogNewsletterTitle', 'options') ){ ?>
+                                <h3><?php the_field('blogNewsletterTitle', 'options'); ?></h3>
+                            <?php } ?>
+
+                            <p><?php the_field('blogNewsletterText', 'options'); ?></p>
+                        </div>
+
+                        <?php get_template_part( 'includes/newsletter' ); ?>
+                    </div>
+                </section>
             <?php }
         }
     }
