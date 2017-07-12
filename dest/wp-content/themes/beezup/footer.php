@@ -75,7 +75,9 @@
 
                 <div class='bottom-footer'>
                     <div class='container'>
-                        <?php wp_nav_menu( array('theme_location' => 'footer') ); ?>
+                    <?php echo beezup_mlp_footer_lang();
+                    
+                        wp_nav_menu( array('theme_location' => 'footer') ); ?>
                     </div>
                 </div>
 
