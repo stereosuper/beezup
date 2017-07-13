@@ -465,8 +465,7 @@ add_filter('acf/load_value', 'beezup_acf_load_value', 10, 3);
 register_nav_menus( array(
     'primary' => 'Primary Menu',
     'secondary' => 'Secondary Menu',
-    'footer' => 'Footer Menu',
-    'lang' => 'Languages Switcher'
+    'footer' => 'Footer Menu'
 ) );
 
 // Cleanup WP Menu html
@@ -600,6 +599,70 @@ function beezup_mlp_navigation(){
 
     return $before . $currentLangItem . '<ul id="otherLanguage" class="other-language-items">' . join( '', $otherLangItems ) . '</ul>' . $after;
 }
+
+function beezup_mlp_footer_lang(){
+    $api = apply_filters( 'mlp_language_api', NULL );
+    if( ! is_a( $api, 'Mlp_Language_Api_Interface' ) ){
+        return '';
+    }
+
+    $translations_args = array(
+        'strict'       => FALSE,
+        'include_base' => TRUE,
+    );
+
+    $translations = $api->get_translations( $translations_args );
+    if( empty( $translations ) ){
+        return '';
+    }
+
+    $items = array();
+
+    foreach( $translations as $site_id => $translation ){
+        $url = $translation->get_remote_url();
+        if( empty( $url ) ){
+            continue;
+        }
+
+        $language = $translation->get_language();
+
+        $items[ $site_id ] = array(
+            'url'      => $url,
+            'native'   => $language->get_name( 'native_name' ),
+            'http'     => $language->get_name( 'http' ),
+            'name'     => $language->get_name( 'text' ),
+            'priority' => $language->get_priority(),
+            'icon'     => (string) $translation->get_icon_url(),
+        );
+    }
+    ksort( $items );
+
+    $otherLangItems = array();
+
+    foreach( $items as $site_id => $item ){
+
+        $text = $item[ 'native' ];
+
+        $img = '';
+
+        if( get_current_blog_id() === $site_id ){
+            $currentLangItem = '';
+        }else{
+            $otherLangItem = sprintf(
+                '<li><a rel="alternate" hreflang="%1$s" href="%2$s">Beezup %3$s%4$s</a></li>',
+
+                esc_attr( $item['http'] ),
+                esc_url( $item[ 'url' ] ),
+                $img,
+                esc_html( $text )
+            );
+            array_push($otherLangItems, $otherLangItem);
+        }
+    }
+
+    return "<ul>" . join( '', $otherLangItems ) . "</ul>";
+}
+
 
 /*-----------------------------------------------------------------------------------*/
 /* Yoast breadcrumbs

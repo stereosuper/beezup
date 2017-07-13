@@ -54,6 +54,11 @@
     background: $purple-dark;
     text-align: center;
     font-size: 1rem;
+    > .container{
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
     li{
         display: inline-block;
         padding: 0;
@@ -154,6 +159,14 @@
     .top-footer{
         .container{
             flex-wrap: wrap;
+        }
+    }
+}
+
+@media (max-width: $tablet){
+    .bottom-footer{
+        > .container{
+            flex-direction: column;
         }
     }
 }

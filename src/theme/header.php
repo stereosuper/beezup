@@ -55,13 +55,7 @@
 							<button id='btnMenuClose' class='btn-menu-close' type='button'><?php _e('Close menu', 'beezup'); ?></button>
 							
 							<div class='wrapper-menu-head'>
-								<div class='mlp-lang-switcher' id='header-lang-switcher'>
-									<span id='current-language' class='current-language-nav-item'>
-										<span class='current-language-item'><?php echo get_field('lang2', 'options'); ?></span>
-										<svg class="icon icon-arrow-down"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-arrow-down"></use></svg>
-									</span>
-									<?php wp_nav_menu( array('theme_location' => 'lang', 'container' => false, 'menu_class' => 'other-language-items', 'menu_id' => 'otherLanguage') ); ?>
-								</div>
+								<?php echo beezup_mlp_navigation(); ?>
 								<ul id='menuHead' class='menu-head'>
 									<?php if( get_field('contactLink', 'options') && get_field('contactLinkText', 'options') ){ ?>
 										<li class='head-contact'>
