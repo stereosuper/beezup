@@ -2,10 +2,10 @@
     if( have_rows('content') ){
         while ( have_rows('content') ){ the_row();
             if( get_row_layout() == 'wysiwyg' ){ ?>
-                <section class='container-small'><?php echo apply_filters( 'bj_lazy_load_html', get_sub_field('wysiwyg') ); ?></section>
+                <section class='container-small clearfix'><?php echo apply_filters( 'bj_lazy_load_html', get_sub_field('wysiwyg') ); ?></section>
             <?php }elseif( get_row_layout() == 'blockFull' ){ ?>
                 <section class='block-full default'>
-                    <div class='container-small'><?php echo apply_filters( 'bj_lazy_load_html',get_sub_field('blockFull') ); ?></div>
+                    <div class='container-small clearfix'><?php echo apply_filters( 'bj_lazy_load_html',get_sub_field('blockFull') ); ?></div>
                 </section>
             <?php }elseif( get_row_layout() == 'galery' ){ ?>
                 <section class='<?php if( get_sub_field('blueBg') ){ echo "block-full default"; } ?>'>
