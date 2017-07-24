@@ -9,6 +9,9 @@
     > img{
         max-width: calc(50% - #{$gutter});
     }
+    + .h1{
+        margin-top: 2.5em;
+    }
 }
 
 .demo-txt{
