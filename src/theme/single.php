@@ -12,7 +12,7 @@
 
 			<time datetime='<?php the_time('c');?>' itemprop='dateCreated' class='title-time'><?php _e('Add on', 'beezup'); ?> <?php echo get_the_date(); ?></time>
 
-			<?php the_post_thumbnail('full', array('class' => 'wide')); ?>
+			<?php //the_post_thumbnail('full', array('class' => 'wide')); ?>
 		</section>
 
 		<div class='wrapper-sticky'>
