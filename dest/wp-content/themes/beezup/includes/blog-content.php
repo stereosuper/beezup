@@ -14,7 +14,7 @@
                 <?php _e('Add on', 'beezup'); ?>
                 <a href='<?php the_permalink(); ?>' title='<?php the_title(); ?>'><time datetime='<?php the_time('c');?>' itemprop='dateCreated'><?php echo get_the_date(); ?></time></a>
                 <?php _e('in', 'beezup'); ?>
-                <?php echo get_the_category_list(); ?>
+                <?php echo get_the_category_list(', '); ?>
             </div>
 
             <h2>

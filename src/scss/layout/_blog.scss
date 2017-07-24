@@ -171,6 +171,7 @@
     display: inline-block;
     margin: 0;
     > li{
+        display: inline;
         padding: 0;
         &:before, &:after{
             display: none;
