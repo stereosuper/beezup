@@ -1,0 +1,107 @@
+.landing-content{
+    display: flex;
+    justify-content: space-between;
+}
+
+.landing-txt{
+    width: 60%;
+    margin: 0 95px 0 0;
+    img{
+        &.alignleft{
+            margin: 15px $gutter*2 15px 0;
+        }
+        &.alignright{
+            margin: 15px 0 15px $gutter*2;
+        }
+        &.wide{
+            width: 100%;
+            margin: 3.7em 0 4em 0;
+        }
+    }
+}
+
+.landing-words{
+    display: flex;
+    flex-wrap: wrap;
+    > li {
+        margin: 0 15px 0 0;
+        padding: 0;
+        text-transform: capitalize;
+        color: $secondary;
+        &:before, &:after{
+            content: none;
+        }
+        &:nth-child(n+4){
+            opacity: 1;
+        }
+        &:nth-child(n+7){
+            opacity: 0.8;
+        }
+        &:nth-child(n+11){
+            opacity: 0.6;
+        }
+        &:nth-child(n+14){
+            opacity: 0.4;
+        }
+        &:nth-child(n+18){
+            opacity: 0.2;
+        }
+    }
+}
+
+.landing{
+    aside{
+        max-width: 365px;
+        h3 {
+            margin: 0.6em 0 1.1em;
+            font-size: 2.2rem;
+            color: $primary;
+            &.word-title{
+                margin: 5em 0 2em;
+            }
+        }
+    }
+}
+
+@media (max-width: $desktop-small){
+    .landing-content{
+        flex-direction: column;
+    }
+    .landing-txt{
+        width: 100%;
+    }
+    .landing{
+        aside{
+            display: flex;
+            max-width: none;
+            h3 {
+                &.word-title{
+                    margin: 0.6em 0 1.1em;
+                }
+            }
+            div {
+                &:first-child{
+                    margin-right: 40px;
+                }
+            }
+        }
+    }
+}
+
+@media (max-width: $tablet){
+    .landing{
+        aside{
+            flex-direction: column;
+            h3 {
+                &.word-title{
+                    margin: 2em 0 1em;
+                }
+            }
+            div {
+                &:first-child{
+                    margin-right: 0;
+                }
+            }
+        }
+    }
+}
