@@ -42,7 +42,7 @@
                     </div>
                     <div class="row">
                         <label class="lbl-tinyltr"><?php _e('Phone', 'beezup'); ?></label>
-                        <input type="text" name="TEL" id="TEL" value="">
+                        <input type="text" name="TEL_BIS" id="TEL_BIS" value="">
                         <div class="clear" style="clear:both;"></div>							<div class="hidden-btns">
                             <a class="btn move" href="#"><i class="fa fa-arrows"></i></a><br>	<!--<a class="btn btn-danger delete"  href="#"><i class="fa fa-trash-o fa-inverse"></i></a>-->
                         </div>
