@@ -19,6 +19,8 @@
 		<meta name='application-name' content='BeezUP'>
 		<meta name='theme-color' content='#fff'>
 
+		<meta name='google-site-verification' content='TJR55WFDlDD5M3YInFBEKBXLDk9yPDp3zI-6dgYmyJI' />
+
 		<?php wp_head(); ?>
 
 		<!-- Calendly style -->
