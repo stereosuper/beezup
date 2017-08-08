@@ -45,7 +45,6 @@
                 <path class='behind' d='M484.9 240.3L667.4 47.1l-3.7-23.5-182.5 193.3zm482-40.9l-3.9-23.9L663.7 23.6l3.7 23.5z'/>
                 <path class='blue' d='M966.9 199.4l-182.1 193-299.9-152.1L667.4 47.1z'/>
                 <path class='primary' d='M484.9 240.3L667.4 47.1l-3.7-23.5-182.5 193.3zm482-40.9l-3.9-23.9L663.7 23.6l3.7 23.5z'/>
-                <path class='box-right' d='M963 175.5L781 369l3.8 23.4 182.1-193z'/>
                 <path class='box-bottom' d='M481.2 216.9l3.7 23.4 299.9 152.1L781 369z'/>
                 <ellipse class='box-bottom' cx='506.7' cy='241.2' rx='3.5' ry='4.7'/>
                 <ellipse class='box-bottom' cx='516.3' cy='245.8' rx='3.5' ry='4.7'/>
@@ -59,6 +58,7 @@
             <g class='logo-marketplace'>
                 <image width='370' height='310' transform='matrix(0.8, 0.42, -0.57, 0.61, 661.76, 27.56)' xlink:href='<?php echo get_template_directory_uri(); ?>/layoutImg/schema-market.png'/>
             </g>
+            <path class='box-right' d='M963 175.5L781 369l3.8 23.4 182.1-193z'/>
             <path class='market-shadow' d='M963 175.5L781.4 368.3 481.2 216.6l182.5-193z'/>
             <g class='box-top'>
                 <path class='box-top' d='M963 175.5L781 369 481.2 216.9 663.7 23.6z'/>
@@ -78,7 +78,6 @@
                 <path class='behind' d='M833.9 145.3L949.4 20.1 945.7.6 830.2 125.9zm334-13.9l-3.9-19.9L945.7.6l3.7 19.5z'/>
                 <path class='blue' d='M1167.9 131.4l-115.1 125-218.9-111.1L949.4 20.1z'/>
                 <path class='primary' d='M833.9 145.3L949.4 20.1 945.7.6 830.2 125.9zm334-13.9l-3.9-19.9L945.7.6l3.7 19.5z'/>
-                <path class='box-right' d='M1164 111.5L1049 237l3.8 19.4 115.1-125z'/>
                 <path class='box-bottom' d='M830.2 125.9l3.7 19.4 218.9 111.1-3.8-19.4z'/>
                 <ellipse class='box-bottom' cx='958' cy='199.3' rx='3.5' ry='3.8'/>
                 <ellipse class='box-bottom' cx='967.2' cy='203.6' rx='3.5' ry='3.8'/>
@@ -86,6 +85,7 @@
             <g class='logo-ads'>
                 <image width='1058' height='510' transform='matrix(0.2, 0.1, -0.13, 0.15, 912.02, 51.48)' xlink:href='<?php echo get_template_directory_uri(); ?>/layoutImg/schema-ads.png'/>
             </g>
+            <path class='box-right' d='M1164 111.5L1049 237l3.8 19.4 115.1-125z'/>
             <path class='ads-shadow' d='M1163 111.6l-114.8 124-217-109.8L945.7.6z'/>
             <g class='box-top'>
                 <path class='box-top' d='M1164 111.5L1049 237 830.2 125.9 945.7.6z'/>
@@ -136,7 +136,7 @@
                 <path class='behind' d='M862.9 426.3l55.5-59.2-2.7-15.5-55.5 59.3zm282 55.1l-2.9-15.9-226.3-113.9 2.7 15.5z'/>
                 <path class='blue' d='M1144.9 481.4l-55.1 59-226.9-114.1 55.5-59.2z'/>
                 <path class='primary' d='M862.9 426.3l55.5-59.2-2.7-15.5-55.5 59.3zm282 55.1l-2.9-15.9-226.3-113.9 2.7 15.5z'/>
-                <path class='box-right' d='M1142 465.5l-55 59.5 2.8 15.4 55.1-59z'/>
+                
                 <path class='box-bottom' d='M860.2 410.9l2.7 15.4 226.9 114.1-2.8-15.4z'/>
                 <ellipse class='box-bottom' cx='892.5' cy='434.4' rx='3.5' ry='3.8'/>
                 <ellipse class='box-bottom' cx='884.1' cy='429.9' rx='3.5' ry='3.8'/>
@@ -144,6 +144,7 @@
             <g class='logo-comparator'>
                 <image width='1115' height='385' transform='matrix(0.2, 0.1, -0.1, 0.11, 912.81, 366.47)' xlink:href='<?php echo get_template_directory_uri(); ?>/layoutImg/schema-comparator.png'/>
             </g>
+            <path class='box-right' d='M1142 465.5l-55 59.5 2.8 15.4 55.1-59z'/>
             <path class='comparator-shadow' d='M1141.2 465.9l-54 58.2L861 410.8l54.7-59.2z'/>
             <g class='box-top'>
                 <path class='box-top' d='M1142 465.5l-55 59.5-226.8-114.1 55.5-59.3z'/>
@@ -327,12 +328,12 @@
                 <path class='behind' d='M721.9 631.3l53.5-55.2-2.7-15.5-53.5 55.3zm231 35.1l-2.9-15.9-177.3-89.9 2.7 15.5z'/>
                 <path class='blue' d='M952.9 666.4l-53.1 55-177.9-90.1 53.5-55.2z'/>
                 <path class='primary' d='M721.9 631.3l53.5-55.2-2.7-15.5-53.5 55.3zm231 35.1l-2.9-15.9-177.3-89.9 2.7 15.5z'/>
-                <path class='box-right' d='M950 650.5L897 706l2.8 15.4 53.1-55z'/>
                 <path class='box-bottom' d='M719.2 615.9l2.7 15.4 177.9 90.1L897 706z'/>
             </g>
             <g class='logo-retargeting'>
                 <image width='871' height='316' transform='matrix(0.2, 0.1, -0.13, 0.15, 770.66, 567.79)' xlink:href='<?php echo get_template_directory_uri(); ?>/layoutImg/schema-retargeting.png'/>
             </g>
+            <path class='box-right' d='M950 650.5L897 706l2.8 15.4 53.1-55z'/>
             <path class='retargeting-shadow' d='M949 650.6l-52 54.8-176.8-89.6 53.3-55.4z'/>
             <g class='box-top'>
                 <path class='box-top' d='M950 650.5L897 706l-177.8-90.1 53.5-55.3z'/>
@@ -352,12 +353,12 @@
                 <path class='behind' d='M834.9 537.3l60.5-63.2-2.7-15.5-60.5 63.3zm254 35.1l-2.9-15.9-193.3-97.9 2.7 15.5z'/>
                 <path class='blue' d='M1088.9 572.4l-60.1 63-193.9-98.1 60.5-63.2z'/>
                 <path class='primary' d='M834.9 537.3l60.5-63.2-2.7-15.5-60.5 63.3zm254 35.1l-2.9-15.9-193.3-97.9 2.7 15.5z'/>
-                <path class='box-right' d='M1086 556.5l-60 63.5 2.8 15.4 60.1-63z'/>
                 <path class='box-bottom' d='M832.2 521.9l2.7 15.4 193.9 98.1-2.8-15.4z'/>
             </g>
             <g class='logo-affiliation'>
                 <image width='890' height='345' transform='matrix(0.2, 0.1, -0.13, 0.14, 896.61, 474.51)' xlink:href='<?php echo get_template_directory_uri(); ?>/layoutImg/schema-affiliation.png'/>
             </g>
+            <path class='box-right' d='M1086 556.5l-60 63.5 2.8 15.4 60.1-63z'/>
             <path class='affiliation-shadow' d='M1085.2 556.6l-59.3 62.5-193.2-97.5 59.7-62.5z'/>
             <g class='box-top'>
                 <path class='box-top' d='M1086 556.5l-60 63.5-193.8-98.1 60.5-63.3z'/>
