@@ -12,7 +12,7 @@
             <input type="hidden" name="from_url" id="from_url" value="yes">
             <input type="hidden" name="hdn_email_txt" id="hdn_email_txt" value="">
             <div class="sib-container rounded">
-                <input type="hidden" name="req_hid" id="req_hid" value="~SURNAME~NOM">
+                <input type="hidden" name="req_hid" id="req_hid" value="~NOM~SURNAME~MESSAGE~TEL_BIS~Captcha">
                 <div class="view-messages"></div>
                 <!-- an email as primary -->
                 <div class="primary-group email-group forms-builder-group ui-sortable">
