@@ -98,5 +98,29 @@
 
         <?php wp_footer(); ?>
 
+        <?php if( is_page_template( 'contact.php' ) || is_page_template( 'tarifs.php' ) ){ ?>
+            <script src="https://www.google.com/recaptcha/api.js?onload=myCallBack&render=explicit&hl=fr"></script>
+
+            <script>
+                var verifyCallback = function(response) {
+                    if(response.length > 0) {
+                        $(".captcha > div.row > div.message_area").remove();
+                    }
+                };
+
+                var myCallBack = function() {
+                    //Render the recaptcha1 on the element with ID "recaptcha1"
+                    if($('.captcha > div.row > div#gcaptcha').length > 0) {
+                        var captcha = grecaptcha.render('gcaptcha', {
+                          'sitekey' : '6Lf9DiwUAAAAAMoeVnb6WB4Chvbq-15a19__3E0N',
+                          'theme' : 'light',
+                          'callback' : verifyCallback,
+                          'hl' : '<?php the_field('lang2', 'options'); ?>'
+                        });
+                    }
+                };
+            </script>
+        <?php } ?>
+
     </body>
 </html>

@@ -695,7 +695,7 @@ add_filter( 'rocket_cache_dynamic_cookies', 'beez_cookies' );
 /*-----------------------------------------------------------------------------------*/
 // Add defer attr to scripts
 function beezup_defer_attr($tag, $handle){
-    $scriptsToDefer = array('beezup-scripts', 'sendinblue-scripts', 'calendly-scripts');
+    $scriptsToDefer = array('sendinblue-scripts', 'calendly-scripts');
    
     foreach( $scriptsToDefer as $script ){
         if( $script === $handle ){

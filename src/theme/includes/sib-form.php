@@ -66,7 +66,9 @@
                         </div>
                     </div>
                 </div>
-                         
+
+                <div class="captcha forms-builder-group"><div class="row"><div id="gcaptcha" style="transform: scale(1); margin-left: 0px;"></div></div></div>
+
                 <div class="byline" >
                     <button class='btn btn-arrow button editable' type='submit' data-editfield="subscribe">
                         <?php _e('Submit', 'beezup'); ?>
