@@ -388,9 +388,8 @@ module.exports = function(wrapper, windowWidth, tempo){
         var clone;
 
         function addObject(object, y = 5){
-            clone = object.clone();
+            clone = object.clone().appendTo(object.parent());
             TweenLite.set(clone, {y: '-='+(50+y), opacity: 0});
-            object.parent().append(clone);
             TweenLite.to(clone, tempo, {y: '+=50', opacity: 1});
         }
 
@@ -586,6 +585,7 @@ module.exports = function(wrapper, windowWidth, tempo){
             'height' : $(this).height()
         });
     });
+
 
     $(document).on('scroll', throttle(function(){
         requestAnimFrame(scrollHandler);
