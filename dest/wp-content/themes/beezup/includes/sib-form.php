@@ -15,22 +15,28 @@ if($subject === 'support'){
 
 ?>
 
-<form class='form-choose' method='POST' action='<?php the_permalink(); ?>#sib_embed_signup'>
-    <label><?php _e('Subject', 'beezup'); ?></label>
-    <div>
-        <div class='select'>
-            <select name='subject' id='subject'>
-                <option value='sales'><?php _e('Sales', 'beezup'); ?></option>
-                <option value='support' <?php if($subject === 'support'){ echo 'selected'; } ?>><?php _e('Support and partnership', 'beezup'); ?></option>
-                <option value='other' <?php if($subject === 'other'){ echo 'selected'; } ?>><?php _e('Other', 'beezup'); ?></option>
-            </select>
+<?php if( get_field('contactId', 'options') && (get_field('contactId2', 'options') || get_field('contactId3', 'options')) ){ ?>
+    <form class='form-choose' method='POST' action='<?php the_permalink(); ?>#sib_embed_signup'>
+        <label><?php _e('Subject', 'beezup'); ?></label>
+        <div>
+            <div class='select'>
+                <select name='subject' id='subject'>
+                    <option value='sales'><?php _e('Sales', 'beezup'); ?></option>
+                    <?php if( get_field('contactId2', 'options') ){ ?>
+                        <option value='support' <?php if($subject === 'support'){ echo 'selected'; } ?>><?php _e('Support and partnership', 'beezup'); ?></option>
+                    <?php } ?>
+                    <?php if( get_field('contactId3', 'options') ){ ?>
+                        <option value='other' <?php if($subject === 'other'){ echo 'selected'; } ?>><?php _e('Other', 'beezup'); ?></option>
+                    <?php } ?>
+                </select>
+            </div>
         </div>
-    </div>
-    <button class='btn btn-arrow' type='submit' name='choose-submit'>
-        <?php _e('Choose', 'beezup'); ?>
-        <svg class='icon icon-arrow-right'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-arrow-right'></use></svg>
-    </button>
-</form>
+        <button class='btn btn-arrow' type='submit' name='choose-submit'>
+            <?php _e('Choose', 'beezup'); ?>
+            <svg class='icon icon-arrow-right'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-arrow-right'></use></svg>
+        </button>
+    </form>
+<?php } ?>
 
 <div id="sib_embed_signup">
     <div class="forms-builder-wrapper">
