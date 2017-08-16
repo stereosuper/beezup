@@ -1,3 +1,37 @@
+<?php
+
+$subject = isset($_POST['subject']) ? strip_tags(stripslashes($_POST['subject'])) : '';
+
+if($subject === 'support'){
+    $contactId = get_field('contactId2', 'options');
+    $contactLists = get_field('contactLists2', 'options');
+}else if($subject === 'other'){
+    $contactId = get_field('contactId3', 'options');
+    $contactLists = get_field('contactLists3', 'options');
+}else{
+    $contactId = get_field('contactId', 'options');
+    $contactLists = get_field('contactLists', 'options');
+}
+
+?>
+
+<form class='form-choose' method='POST' action='<?php the_permalink(); ?>#sib_embed_signup'>
+    <label><?php _e('Subject', 'beezup'); ?></label>
+    <div>
+        <div class='select'>
+            <select name='subject' id='subject'>
+                <option value='sales'><?php _e('Sales', 'beezup'); ?></option>
+                <option value='support' <?php if($subject === 'support'){ echo 'selected'; } ?>><?php _e('Support and partnership', 'beezup'); ?></option>
+                <option value='other' <?php if($subject === 'other'){ echo 'selected'; } ?>><?php _e('Other', 'beezup'); ?></option>
+            </select>
+        </div>
+    </div>
+    <button class='btn btn-arrow' type='submit' name='choose-submit'>
+        <?php _e('Choose', 'beezup'); ?>
+        <svg class='icon icon-arrow-right'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-arrow-right'></use></svg>
+    </button>
+</form>
+
 <div id="sib_embed_signup">
     <div class="forms-builder-wrapper">
         <input type="hidden" id="sib_embed_signup_lang" value="<?php the_field('lang2', 'options'); ?>">
@@ -6,9 +40,9 @@
         <div id="sib_loading_gif_area" style="position: absolute;z-index: 9999;display: none;">
             <img src="https://my.sendinblue.com/public/theme/version4/assets/images/loader_sblue.gif" style="display: block;margin-left: auto;margin-right: auto;position: relative;top: 40%;">
         </div>
-        <form class="description sib-form" id="theform" name="theform" action="https://my.sendinblue.com/users/subscribeembed/js_id/2kqou/id/<?php the_field('contactId', 'options'); ?>" onsubmit="return false;">
+        <form class="description sib-form" id="theform" name="theform" action="https://my.sendinblue.com/users/subscribeembed/js_id/2kqou/id/<?php echo $contactId; ?>" onsubmit="return false;" data-action="https://my.sendinblue.com/users/subscribeembed/js_id/2kqou/id/">
             <input type="hidden" name="js_id" id="js_id" value="2kqou">
-            <input type="hidden" name="listid" id="listid" value="<?php the_field('contactLists', 'options'); ?>">
+            <input type="hidden" name="listid" id="listid" value="<?php echo $contactLists; ?>">
             <input type="hidden" name="from_url" id="from_url" value="yes">
             <input type="hidden" name="hdn_email_txt" id="hdn_email_txt" value="">
             <div class="sib-container rounded">

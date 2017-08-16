@@ -723,10 +723,12 @@ function beezup_scripts(){
     wp_enqueue_script( 'sendinblue-scripts');
     wp_enqueue_script( 'calendly-scripts');
 
-    // Pass some data to JS for networks page
+    // Pass some data to JS for networks page and form pages
     global $post;
     $networkPage = get_field('networkPage', 'options');
     $isNetworkPage = $post->ID === $networkPage;
+
+    $isFormPage = is_page_template( 'contact.php' ) || is_page_template( 'tarifs.php' );
 
     wp_localize_script( 'beezup-scripts', 'wp', array(
         'adminAjax' => site_url( '/wp-admin/admin-ajax.php' ),
@@ -734,7 +736,11 @@ function beezup_scripts(){
         'type' => get_field('type', $post->ID),
         'noChannels' => '<svg class="icon"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-error"></use></svg>' . __('There are no channels of this sector in this country', 'beezup'),
         'noChannelsType' => '<svg class="icon"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-error"></use></svg>' . __('There are no channels of this sector and this type in this country', 'beezup'),
-        'noChannelsSearch' => '<svg class="icon"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-error"></use></svg>' . __('There no channels matching your search', 'beezup')
+        'noChannelsSearch' => '<svg class="icon"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-error"></use></svg>' . __('There no channels matching your search', 'beezup'),
+
+        'isFormPage' => $isFormPage,
+        'contactIds' => array('sales' => get_field('contactId', 'options'), 'support' => get_field('contactId2', 'options'), 'other' => get_field('contactId3', 'options')),
+        'contactLists' => array('sales' => get_field('contactLists', 'options'), 'support' => get_field('contactLists2', 'options'), 'other' => get_field('contactLists3', 'options'))
     ) );
     
 }

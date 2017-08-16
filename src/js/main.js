@@ -22,6 +22,7 @@ $(function(){
     var animFonctionnalites = require('./animFonctionnalites.js');
     var sliderPrices = require('./sliderPrices.js');
     var submenu = require('./submenu.js');
+    var selectForm = require('./selectForm.js');
 
     var body = $('body');
     var menuMain = $('#menuMain');
@@ -92,6 +93,9 @@ $(function(){
 
     //Anim fonctionnalités
     animFonctionnalites($('#animsFonctionnalites'), windowWidth, tempo);
+
+    // Slect form
+    selectForm(wp, $('#subject'), $('#theform'), $('#listid'));
     
     // Add url inputs
     // addUrlInputs($('#addUrlInput'), $('#newInputsCount'));
