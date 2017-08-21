@@ -4,11 +4,10 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: Thu Jul 06 2017 15:31:45 GMT+0200 (Paris, Madrid (heure "
 "d’été))\n"
-"PO-Revision-Date: Sun Jul 09 2017 18:46:54 GMT+0200 (Paris, Madrid (heure "
-"d’été))\n"
+"PO-Revision-Date: 2017-08-11 18:09+0000\n"
 "Last-Translator: adminBeez <elisabeth@stereosuper.fr>\n"
-"Language-Team: \n"
-"Language: German\n"
+"Language-Team: German\n"
+"Language: de-DE\n"
 "Plural-Forms: nplurals=2; plural=n != 1\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -49,11 +48,11 @@ msgstr ""
 
 #: ../../themes/beezup/search.php:8
 msgid "result"
-msgstr ""
+msgstr "Suchergebnis"
 
 #: ../../themes/beezup/search.php:16
 msgid "for"
-msgstr ""
+msgstr "für"
 
 #: ../../themes/beezup/search.php:34
 msgid "No results for"
@@ -61,7 +60,7 @@ msgstr ""
 
 #: ../../themes/beezup/search.php:42
 msgid "The search for"
-msgstr ""
+msgstr "der Suche für"
 
 #: ../../themes/beezup/search.php:42
 msgid "hasn't return any results"
@@ -107,10 +106,6 @@ msgstr ""
 msgid "Close menu"
 msgstr ""
 
-#. Name of the template
-msgid "Réseaux"
-msgstr "Kanäle"
-
 #: ../../themes/beezup/reseaux.php:80
 msgid "Open channels type list"
 msgstr ""
@@ -119,17 +114,18 @@ msgstr ""
 msgid "Close channels type list"
 msgstr ""
 
-#: ../../themes/beezup/reseaux.php:103 ../../themes/beezup/includes/blog-form.php:
-#: 26 ../../themes/beezup/includes/blog-form.php:27
+#: ../../themes/beezup/reseaux.php:103
+#: ../../themes/beezup/includes/blog-form.php: 26
+#: ../../themes/beezup/includes/blog-form.php:27
 msgid "Search"
-msgstr ""
+msgstr "Suchen"
 
 #: ../../themes/beezup/includes/form.php:16
 msgid "Thank you for your message ! We’ll get back to you soon."
 msgstr ""
 
-#: ../../themes/beezup/includes/form.php:57 ../../themes/beezup/includes/sib-form.
-#: php:44
+#: ../../themes/beezup/includes/form.php:57
+#: ../../themes/beezup/includes/sib-form. php:44
 msgid "Email"
 msgstr ""
 
@@ -144,31 +140,34 @@ msgstr ""
 #: ../../themes/beezup/includes/blog-content.php:14 ../../themes/beezup/single.
 #: php:13
 msgid "Add on"
-msgstr ""
+msgstr "hinzugefügt in"
 
 #: ../../themes/beezup/includes/blog-content.php:16
 msgid "in"
-msgstr ""
+msgstr "in"
 
 #: ../../themes/beezup/includes/blog-content.php:55
-msgid "Previous <svg class=\"icon\"><use xlink:href=\"#icon-arrow-left\"></use></svg>"
-msgstr ""
+msgid ""
+"Previous <svg class=\"icon\"><use xlink:href=\"#icon-arrow-left\"></use>"
+"</svg>"
+msgstr "Vorherigen"
 
 #: ../../themes/beezup/includes/blog-content.php:55
-msgid "Next <svg class=\"icon\"><use xlink:href=\"#icon-arrow-right\"></use></svg>"
-msgstr ""
+msgid ""
+"Next <svg class=\"icon\"><use xlink:href=\"#icon-arrow-right\"></use></svg>"
+msgstr "Nach"
 
 #: ../../themes/beezup/includes/related.php:20
 msgid "Related Posts"
-msgstr ""
+msgstr "Artikel assoziiert"
 
 #: ../../themes/beezup/includes/blog-form.php:5
 msgid "Categories"
-msgstr ""
+msgstr "Kategorien "
 
 #: ../../themes/beezup/includes/blog-form.php:7
 msgid "All categories"
-msgstr ""
+msgstr "aller Kategorien"
 
 #: ../../themes/beezup/includes/blog-form.php:13
 msgid "Open catgories list"
@@ -218,6 +217,10 @@ msgid "http://stereosuper.fr"
 msgstr ""
 
 #. Name of the template
+msgid "Réseaux"
+msgstr "Kanäle"
+
+#. Name of the template
 msgid "Fonctionnalites"
 msgstr "Features"
 
@@ -250,23 +253,23 @@ msgstr "Alle Sektoren"
 msgid "All types of channels"
 msgstr "Kanäle aller Art"
 
-#: ../../themes/beezup/includes/form.php:23 ../../themes/beezup/includes/sib-form.
-#: php:20
+#: ../../themes/beezup/includes/form.php:23
+#: ../../themes/beezup/includes/sib-form. php:20
 msgid "Last Name"
 msgstr "Nachname"
 
-#: ../../themes/beezup/includes/form.php:31 ../../themes/beezup/includes/sib-form.
-#: php:30
+#: ../../themes/beezup/includes/form.php:31
+#: ../../themes/beezup/includes/sib-form. php:30
 msgid "First Name"
 msgstr "Vorname"
 
-#: ../../themes/beezup/includes/form.php:39 ../../themes/beezup/includes/sib-form.
-#: php:37
+#: ../../themes/beezup/includes/form.php:39
+#: ../../themes/beezup/includes/sib-form. php:37
 msgid "E-commerce(s) website(s)"
 msgstr "Online-Shop"
 
-#: ../../themes/beezup/includes/form.php:39 ../../themes/beezup/includes/sib-form.
-#: php:37
+#: ../../themes/beezup/includes/form.php:39
+#: ../../themes/beezup/includes/sib-form. php:37
 msgid "optionnal"
 msgstr "Optional"
 
@@ -278,13 +281,13 @@ msgstr "Hinzufügen"
 msgid "Phone"
 msgstr "Telefon"
 
-#: ../../themes/beezup/includes/form.php:65 ../../themes/beezup/includes/sib-form.
-#: php:53
+#: ../../themes/beezup/includes/form.php:65
+#: ../../themes/beezup/includes/sib-form. php:53
 msgid "Message"
 msgstr "Nachricht"
 
-#: ../../themes/beezup/includes/form.php:87 ../../themes/beezup/includes/sib-form.
-#: php:65
+#: ../../themes/beezup/includes/form.php:87
+#: ../../themes/beezup/includes/sib-form. php:65
 msgid "Submit"
 msgstr "Senden"
 
