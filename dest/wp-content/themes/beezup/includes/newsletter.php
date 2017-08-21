@@ -1,7 +1,7 @@
 <div id='sib_embed_signup'>
     <div class='forms-builder-wrapper'>
         <input type='hidden' id='sib_embed_signup_lang' value='<?php the_field('lang2', 'options'); ?>'>
-        <input type='hidden' id='sib_embed_invalid_email_message' value="<?php _e("This email adress isn't valid", 'beezup'); ?>">
+        <input type='hidden' id='sib_embed_invalid_email_message' value="<?php _e("This email address isn't valid", 'beezup'); ?>">
         <input type='hidden' name='primary_type' id='primary_type' value='email'>
         <div id='sib_loading_gif_area' style='position:absolute;z-index:9999;display:none;'>
             <img src='https://my.sendinblue.com/public/theme/version4/assets/images/loader_sblue.gif' style='display:block;margin-left:auto;margin-right:auto;position:relative;top:40%;'>
