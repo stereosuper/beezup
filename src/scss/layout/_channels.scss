@@ -91,6 +91,7 @@
 .wrapper-channels-filters{
     display: flex;
     position: relative;
+    z-index: 1;
     justify-content: flex-end;
 }
 
@@ -158,9 +159,10 @@
     }
 
     .channels-type{
-        width: 100%;
+        width: auto;
         max-width: 330px;
         padding: 48px 40px 25px;
+        right: 30px;
         &.top{
             top: 39px;
         }
