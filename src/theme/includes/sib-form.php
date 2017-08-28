@@ -2,12 +2,15 @@
 
 $subject = isset($_POST['subject']) ? strip_tags(stripslashes($_POST['subject'])) : '';
 
-if($subject === 'support'){
+if( $subject === 'support' || $subject === 'partnership' ){
     $contactId = get_field('contactId2', 'options');
     $contactLists = get_field('contactLists2', 'options');
-}else if($subject === 'other'){
+}else if( $subject === 'other' ){
     $contactId = get_field('contactId3', 'options');
     $contactLists = get_field('contactLists3', 'options');
+}else if( $subject === 'accounting' ){
+    $contactId = get_field('contactId4', 'options');
+    $contactLists = get_field('contactLists4', 'options');
 }else{
     $contactId = get_field('contactId', 'options');
     $contactLists = get_field('contactLists', 'options');
@@ -24,7 +27,11 @@ if($subject === 'support'){
                     <select name='subject' id='subject'>
                         <option value='sales'><?php _e('Sales', 'beezup'); ?></option>
                         <?php if( get_field('contactId2', 'options') ){ ?>
-                            <option value='support' <?php if($subject === 'support'){ echo 'selected'; } ?>><?php _e('Support and partnership', 'beezup'); ?></option>
+                            <option value='support' <?php if($subject === 'support'){ echo 'selected'; } ?>><?php _e('Support', 'beezup'); ?></option>
+                            <option value='partnership' <?php if($subject === 'partnership'){ echo 'selected'; } ?>><?php _e('Partnership', 'beezup'); ?></option>
+                        <?php } ?>
+                        <?php if( get_field('contactId4', 'options') ){ ?>
+                            <option value='accounting' <?php if($subject === 'accounting'){ echo 'selected'; } ?>><?php _e('Accounting', 'beezup'); ?></option>
                         <?php } ?>
                         <?php if( get_field('contactId3', 'options') ){ ?>
                             <option value='other' <?php if($subject === 'other'){ echo 'selected'; } ?>><?php _e('Other', 'beezup'); ?></option>

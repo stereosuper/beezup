@@ -663,6 +663,48 @@ function beezup_mlp_footer_lang(){
     return "<ul>" . join( '', $otherLangItems ) . "</ul>";
 }
 
+function beezup_mlp_href_US(){
+    $api = apply_filters( 'mlp_language_api', NULL );
+    if( ! is_a( $api, 'Mlp_Language_Api_Interface' ) ){
+        return '';
+    }
+
+    $translations_args = array(
+        'strict'       => FALSE,
+        'include_base' => TRUE,
+    );
+
+    $translations = $api->get_translations( $translations_args );
+    if( empty( $translations ) ){
+        return '';
+    }
+
+    $items = array();
+
+    foreach( $translations as $site_id => $translation ){
+        $url = $translation->get_remote_url();
+        if( empty( $url ) ){
+            continue;
+        }
+
+        $language = $translation->get_language();
+
+        $items[ $site_id ] = array(
+            'url'      => $url,
+            'http'     => $language->get_name( 'http' )
+        );
+    }
+
+    $hrefLinkUS = '';
+    foreach( $items as $site_id => $item ){
+        if( $item['http'] == 'en-GB'){
+            $hrefLinkUS = '<link rel="alternate" hreflang="en-US" href="' . esc_attr( $item["url"] ) . '">';
+        }
+    }
+
+    echo $hrefLinkUS;
+}
+
 
 /*-----------------------------------------------------------------------------------*/
 /* Yoast breadcrumbs
@@ -739,8 +781,8 @@ function beezup_scripts(){
         'noChannelsSearch' => '<svg class="icon"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-error"></use></svg>' . __('There no channels matching your search', 'beezup'),
 
         'isFormPage' => $isFormPage,
-        'contactIds' => array('sales' => get_field('contactId', 'options'), 'support' => get_field('contactId2', 'options'), 'other' => get_field('contactId3', 'options')),
-        'contactLists' => array('sales' => get_field('contactLists', 'options'), 'support' => get_field('contactLists2', 'options'), 'other' => get_field('contactLists3', 'options'))
+        'contactIds' => array('sales' => get_field('contactId', 'options'), 'support' => get_field('contactId2', 'options'), 'other' => get_field('contactId3', 'options'), 'accounting' => get_field('contactId4', 'options')),
+        'contactLists' => array('sales' => get_field('contactLists', 'options'), 'support' => get_field('contactLists2', 'options'), 'other' => get_field('contactLists3', 'options'), 'accounting' => get_field('contactLists4', 'options'))
     ) );
     
 }

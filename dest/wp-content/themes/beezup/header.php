@@ -23,6 +23,8 @@
 
 		<?php wp_head(); ?>
 
+		<?php beezup_mlp_href_US(); ?>
+
 		<!-- Calendly style -->
 		<link href='https://calendly.com/assets/external/widget.css' rel='stylesheet'>
 

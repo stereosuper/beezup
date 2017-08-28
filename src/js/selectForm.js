@@ -8,8 +8,13 @@ module.exports = function(wp, subject, form, listInput){
     subject.on('change', function(){
         switch( $(this).val() ){
             case 'support':
+            case 'partnership':
                 contactId = wp.contactIds.support;
                 contactLists = wp.contactLists.support;
+                break;
+            case 'accounting':
+                contactId = wp.contactIds.accounting;
+                contactLists = wp.contactLists.accounting;
                 break;
             case 'other':
                 contactId = wp.contactIds.other;
