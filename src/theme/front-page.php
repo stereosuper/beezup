@@ -131,7 +131,7 @@ get_header(); ?>
 		</div>
 	</section>
 
-	<section class='block-full'>
+	<section class='block-full' id='customers'>
 		<?php if( have_rows('quotes') ){ ?>
 			<ul class='container list-quotes'>
 				<?php while( have_rows('quotes') ){ the_row(); ?>
