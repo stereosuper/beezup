@@ -33,7 +33,7 @@
 							<a href='https://www.facebook.com/sharer.php?u=<?php the_permalink(); ?>&t=<?php the_title(); ?>' rel='nofollow' target='blank' title='<?php _e('Share on', 'beezup'); ?> Facebook'><?php _e('Share on', 'beezup'); ?> Facebook <svg class='icon'><use xlink:href='#icon-facebook'></use></svg></a>
 						</li>
 						<li>
-							<a href='https://plus.google.com/share?url=<?php the_permalink(); ?>' rel='nofollow' target='blank' title='<?php _e('Share on', 'beezup'); ?> Google +'><?php _e('Share on', 'beezup'); ?> Google + <svg class='icon'><use xlink:href='#icon-google-plus'></use></svg></a>
+							<a href='https://www.linkedin.com/shareArticle?mini=true&url=<?php the_permalink(); ?>&title=<?php the_title(); ?>' rel='nofollow' target='blank' title='<?php _e('Share on', 'beezup'); ?> LinkedIn'><?php _e('Share on', 'beezup'); ?> LinkedIn <svg class='icon'><use xlink:href='#icon-linkedin'></use></svg></a>
 						</li>
 					</ul>
 				</nav>
