@@ -17,7 +17,9 @@ get_header(); ?>
             <aside>
                 <div>
                     <h3><?php the_field('form_title'); ?></h3>
-                    <?php get_template_part( 'includes/sib-form' ); ?>
+                    <?php if( get_field('formID') && get_field('listID') ){ ?>
+                        <?php get_template_part( 'includes/sib-form-landing' ); ?>
+                    <?php } ?>
                 </div>
                 <div>
                     <h3 class='word-title'><?php the_field('word_title'); ?></h3>
