@@ -170,7 +170,8 @@ if( $channelsTypeIndex && property_exists($channelsTypeIndex, 'items') ){
 
         foreach( $channelsTypeIndex->items as $type ){
             // Si la page existe deja, on ne fait rien
-            $page = get_page_by_path( $parentPage->post_name . '/' . sanitize_text_field( $type->translationText ), OBJECT );
+            $page = get_page_by_path( $parentPage->post_name . '/' . sanitize_title( $type->codeIdentifier ), OBJECT );
+
             if( $page ){
                 echo( "Subpage for " . $type->translationText . " on '" . $lang . "' already exists. <br>" );
                 continue;
@@ -179,7 +180,7 @@ if( $channelsTypeIndex && property_exists($channelsTypeIndex, 'items') ){
             // Sinon on la crée et on l'insère dans la bdd
             $newPage = wp_insert_post( array(
                 'post_title' => $type->translationText,
-                'post_name' => sanitize_text_field( $type->translationText ),
+                'post_name' => sanitize_title( $type->codeIdentifier ),
                 'page_template' => 'reseaux.php',
                 'post_parent' => get_field('networkPage', 'options'),
                 'post_type' => 'page',
