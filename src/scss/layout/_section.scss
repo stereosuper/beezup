@@ -15,7 +15,17 @@
     .wrapper-video{
         max-width: 560px;
         width: 100%;
-        margin: 0 auto;
+        margin: 0 auto 80px;
+        hr{
+            margin: 0 auto;
+        }
+    }
+    .video-text{
+        display: block;
+        margin: 0 0 80px;
+    }
+    .inner-video{
+        margin: 80px 0 0;
     }
     &.odd{
         .subsection-illu{
@@ -101,29 +111,31 @@
 
 @media (max-width: $desktop-small){
     .subsection{
-        margin: 0 0 6em;
-        flex-direction: column;
-        align-items: initial;
-        justify-content: center;
-        .subsection-text{
-            width: 100%;
-            padding: 0 50px;
-            order: 2;
-            margin: 0;
-        }
-        .subsection-illu{
-            order: 1;
-            margin: 0 auto 2em;
-            flex: 0 1 auto;
-            > svg{
-                height: 300px;
-                width: auto;
-            }
-        }
-        &.odd{
+        .subsection-top{
+            margin: 0 0 6em;
+            flex-direction: column;
+            align-items: initial;
+            justify-content: center;
             .subsection-text{
+                width: 100%;
                 padding: 0 50px;
+                order: 2;
                 margin: 0;
+            }
+            .subsection-illu{
+                order: 1;
+                margin: 0 auto 2em;
+                flex: 0 1 auto;
+                > svg{
+                    height: 300px;
+                    width: auto;
+                }
+            }
+            &.odd{
+                .subsection-text{
+                    padding: 0 50px;
+                    margin: 0;
+                }
             }
         }
     }
@@ -131,19 +143,21 @@
 
 @media (max-width: $phone){
     .subsection{
-        .subsection-text{
-            padding: 0;
-        }
-        .subsection-illu{
-            width: 90%;
-            > img{
-                width: 100%;
-                height: auto;
-            }
-        }
-        &.odd{
+        .subsection-top{
             .subsection-text{
                 padding: 0;
+            }
+            .subsection-illu{
+                width: 90%;
+                > img{
+                    width: 100%;
+                    height: auto;
+                }
+            }
+            &.odd{
+                .subsection-text{
+                    padding: 0;
+                }
             }
         }
     }

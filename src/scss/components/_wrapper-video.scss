@@ -15,12 +15,15 @@
     iframe, .cover-video{
         position: absolute;
         top: 0;
-        bottom: 0;
+        height: 100%;
         left: 0;
-        right: 0;
+        width: 100%;
     }
     .cover-video{
         display: flex;
+        background-position: 50% 50%;
+        background-repeat: no-repeat;
+        background-size: cover;
         &:before{
             display: block;
             content: '';

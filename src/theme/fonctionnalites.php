@@ -103,7 +103,7 @@ get_header(); ?>
                         <?php if( have_rows('subSections') ){ ?>
                             <?php while( have_rows('subSections') ){ the_row(); ?>
                                 <div class='subsection <?php echo ($j%2 !== 0 ? 'odd' : 'even') ?>'>
-                                    <div class="subsection-top">
+                                    <div class='subsection-top'>
                                         <div class='subsection-text'>
                                             <?php if( get_sub_field('title') ){ ?>
                                                 <h3 class='h2'><?php the_sub_field('title'); ?></h3>

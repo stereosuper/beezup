@@ -182,36 +182,55 @@ get_header(); ?>
         <section class='container tarif-sections' id='animsFonctionnalites'>
             <h2 class='h1 section-title'><?php the_field('fontionnalitesTitle'); ?></h2>
 
+            <?php if( have_rows('videos') ){ ?>
+                <div class='tarifs-video'>
+                    <?php while( have_rows('videos') ){ the_row(); ?>
+                        <div class='wrapper-video'>
+                            <div class='inner-video' data-id='<?php the_sub_field('video_id'); ?>'>
+                                <div class='iframe'></div>
+                                <div class='cover-video' style='background-image:url(<?php echo wp_get_attachment_url(get_sub_field('video_cover')); ?>)'>
+                                    <span class='play'></span>
+                                </div>
+                            </div>
+                            <h3 class="h2"><?php the_sub_field('video_title'); ?></h3>
+                            <span class="video-text"><?php the_sub_field('video_text'); ?></span>
+                        </div>
+                    <?php } ?>
+                </div>
+            <?php } ?>
+
             <?php if( have_rows('sections') ){ $i = 0; ?>
                 <?php while( have_rows('sections') ){ the_row(); ?>
                     <div class='subsection <?php echo ($i%2 !== 0 ? 'odd' : 'even') ?>'>
-                        <div class='subsection-text'>
-                            <?php if( get_sub_field('title') ){ ?>
-                                <h3 class='h2'><?php the_sub_field('title'); ?></h3>
-                            <?php } ?>
+                        <div class='subsection-top'>
+                            <div class='subsection-text'>
+                                <?php if( get_sub_field('title') ){ ?>
+                                    <h3 class='h2'><?php the_sub_field('title'); ?></h3>
+                                <?php } ?>
 
-                            <p><?php the_sub_field('text'); ?></p>
+                                <p><?php the_sub_field('text'); ?></p>
 
-                            <?php if( get_sub_field('star') ){ ?>
-                                <div class='star'><?php the_sub_field('star'); ?></div>
-                            <?php } ?>
+                                <?php if( get_sub_field('star') ){ ?>
+                                    <div class='star'><?php the_sub_field('star'); ?></div>
+                                <?php } ?>
 
-                            <?php if( get_sub_field('link') && get_sub_field('linkText') ){ ?>
-                                <a href='<?php the_sub_field('link'); ?>' class='link-arrow pink' title='<?php the_sub_field('linkText'); ?>'><?php the_sub_field('linkText'); ?></a>
-                            <?php } ?>
-                        </div>
+                                <?php if( get_sub_field('link') && get_sub_field('linkText') ){ ?>
+                                    <a href='<?php the_sub_field('link'); ?>' class='link-arrow pink' title='<?php the_sub_field('linkText'); ?>'><?php the_sub_field('linkText'); ?></a>
+                                <?php } ?>
+                            </div>
 
-                        <?php 
-                        if(get_sub_field('anim') == 4 ){
-                             $classIllu = 'subsection-illu with-gradient';
-                        }else if(get_sub_field('anim') == 3 || get_sub_field('anim') == 7){
-                             $classIllu = 'subsection-illu with-gradient-right';
-                        }else {
-                            $classIllu = 'subsection-illu';
-                        }
-                        ?>
-                        <div class='<?php echo $classIllu ?>'>
-                            <?php get_template_part( 'includes/fonctionnalites/anim'.get_sub_field('anim') ); ?>
+                            <?php 
+                            if(get_sub_field('anim') == 4 ){
+                                $classIllu = 'subsection-illu with-gradient';
+                            }else if(get_sub_field('anim') == 3 || get_sub_field('anim') == 7){
+                                $classIllu = 'subsection-illu with-gradient-right';
+                            }else {
+                                $classIllu = 'subsection-illu';
+                            }
+                            ?>
+                            <div class='<?php echo $classIllu ?>'>
+                                <?php get_template_part( 'includes/fonctionnalites/anim'.get_sub_field('anim') ); ?>
+                            </div>
                         </div>
                     </div>
                 <?php $i++; } ?>
