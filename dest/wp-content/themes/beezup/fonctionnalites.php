@@ -103,34 +103,51 @@ get_header(); ?>
                         <?php if( have_rows('subSections') ){ ?>
                             <?php while( have_rows('subSections') ){ the_row(); ?>
                                 <div class='subsection <?php echo ($j%2 !== 0 ? 'odd' : 'even') ?>'>
-                                    <div class='subsection-text'>
-                                        <?php if( get_sub_field('title') ){ ?>
-                                            <h3 class='h2'><?php the_sub_field('title'); ?></h3>
-                                        <?php } ?>
+                                    <div class="subsection-top">
+                                        <div class='subsection-text'>
+                                            <?php if( get_sub_field('title') ){ ?>
+                                                <h3 class='h2'><?php the_sub_field('title'); ?></h3>
+                                            <?php } ?>
 
-                                        <?php the_sub_field('text'); ?>
+                                            <?php the_sub_field('text'); ?>
 
-                                        <?php if( get_sub_field('star') ){ ?>
-                                            <div class='star'><?php the_sub_field('star'); ?></div>
-                                        <?php } ?>
+                                            <?php if( get_sub_field('star') ){ ?>
+                                                <div class='star'><?php the_sub_field('star'); ?></div>
+                                            <?php } ?>
 
-                                        <?php if( get_sub_field('link') && get_sub_field('linkText') ){ ?>
-                                            <a href='<?php the_sub_field('link'); ?>' class='link-arrow' title='<?php the_sub_field('linkText'); ?>'><?php the_sub_field('linkText'); ?></a>
-                                        <?php } ?>
+                                            <?php if( get_sub_field('link') && get_sub_field('linkText') ){ ?>
+                                                <a href='<?php the_sub_field('link'); ?>' class='link-arrow' title='<?php the_sub_field('linkText'); ?>'><?php the_sub_field('linkText'); ?></a>
+                                            <?php } ?>
+                                        </div>
+                                        <?php 
+                                        if(get_sub_field('anim') == 4 ){
+                                            $classIllu = 'subsection-illu with-gradient';
+                                        }else if(get_sub_field('anim') == 3 || get_sub_field('anim') == 7){
+                                            $classIllu = 'subsection-illu with-gradient-right';
+                                        }else {
+                                            $classIllu = 'subsection-illu';
+                                        }
+                                        ?>
+                                    
+                                        <div class='<?php echo $classIllu ?>'>
+                                            <?php get_template_part( 'includes/fonctionnalites/anim'.get_sub_field('anim') ); ?>
+                                        </div>
+                                    
                                     </div>
-                                    <?php 
-                                    if(get_sub_field('anim') == 4 ){
-                                         $classIllu = 'subsection-illu with-gradient';
-                                    }else if(get_sub_field('anim') == 3 || get_sub_field('anim') == 7){
-                                         $classIllu = 'subsection-illu with-gradient-right';
-                                    }else {
-                                        $classIllu = 'subsection-illu';
-                                    }
-                                    ?>
-                                
-                                    <div class='<?php echo $classIllu ?>'>
-                                        <?php get_template_part( 'includes/fonctionnalites/anim'.get_sub_field('anim') ); ?>
-                                    </div>
+                                    <?php if(get_sub_field('video')){ ?>
+                                        <div class='wrapper-video'>
+                                            <hr>
+                                            <div class='inner-video' data-id='<?php the_sub_field('video'); ?>'>
+                                                <div class='iframe'></div>
+                                                <div class='cover-video' style='background-image:url(<?php echo wp_get_attachment_url(get_sub_field('video_cover')); ?>)'>
+                                                    <span class='play'></span>
+                                                </div>
+                                            </div>
+                                            <h3 class="h2 align-center"><?php the_sub_field('video_title'); ?></h3>
+                                            <span class="video-text"><?php the_sub_field('video_text'); ?></span>
+                                            <hr>
+                                        </div>
+                                    <?php } ?>
                                 </div>
                             <?php $j++;} ?>
                         <?php } ?>

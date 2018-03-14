@@ -23,6 +23,7 @@ $(function(){
     var sliderPrices = require('./sliderPrices.js');
     var submenu = require('./submenu.js');
     var selectForm = require('./selectForm.js');
+    var initVideo = require('./initVideo.js');
 
     var body = $('body');
     var menuMain = $('#menuMain');
@@ -81,6 +82,10 @@ $(function(){
     sticky($('#sideLinksNav'), 50, {
         unit: 'vh'
     });
+
+    if($('.inner-video').length){
+        initVideo();
+    }
 
     
     // Fixed meu

@@ -2,11 +2,21 @@
     text-align: center;
 }
 
-.subsection{
+.subsection-top{
     display: flex;
     align-items: center;
     margin: 0 0 80px;
     text-align: left;
+}
+
+.subsection{
+    display: flex;
+    flex-direction: column;
+    .wrapper-video{
+        max-width: 560px;
+        width: 100%;
+        margin: 0 auto;
+    }
     &.odd{
         .subsection-illu{
             order: 1;
