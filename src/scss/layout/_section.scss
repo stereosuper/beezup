@@ -27,6 +27,16 @@
     .inner-video{
         margin: 80px 0 0;
     }
+    &:last-child{
+        .wrapper-video{
+            hr:last-child{
+                display: none;
+            }
+            .video-text{
+                margin: 0;
+            }
+        }
+    }
     &.odd{
         .subsection-illu{
             order: 1;

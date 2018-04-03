@@ -24,16 +24,6 @@
         background-position: 50% 50%;
         background-repeat: no-repeat;
         background-size: cover;
-        &:before{
-            display: block;
-            content: '';
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: rgba($primary, 0.75);
-        }
         > span{
             position: relative;
             display: flex;
