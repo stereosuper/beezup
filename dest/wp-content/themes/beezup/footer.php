@@ -99,9 +99,9 @@
         <?php wp_footer(); ?>
 
         <?php if( is_page_template( 'contact.php' ) || is_page_template( 'tarifs.php' ) ){ ?>
-            <script src="https://www.google.com/recaptcha/api.js?onload=myCallBack&render=explicit&hl=fr"></script>
+            <script defer src="https://www.google.com/recaptcha/api.js?onload=myCallBack&render=explicit&hl=fr"></script>
 
-            <script>
+            <script defer>
                 var verifyCallback = function(response) {
                     if(response.length > 0) {
                         $(".captcha > div.row > div.message_area").remove();
