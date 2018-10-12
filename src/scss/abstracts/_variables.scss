@@ -1,6 +1,5 @@
 // Variables //
 
-
 // Colors
 $white: rgb(255, 255, 255);
 $black: rgb(0, 0, 0);
@@ -14,31 +13,33 @@ $purple-dark: rgb(40, 27, 41);
 $error: rgb(223, 0, 0);
 $success: rgb(15, 188, 55);
 
+$card-border: #c9e1ef;
+$card-shadow: #f0f9fd;
 
 // Transitions
 $transition: 0.3s ease-in-out;
-
+$short-transition: 0.15s ease-in-out;
 
 // Fonts
-$fira: 'fira', sans-serif;
-$fira-italic: 'fira-italic', $fira;
-$fira-medium: 'fira-medium', $fira;
-$fira-medium-italic: 'fira-medium-italic', $fira-italic;
-$fira-bold: 'fira-bold', $fira-medium;
+$fira: "fira", sans-serif;
+$fira-italic: "fira-italic", $fira;
+$fira-medium: "fira-medium", $fira;
+$fira-medium-italic: "fira-medium-italic", $fira-italic;
+$fira-bold: "fira-bold", $fira-medium;
+$fira-bold-italic: "fira-bold-italic", $fira-bold;
 // $fira-bold-italic: 'fira-bold-italic', $fira-medium-italic;
 
 // Mediaqueries
-$retina: 'only screen and (-webkit-min-device-pixel-ratio: 1.5), only screen and (min-resolution: 144dpi)';
+$retina: "only screen and (-webkit-min-device-pixel-ratio: 1.5), only screen and (min-resolution: 144dpi)";
 
-$desktop-large: '1260px';
-$desktop: '1100px';
-$desktop-small: '960px';
-$tablet: '780px';
-$phone: '580px';
-$phone-small: '400px';
-
+$desktop-large: "1260px";
+$desktop: "1100px";
+$desktop-small: "960px";
+$tablet: "780px";
+$phone: "580px";
+$phone-small: "400px";
 
 // Grid
-$col: 100/12*1%;
+$col: 100/12 * 1%;
 
 $gutter: 15px;

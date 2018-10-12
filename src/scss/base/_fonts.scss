@@ -1,47 +1,47 @@
-@font-face{
-    font-family: 'fira';
-    src: url('../fonts/firasans-regular-webfont.woff2') format('woff2'),
-         url('../fonts/firasans-regular-webfont.woff') format('woff');
+@font-face {
+    font-family: "fira";
+    src: url("../fonts/firasans-regular-webfont.woff2") format("woff2"),
+        url("../fonts/firasans-regular-webfont.woff") format("woff");
     font-weight: 400;
     font-style: normal;
 }
 
-@font-face{
-    font-family: 'fira-italic';
-    src: url('../fonts/firasans-italic-webfont.woff2') format('woff2'),
-         url('../fonts/firasans-italic-webfont.woff') format('woff');
+@font-face {
+    font-family: "fira-italic";
+    src: url("../fonts/firasans-italic-webfont.woff2") format("woff2"),
+        url("../fonts/firasans-italic-webfont.woff") format("woff");
     font-weight: 400;
     font-style: normal;
 }
 
-@font-face{
-    font-family: 'fira-medium';
-    src: url('../fonts/firasans-medium-webfont.woff2') format('woff2'),
-         url('../fonts/firasans-medium-webfont.woff') format('woff');
+@font-face {
+    font-family: "fira-medium";
+    src: url("../fonts/firasans-medium-webfont.woff2") format("woff2"),
+        url("../fonts/firasans-medium-webfont.woff") format("woff");
     font-weight: 400;
     font-style: normal;
 }
 
-@font-face{
-    font-family: 'fira-medium-italic';
-    src: url('../fonts/firasans-mediumitalic-webfont.woff2') format('woff2'),
-         url('../fonts/firasans-mediumitalic-webfont.woff') format('woff');
+@font-face {
+    font-family: "fira-medium-italic";
+    src: url("../fonts/firasans-mediumitalic-webfont.woff2") format("woff2"),
+        url("../fonts/firasans-mediumitalic-webfont.woff") format("woff");
     font-weight: 400;
     font-style: normal;
 }
 
-@font-face{
-    font-family: 'fira-bold';
-    src: url('../fonts/firasans-bold-webfont.woff2') format('woff2'),
-         url('../fonts/firasans-bold-webfont.woff') format('woff');
+@font-face {
+    font-family: "fira-bold";
+    src: url("../fonts/firasans-bold-webfont.woff2") format("woff2"),
+        url("../fonts/firasans-bold-webfont.woff") format("woff");
     font-weight: 400;
     font-style: normal;
 }
 
-// @font-face{
-//     font-family: 'fira-bold-italic';
-//     src: url('../fonts/firasans-bolditalic-webfont.woff2') format('woff2'),
-//          url('../fonts/firasans-bolditalic-webfont.woff') format('woff');
-//     font-weight: 400;
-//     font-style: normal;
-// }
+@font-face {
+    font-family: "fira-bold-italic";
+    src: url("../fonts/firasans-bolditalic-webfont.woff2") format("woff2"),
+        url("../fonts/firasans-bolditalic-webfont.woff") format("woff");
+    font-weight: 400;
+    font-style: normal;
+}

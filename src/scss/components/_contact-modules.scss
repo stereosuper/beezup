@@ -1,0 +1,216 @@
+.page-template-contact {
+    .cards {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        margin: 100px auto;
+        .card {
+            position: relative;
+            flex-grow: 1;
+            flex-shrink: 0;
+            flex-basis: calc(33% - #{$gutter});
+            margin: 0 $gutter;
+            color: $text;
+            text-decoration: none;
+            cursor: pointer;
+            &:first-child {
+                margin-left: 0;
+            }
+            &:last-child {
+                margin-right: 0;
+            }
+            &::before {
+                content: "";
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                top: 0;
+                left: 0;
+                background-color: $card-shadow;
+                transform: translate(8px, 8px);
+                z-index: -1;
+            }
+            .card-content {
+                display: flex;
+                position: relative;
+                height: 100%;
+                padding: 2rem;
+                background-color: $white;
+                border: 1px solid $card-border;
+                transition: transform $short-transition;
+                &:hover {
+                    transform: translate(8px, 8px);
+                }
+                .card-content-icon {
+                    margin-right: $gutter;
+                    .icon {
+                        width: 6rem;
+                        height: 6rem;
+                        fill: $secondary;
+                    }
+                }
+                .card-content-text {
+                    h2 {
+                        @extend .h3;
+                        margin: 0 0 0.2em;
+                        font-size: 2rem;
+                        color: $text;
+                    }
+                    p {
+                        margin: 0;
+                        font-size: 1.4rem;
+                        color: $text;
+                    }
+                    .phone,
+                    .fake-link {
+                        color: $primary;
+                        font-family: $fira-bold-italic;
+                    }
+                    .phone {
+                        cursor: pointer;
+                        font-size: 3rem;
+                        line-height: 3rem;
+                    }
+                }
+            }
+            &.alternative {
+                cursor: default;
+                &::before {
+                    display: none;
+                }
+                .card-content {
+                    border: none;
+                    background-color: $card-shadow;
+                    &:hover {
+                        transform: none;
+                    }
+                    a {
+                        text-decoration: none;
+                    }
+                }
+            }
+        }
+    }
+    .contact-form {
+        .title,
+        .sub-title {
+            width: 125%;
+        }
+        .title {
+            font-size: 3.8rem;
+            margin-bottom: 1rem;
+        }
+        .sub-title {
+            font-size: 1.4rem;
+            margin-bottom: 2.5rem;
+            a {
+                color: $primary;
+                &:hover {
+                    color: $secondary;
+                }
+            }
+        }
+    }
+    hr {
+        margin: 115px auto 70px;
+    }
+    .contact-calendly {
+        .title {
+            font-size: 3.8rem;
+            margin-bottom: 1rem;
+        }
+        .iframe-wrapper {
+            position: relative;
+            &::before {
+                content: "";
+                display: block;
+                width: 100%;
+                padding-bottom: calc(100% / 16 * 9);
+            }
+            iframe {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                width: 100%;
+                height: 100%;
+            }
+        }
+    }
+}
+
+@media (max-width: $desktop) {
+    .page-template-contact {
+        .cards {
+            .card {
+                .card-content {
+                    .card-content-text {
+                        .phone {
+                            font-size: 2rem;
+                            line-height: 2rem;
+                        }
+                        .fake-link {
+                            font-size: 1.3rem;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@media (max-width: $desktop-small) {
+    .page-template-contact {
+        .cards {
+            flex-direction: column;
+            align-items: center;
+            .card {
+                width: 350px;
+                margin: $gutter 0;
+            }
+        }
+        .contact-form {
+            .title,
+            .sub-title {
+                width: 100%;
+            }
+        }
+    }
+}
+
+@media (max-width: $tablet) {
+    .page-template-contact {
+        .contact-calendly {
+            .iframe-wrapper {
+                &::before {
+                    padding-bottom: 400px;
+                }
+            }
+        }
+    }
+}
+
+@media (max-width: $tablet) and (any-pointer: coarse) and (hover: none) {
+    .page-template-contact {
+        .contact-calendly {
+            .iframe-wrapper {
+                &::before {
+                    padding-bottom: 0;
+                }
+                iframe {
+                    position: relative;
+                }
+            }
+        }
+    }
+}
+
+@media (max-width: $phone-small) {
+    .page-template-contact {
+        .cards {
+            .card {
+                width: 100%;
+            }
+        }
+    }
+}
