@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 21.0.2, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="Calque_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 373.3 399.3" style="enable-background:new 0 0 373.3 399.3;" xml:space="preserve">
+<style type="text/css">
+	.st0{opacity:0.47;fill:#D0E6F2;enable-background:new    ;}
+	.st1{fill:#FFFFFF;stroke:#C6DEEC;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;}
+	.st2{fill:#ECF4F9;stroke:#C4DBE9;stroke-linejoin:round;stroke-miterlimit:10;}
+	.st3{fill:#DCECF5;}
+	.st4{fill:#31BC38;}
+	.st5{fill:#3ADA4B;}
+	.st6{fill:#FFFFFF;}
+	.st7{font-family:'FiraSans-Medium';}
+	.st8{font-size:16.5px;}
+	.st9{fill:none;stroke:#FFFFFF;stroke-miterlimit:10;}
+	.st10{fill:none;stroke:#009AE1;stroke-width:3;stroke-miterlimit:10;}
+	.st11{fill:none;stroke:#000000;stroke-width:3;stroke-miterlimit:10;}
+	.st12{opacity:0.4;fill:#D0E6F2;enable-background:new    ;}
+	.st13{fill:#FFFFFF;stroke:#C7DEEC;stroke-linejoin:round;stroke-miterlimit:10;}
+	.st14{fill:#E9EDEF;}
+	.st15{fill:#259AE0;}
+	.st16{fill:#A6D1E7;}
+	.st17{opacity:0.54;fill:#D0E6F2;enable-background:new    ;}
+	.st18{fill:#070A96;}
+	.st19{fill:#0F15D9;}
+	.st20{fill:#FFFFFF;stroke:#C6DEEC;stroke-linejoin:round;stroke-miterlimit:10;}
+	.st21{fill:#C81888;}
+	.st22{fill:#E30F94;}
+	.st23{font-size:18px;}
+</style>
+<g id="graphe3">
+	<path id="shade" class="st0" d="M55.3,320.7l83.9-64.4l96.2,73.7l-84.5,63.3L55.3,320.7z"/>
+	<g id="rectangle">
+		<path class="st1" d="M236.5,275.9l-97.9-74L53,266.2l97.9,74L236.5,275.9z"/>
+		<path class="st2" d="M53,266.4v22.8l97.9,72.1v-21L53,266.4z"/>
+		<path class="st1" d="M236.5,275.9v20.5l-85.6,64.9v-21L236.5,275.9z"/>
+	</g>
+	<path class="st3" d="M128.7,229.2l0.8,0.6l-51.2,38.4l-0.8-0.6L128.7,229.2z"/>
+	<path class="st3" d="M79.1,260.7l78.3,58.8l-0.8,0.6l-78.3-58.9L79.1,260.7z"/>
+	<path class="st4" d="M168.1,228.4v8.1l-27,21.9v-8L168.1,228.4z"/>
+	<polygon class="st4" points="141.1,250.4 98.1,219.4 98.1,231.7 101.5,229 141.1,258.4 	"/>
+	<path class="st5" d="M125.1,197.4l-27,22l43,31l27-22L125.1,197.4z"/>
+	<text transform="matrix(0.8 0.6 -0.8 0.6 113.5732 216.873)" class="st6 st7 st8">+20%</text>
+	<line class="st9" x1="98.1" y1="219.4" x2="141.1" y2="250.4"/>
+	<line class="st9" x1="141.1" y1="258.4" x2="141.1" y2="250.3"/>
+	<line class="st9" x1="168.1" y1="228.4" x2="141.1" y2="250.4"/>
+	<polyline class="st10" points="85.3,258.1 108.3,260.8 109.9,272.6 142.6,268.6 133.9,285.9 195.1,282.8 	"/>
+	<polyline class="st11" points="97.1,245.9 103.3,256.6 117.9,259.4 125.1,277.4 153.4,278.8 181.9,298.4 	"/>
+</g>
+<g id="indicateurs">
+	<g id="liste">
+		<path id="shade_2_" class="st12" d="M6.5,142.8l59.4-45.1l35.6,28.9L41.8,171L6.5,142.8z"/>
+		<g id="rectangle_3_">
+			<path class="st13" d="M102.1,72.7l-35.9-29l-60.4,45L42,117.9L102.1,72.7z"/>
+			<path class="st2" d="M5.9,88.7v12.8l36.3,28.4L42.1,118L5.9,88.7z"/>
+			<path class="st13" d="M102.2,73.3v11.5l-60,45.1v-12L102.2,73.3z"/>
+		</g>
+		<g id="liste_1_">
+			<path class="st14" d="M71.3,61.5L89,74.9l-2.3,1.8L69,63.3L71.3,61.5z"/>
+			<path class="st14" d="M66.2,65.4l17.7,13.4l-2.3,1.8L63.9,67.2L66.2,65.4z"/>
+			<path class="st14" d="M61.1,69.3l17.7,13.4l-2.3,1.8L58.8,71.1L61.1,69.3z"/>
+			<path class="st14" d="M56,73.1l17.7,13.4l-2.4,1.8L53.6,74.9L56,73.1z"/>
+			<path class="st14" d="M50.8,77l17.7,13.4l-2.3,1.8L48.5,78.8L50.8,77z"/>
+			<path class="st14" d="M45.7,80.9l17.7,13.4l-2.3,1.8L43.4,82.7L45.7,80.9z"/>
+			<path class="st14" d="M40.6,84.8l17.7,13.4L56,100L38.3,86.6L40.6,84.8z"/>
+			<path class="st14" d="M35.4,88.6L53.1,102l-2.3,1.8L33.1,90.4L35.4,88.6z"/>
+			<path class="st14" d="M30.3,92.5L48,105.9l-2.3,1.8L28,94.3L30.3,92.5z"/>
+			<path class="st15" d="M25.4,87.4c1.2,0.9,1.2,2.3,0,3.2c-1.2,0.9-3,0.9-4.2,0s-1.2-2.3,0-3.2C22.4,86.5,24.3,86.5,25.4,87.4z"/>
+			<path class="st3" d="M30.6,83.5c1.2,0.9,1.2,2.3,0,3.2c-1.2,0.9-3,0.9-4.2,0s-1.2-2.3,0-3.2C27.5,82.6,29.4,82.6,30.6,83.5z"/>
+			<path class="st16" d="M35.7,79.6c1.2,0.9,1.2,2.3,0,3.2c-1.2,0.9-3,0.9-4.2,0c-1.2-0.9-1.2-2.3,0-3.2
+				C32.6,78.8,34.5,78.8,35.7,79.6z"/>
+			<path class="st15" d="M40.8,75.8c1.2,0.9,1.2,2.3,0,3.2c-1.2,0.9-3,0.9-4.2,0s-1.2-2.3,0-3.2C37.8,74.9,39.6,74.9,40.8,75.8z"/>
+			<path class="st15" d="M45.9,71.9c1.2,0.9,1.2,2.3,0,3.2c-1.2,0.9-3,0.9-4.2,0s-1.2-2.3,0-3.2C42.9,71,44.8,71,45.9,71.9z"/>
+			<path class="st16" d="M51.1,68c1.2,0.9,1.2,2.3,0,3.2c-1.2,0.9-3,0.9-4.2,0s-1.2-2.3,0-3.2C48,67.2,49.9,67.2,51.1,68z"/>
+			<path class="st15" d="M56.2,64.2c1.2,0.9,1.2,2.3,0,3.2c-1.2,0.9-3,0.9-4.2,0s-1.2-2.3,0-3.2C53.1,63.3,55,63.3,56.2,64.2z"/>
+			<path class="st3" d="M61.3,60.3c1.2,0.9,1.2,2.3,0,3.2c-1.2,0.9-3,0.9-4.2,0c-1.2-0.9-1.2-2.3,0-3.2
+				C58.3,59.4,60.2,59.4,61.3,60.3z"/>
+			<path class="st15" d="M66.4,56.4c1.2,0.9,1.2,2.3,0,3.2c-1.2,0.9-3,0.9-4.2,0s-1.2-2.3,0-3.2C63.4,55.5,65.3,55.5,66.4,56.4z"/>
+		</g>
+	</g>
+</g>
+<g id="graphe2">
+	<g id="barre">
+		<g id="grahpe_x5F_barre">
+			<path id="shade_1_" class="st17" d="M81.1,146.8l98.2-72.9l189.3,143.3l-98.8,71.9L81.1,146.8z"/>
+			<g id="rectangle_1_">
+				<path class="st1" d="M369.7,195.2L178.8,51.7L79,124.5L269.9,268L369.7,195.2z"/>
+				<path class="st2" d="M79,124.5v20.8l190.9,141.8V268L79,124.5z"/>
+				<path class="st1" d="M369.7,195.2v18.7l-99.8,73.3V268L369.7,195.2z"/>
+			</g>
+			<g id="barres">
+				<path class="st15" d="M156.1,103.7l8.3,6.2L133,133.7l-8.3-6.2L156.1,103.7z"/>
+				<path class="st15" d="M165.6,111.6l8.3,6.2l-31,23.3l-8.3-6.2L165.6,111.6z"/>
+				<path class="st15" d="M153.6,135.3l8.3,6.2l-9.2,6.9l-8.3-6.2L153.6,135.3z"/>
+				<path class="st15" d="M160.4,145l8.3,6.2l-6.2,4.6l-8.3-6.2L160.4,145z"/>
+				<path class="st15" d="M186.1,140.4l8.3,6.2l-22,16.5l-8.3-6.2L186.1,140.4z"/>
+				<path class="st15" d="M187.6,154.1l8.3,6.2l-13.7,10.3l-8.3-6.2L187.6,154.1z"/>
+				<path class="st15" d="M193.8,163.9l8.3,6.2l-10.1,7.8l-8.3-6.2L193.8,163.9z"/>
+				<path class="st15" d="M209.5,167.2l8.3,6.2l-15.9,11.9l-8.3-6.2L209.5,167.2z"/>
+				<path class="st15" d="M219.3,174.6l8.3,6.2l-15.9,11.9l-8.3-6.2L219.3,174.6z"/>
+				<path class="st15" d="M222.3,187.1l8.3,6.2l-9.1,6.8l-8.3-6.2L222.3,187.1z"/>
+				<path class="st15" d="M253.3,178.5l8.3,6.2l-30.3,22.7l-8.3-6.2L253.3,178.5z"/>
+				<path class="st15" d="M259.5,189.6l8.3,6.2l-25.7,19.3l-8.3-6.2L259.5,189.6z"/>
+				<path class="st15" d="M280.7,188.5l8.3,6.2l-37.1,27.8l-8.3-6.2L280.7,188.5z"/>
+				<path class="st15" d="M300.3,188.7l8.3,6.2l-46.9,34.9l-8.3-6.2L300.3,188.7z"/>
+				<path class="st15" d="M310.2,196.1l8.3,6.2l-46.9,35l-8.3-6.2L310.2,196.1z"/>
+			</g>
+			<path class="st3" d="M108.1,118.4l166.8,125.3l-1.5,1.1L106.6,119.5L108.1,118.4z"/>
+			<path class="st3" d="M160.8,87.7l1.5,1.1l-53.5,40.4l-1.5-1.1L160.8,87.7z"/>
+		</g>
+		<g id="_x2B_14">
+			<path class="st18" d="M295.2,164.1v8.8l41,31.1v-8L295.2,164.1z"/>
+			<polygon class="st18" points="363.2,177.6 363.2,177.1 336.2,196.1 336.2,204 359.7,187.1 363,189.6 			"/>
+			<path class="st19" d="M322.2,145.1l41,32l-27,19l-41-32L322.2,145.1z"/>
+			<text transform="matrix(0.8 0.6 -0.8 0.6 309.3691 163.1071)" class="st6 st7 st8">+14%</text>
+		</g>
+	</g>
+	<line class="st9" x1="295.2" y1="164.1" x2="336.2" y2="196.1"/>
+	<line class="st9" x1="336.2" y1="204" x2="336.2" y2="196.2"/>
+	<line class="st9" x1="363.2" y1="177.1" x2="335.9" y2="196.3"/>
+</g>
+<g id="graphe1">
+	<path id="SHADE_x2B_" class="st12" d="M195.8,100.1l23.9-20l78.1,60.4l-24.5,17.8L195.8,100.1z"/>
+	<path id="SHADE-" class="st12" d="M233.9,92.8l42.2-32.3l78.6,61.5l-41.9,29.8L233.9,92.8z"/>
+	<g id="camembert">
+		<g id="rectangle_2_">
+			<path class="st20" d="M355.2,66.7L275.5,6.1l-81.8,61.8l79.7,60.6L355.2,66.7z"/>
+			<path class="st2" d="M193.7,67.9v20.8l79.8,59.1v-19.2L193.7,67.9z"/>
+			<path class="st20" d="M355.2,66.8v18.7l-81.7,62.2v-19.2L355.2,66.8z"/>
+		</g>
+		<g id="cercle">
+			<path class="st16" d="M317.4,67.3c0,13.3-11.9,24.5-28.2,27.9l-9.8-28.8h37.9C317.4,66.7,317.4,67,317.4,67.3z"/>
+			<path class="st15" d="M278.9,36.1c20.6,0.2,37.3,12.6,37.9,28.1h-37.9V36.1z"/>
+			<path class="st3" d="M276.5,64.1l9.8,28.8C283,93.6,279.5,94,276,94c-21.3,0-38.5-13-38.5-29s17.2-29,38.5-29c0.2,0,0.4,0,0.6,0
+				L276.5,64.1L276.5,64.1z"/>
+		</g>
+	</g>
+	<g id="_x2B_5">
+		<path class="st21" d="M256.2,51.4V58L231,79.1v-6.8L256.2,51.4z"/>
+		<polygon class="st21" points="231,72.3 201.2,50.9 201.2,53.6 201.1,61.7 204.2,59.3 231,79.1 		"/>
+		<path class="st22" d="M226.5,30.1L201.2,51L231,72.4l25.2-20.9L226.5,30.1z"/>
+		<text transform="matrix(0.8 0.6 -0.8 0.6 215.2997 48.2849)" class="st6 st7 st23">+5</text>
+	</g>
+	<line class="st9" x1="201.2" y1="50.9" x2="231" y2="72.3"/>
+	<line class="st9" x1="256.2" y1="51.4" x2="231" y2="72.3"/>
+	<line class="st9" x1="231" y1="79.1" x2="231" y2="72.3"/>
+</g>
+</svg>
