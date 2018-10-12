@@ -23,6 +23,13 @@
     margin: 0;
 }
 
+.btn-intro-home{
+    a{
+        color: $white;
+        text-decoration: none;
+    }
+}
+
 .block-title-home, .block-title-home-2{
     width: 100%;
     max-width: 440px;

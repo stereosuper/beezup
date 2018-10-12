@@ -73,9 +73,6 @@ $(function(){
     checkInputs($('.js-inline-form'));
     
     // Sticky
-    sticky($('#btnDemo'), 15, {
-        wrapper: false 
-    });
     sticky($('#tarifHeader'), 0, {
         minimumWidth: 1200
     });

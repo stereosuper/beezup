@@ -27,9 +27,11 @@ get_header(); ?>
 			<p class='intro-home'><?php the_field('headerText'); ?></p>
 
 			<?php if( get_field('headerBtn2') ){ ?>
-				<button class='btn btn-arrow' onclick="Calendly.showPopupWidget('<?php the_field('calendly', 'options'); ?>');return false;" type='button'>
-					<?php the_field('headerBtn2'); ?>
-					<svg class='icon icon-arrow-right'><use xlink:href='#icon-arrow-right'></use></svg>
+				<button class='btn btn-arrow btn-intro-home' type='button'>
+					<a href='<?php the_field('contactLink', 'options'); ?>' title='<?php the_field('headerBtn2'); ?>'>
+						<span><?php the_field('headerBtn2'); ?></span>
+						<svg class='icon icon-arrow-right'><use xlink:href='#icon-arrow-right'></use></svg>
+					</a>
 				</button>
 			<?php } ?>
 		</div>

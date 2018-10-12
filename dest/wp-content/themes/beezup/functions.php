@@ -750,8 +750,14 @@ add_filter( 'script_loader_tag', 'beezup_defer_attr', 10, 2 );
 
 // Register and enqueue styles and scripts
 function beezup_scripts(){
+    $isFormPage = is_page_template( 'contact.php' ) || is_page_template( 'tarifs.php' );
+
     // CSS
 	wp_enqueue_style( 'beezup-style', get_template_directory_uri() . '/css/main.css', array(), BEEZUP_VERSION );
+    if ( $isFormPage ) {
+        wp_enqueue_style( 'calendly-style', 'https://calendly.com/assets/external/widget.css', array(), BEEZUP_VERSION );
+    }
+
 
 	// JS
 	wp_deregister_script( 'jquery' );
@@ -759,18 +765,20 @@ function beezup_scripts(){
 	
     wp_register_script( 'beezup-scripts', get_template_directory_uri() . '/js/main.js', array(), BEEZUP_VERSION, true );
     wp_register_script( 'sendinblue-scripts', 'https://my.sendinblue.com/public/theme/version4/assets/js/src/subscribe-validate.js', array(), null, true );
-    wp_register_script( 'calendly-scripts', 'https://calendly.com/assets/external/widget.js', array(), null, true );
-    
+    if ( $isFormPage ) {
+        wp_register_script( 'calendly-scripts', 'https://calendly.com/assets/external/widget.js', array(), null, true );
+    }
+
     wp_enqueue_script( 'beezup-scripts');
     wp_enqueue_script( 'sendinblue-scripts');
-    wp_enqueue_script( 'calendly-scripts');
+    if ( $isFormPage ) {
+        wp_enqueue_script( 'calendly-scripts');
+    }
 
     // Pass some data to JS for networks page and form pages
     global $post;
     $networkPage = get_field('networkPage', 'options');
     $isNetworkPage = $post->ID === $networkPage;
-
-    $isFormPage = is_page_template( 'contact.php' ) || is_page_template( 'tarifs.php' );
 
     wp_localize_script( 'beezup-scripts', 'wp', array(
         'adminAjax' => site_url( '/wp-admin/admin-ajax.php' ),

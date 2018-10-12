@@ -26,7 +26,7 @@
 .wrapper-menu-head{
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: stretch;
     width: 100%;
     height: 100%;
 }
@@ -69,12 +69,17 @@
 
 .menu-head{
     position: relative;
+    display: flex;
     margin: 0;
     z-index: 3;
     > li{
-        display: inline-block;
+        align-items: center;
+        margin-top: 0;
+        margin-bottom: 0;
     }
     a{
+        display: block;
+        margin: 7px 0 0;
         color: $white;
         text-decoration: none;
         &:hover, &:focus{
@@ -90,8 +95,15 @@
         margin: -1px 8px 0 0;
     }
 }
-.head-connect{
-    margin: 0 0 0 2.8em;
+.head-tel{
+    width: 162px;
+    margin-left: 2.8em;
+    font-size: 16px;
+    text-align: center;
+    background-color: $white;
+    a{
+        color: $secondary;
+    }
 }
 
 .container-menu-main{
@@ -105,6 +117,15 @@
         right: calc((100% - 1150px) /2);
         z-index: 1;
         backface-visibility: hidden;
+        &.btn-contact{
+            width: 162px;
+            padding: 15px;
+            letter-spacing: 0;
+            a{
+                color: $white;
+                text-decoration: none;
+            }
+        }
     }
 }
 
@@ -114,7 +135,7 @@
     li{
         display: inline-block;
         position: static;
-        margin: 0 23px;
+        margin: 0 21px;
         transition: opacity $transition;
         &:hover{
             > a{
@@ -341,7 +362,7 @@
 
     .menu-main{
         li{
-            margin: 0 15px;
+            margin: 0 12px;
         }
     }
 
@@ -478,12 +499,12 @@
         }
     }
 
-    .head-connect{
-        order: 1;
-    }
-
-    .head-contact{
-        order: 2;
+    .head-tel{
+        width: auto;
+        background-color: transparent;
+        a{
+            color: $white;
+        }
     }
 
     .menu-main{

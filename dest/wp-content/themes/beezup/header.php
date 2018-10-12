@@ -25,9 +25,6 @@
 
 		<?php beezup_mlp_href_US(); ?>
 
-		<!-- Calendly style -->
-		<link href='https://calendly.com/assets/external/widget.css' rel='stylesheet'>
-
 		<script>document.getElementsByTagName('html')[0].className = 'js';</script>
 
 		<!-- Google Tag Manager -->
@@ -69,19 +66,19 @@
 							<div class='wrapper-menu-head'>
 								<?php echo beezup_mlp_navigation(); ?>
 								<ul id='menuHead' class='menu-head'>
-									<?php if( get_field('contactLink', 'options') && get_field('contactLinkText', 'options') ){ ?>
-										<li class='head-contact'>
-											<a href='<?php the_field('contactLink', 'options'); ?>'>
-												<svg class='icon icon-envelop'><use xlink:href='#icon-envelop'></use></svg>
-												<span><?php the_field('contactLinkText', 'options'); ?></span>
-											</a>
-										</li>
-									<?php } ?>
 									<?php if( get_field('connectLink', 'options') && get_field('connectLinkText', 'options') ){ ?>
 										<li class='head-connect'>
 											<a href='<?php the_field('connectLink', 'options'); ?>' target='_blank' rel='nofollow'>
 												<svg class='icon icon-user'><use xlink:href='#icon-user'></use></svg>
 												<span><?php the_field('connectLinkText', 'options'); ?></span>
+											</a>
+										</li>
+									<?php } ?>
+									<?php if( get_field('phoneTel', 'options') ){ ?>
+										<li class='head-tel'>
+											<a href='tel:<?php echo str_replace(' ', '', get_field('phoneTel', 'options')); ?>' title='<?php _e('Appelez-nous', 'beezup'); ?>'>
+												<svg class="icon icon-phone"><use xlink:href="#icon-phone"></use></svg>
+												<span><?php the_field('phoneTel', 'options'); ?></span>
 											</a>
 										</li>
 									<?php } ?>
@@ -91,7 +88,13 @@
 						
 						<div id='containerMenuMain' class='container-menu-main'>
 							<?php wp_nav_menu( array( 'theme_location' => 'primary', 'container' => 'nav', 'menu_class' => 'menu-main', 'menu_id' => 'menuMain', 'walker' => new Child_Wrap() ) ); ?>
-							<button id='btnDemo' class='btn' onclick="Calendly.showPopupWidget('<?php the_field('calendly', 'options'); ?>');return false;" type='button'><?php _e('Demo', 'Beezup'); ?></button>
+							<?php if( get_field('contactLink', 'options') && get_field('contactLinkText', 'options') ){ ?>
+								<button id='btnContact' class='btn btn-contact' type='button'>
+									<a href='<?php the_field('contactLink', 'options'); ?>' title='<?php the_field('contactLinkText', 'options'); ?>'>
+										<span><?php the_field('contactLinkText', 'options'); ?></span>
+									</a>
+								</button>
+							<?php } ?>
 						</div>
 					</div>
 
