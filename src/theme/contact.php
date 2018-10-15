@@ -27,53 +27,77 @@ get_header(); ?>
             <?php the_post_thumbnail( 'full' ); ?>
         </div>
     </section>
-    
-    <section class="cards container relative">
-        <div class="card alternative">
-            <div class="card-content">
-                <div class="card-content-icon">
-                    <svg class='icon icon-phone-bubble'><use xlink:href='#icon-phone-bubble'></use></svg>
-                </div>
-                <div class="card-content-text">
-                    <h2>Contact direct</h2>
-                    <p>Service commercial et Service client</p>
-                    <a class="phone" href="tel:0183624765">01 83 62 47 65</a>
-                    <p class="fake-link">horaires : 10h-12h et 15h-18h</p>
-                </div>
-            </div>
-        </div>
-        <a class="card" href="#contact-form">
-            <div class="card-content">
-                <div class="card-content-icon">
-                    <svg class='icon icon-mail-bubble'><use xlink:href='#icon-mail-bubble'></use></svg>
-                </div>
-                <div class="card-content-text">
-                    <h2>Nous vous recontactons</h2>
-                    <p>Laissez-nous un message avec vos coordonnées</p>
-                    <p class="fake-link">Accéder au formulaire</p>
-                </div>
-            </div>
-        </a>
-        <a class="card" href="#contact-calendly">
-            <div class="card-content">
-                <div class="card-content-icon">
-                    <svg class='icon icon-calendar-bubble'><use xlink:href='#icon-calendar-bubble'></use></svg>
-                </div>
-                <div class="card-content-text">
-                    <h2>Rendez-vous</h2>
-                    <p>Réservez votre démonstration avec l’un de nos experts</p>
-                    <p class="fake-link">Accéder au calendrier</p>
-                </div>
-            </div>
-        </a>
-    </section>
-    
+    <?php 
+    $cards_anchors = get_field('anchors');
+
+
+    if( have_rows('repeater_field_name') ):
+
+        // loop through the rows of data
+        while ( have_rows('repeater_field_name') ) : the_row();
+
+            // display a sub field value
+            the_sub_field('sub_field_name');
+
+        endwhile;
+
+    endif;
+    ?>
+    <?php if(have_rows('anchors')): ?>
+        <section class="cards container relative">
+            <?php while (have_rows('anchors')) : the_row(); ?>
+                <?php $is_link = get_sub_field('is_link'); ?>
+                <?php if ($is_link): ?>
+                    <div class="card alternative">
+                        <div class="card-content">
+                            <div class="card-content-icon">
+                                <?php 
+                                    $icon = get_sub_field('icon');
+                                    echo $icon ? file_get_contents($icon['url']) : '';
+                                ?>
+                            </div>
+                            <div class="card-content-text">
+                                <h2><?php the_sub_field('title') ?></h2>
+                                <p><?php the_sub_field('subtitle') ?></p>
+                                <?php if ($phone = get_sub_field('phone')): ?>
+                                    <a class="phone" href="tel:<?php echo str_replace(' ', '', $phone) ?>"><?php echo $phone ?></a>
+                                <?php endif; ?>
+                                <p class="fake-link"><?php the_sub_field('call_to_action') ?></p>
+                            </div>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <a class="card" href="<?php the_sub_field('id') ?>">
+                        <div class="card-content">
+                            <div class="card-content-icon">
+                                <?php 
+                                    $icon = get_sub_field('icon');
+                                    echo $icon ? file_get_contents($icon['url']) : '';
+                                ?>
+                            </div>
+                            <div class="card-content-text">
+                                <h2><?php the_sub_field('title') ?></h2>
+                                <p><?php the_sub_field('subtitle') ?></p>
+                                <p class="fake-link"><?php the_sub_field('call_to_action') ?></p>
+                            </div>
+                        </div>
+                    </a>
+                <?php endif; ?>
+            <?php endwhile; ?>
+        </section>
+    <?php endif; ?>
 
     <?php if(get_field('contactId', 'options') && get_field('contactLists', 'options')): ?>
         <section id="contact-form-will-scroll" class='contact-form container-medium relative'>
             <div class='block-half is-alone'>
-                <h2 class="title">Laissez-nous vos coordonnées, nous vous recontacterons</h2>
-                <p class="sub-title">Vous êtes déjà client, et souhaitez contacter le service support, <a href="">c’est par ici</a></p>
+                <?php if ($form_title = get_field('form_title')): ?>
+                    <h2 class="title"><?php echo $form_title ?></h2>
+                <?php endif; ?>
+                <?php if ($form_subtitle = get_field('form_subtitle')): ?>
+                    <div class="sub-title">
+                        <?php echo $form_subtitle ?>
+                    </div>
+                <?php endif; ?>
                 <?php // get_template_part( 'includes/form' ); ?>
                 <?php get_template_part( 'includes/sib-form' ); ?>
             </div>
@@ -104,13 +128,18 @@ get_header(); ?>
         <?php endif; ?>
         
         <hr>
-
-        <section id="contact-calendly-will-scroll" class="contact-calendly container-medium relative">
-            <h2 class="title">Réservez votre démo BeezUP avec l'un de nos experts</h2>
-            <div class="iframe-wrapper">
-                <iframe src="<?php the_field('calendly', 'options'); ?>" frameborder="0"></iframe>
-            </div>
-        </section>
+        
+        <?php 
+            $calendly_url = get_field('calendly', 'options');
+        ?>
+        <?php if ($calendly_url): ?>
+            <section id="contact-calendly-will-scroll" class="contact-calendly container-medium relative">
+                <h2 class="title"><?php the_field('calendly_title') ?></h2>
+                <div class="iframe-wrapper">
+                    <iframe src="<?php echo $calendly_url ?>" frameborder="0"></iframe>
+                </div>
+            </section>
+        <?php endif; ?>
 
     <?php get_template_part('includes/free-links'); ?>
 
