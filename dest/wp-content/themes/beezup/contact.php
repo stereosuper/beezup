@@ -93,11 +93,6 @@ get_header(); ?>
                 <?php if ($form_title = get_field('form_title')): ?>
                     <h2 class="title"><?php echo $form_title ?></h2>
                 <?php endif; ?>
-                <?php if ($form_subtitle = get_field('form_subtitle')): ?>
-                    <div class="sub-title">
-                        <?php echo $form_subtitle ?>
-                    </div>
-                <?php endif; ?>
                 <?php // get_template_part( 'includes/form' ); ?>
                 <?php get_template_part( 'includes/sib-form' ); ?>
             </div>
