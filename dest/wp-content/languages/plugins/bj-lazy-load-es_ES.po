@@ -1,0 +1,126 @@
+# Translation of Plugins - BJ Lazy Load - Development (trunk) in Spanish (Spain)
+# This file is distributed under the same license as the Plugins - BJ Lazy Load - Development (trunk) package.
+msgid ""
+msgstr ""
+"PO-Revision-Date: 2017-09-20 06:42:26+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: GlotPress/2.4.0-alpha\n"
+"Language: es\n"
+"Project-Id-Version: Plugins - BJ Lazy Load - Development (trunk)\n"
+
+#: inc/class-bjll-adminpage.php:74
+msgid "Shows a low resolution preview image before the real image loads. Images uploaded before this setting is activated need that have their image sizes regenerated for the feature to work. This can be done using a plugin such as <a href=\"https://sv.wordpress.org/plugins/regenerate-thumbnails/\">Regenerate Thumbnails</a>."
+msgstr "Muestra una vista previa de la imagen a baja resolución antes de que cargue la imagen real. Hay que regenerar los tamaños de las imágenes subidas antes de activar este ajuste para que funcione en ellas esta características. Esto se puede hacer usando un plugin como <a href=\"https://es.wordpress.org/plugins/regenerate-thumbnails/\">Regenerate Thumbnails</a>."
+
+#. Author URI of the plugin/theme
+msgid "https://angrycreative.se/"
+msgstr "https://angrycreative.se/"
+
+#. Author of the plugin/theme
+msgid "Bjørn Johansen, Aron Tornberg, angrycreative"
+msgstr "Bjørn Johansen, Aron Tornberg, angrycreative"
+
+#: inc/class-bjll-adminpage.php:70
+msgid "Use low-res preview image"
+msgstr "Usar vista previa de la  imagen en baja resolución"
+
+#. Description of the plugin/theme
+msgid "Lazy image loading makes your site load faster and saves bandwidth."
+msgstr "La carga perezosa de imágenes hace que tu sitio cargue más rápido y ahorra ancho de banda."
+
+#. Plugin URI of the plugin/theme
+msgid "https://wordpress.org/plugins/bj-lazy-load/"
+msgstr "https://es.wordpress.org/plugins/bj-lazy-load/"
+
+#. Plugin Name of the plugin/theme
+msgid "BJ Lazy Load"
+msgstr "BJ Lazy Load"
+
+#: inc/scb/AdminPage.php:466
+msgid "Settings"
+msgstr "Ajustes"
+
+#: inc/scb/AdminPage.php:227
+msgid "Settings <strong>saved</strong>."
+msgstr "Ajustes <strong>guardados</strong>."
+
+#: inc/class-bjll-skip-post.php:50
+msgid "Skip lazy loading for this post"
+msgstr "Omitir carga perezosa para esta entrada"
+
+#: inc/class-bjll-skip-post.php:50
+msgid "Skip lazy loading for this page"
+msgstr "Omitir carga perezosa para esta página"
+
+#: inc/class-bjll-skip-post.php:37
+msgid "Lazy Loading"
+msgstr "Carga perezosa"
+
+#: inc/class-bjll-adminpage.php:67
+msgid "How close to the viewport the element should be when we load it. In pixels. Example: 200"
+msgstr "Cuán cerca debe estar el elemento al punto de visualización cuando lo cargamos. En píxeles. Ejemplo: 200"
+
+#: inc/class-bjll-adminpage.php:64
+msgid "Threshold"
+msgstr "Umbral"
+
+#: inc/class-bjll-adminpage.php:61
+msgid "Comma separated. Example: \"no-lazy, lazy-ignore, image-235\""
+msgstr "Separado por comas. Ejemplo: \"no-lazy, lazy-ignore, image-235\""
+
+#: inc/class-bjll-adminpage.php:58
+msgid "Skip images with classes"
+msgstr "Omitir imágenes con clases CSS"
+
+#: inc/class-bjll-adminpage.php:55
+msgid "Leave blank for default"
+msgstr "Dejar en blanco por defecto"
+
+#: inc/class-bjll-adminpage.php:52
+msgid "Placeholder Image URL"
+msgstr "Marcador de posición de la URL de la imagen"
+
+#: inc/class-bjll-adminpage.php:46
+msgid "Lazy load iframes"
+msgstr "Carga perezosa de iframes"
+
+#: inc/class-bjll-adminpage.php:40
+msgid "Lazy load images"
+msgstr "Carga perezosa de imagenes"
+
+#: inc/class-bjll-adminpage.php:34
+msgid "Apply to gravatars"
+msgstr "Aplicar a gravatares"
+
+#: inc/class-bjll-adminpage.php:28
+msgid "Apply to post thumbnails"
+msgstr "Aplicar a las miniaturas de la entrada"
+
+#: inc/class-bjll-adminpage.php:22
+msgid "Apply to text widgets"
+msgstr "Aplicar a los widgets de texto"
+
+#: inc/class-bjll-adminpage.php:19 inc/class-bjll-adminpage.php:25
+#: inc/class-bjll-adminpage.php:31 inc/class-bjll-adminpage.php:37
+#: inc/class-bjll-adminpage.php:43 inc/class-bjll-adminpage.php:49
+#: inc/class-bjll-adminpage.php:73
+msgid "No"
+msgstr "No"
+
+#: inc/class-bjll-adminpage.php:19 inc/class-bjll-adminpage.php:25
+#: inc/class-bjll-adminpage.php:31 inc/class-bjll-adminpage.php:37
+#: inc/class-bjll-adminpage.php:43 inc/class-bjll-adminpage.php:49
+#: inc/class-bjll-adminpage.php:73
+msgid "Yes"
+msgstr "Sí"
+
+#: inc/class-bjll-adminpage.php:16
+msgid "Apply to content"
+msgstr "Aplicar al contenido"
+
+#: inc/class-bjll-adminpage.php:7
+msgid "BJ Lazy Load Options"
+msgstr "Opciones de BJ Lazy Load"

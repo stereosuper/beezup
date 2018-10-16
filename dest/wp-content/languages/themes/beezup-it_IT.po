@@ -2,12 +2,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Beezup\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: Sun Jul 09 2017 13:08:12 GMT+0200 (Paris, Madrid (heure "
-"d’été))\n"
-"PO-Revision-Date: Mon Jul 10 2017 11:25:06 GMT+0200 (CEST)\n"
+"POT-Creation-Date: 2017-08-28 15:41+0000\n"
+"PO-Revision-Date: 2017-08-28 15:42+0000\n"
 "Last-Translator: adminBeez <elisabeth@stereosuper.fr>\n"
-"Language-Team: \n"
-"Language: Italian\n"
+"Language-Team: Italian\n"
+"Language: it-IT\n"
 "Plural-Forms: nplurals=2; plural=n != 1\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -23,178 +22,181 @@ msgstr ""
 "X-Loco-Target-Locale: it_IT\n"
 "X-Generator: Loco - https://localise.biz/"
 
-#: ../../themes/beezup/search.php:8
-msgid "results"
-msgstr ""
-
-#: ../../themes/beezup/search.php:8
-msgid "result"
-msgstr ""
-
-#: ../../themes/beezup/search.php:34
-msgid "No results for"
-msgstr ""
-
-#: ../../themes/beezup/search.php:42
-msgid "The search for"
-msgstr ""
-
-#: ../../themes/beezup/search.php:42
-msgid "hasn't return any results"
-msgstr ""
-
-#: ../../themes/beezup/reseaux.php:80
-msgid "Open channels type list"
-msgstr ""
-
-#: ../../themes/beezup/reseaux.php:85
-msgid "Close channels type list"
-msgstr ""
-
-#: ../../themes/beezup/header.php:47
+#: header.php:67
 msgid "Beezup, gestionnaire de flux e-commerce"
 msgstr ""
 
-#: ../../themes/beezup/header.php:50
+#: header.php:70
 msgid "Open menu"
 msgstr ""
 
-#: ../../themes/beezup/header.php:55
+#: header.php:75
 msgid "Close menu"
 msgstr ""
 
-#: ../../themes/beezup/header.php:82
-msgid "Demo"
-msgstr ""
-
-#: ../../themes/beezup/sitemap.php:23
-msgid "Pages"
-msgstr ""
-
-#: ../../themes/beezup/sitemap.php:30
-msgid "Blog"
-msgstr ""
-
-#: ../../themes/beezup/category.php:23 ../../themes/beezup/index.php:23
-msgid "There is no posts yet!"
-msgstr ""
-
-#: ../../themes/beezup/single.php:13 ../../themes/beezup/includes/blog-content.
-#: php:14
+#: single.php:13 includes/blog-content.php:14
 msgid "Add on"
 msgstr ""
 
-#: ../../themes/beezup/single.php:30 ../../themes/beezup/single.php:30 ../..
-#: /themes/beezup/single.php:33 ../../themes/beezup/single.php:33 ../..
-#: /themes/beezup/single.php:36 ../../themes/beezup/single.php:36
+#: single.php:30 single.php:30 single.php:33 single.php:33 single.php:36
+#: single.php:36
 msgid "Share on"
-msgstr ""
-
-#: ../../themes/beezup/includes/blog-content.php:16
-msgid "in"
-msgstr ""
-
-#: ../../themes/beezup/includes/blog-content.php:30 ../..
-#: /themes/beezup/includes/related.php:31 ../../themes/beezup/front-page.php:197
-msgid "Read more"
-msgstr ""
-
-#: ../../themes/beezup/includes/blog-content.php:55
-msgid "Previous <svg class=\"icon\"><use xlink:href=\"#icon-arrow-left\"></use></svg>"
-msgstr ""
-
-#: ../../themes/beezup/includes/blog-content.php:55
-msgid "Next <svg class=\"icon\"><use xlink:href=\"#icon-arrow-right\"></use></svg>"
-msgstr ""
-
-#: ../../themes/beezup/includes/newsletter.php:4 ../../themes/beezup/includes/sib-
-#: form.php:4
-msgid "This email adress isn't valid"
-msgstr ""
-
-#: ../../themes/beezup/includes/sib-form.php:37 ../../themes/beezup/includes/form.
-#: php:39
-msgid "optional"
-msgstr "facultativo"
-
-#: ../../themes/beezup/includes/sib-form.php:44 ../../themes/beezup/includes/form.
-#: php:57
-msgid "Email"
-msgstr ""
-
-#: ../../themes/beezup/includes/blog-form.php:5
-msgid "Categories"
-msgstr ""
-
-#: ../../themes/beezup/includes/blog-form.php:7
-msgid "All categories"
-msgstr ""
-
-#: ../../themes/beezup/includes/blog-form.php:13
-msgid "Open catgories list"
-msgstr ""
-
-#: ../../themes/beezup/includes/blog-form.php:18
-msgid "Close catgories list"
-msgstr ""
-
-#: ../../themes/beezup/includes/related.php:20
-msgid "Related Posts"
-msgstr ""
-
-#: ../../themes/beezup/includes/form.php:16
-msgid "Thank you for your message ! We’ll get back to you soon."
-msgstr ""
-
-#: ../../themes/beezup/includes/form.php:74
-msgid "Please leave this field empty"
-msgstr ""
-
-#: ../../themes/beezup/includes/form.php:79
-msgid "Please fill all the required fields"
-msgstr ""
-
-#: ../../themes/beezup/includes/form-handler.php:52
-msgid "The phone number is not valid"
-msgstr ""
-
-#: ../../themes/beezup/includes/form-handler.php:64
-msgid "The e-mail address is not valid"
-msgstr ""
-
-#: ../../themes/beezup/includes/form-handler.php:109
-msgid "We are sorry, an error happened! Please try again later."
-msgstr ""
-
-#: ../../themes/beezup/functions.php:243
-msgid "There are no channels of this type in this country."
-msgstr ""
-
-#: ../../themes/beezup/functions.php:245
-msgid "Channels can't be displayed at this time. Please come back later!"
-msgstr ""
-
-#: ../../themes/beezup/functions.php:672
-msgid "There are no channels of this sector in this country"
-msgstr ""
-
-#: ../../themes/beezup/functions.php:673
-msgid "There are no channels of this sector and this type in this country"
-msgstr ""
-
-#: ../../themes/beezup/functions.php:674
-msgid "There no channels matching your search"
-msgstr ""
-
-#: ../../themes/beezup/footer.php:27 ../../themes/beezup/footer.php:27 ../..
-#: /themes/beezup/footer.php:32 ../../themes/beezup/footer.php:32 ../..
-#: /themes/beezup/footer.php:37 ../../themes/beezup/footer.php:37 ../..
-#: /themes/beezup/footer.php:42 ../../themes/beezup/footer.php:42
-msgid "Follow us on"
 msgstr ""
 
 #. Name of the template
 msgid "Home"
+msgstr ""
+
+#: front-page.php:197 includes/related.php:31 includes/blog-content.php:30
+msgid "Read more"
+msgstr ""
+
+#: search.php:8
+msgid "results"
+msgstr ""
+
+#: search.php:8
+msgid "result"
+msgstr ""
+
+#: search.php:34
+msgid "No results for"
+msgstr ""
+
+#: search.php:42
+msgid "The search for"
+msgstr ""
+
+#: search.php:42
+msgid "hasn't return any results"
+msgstr ""
+
+#: index.php:23 category.php:23
+msgid "There is no posts yet!"
+msgstr ""
+
+#: sitemap.php:30
+msgid "Blog"
+msgstr ""
+
+#: functions.php:243
+msgid "There are no channels of this type in this country."
+msgstr ""
+
+#: functions.php:245
+msgid "Channels can't be displayed at this time. Please come back later!"
+msgstr ""
+
+#: functions.php:779
+msgid "There are no channels of this sector in this country"
+msgstr ""
+
+#: functions.php:780
+msgid "There are no channels of this sector and this type in this country"
+msgstr ""
+
+#: functions.php:781
+msgid "There no channels matching your search"
+msgstr ""
+
+#: footer.php:27 footer.php:27 footer.php:32 footer.php:32 footer.php:37
+#: footer.php:37 footer.php:42 footer.php:42
+msgid "Follow us on"
+msgstr ""
+
+#: reseaux.php:80
+msgid "Open channels type list"
+msgstr ""
+
+#: reseaux.php:85
+msgid "Close channels type list"
+msgstr ""
+
+#: includes/blog-form.php:5
+msgid "Categories"
+msgstr ""
+
+#: includes/blog-form.php:7
+msgid "All categories"
+msgstr ""
+
+#: includes/blog-form.php:13
+msgid "Open catgories list"
+msgstr ""
+
+#: includes/blog-form.php:18
+msgid "Close catgories list"
+msgstr ""
+
+#: includes/form.php:16
+msgid "Thank you for your message ! We’ll get back to you soon."
+msgstr ""
+
+#: includes/form.php:57 includes/sib-form.php:99
+msgid "Email"
+msgstr ""
+
+#: includes/form.php:74
+msgid "Please leave this field empty"
+msgstr ""
+
+#: includes/form.php:79
+msgid "Please fill all the required fields"
+msgstr ""
+
+#: includes/related.php:20
+msgid "Related Posts"
+msgstr ""
+
+#: includes/blog-content.php:16
+msgid "in"
+msgstr ""
+
+#: includes/blog-content.php:55
+msgid ""
+"Previous <svg class=\"icon\"><use xlink:href=\"#icon-arrow-left\"></use>"
+"</svg>"
+msgstr ""
+
+#: includes/blog-content.php:55
+msgid ""
+"Next <svg class=\"icon\"><use xlink:href=\"#icon-arrow-right\"></use></svg>"
+msgstr ""
+
+#: includes/form-handler.php:52
+msgid "The phone number is not valid"
+msgstr ""
+
+#: includes/form-handler.php:64
+msgid "The e-mail address is not valid"
+msgstr ""
+
+#: includes/form-handler.php:109
+msgid "We are sorry, an error happened! Please try again later."
+msgstr ""
+
+#: includes/sib-form.php:28
+msgid "Sales"
+msgstr "Commerciale"
+
+#: includes/sib-form.php:30
+msgid "Support"
+msgstr "Assistenza tecnica"
+
+#: includes/sib-form.php:31
+msgid "Partnership"
+msgstr "Collaboratore"
+
+#: includes/sib-form.php:34
+msgid "Accounting"
+msgstr "Contabilità"
+
+#: includes/sib-form.php:37
+msgid "Other"
+msgstr "Altro"
+
+#: includes/sib-form.php:43
+msgid "Choose"
 msgstr ""
 
 #. Name of the theme
@@ -213,92 +215,98 @@ msgstr ""
 msgid "http://stereosuper.fr"
 msgstr ""
 
-#: ../../themes/beezup/search.php:16
+#. Name of the template
+msgid "Tarifs"
+msgstr "Tariffe"
+
+#: tarifs.php:44
+msgid "1 month"
+msgstr "1 mese"
+
+#: tarifs.php:45
+msgid "3 months"
+msgstr "3 mesi"
+
+#: tarifs.php:46
+msgid "6 months"
+msgstr "6 mesi"
+
+#: tarifs.php:47
+msgid "1 year"
+msgstr "1 anno"
+
+#: search.php:16
 msgid "for"
 msgstr "Per"
 
 #. Name of the template
-msgid "Réseaux"
-msgstr "Reti"
+msgid "Sitemap"
+msgstr "mappa del sito"
 
-#: ../../themes/beezup/reseaux.php:72 ../../themes/beezup/reseaux.php:74
-msgid "All types of channels"
-msgstr "Tutti i tipi di canali"
+#: functions.php:156
+msgid "All the sectors"
+msgstr "Tutti gli universi"
 
-#: ../../themes/beezup/reseaux.php:103 ../../themes/beezup/includes/blog-form.php:
-#: 26 ../../themes/beezup/includes/blog-form.php:27
-msgid "Search"
-msgstr "Ricerca"
+#. Name of the template
+msgid "Fonctionnalites"
+msgstr "Funzioni"
 
 #. Name of the template
 msgid "Contact"
 msgstr "Contatti"
 
 #. Name of the template
-msgid "Sitemap"
-msgstr "mappa del sito"
+msgid "Réseaux"
+msgstr "Reti"
 
-#. Name of the template
-msgid "Tarifs"
-msgstr "Tariffe"
+#: reseaux.php:72 reseaux.php:74
+msgid "All types of channels"
+msgstr "Tutti i tipi di canali"
 
-#: ../../themes/beezup/tarifs.php:44
-msgid "1 month"
-msgstr "1 mese"
+#: reseaux.php:103 includes/blog-form.php:26 includes/blog-form.php:27
+msgid "Search"
+msgstr "Ricerca"
 
-#: ../../themes/beezup/tarifs.php:45
-msgid "3 months"
-msgstr "3 mesi"
-
-#: ../../themes/beezup/tarifs.php:46
-msgid "6 months"
-msgstr "6 mesi"
-
-#: ../../themes/beezup/tarifs.php:47
-msgid "1 year"
-msgstr "1 anno"
-
-#: ../../themes/beezup/includes/newsletter.php:20
-msgid "Your email address"
-msgstr "Email"
-
-#: ../../themes/beezup/includes/sib-form.php:20 ../../themes/beezup/includes/form.
-#: php:23
+#: includes/form.php:23 includes/sib-form.php:68
 msgid "Last Name"
 msgstr "Cognome"
 
-#: ../../themes/beezup/includes/sib-form.php:30 ../../themes/beezup/includes/form.
-#: php:31
+#: includes/form.php:31 includes/sib-form.php:78
 msgid "First Name"
 msgstr "Nome"
 
-#: ../../themes/beezup/includes/sib-form.php:37 ../../themes/beezup/includes/form.
-#: php:39
+#: includes/form.php:39 includes/sib-form.php:85
 msgid "E-commerce(s) website(s)"
 msgstr "Sito/i di e-commerce"
 
-#: ../../themes/beezup/includes/sib-form.php:53 ../../themes/beezup/includes/form.
-#: php:65
-msgid "Message"
-msgstr "Messaggio"
+#: includes/form.php:39 includes/sib-form.php:85
+msgid "optional"
+msgstr "facultativo"
 
-#: ../../themes/beezup/includes/sib-form.php:65 ../../themes/beezup/includes/form.
-#: php:87
-msgid "Submit"
-msgstr "Invia"
-
-#: ../../themes/beezup/includes/form.php:42
+#: includes/form.php:42
 msgid "Add"
 msgstr "aggiungi"
 
-#: ../../themes/beezup/includes/form.php:49
+#: includes/form.php:49 includes/sib-form.php:92
 msgid "Phone"
 msgstr "Telefono"
 
-#. Name of the template
-msgid "Fonctionnalites"
-msgstr "Funzioni"
+#: includes/form.php:65 includes/sib-form.php:108
+msgid "Message"
+msgstr "Messaggio"
 
-#: ../../themes/beezup/functions.php:156
-msgid "All the sectors"
-msgstr "Tutti gli universi"
+#: includes/form.php:87 includes/sib-form.php:122
+msgid "Submit"
+msgstr "Invia"
+
+#: includes/sib-form.php:24
+msgid "Subject"
+msgstr "Soggetto"
+
+#: includes/sib-form.php:52 includes/newsletter.php:4
+msgid "This email address isn't valid"
+msgstr "Questo indirizzo email non è valido"
+
+#: includes/newsletter.php:20
+msgid "Your email address"
+msgstr "Email"
