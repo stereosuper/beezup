@@ -5,6 +5,7 @@ Template Name: Contact
 
 // include_once( 'includes/form-handler.php' );
 
+
 get_header(); ?>
 
 <?php if ( have_posts() ) : the_post(); ?>

@@ -21,6 +21,7 @@ $(() => {
     const selectForm = require('./selectForm.js');
     const initVideo = require('./initVideo.js');
     const contactAnchor = require('./contactAnchor.js');
+    const contactFormSuccess = require('./contactFormSuccess.js');
 
     const body = $('body');
     const menuMain = $('#menuMain');
@@ -93,6 +94,7 @@ $(() => {
     scrollTo($('#menuFonctionnalites'));
 
     contactAnchor();
+    contactFormSuccess();
 
     // Anim top home
     animTopHome($('#btnTopHome'));

@@ -18,7 +18,10 @@ if( $subject === 'support' || $subject === 'partnership' ){
 
 ?>
 
-<div>
+<div class="form-wrapper js-form-wrapper">
+    <?php if ($success_message = get_field('form_success_message')): ?>
+        <span class="success-message hide"><?php echo $success_message ?></span>
+    <?php endif; ?>
     <?php if( get_field('contactId', 'options') && (get_field('contactId2', 'options') || get_field('contactId3', 'options')) ){ ?>
         <form class='form-choose' method='POST' action='<?php the_permalink(); ?>#sib_embed_signup'>
             <label><?php _e('Subject', 'beezup'); ?></label>
@@ -97,7 +100,7 @@ if( $subject === 'support' || $subject === 'partnership' ){
                         </div>
                         <div class="row mandatory-email">
                             <label class="lbl-tinyltr"><?php _e('Email', 'beezup'); ?></label>
-                            <input type="text" name="email" id="email" value="">
+                            <input type="email" name="email" id="email" value="">
                             <div style="clear:both;"></div>
                             <div class="hidden-btns">
                                 <a class="btn move" href="#"><i class="fa fa-arrows"></i></a><br>

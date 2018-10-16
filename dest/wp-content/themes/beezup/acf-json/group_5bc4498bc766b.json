@@ -224,6 +224,25 @@
             "maxlength": ""
         },
         {
+            "key": "field_5bc5b48d0d476",
+            "label": "Message de succès",
+            "name": "form_success_message",
+            "type": "textarea",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "",
+            "maxlength": "",
+            "rows": 2,
+            "new_lines": "wpautop"
+        },
+        {
             "key": "field_5bc46204a5afb",
             "label": "Calendly",
             "name": "",
@@ -276,5 +295,5 @@
     "hide_on_screen": "",
     "active": 1,
     "description": "",
-    "modified": 1539616417
+    "modified": 1539683554
 }

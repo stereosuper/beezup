@@ -111,6 +111,20 @@
                 }
             }
         }
+        .form-wrapper {
+            &.succeded {
+                .hide {
+                    opacity: 0;
+                    visibility: hidden;
+                }
+            }
+            .success-message {
+                color: $secondary;
+                &.hide {
+                    display: none;
+                }
+            }
+        }
     }
     hr {
         margin: 115px auto 70px;
