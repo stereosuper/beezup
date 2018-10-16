@@ -139,7 +139,14 @@ get_header(); ?>
 
     <?php get_template_part('includes/free-links'); ?>
 
+    <script defer src="https://www.googletagmanager.com/gtag/js?id=GTM-TSMVR9W"></script>
     <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments)};
+        gtag('js', new Date());
+
+        gtag('config', 'GTM-TSMVR9W');
+
         function gtagReportConversion(url) {
             const callback = function callback()  {
                 if (typeof url !== 'undefined') {
