@@ -76,7 +76,7 @@
 									<?php } ?>
 									<?php if( get_field('phoneTel', 'options') ){ ?>
 										<li class='head-tel'>
-											<a href='tel:<?php echo str_replace(' ', '', get_field('phoneTel', 'options')); ?>' title='<?php _e('Appelez-nous', 'beezup'); ?>'>
+											<a id="header-phone-button" href='tel:<?php echo str_replace(' ', '', get_field('phoneTel', 'options')); ?>' title='<?php _e('Appelez-nous', 'beezup'); ?>'>
 												<svg class="icon icon-phone"><use xlink:href="#icon-phone"></use></svg>
 												<span><?php the_field('phoneTel', 'options'); ?></span>
 											</a>

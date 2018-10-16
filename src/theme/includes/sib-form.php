@@ -118,7 +118,7 @@ if( $subject === 'support' || $subject === 'partnership' ){
                     <div class="captcha forms-builder-group"><div class="row"><div id="gcaptcha" style="transform: scale(1); margin-left: 0px;"></div></div></div>
 
                     <div class="byline" >
-                        <button class='btn btn-arrow button editable' type='submit' data-editfield="subscribe">
+                        <button id="contact-form-send-button" class='btn btn-arrow button editable' type='submit' data-editfield="subscribe">
                             <?php _e('Submit', 'beezup'); ?>
                             <svg class='icon icon-arrow-right'><use xmlns:xlink='http://www.w3.org/1999/xlink' xlink:href='#icon-arrow-right'></use></svg>
                         </button>
