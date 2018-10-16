@@ -139,6 +139,24 @@ get_header(); ?>
 
     <?php get_template_part('includes/free-links'); ?>
 
+    <script>
+        function gtagReportConversion(url) {
+            const callback = function callback()  {
+                if (typeof url !== 'undefined') {
+                    window.location = url;
+                }
+            };
+
+            gtag('event', 'conversion', {
+                send_to: 'AW-874502731/heniCI_Gy4oBEMu0_6AD',
+
+                event_callback: callback,
+            });
+
+            return false;
+        }
+    </script>
+
 <?php else : ?>
 
 	<div class='container-small'>
