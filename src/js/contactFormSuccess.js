@@ -18,16 +18,7 @@ module.exports = () => {
         formWrapper.find('.success-message').removeClass('hide');
 
         if (gtagReportConversion) {
-            const gtagScript = document.createElement('script');
-            gtagScript.src = `https://www.googletagmanager.com/gtag/js?id=${gtmId}`;
-            document.body.appendChild(gtagScript);
-            gtagScript.addEventListener(
-                'load',
-                () => {
-                    gtagReportConversion();
-                },
-                false
-            );
+            gtagReportConversion();
         }
     }
 };
