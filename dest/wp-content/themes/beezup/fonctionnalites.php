@@ -162,9 +162,14 @@ get_header(); ?>
                 <div class='demo-bottom-text'>
                     <?php the_field('bottomText'); ?>
 
-                    <?php if( get_field('bottomBtn') ){ ?>
-                    <button id="functionalities-contact-button" class='btn-arrow btn' onclick="Calendly.showPopupWidget('<?php the_field('calendly', 'options'); ?>');return false;" type='button'><?php the_field('bottomBtn'); ?><svg class='icon'><use xlink:href='#icon-arrow-right'></use></svg></button>
-                 <?php } ?>
+                    <?php if( get_field('bottomBtn') ): ?>
+                    <button id="functionalities-contact-button" class='btn-arrow btn' type='button'>
+                    <a href='<?php the_field('contactLink', 'options'); ?>' title='<?php the_field('bottomBtn'); ?>'>
+                        <span><?php the_field('bottomBtn'); ?></span>
+                        <svg class='icon'><use xlink:href='#icon-arrow-right'></use></svg></button>
+                    </a>
+                    
+                    <?php endif; ?>
                 </div>
                 <div class='demo-bottom-img'>
                     <?php echo wp_get_attachment_image( get_field('bottomImg'), 'full' ); ?>

@@ -1,6 +1,6 @@
 /* Buttons */
 
-.btn{
+.btn {
     display: inline-block;
     padding: 15px 34px;
     font-family: $fira-medium;
@@ -11,21 +11,26 @@
     background: $secondary;
     color: $white;
     text-decoration: none;
-    &:hover, &:focus{
+    &:hover,
+    &:focus {
         background: $primary;
         color: $white;
     }
 }
 
-.btn-black{
+.btn-black {
     background: $text;
-    &:hover, &:focus{
+    &:hover,
+    &:focus {
         background: $white;
         color: $text;
+        a {
+            color: $text;
+        }
     }
 }
 
-.btn-secondary{
+.btn-secondary {
     display: inline-block;
     width: 45px;
     height: 45px;
@@ -33,18 +38,24 @@
     font-size: 1.4rem;
     background: $text;
     color: $white;
-    &:hover, &:focus{
+    &:hover,
+    &:focus {
         background: $white;
         color: $text;
     }
 }
 
-.btn-arrow, .btn-arrow-bg{
+.btn-arrow,
+.btn-arrow-bg {
     padding: 15px 52px 15px 34px;
     position: relative;
 }
-.btn-arrow{
-    .icon{
+.btn-arrow {
+    a {
+        color: $white;
+        text-decoration: none;
+    }
+    .icon {
         width: 10px;
         height: 8px;
         position: absolute;
@@ -54,15 +65,16 @@
         right: 30px;
         transition: transform $transition;
     }
-    &:hover, &:focus{
-        .icon{
+    &:hover,
+    &:focus {
+        .icon {
             transform: translate3d(5px, 0, 0);
         }
     }
 }
-.btn-arrow-bg{
-    &:after{
-        content: '';
+.btn-arrow-bg {
+    &:after {
+        content: "";
         width: 11px;
         height: 8px;
         position: absolute;
@@ -70,45 +82,47 @@
         bottom: 0;
         margin: auto;
         right: 30px;
-        background: url('../layoutImg/arrow-right-white.svg') no-repeat;
+        background: url("../layoutImg/arrow-right-white.svg") no-repeat;
         transition: transform $transition;
     }
-    &:hover, &:focus{
-        &:after{
+    &:hover,
+    &:focus {
+        &:after {
             transform: translate3d(5px, 0, 0);
         }
     }
 }
 
-.link-arrow{
+.link-arrow {
     position: relative;
-    &:after{
-        content: '';
+    &:after {
+        content: "";
         display: inline-block;
         width: 11px;
         height: 8px;
         position: relative;
         right: -10px;
-        background: url('../layoutImg/arrow-right.svg') no-repeat;
+        background: url("../layoutImg/arrow-right.svg") no-repeat;
         transition: $transition;
     }
-    &:hover, &:focus{
+    &:hover,
+    &:focus {
         color: $secondary;
         opacity: 0.6;
-        &:after{
+        &:after {
             transform: translate3d(5px, 0, 0);
         }
     }
 }
 
-.btn-add{
+.btn-add {
     display: inline-block;
     padding: 0 0 0 22px;
     position: relative;
     font-size: 1.3rem;
     color: $secondary;
     text-decoration: underline;
-    .icon{
+    .icon {
         width: 13px;
         height: 13px;
         position: absolute;
@@ -117,48 +131,51 @@
         bottom: 1px;
         margin: auto;
     }
-    &:hover, &:focus{
+    &:hover,
+    &:focus {
         color: $primary;
     }
 }
 
-.btn-close, .btn-search{
+.btn-close,
+.btn-search {
     text-indent: -99em;
     overflow: hidden;
-    .icon{
+    .icon {
         float: left;
     }
-    &:hover, &:focus{
+    &:hover,
+    &:focus {
         color: $primary;
     }
 }
 
-.btn-close{
+.btn-close {
     width: 10px;
     height: 10px;
     color: rgba($primary, 0.35);
-    .icon{
+    .icon {
         width: 10px;
         height: 10px;
     }
 }
 
-.btn-search{
+.btn-search {
     width: 12px;
     height: 12px;
-    .icon{
+    .icon {
         width: 12px;
         height: 12px;
     }
 }
 
-
-@media (max-width: $tablet){
-    .btn{
+@media (max-width: $tablet) {
+    .btn {
         padding: 15px 30px;
     }
-    
-    .btn-arrow, .btn-arrow-bg{
+
+    .btn-arrow,
+    .btn-arrow-bg {
         padding: 15px 48px 15px 30px;
     }
 }

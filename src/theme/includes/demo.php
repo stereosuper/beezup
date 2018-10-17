@@ -6,9 +6,11 @@
 
         <p><?php the_field('blogDemoText', 'options'); ?></p>
 
-        <button class='btn btn-black btn-arrow' onclick="Calendly.showPopupWidget('<?php the_field('calendly', 'options'); ?>');return false;" type='button'>
-            <?php the_field('blogDemoBtn', 'options'); ?>
-            <svg class='icon'><use xlink:href='#icon-arrow-right'></use></svg>
+        <button class='btn btn-black btn-arrow' type='button'>
+            <a href='<?php the_field('contactLink', 'options'); ?>' title='<?php the_field('blogDemoBtn', 'options'); ?>'>
+                <span><?php the_field('blogDemoBtn', 'options'); ?></span>
+                <svg class='icon'><use xlink:href='#icon-arrow-right'></use></svg>
+            </a>
         </button>
     </div>
 

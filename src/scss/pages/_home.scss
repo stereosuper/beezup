@@ -1,15 +1,15 @@
 /* Home specific style */
 
-.wrapper-list-menu-home{
+.wrapper-list-menu-home {
     display: flex;
     justify-content: flex-end;
     margin: 100px 0 0;
-    .list-menu{
+    .list-menu {
         margin-bottom: -20px;
     }
 }
 
-.title-home{
+.title-home {
     margin: 0;
     font-family: $fira-bold;
     font-size: 4.5rem;
@@ -18,19 +18,13 @@
     color: $text;
 }
 
-.intro-home{
+.intro-home {
     padding: 30px 0;
     margin: 0;
 }
 
-.btn-intro-home{
-    a{
-        color: $white;
-        text-decoration: none;
-    }
-}
-
-.block-title-home, .block-title-home-2{
+.block-title-home,
+.block-title-home-2 {
     width: 100%;
     max-width: 440px;
     padding: 0 0 100px;
@@ -39,23 +33,23 @@
     margin: 0;
     z-index: 2;
 }
-.block-title-home{
-    > .btn{
-        .no-js &{
+.block-title-home {
+    > .btn {
+        .no-js & {
             display: none;
         }
     }
 }
-.block-title-home-2{
+.block-title-home-2 {
     top: auto;
     bottom: 100px;
 }
 
-.wrapper-svg-home{
+.wrapper-svg-home {
     position: relative;
 }
 
-.text-illus{
+.text-illus {
     position: absolute;
     text-transform: uppercase;
     line-height: 1;
@@ -63,185 +57,185 @@
     pointer-events: none;
     color: $primary;
     transform: scaleY(0.75) rotate(35deg);
-    > div{
+    > div {
         display: flex;
         height: 100%;
         justify-content: center;
         align-items: center;
     }
-    span{
+    span {
         display: block;
         text-transform: none;
     }
-    &.market-places{
+    &.market-places {
         width: 30.6%;
         height: 41%;
         top: 2.5%;
         left: 41%;
-        .ie11 &{
+        .ie11 & {
             top: 4%;
         }
-        strong{
+        strong {
             font-size: 8rem;
         }
     }
-    &.google-shopping{
+    &.google-shopping {
         width: 22.2%;
         height: 27%;
         top: 2%;
         left: 70.5%;
-        .ie11 &{
+        .ie11 & {
             top: 3%;
         }
-        strong{
+        strong {
             font-size: 4.5rem;
-            > span{
+            > span {
                 font-size: 0.7em;
             }
         }
     }
-    &.comparator{
+    &.comparator {
         width: 23.5%;
         height: 13%;
         top: 49.5%;
         left: 70.5%;
-        .ie11 &{
+        .ie11 & {
             top: 51.5%;
         }
-        strong{
+        strong {
             font-size: 3.2rem;
         }
     }
-    &.affiliate{
+    &.affiliate {
         width: 20%;
         height: 14%;
         top: 62%;
         left: 69%;
-        .ie11 &{
+        .ie11 & {
             top: 64%;
         }
-        strong{
+        strong {
             font-size: 3.2rem;
         }
     }
-    &.retargeting{
+    &.retargeting {
         width: 18.5%;
         height: 12.5%;
         top: 75.5%;
         left: 59%;
-        .ie11 &{
+        .ie11 & {
             top: 77%;
         }
-        strong{
+        strong {
             font-size: 2.7rem;
         }
     }
-    &.your-shop{
+    &.your-shop {
         width: 25.5%;
         height: 20.5%;
         top: 46%;
         left: -0.5%;
-        .ie11 &{
+        .ie11 & {
             top: 48%;
         }
-        strong{
+        strong {
             font-size: 4.5rem;
             color: $white;
-            > span{
+            > span {
                 font-size: 0.5em;
             }
         }
     }
 }
 
-.illus-responsive{
+.illus-responsive {
     display: none;
     margin: 0 auto 30px;
 }
 
-
-@media (max-width: $desktop-large){
-    .text-illus{
-        &.market-places{
-            strong{
+@media (max-width: $desktop-large) {
+    .text-illus {
+        &.market-places {
+            strong {
                 font-size: 6.5vw;
             }
         }
-        &.google-shopping{
-            strong{
+        &.google-shopping {
+            strong {
                 font-size: 3.5vw;
             }
         }
-        &.comparator{
-            strong{
+        &.comparator {
+            strong {
                 font-size: 2.5vw;
             }
         }
-        &.affiliate{
-            strong{
+        &.affiliate {
+            strong {
                 font-size: 2.3vw;
             }
         }
-        &.retargeting{
-            strong{
+        &.retargeting {
+            strong {
                 font-size: 2.2vw;
             }
         }
-        &.your-shop{
-            strong{
+        &.your-shop {
+            strong {
                 font-size: 3.6vw;
             }
         }
     }
 }
 
-@media (max-width: $desktop-small){
-    .block-title-home, .block-title-home-2{
+@media (max-width: $desktop-small) {
+    .block-title-home,
+    .block-title-home-2 {
         max-width: 310px !important;
     }
-    .block-title-home-2{
+    .block-title-home-2 {
         bottom: 50px;
     }
 
-    .title-home{
+    .title-home {
         font-size: 4rem;
-        br{
+        br {
             display: none;
         }
     }
 
-    .text-illus{
-        &.market-places{
+    .text-illus {
+        &.market-places {
             top: 3%;
             left: 40%;
         }
-        &.google-shopping{
+        &.google-shopping {
             top: 1.5%;
             left: 70%;
         }
-        &.comparator{
+        &.comparator {
             top: 50%;
             left: 70%;
         }
-        &.affiliate{
+        &.affiliate {
             left: 68%;
         }
-        &.retargeting{
+        &.retargeting {
             top: 75%;
             left: 58.5%;
         }
-        &.your-shop{
+        &.your-shop {
             top: 45.5%;
             left: -1%;
         }
     }
 }
 
-@media (max-width: $tablet){
-    .block-title-home{
+@media (max-width: $tablet) {
+    .block-title-home {
         display: none;
     }
-    .block-title-home-2{
+    .block-title-home-2 {
         max-width: none !important;
         padding: 0;
         position: relative;
@@ -249,18 +243,18 @@
         margin-top: 100px;
     }
 
-    .wrapper-list-menu-home{
+    .wrapper-list-menu-home {
         margin: 50px 0 -20px;
-        .list-menu{
+        .list-menu {
             margin-bottom: 0;
         }
     }
 
-    .wrapper-svg-home{
+    .wrapper-svg-home {
         display: none;
     }
 
-    .illus-responsive{
+    .illus-responsive {
         display: block;
     }
 }
