@@ -163,7 +163,7 @@ get_header(); ?>
                     <?php the_field('bottomText'); ?>
 
                     <?php if( get_field('bottomBtn') ){ ?>
-                    <button class='btn-arrow btn' onclick="Calendly.showPopupWidget('<?php the_field('calendly', 'options'); ?>');return false;" type='button'><?php the_field('bottomBtn'); ?><svg class='icon'><use xlink:href='#icon-arrow-right'></use></svg></button>
+                    <button id="functionalities-contact-button" class='btn-arrow btn' onclick="Calendly.showPopupWidget('<?php the_field('calendly', 'options'); ?>');return false;" type='button'><?php the_field('bottomBtn'); ?><svg class='icon'><use xlink:href='#icon-arrow-right'></use></svg></button>
                  <?php } ?>
                 </div>
                 <div class='demo-bottom-img'>

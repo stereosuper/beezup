@@ -30,13 +30,11 @@ module.exports = () => {
 
     document.addEventListener('readystatechange', () => {
         if (document.readyState === 'complete') {
-            setTimeout(() => {
-                const hash = $(window.location)
-                    .attr('hash')
-                    .replace('/', '');
+            const hash = $(window.location)
+                .attr('hash')
+                .replace('/', '');
 
-                scroll(hash);
-            }, 100);
+            scroll(hash);
         }
     });
 };
