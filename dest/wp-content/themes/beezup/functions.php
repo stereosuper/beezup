@@ -805,4 +805,20 @@ function beezup_footer(){ ?>
 <?php }
 add_action( 'wp_footer', 'beezup_footer');
 
+/*-----------------------------------------------------------------------------------*/
+/* I18n
+/*-----------------------------------------------------------------------------------*/
+
+add_action( 'after_setup_theme', 'my_language_translation_setup' );
+function my_language_translation_setup(){
+    load_theme_textdomain( 'beezup', get_template_directory() . '/languages' );
+
+    $locale = get_locale();
+    $locale_file = get_template_directory() . "/languages/$locale.php";
+
+    if ( is_readable( $locale_file ) ) {
+        require_once( $locale_file );
+    }
+}
+
 ?>

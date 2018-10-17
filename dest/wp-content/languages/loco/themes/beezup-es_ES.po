@@ -1,22 +1,21 @@
-#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: Beezup\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2018-10-17 09:24+0000\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: \n"
-"Language: \n"
-"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+"PO-Revision-Date: 2018-10-17 09:36+0000\n"
+"Last-Translator: adminBeez <elisabeth@stereosuper.fr>\n"
+"Language-Team: Spanish (Spain)\n"
+"Language: es-ES\n"
+"Plural-Forms: nplurals=2; plural=n != 1\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Loco https://localise.biz/"
+"X-Generator: Loco - https://localise.biz/"
 
 #: functions.php:156
 msgid "All the sectors"
-msgstr ""
+msgstr "Todos los universos"
 
 #: functions.php:243
 msgid "There are no channels of this type in this country."
@@ -44,11 +43,11 @@ msgstr ""
 
 #. Name of the template
 msgid "Réseaux"
-msgstr ""
+msgstr "Redes"
 
 #: reseaux.php:72 reseaux.php:74
 msgid "All types of channels"
-msgstr ""
+msgstr "Todos los tipos de canales"
 
 #: reseaux.php:80
 msgid "Open channels type list"
@@ -60,31 +59,31 @@ msgstr ""
 
 #: reseaux.php:103 includes/blog-form.php:26 includes/blog-form.php:27
 msgid "Search"
-msgstr ""
+msgstr "Buscar"
 
 #. Name of the template
 msgid "Tarifs"
-msgstr ""
+msgstr "Tarifas"
 
 #: tarifs.php:44
 msgid "1 month"
-msgstr ""
+msgstr "1 mes"
 
 #: tarifs.php:45
 msgid "3 months"
-msgstr ""
+msgstr "3 meses"
 
 #: tarifs.php:46
 msgid "6 months"
-msgstr ""
+msgstr "6 meses"
 
 #: tarifs.php:47
 msgid "1 year"
-msgstr ""
+msgstr "1 año"
 
 #. Name of the template
 msgid "Fonctionnalites"
-msgstr ""
+msgstr "Funcionalidades"
 
 #: search.php:8
 msgid "results"
@@ -112,7 +111,7 @@ msgstr ""
 
 #. Name of the template
 msgid "Contact"
-msgstr ""
+msgstr "Contacto"
 
 #: header.php:56
 msgid "Beezup, gestionnaire de flux e-commerce"
@@ -141,7 +140,7 @@ msgstr ""
 
 #. Name of the template
 msgid "Sitemap"
-msgstr ""
+msgstr "Mapa del sitio"
 
 #: sitemap.php:30
 msgid "Blog"
@@ -167,51 +166,51 @@ msgstr ""
 #: includes/sib-form-landing.php:5 includes/newsletter.php:4
 #: includes/sib-form.php:57
 msgid "This email address isn't valid"
-msgstr ""
+msgstr "La dirección de correo electrónico es inválida"
 
 #: includes/sib-form-landing.php:21 includes/sib-form.php:73
 #: includes/form.php:23
 msgid "Last Name"
-msgstr ""
+msgstr "Apellidos"
 
 #: includes/sib-form-landing.php:31 includes/sib-form.php:83
 #: includes/form.php:31
 msgid "First Name"
-msgstr ""
+msgstr "Nombre"
 
 #: includes/sib-form-landing.php:38 includes/sib-form.php:90
 #: includes/form.php:39
 msgid "E-commerce(s) website(s)"
-msgstr ""
+msgstr "Web(s) tienda online"
 
 #: includes/sib-form-landing.php:38 includes/sib-form.php:90
 #: includes/form.php:39
 msgid "optional"
-msgstr ""
+msgstr "facultativo"
 
 #: includes/sib-form-landing.php:45 includes/sib-form.php:97
 #: includes/form.php:49
 msgid "Phone"
-msgstr ""
+msgstr "Teléfono"
 
 #: includes/sib-form-landing.php:52 includes/sib-form.php:104
 #: includes/form.php:57
 msgid "Email"
-msgstr ""
+msgstr "Email"
 
 #: includes/sib-form-landing.php:61 includes/sib-form.php:113
 #: includes/form.php:65
 msgid "Message"
-msgstr ""
+msgstr "Mensaje"
 
 #: includes/sib-form-landing.php:75 includes/sib-form.php:127
 #: includes/form.php:87
 msgid "Submit"
-msgstr ""
+msgstr "Enviar"
 
 #: includes/newsletter.php:20
 msgid "Your email address"
-msgstr ""
+msgstr "Email"
 
 #: includes/form-handler.php:52
 msgid "The phone number is not valid"
@@ -219,7 +218,7 @@ msgstr ""
 
 #: includes/form-handler.php:64
 msgid "The e-mail address is not valid"
-msgstr ""
+msgstr "La dirección de correo electrónico es inválida"
 
 #: includes/form-handler.php:109
 msgid "We are sorry, an error happened! Please try again later."
@@ -247,7 +246,7 @@ msgstr ""
 
 #: includes/sib-form.php:27
 msgid "Subject"
-msgstr ""
+msgstr "Asunto"
 
 #: includes/sib-form.php:31
 msgid "Demo request"
@@ -255,19 +254,19 @@ msgstr ""
 
 #: includes/sib-form.php:32
 msgid "Sales"
-msgstr ""
+msgstr "Comercial"
 
 #: includes/sib-form.php:34
 msgid "Support"
-msgstr ""
+msgstr "Soporte técnico"
 
 #: includes/sib-form.php:35
 msgid "Partnership"
-msgstr ""
+msgstr "Colaboradores"
 
 #: includes/sib-form.php:38
 msgid "Accounting"
-msgstr ""
+msgstr "Contabilidad"
 
 #: includes/sib-form.php:41
 msgid "Question about BeezUP solution"
@@ -275,7 +274,7 @@ msgstr ""
 
 #: includes/sib-form.php:42
 msgid "Other"
-msgstr ""
+msgstr "Otros"
 
 #: includes/sib-form.php:48
 msgid "Choose"
@@ -287,7 +286,7 @@ msgstr ""
 
 #: includes/form.php:42
 msgid "Add"
-msgstr ""
+msgstr "añadir"
 
 #: includes/form.php:74
 msgid "Please leave this field empty"
@@ -299,7 +298,7 @@ msgstr ""
 
 #: includes/blog-content.php:16
 msgid "in"
-msgstr ""
+msgstr "en"
 
 #: includes/blog-content.php:55
 msgid ""

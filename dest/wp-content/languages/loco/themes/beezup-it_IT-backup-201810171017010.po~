@@ -1,22 +1,21 @@
-#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: Beezup\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2018-10-17 09:24+0000\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: \n"
-"Language: \n"
-"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+"PO-Revision-Date: 2018-10-17 10:14+0000\n"
+"Last-Translator: adminBeez <elisabeth@stereosuper.fr>\n"
+"Language-Team: Italian\n"
+"Language: it-IT\n"
+"Plural-Forms: nplurals=2; plural=n != 1\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Loco https://localise.biz/"
+"X-Generator: Loco - https://localise.biz/"
 
 #: functions.php:156
 msgid "All the sectors"
-msgstr ""
+msgstr "Tutti gli universi"
 
 #: functions.php:243
 msgid "There are no channels of this type in this country."
@@ -44,11 +43,11 @@ msgstr ""
 
 #. Name of the template
 msgid "Réseaux"
-msgstr ""
+msgstr "Reti"
 
 #: reseaux.php:72 reseaux.php:74
 msgid "All types of channels"
-msgstr ""
+msgstr "Tutti i tipi di canali"
 
 #: reseaux.php:80
 msgid "Open channels type list"
@@ -60,31 +59,31 @@ msgstr ""
 
 #: reseaux.php:103 includes/blog-form.php:26 includes/blog-form.php:27
 msgid "Search"
-msgstr ""
+msgstr "Ricerca"
 
 #. Name of the template
 msgid "Tarifs"
-msgstr ""
+msgstr "Tariffe"
 
 #: tarifs.php:44
 msgid "1 month"
-msgstr ""
+msgstr "1 mese"
 
 #: tarifs.php:45
 msgid "3 months"
-msgstr ""
+msgstr "3 mesi"
 
 #: tarifs.php:46
 msgid "6 months"
-msgstr ""
+msgstr "6 mesi"
 
 #: tarifs.php:47
 msgid "1 year"
-msgstr ""
+msgstr "1 anno"
 
 #. Name of the template
 msgid "Fonctionnalites"
-msgstr ""
+msgstr "Funzioni"
 
 #: search.php:8
 msgid "results"
@@ -96,7 +95,7 @@ msgstr ""
 
 #: search.php:16
 msgid "for"
-msgstr ""
+msgstr "Per"
 
 #: search.php:34
 msgid "No results for"
@@ -112,7 +111,7 @@ msgstr ""
 
 #. Name of the template
 msgid "Contact"
-msgstr ""
+msgstr "Contatti"
 
 #: header.php:56
 msgid "Beezup, gestionnaire de flux e-commerce"
@@ -141,7 +140,7 @@ msgstr ""
 
 #. Name of the template
 msgid "Sitemap"
-msgstr ""
+msgstr "mappa del sito"
 
 #: sitemap.php:30
 msgid "Blog"
@@ -167,32 +166,32 @@ msgstr ""
 #: includes/sib-form-landing.php:5 includes/newsletter.php:4
 #: includes/sib-form.php:57
 msgid "This email address isn't valid"
-msgstr ""
+msgstr "Questo indirizzo email non è valido"
 
 #: includes/sib-form-landing.php:21 includes/sib-form.php:73
 #: includes/form.php:23
 msgid "Last Name"
-msgstr ""
+msgstr "Cognome"
 
 #: includes/sib-form-landing.php:31 includes/sib-form.php:83
 #: includes/form.php:31
 msgid "First Name"
-msgstr ""
+msgstr "Nome"
 
 #: includes/sib-form-landing.php:38 includes/sib-form.php:90
 #: includes/form.php:39
 msgid "E-commerce(s) website(s)"
-msgstr ""
+msgstr "Sito/i di e-commerce"
 
 #: includes/sib-form-landing.php:38 includes/sib-form.php:90
 #: includes/form.php:39
 msgid "optional"
-msgstr ""
+msgstr "facultativo"
 
 #: includes/sib-form-landing.php:45 includes/sib-form.php:97
 #: includes/form.php:49
 msgid "Phone"
-msgstr ""
+msgstr "Telefono"
 
 #: includes/sib-form-landing.php:52 includes/sib-form.php:104
 #: includes/form.php:57

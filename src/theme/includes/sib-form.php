@@ -5,7 +5,7 @@ $subject = isset($_POST['subject']) ? strip_tags(stripslashes($_POST['subject'])
 if( $subject === 'support' || $subject === 'partnership' ){
     $contactId = get_field('contactId2', 'options');
     $contactLists = get_field('contactLists2', 'options');
-}else if( $subject === 'other' ){
+}else if( $subject === 'other' || $subject === 'question'){
     $contactId = get_field('contactId3', 'options');
     $contactLists = get_field('contactLists3', 'options');
 }else if( $subject === 'accounting' ){
@@ -20,7 +20,7 @@ if( $subject === 'support' || $subject === 'partnership' ){
 
 <div class="form-wrapper js-form-wrapper">
     <?php if ($success_message = get_field('form_success_message')): ?>
-        <span class="success-message hide"><?php echo $success_message ?></span>
+        <span class="success-message hide"><?php _e($success_message, 'beezup') ?></span>
     <?php endif; ?>
     <?php if( get_field('contactId', 'options') && (get_field('contactId2', 'options') || get_field('contactId3', 'options')) ){ ?>
         <form class='form-choose' method='POST' action='<?php the_permalink(); ?>#sib_embed_signup'>
@@ -28,6 +28,7 @@ if( $subject === 'support' || $subject === 'partnership' ){
             <div>
                 <div class='select'>
                     <select name='subject' id='subject'>
+                        <option value='demo'><?php _e('Demo request', 'beezup'); ?></option>
                         <option value='sales'><?php _e('Sales', 'beezup'); ?></option>
                         <?php if( get_field('contactId2', 'options') ){ ?>
                             <option value='support' <?php if($subject === 'support'){ echo 'selected'; } ?>><?php _e('Support', 'beezup'); ?></option>
@@ -37,6 +38,7 @@ if( $subject === 'support' || $subject === 'partnership' ){
                             <option value='accounting' <?php if($subject === 'accounting'){ echo 'selected'; } ?>><?php _e('Accounting', 'beezup'); ?></option>
                         <?php } ?>
                         <?php if( get_field('contactId3', 'options') ){ ?>
+                            <option value='question' <?php if($subject === 'question'){ echo 'selected'; } ?>><?php _e('Question about BeezUP solution', 'beezup'); ?></option>
                             <option value='other' <?php if($subject === 'other'){ echo 'selected'; } ?>><?php _e('Other', 'beezup'); ?></option>
                         <?php } ?>
                     </select>

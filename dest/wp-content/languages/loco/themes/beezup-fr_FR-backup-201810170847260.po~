@@ -1,46 +1,46 @@
-#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: Beezup\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-10-17 09:24+0000\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: \n"
-"Language: \n"
-"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+"POT-Creation-Date: 2018-10-17 08:21+0000\n"
+"PO-Revision-Date: 2018-10-17 08:41+0000\n"
+"Last-Translator: adminBeez <elisabeth@stereosuper.fr>\n"
+"Language-Team: French (France)\n"
+"Language: fr-FR\n"
+"Plural-Forms: nplurals=2; plural=n > 1\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Loco https://localise.biz/"
+"X-Generator: Loco - https://localise.biz/"
 
 #: functions.php:156
 msgid "All the sectors"
-msgstr ""
+msgstr "Tous les univers"
 
 #: functions.php:243
 msgid "There are no channels of this type in this country."
-msgstr ""
+msgstr "Il n'y a pas de canaux de ce type dans ce pays."
 
 #: functions.php:245
 msgid "Channels can't be displayed at this time. Please come back later!"
 msgstr ""
+"Les canaux ne peuvent actuellement pas être affichés. Revenez plus tard!"
 
 #: functions.php:787
 msgid "There are no channels of this sector in this country"
-msgstr ""
+msgstr "Il n'y a pas de canaux de cet univers dans ce pays"
 
 #: functions.php:788
 msgid "There are no channels of this sector and this type in this country"
-msgstr ""
+msgstr "Il n'y a pas de canaux de cet univers et de ce type dans ce pays"
 
 #: functions.php:789
 msgid "There no channels matching your search"
-msgstr ""
+msgstr "Il n'y a pas de canaux correspondant à votre recherche"
 
 #: category.php:23 index.php:23
 msgid "There is no posts yet!"
-msgstr ""
+msgstr "Pas encore d'articles!"
 
 #. Name of the template
 msgid "Réseaux"
@@ -48,71 +48,71 @@ msgstr ""
 
 #: reseaux.php:72 reseaux.php:74
 msgid "All types of channels"
-msgstr ""
+msgstr "Tout type de canal"
 
 #: reseaux.php:80
 msgid "Open channels type list"
-msgstr ""
+msgstr "Ouvrir la liste des canaux"
 
 #: reseaux.php:85
 msgid "Close channels type list"
-msgstr ""
+msgstr "Fermer la liste des canaux"
 
 #: reseaux.php:103 includes/blog-form.php:26 includes/blog-form.php:27
 msgid "Search"
-msgstr ""
+msgstr "Rechercher"
 
 #. Name of the template
 msgid "Tarifs"
-msgstr ""
+msgstr "Tarifs"
 
 #: tarifs.php:44
 msgid "1 month"
-msgstr ""
+msgstr "1 mois"
 
 #: tarifs.php:45
 msgid "3 months"
-msgstr ""
+msgstr "3 months"
 
 #: tarifs.php:46
 msgid "6 months"
-msgstr ""
+msgstr "6 mois"
 
 #: tarifs.php:47
 msgid "1 year"
-msgstr ""
+msgstr "1 an"
 
 #. Name of the template
 msgid "Fonctionnalites"
-msgstr ""
+msgstr "Fonctionnalités"
 
 #: search.php:8
 msgid "results"
-msgstr ""
+msgstr "résultats"
 
 #: search.php:8
 msgid "result"
-msgstr ""
+msgstr "résultat"
 
 #: search.php:16
 msgid "for"
-msgstr ""
+msgstr "pour"
 
 #: search.php:34
 msgid "No results for"
-msgstr ""
+msgstr "Pas de résultats pour"
 
 #: search.php:42
 msgid "The search for"
-msgstr ""
+msgstr "La recherche de"
 
 #: search.php:42
 msgid "hasn't return any results"
-msgstr ""
+msgstr "n'a retourné aucun résultat"
 
 #. Name of the template
 msgid "Contact"
-msgstr ""
+msgstr "Contact"
 
 #: header.php:56
 msgid "Beezup, gestionnaire de flux e-commerce"
@@ -120,11 +120,11 @@ msgstr ""
 
 #: header.php:59
 msgid "Open menu"
-msgstr ""
+msgstr "Ouvrir le menu"
 
 #: header.php:64
 msgid "Close menu"
-msgstr ""
+msgstr "Fermer le menu"
 
 #: header.php:79
 msgid "Appelez-nous"
@@ -137,105 +137,106 @@ msgstr ""
 #: footer.php:27 footer.php:27 footer.php:32 footer.php:32 footer.php:37
 #: footer.php:37 footer.php:42 footer.php:42
 msgid "Follow us on"
-msgstr ""
+msgstr "Suivez-nous sur"
 
 #. Name of the template
 msgid "Sitemap"
-msgstr ""
+msgstr "Sitemap"
 
 #: sitemap.php:30
 msgid "Blog"
-msgstr ""
+msgstr "Blog"
 
 #: single.php:13 includes/blog-content.php:14
 msgid "Add on"
-msgstr ""
+msgstr "Ajouté le"
 
 #: single.php:30 single.php:30 single.php:33 single.php:33 single.php:36
 #: single.php:36
 msgid "Share on"
-msgstr ""
+msgstr "Partager sur"
 
 #. Name of the template
 msgid "Home"
-msgstr ""
+msgstr "Accueil"
 
 #: front-page.php:199 includes/related.php:31 includes/blog-content.php:30
 msgid "Read more"
-msgstr ""
+msgstr "Lire la suite"
 
 #: includes/sib-form-landing.php:5 includes/newsletter.php:4
 #: includes/sib-form.php:57
 msgid "This email address isn't valid"
-msgstr ""
+msgstr "Cette adresse email n'est pas valide"
 
 #: includes/sib-form-landing.php:21 includes/sib-form.php:73
 #: includes/form.php:23
 msgid "Last Name"
-msgstr ""
+msgstr "Nom"
 
 #: includes/sib-form-landing.php:31 includes/sib-form.php:83
 #: includes/form.php:31
 msgid "First Name"
-msgstr ""
+msgstr "Prénom"
 
 #: includes/sib-form-landing.php:38 includes/sib-form.php:90
 #: includes/form.php:39
 msgid "E-commerce(s) website(s)"
-msgstr ""
+msgstr "Site(s) web e-commerce"
 
 #: includes/sib-form-landing.php:38 includes/sib-form.php:90
 #: includes/form.php:39
 msgid "optional"
-msgstr ""
+msgstr "facultatif"
 
 #: includes/sib-form-landing.php:45 includes/sib-form.php:97
 #: includes/form.php:49
 msgid "Phone"
-msgstr ""
+msgstr "Téléphone"
 
 #: includes/sib-form-landing.php:52 includes/sib-form.php:104
 #: includes/form.php:57
 msgid "Email"
-msgstr ""
+msgstr "Email"
 
 #: includes/sib-form-landing.php:61 includes/sib-form.php:113
 #: includes/form.php:65
 msgid "Message"
-msgstr ""
+msgstr "Message"
 
 #: includes/sib-form-landing.php:75 includes/sib-form.php:127
 #: includes/form.php:87
 msgid "Submit"
-msgstr ""
+msgstr "Envoyer"
 
 #: includes/newsletter.php:20
 msgid "Your email address"
-msgstr ""
+msgstr "Votre adresse email"
 
 #: includes/form-handler.php:52
 msgid "The phone number is not valid"
-msgstr ""
+msgstr "Le numéro de téléphone est invalide"
 
 #: includes/form-handler.php:64
 msgid "The e-mail address is not valid"
-msgstr ""
+msgstr "L'adresse email est invalide"
 
 #: includes/form-handler.php:109
 msgid "We are sorry, an error happened! Please try again later."
 msgstr ""
+"Nous sommes désolés, une erreur est survenue! Merci de réessayer plus tard."
 
 #: includes/blog-form.php:5
 msgid "Categories"
-msgstr ""
+msgstr "Catégories"
 
 #: includes/blog-form.php:7
 msgid "All categories"
-msgstr ""
+msgstr "Toutes les catégories"
 
 #: includes/blog-form.php:13
 msgid "Open catgories list"
-msgstr ""
+msgstr "Ouvrir la liste des catégories"
 
 #: includes/blog-form.php:18
 msgid "Close catgories list"
