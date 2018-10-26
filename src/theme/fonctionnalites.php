@@ -163,10 +163,9 @@ get_header(); ?>
                     <?php the_field('bottomText'); ?>
 
                     <?php if( get_field('bottomBtn') ): ?>
-                    <button id="functionalities-contact-button" class='btn-arrow btn' type='button'>
-                    <a href='<?php the_field('contactLink', 'options'); ?>' title='<?php the_field('bottomBtn'); ?>'>
+                    <a id="functionalities-contact-button" class='btn-arrow btn' href='<?php the_field('contactLink', 'options'); ?>' title='<?php the_field('bottomBtn'); ?>'>
                         <span><?php the_field('bottomBtn'); ?></span>
-                        <svg class='icon'><use xlink:href='#icon-arrow-right'></use></svg></button>
+                        <svg class='icon'><use xlink:href='#icon-arrow-right'></use></svg>
                     </a>
                     
                     <?php endif; ?>

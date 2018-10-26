@@ -89,11 +89,9 @@
 						<div id='containerMenuMain' class='container-menu-main'>
 							<?php wp_nav_menu( array( 'theme_location' => 'primary', 'container' => 'nav', 'menu_class' => 'menu-main', 'menu_id' => 'menuMain', 'walker' => new Child_Wrap() ) ); ?>
 							<?php if( get_field('contactLink', 'options') && get_field('contactLinkText', 'options') ){ ?>
-								<button id='header-contact-button' class='btn btn-contact' type='button'>
-									<a href='<?php the_field('contactLink', 'options'); ?>' title='<?php the_field('contactLinkText', 'options'); ?>'>
-										<span><?php the_field('contactLinkText', 'options'); ?></span>
-									</a>
-								</button>
+								<a id='header-contact-button' class='btn btn-contact' href='<?php the_field('contactLink', 'options'); ?>' title='<?php the_field('contactLinkText', 'options'); ?>'>
+									<span><?php the_field('contactLinkText', 'options'); ?></span>
+								</a>
 							<?php } ?>
 						</div>
 					</div>
