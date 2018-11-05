@@ -45,7 +45,7 @@ get_header(); ?>
     endif;
     ?>
     <?php if(have_rows('anchors')): ?>
-        <section class="cards container relative">
+        <section class='cards-contact container relative' id='cardsContact'>
             <?php while (have_rows('anchors')) : the_row(); ?>
                 <?php $is_link = get_sub_field('is_link'); ?>
                 <?php if ($is_link): ?>
@@ -92,7 +92,7 @@ get_header(); ?>
         <section id="contact-form-will-scroll" class='contact-form container-medium relative'>
             <div class='block-half is-alone'>
                 <?php if ($form_title = get_field('form_title')): ?>
-                    <h2 class="title"><?php echo $form_title ?></h2>
+                    <h2 class="title contact-title"><?php echo $form_title ?></h2>
                 <?php endif; ?>
                 <?php // get_template_part( 'includes/form' ); ?>
                 <?php get_template_part( 'includes/sib-form' ); ?>
@@ -130,7 +130,7 @@ get_header(); ?>
         ?>
         <?php if ($calendly_url): ?>
             <section id="contact-calendly-will-scroll" class="contact-calendly container-medium relative">
-                <h2 class="title"><?php the_field('calendly_title') ?></h2>
+                <h2 class="title contact-title"><?php the_field('calendly_title') ?></h2>
                 <div class="iframe-wrapper">
                     <iframe src="<?php echo $calendly_url ?>" frameborder="0"></iframe>
                 </div>
