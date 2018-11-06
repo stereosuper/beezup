@@ -523,7 +523,7 @@
             }
         }
     }
-
+    
     .sub-menu{
         position: static;
         transform: none !important;
@@ -572,6 +572,9 @@
             color: $secondary;
             &:hover, &:focus{
                 color: $primary;
+            }
+            &.btn-contact{
+                padding: 15px 0;
             }
         }
     }
