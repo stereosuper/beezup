@@ -78,7 +78,7 @@ get_header(); ?>
                             </div>
                             <div class="card-content-text">
                                 <h2><?php the_sub_field('title') ?></h2>
-                                <p><?php the_sub_field('subtitle') ?></p>
+                                <?php the_sub_field('subtitle') ?>
                                 <p class="fake-link"><?php the_sub_field('call_to_action') ?></p>
                             </div>
                         </div>
