@@ -98,10 +98,10 @@ get_header(); ?>
                 <?php get_template_part( 'includes/sib-form' ); ?>
             </div>
 
-            <?php if( have_rows('people', 'options') ){ $count = 0; ?>
+            <?php if( have_rows('people', 'options') ): $count = 0; ?>
                 <ul class='members'>
-                    <?php while( have_rows('people', 'options') ){ $count ++; the_row(); ?>
-                        <?php if($count < 3){ ?>
+                    <?php while( have_rows('people', 'options') && $count < 2 ): the_row(); ?>
+                        <?php if(in_array("contact", get_sub_field('position', 'options'))): ?>
                             <li class='member' style='background-image: url(<?php echo wp_get_attachment_image_url( get_sub_field('photo', 'options'), 'full' ); ?>);' itemscope itemtype='http://schema.org/Person'>
                             <span class='name' itemprop='name'><?php the_sub_field('name', 'options'); ?></span>
                             <span class='job' itemprop='jobTitle'><?php the_sub_field('job', 'options'); ?></span>
@@ -116,10 +116,11 @@ get_header(); ?>
                                     <circle class='js-bee' cx='6' cy='0.9' r='0.9'/>
                                 </svg>
                             </li>
-                        <?php } ?>
-                    <?php } ?>
+                        <?php $count += 1; ?>
+                        <?php endif; ?>
+                    <?php endwhile; ?>
                 </ul>
-            <?php } ?>
+            <?php endif; ?>
         </section>
         <?php endif; ?>
         
