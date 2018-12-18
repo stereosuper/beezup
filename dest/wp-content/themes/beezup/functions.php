@@ -486,6 +486,32 @@ class Child_Wrap extends Walker_Nav_Menu{
     }
 } 
 
+/*-----------------------------------------------------------------------------------*/
+/* Post types
+/*-----------------------------------------------------------------------------------*/
+function beezup_post_types(){
+    register_post_type( 'partners', array(
+        'label' => 'Partners',
+        'singular_label' => 'Partenaire',
+        'public' => true,
+        'menu_icon' => 'dashicons-businessman',
+        'supports' => array('title', 'thumbnail', 'excerpt', 'revisions'),
+    ));
+}
+add_action( 'init', 'beezup_post_types' );
+
+function beezup_taxonomies(){
+    register_taxonomy( 'partners-type', 
+        array('partners'),
+        array(
+            'label' => __('Partners\' Categories'),
+            'singular_label' => __('Category'),
+            'hierarchical' => true,
+            'show_admin_column' => true,
+        )
+    );
+}
+add_action( 'init', 'beezup_taxonomies' );
 
 /*-----------------------------------------------------------------------------------*/
 /* Sidebar & Widgets

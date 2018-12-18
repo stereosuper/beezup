@@ -1,0 +1,39 @@
+{
+    "key": "group_5c191bd225aa7",
+    "title": "[partners] Partners fields",
+    "fields": [
+        {
+            "key": "field_5c191d9ebc9fa",
+            "label": "Partner's link",
+            "name": "partner_link",
+            "type": "link",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "return_format": "array"
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "post_type",
+                "operator": "==",
+                "value": "partners"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "default",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": 1,
+    "description": "",
+    "modified": 1545149877
+}
