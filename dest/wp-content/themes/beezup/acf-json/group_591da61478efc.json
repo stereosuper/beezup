@@ -1,0 +1,350 @@
+{
+    "key": "group_591da61478efc",
+    "title": "[options] General",
+    "fields": [
+        {
+            "key": "field_591eb769e3e59",
+            "label": "Code de la langue API",
+            "name": "lang",
+            "type": "text",
+            "instructions": "Code la langue courante dans l'API. Par exemple pour le site français, il s'agira de FRA.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "FRA",
+            "placeholder": "",
+            "prepend": "",
+            "append": "",
+            "maxlength": ""
+        },
+        {
+            "key": "field_592305d3e8f9a",
+            "label": "Code la langue \"classique\"",
+            "name": "lang2",
+            "type": "text",
+            "instructions": "Code la langue courante. Par exemple pour le site français, il s'agira de fr.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "fr",
+            "placeholder": "",
+            "prepend": "",
+            "append": "",
+            "maxlength": ""
+        },
+        {
+            "key": "field_594b8888bb425",
+            "label": "Calendly",
+            "name": "calendly",
+            "type": "text",
+            "instructions": "Copiez-collez ici l'url du calendly correspondant à la langue courante.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "https:\/\/calendly.com\/communication-beezup\/demo-fr",
+            "placeholder": "",
+            "prepend": "",
+            "append": "",
+            "maxlength": ""
+        },
+        {
+            "key": "field_595b638eee13c",
+            "label": "Formulaire - Newsletter Sendinblue ID",
+            "name": "newsletterId",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": "",
+            "maxlength": ""
+        },
+        {
+            "key": "field_595d226dbb40c",
+            "label": "Formulaire - Newsletter Sendinblue listes",
+            "name": "newsletterLists",
+            "type": "text",
+            "instructions": "Ecrire ici l'ID de la liste dans laquelle le formulaire est envoyé. S'il y en a plusieurs, les séparer par \"|\" (cmd+maj+l), par ex: 30|60",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": "",
+            "maxlength": ""
+        },
+        {
+            "key": "field_595b63a2ee13d",
+            "label": "Formulaire - Contact Sendinblue ID (Commercial)",
+            "name": "contactId",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": "",
+            "maxlength": ""
+        },
+        {
+            "key": "field_595d22c7bb40d",
+            "label": "Formulaire - Contact Sendinblue listes (Commercial)",
+            "name": "contactLists",
+            "type": "text",
+            "instructions": "Ecrire ici l'ID de la liste dans laquelle le formulaire est envoyé. S'il y en a plusieurs, les séparer par \"|\" (cmd+maj+l), par ex: 30|60",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": "",
+            "maxlength": ""
+        },
+        {
+            "key": "field_59943dc7284dd",
+            "label": "Formulaire - Contact Sendinblue ID (Supports et partenariats)",
+            "name": "contactId2",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": "",
+            "maxlength": ""
+        },
+        {
+            "key": "field_59943dd5284df",
+            "label": "Formulaire - Contact Sendinblue listes  (Supports et partenariats)",
+            "name": "contactLists2",
+            "type": "text",
+            "instructions": "Ecrire ici l'ID de la liste dans laquelle le formulaire est envoyé. S'il y en a plusieurs, les séparer par \"|\" (cmd+maj+l), par ex: 30|60",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": "",
+            "maxlength": ""
+        },
+        {
+            "key": "field_59a3d8ddd6915",
+            "label": "Formulaire - Contact Sendinblue ID (Comptabilité)",
+            "name": "contactId4",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": "",
+            "maxlength": ""
+        },
+        {
+            "key": "field_59a3d8ecd6916",
+            "label": "Formulaire - Contact Sendinblue listes (Comptabilité)",
+            "name": "contactLists4",
+            "type": "text",
+            "instructions": "Ecrire ici l'ID de la liste dans laquelle le formulaire est envoyé. S'il y en a plusieurs, les séparer par \"|\" (cmd+maj+l), par ex: 30|60",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": "",
+            "maxlength": ""
+        },
+        {
+            "key": "field_59943dc4284dc",
+            "label": "Formulaire - Contact Sendinblue ID (Autres)",
+            "name": "contactId3",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": "",
+            "maxlength": ""
+        },
+        {
+            "key": "field_59943dd4284de",
+            "label": "Formulaire - Contact Sendinblue listes (Autres)",
+            "name": "contactLists3",
+            "type": "text",
+            "instructions": "Ecrire ici l'ID de la liste dans laquelle le formulaire est envoyé. S'il y en a plusieurs, les séparer par \"|\" (cmd+maj+l), par ex: 30|60",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": "",
+            "maxlength": ""
+        },
+        {
+            "key": "field_595d0399c64bf",
+            "label": "Google Analytics ID",
+            "name": "ga",
+            "type": "text",
+            "instructions": "Le code Google Analytics ne sera présent dans la page que si ce champ est rempli",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": "",
+            "maxlength": ""
+        },
+        {
+            "key": "field_5922d11f6d4c9",
+            "label": "Page Réseaux",
+            "name": "networkPage",
+            "type": "post_object",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "post_type": [
+                "page"
+            ],
+            "taxonomy": [],
+            "allow_null": 0,
+            "multiple": 0,
+            "return_format": "id",
+            "ui": 1
+        },
+        {
+            "key": "field_594101ad95deb",
+            "label": "Cookies",
+            "name": "cookies",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": "",
+            "maxlength": ""
+        },
+        {
+            "key": "field_5c1a45ae990b6",
+            "label": "Recruitment page",
+            "name": "recruitment_page",
+            "type": "page_link",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "post_type": "",
+            "taxonomy": "",
+            "allow_null": 0,
+            "allow_archives": 1,
+            "multiple": 0
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "options_page",
+                "operator": "==",
+                "value": "acf-options-theme-options"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "default",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": 1,
+    "description": "",
+    "modified": 1545225723
+}

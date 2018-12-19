@@ -1,0 +1,55 @@
+.recruitment {
+    &.default {
+        margin-top: 150px;
+        padding: 75px 0;
+    }
+    .container {
+        display: flex;
+        align-items: flex-start;
+    }
+    &-ads {
+        width: $col * 4;
+        margin-left: calc(#{$col} + #{$gutter});
+        p {
+            margin-top: 0;
+            margin-bottom: $gutter * 2;
+            color: $black;
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+        ul {
+            li {
+                padding: 0;
+                margin-top: 0;
+                margin-bottom: $gutter * 2;
+                font-size: 1.6rem;
+                &::before,
+                &::after {
+                    display: none;
+                }
+            }
+        }
+    }
+    &-description {
+        width: $col * 7;
+        padding: $gutter * 4 0;
+        padding-left: calc(#{$col} + #{$gutter});
+        padding-right: calc(#{$col} + #{$gutter});
+        margin-top: calc(-#{$gutter * 4} - 75px);
+        margin-left: $gutter;
+        color: $black;
+        background-color: $white;
+        box-shadow: 0px 0px 60px rgba($black, 0.1);
+        ul {
+            > li {
+                font-size: 1.6rem;
+                &::before {
+                    background: $secondary;
+                }
+                &::after {
+                    background-image: url("../layoutImg/puce.svg");
+                }
+            }
+        }
+    }
+}

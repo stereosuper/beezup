@@ -5,21 +5,6 @@ Template Name: Partenaires
 
 $query_partners = new WP_Query( array( 'post_type' => 'partners' ) );
 
-
-// $alt = get_post_meta($attachment_id, '_wp_attachment_image_alt', true);
-// $alt = strtr($alt,array('\''=>' ','"'=>" "));
-// if(!empty($attachment_id)){
-//     $attachement_srcset = wp_get_attachment_image_srcset($attachment_id, $size);
-//     $attachement_src = wp_get_attachment_image_src($attachment_id, $size);
-//     $unique = str_replace(' ', '', str_replace('.', '', microtime()));
-//     $img_wrapper = '<img id="'.$unique.'" ';
-//     $img_wrapper .= 'class="loader-settings loader-img '. $class .'" ';
-//     $img_wrapper .= 'src="'. plugins_url() .'/plugin-settings/loader/blank.png" ';
-//     // $img_wrapper .= 'src="'. $attachement_src[0] .'" ';
-//     // $img_wrapper .= 'srcset="'. $attachement_srcset .'" ';
-//     $img_wrapper .=  $alt == null ? '' : 'alt="'. $alt .'" ';
-//     $img_wrapper .=  $other_attrs .'>';
-
 get_header(); ?>
 
 <?php if ( have_posts() ) : the_post(); ?>
@@ -75,6 +60,7 @@ get_header(); ?>
                             </li>
                         <?php endif; ?>
                     <?php endwhile; ?>
+                    <?php wp_reset_postdata(); ?>
                     </ul>
                 <?php else: ?>
                     <p class="channels-error"><svg class="icon"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-error"></use></svg>
