@@ -55,32 +55,31 @@ get_header(); ?>
             <p id='sectorError' class='channels-error'></p>
             
             <div id='channelsList'>
-                <?php if ( $query_partners->have_posts() ): ?>
+                <?php if ($query_partners->have_posts()): ?>
                     <ul class="galery channels-list">
-                    <?php for($i = 0; $i < 3; $i += 1): ?>
                     <?php while ( $query_partners->have_posts() ): $query_partners->the_post(); ?>
-                    <?php 
-                        $link = get_field('partner_link');
-                        $terms = get_the_terms(get_the_ID(), 'partners-type');
-                    ?>
-                        <li>
-                            <a href="<?php echo $link['url'] ?>" title="<?php echo htmlspecialchars(strip_tags($link['title']), ENT_QUOTES); ?>" target="<?php echo $link['target'] ?>" <?php echo $link['target'] === '_blank' ? 'rel="noopener noreferrer"' : ''; ?>>
-                                <span><?php the_title() ?></span>
-                                <?php the_post_thumbnail('medium') ?>
-                                <?php if($terms[0]): ?>
-                                    <span class="category"><?php echo $terms[0]->name ?></span>
-                                <?php endif; ?>
-                            </a>
-                        </li>
+                        <?php 
+                            $link = get_field('partner_link');
+                            $terms = get_the_terms(get_the_ID(), 'partners-type');
+                            $color = get_field('category_color', $terms[0]->taxonomy .'_'. $terms[0]->term_id);
+                        ?>
+                        <?php if ($link): ?>
+                            <li>
+                                <a href="<?php echo $link['url'] ?>" title="<?php echo htmlspecialchars(strip_tags($link['title']), ENT_QUOTES); ?>" target="<?php echo $link['target'] ?>" <?php echo $link['target'] === '_blank' ? 'rel="noopener noreferrer"' : ''; ?>>
+                                    <span><?php the_title() ?></span>
+                                    <?php the_post_thumbnail('medium') ?>
+                                    <?php if($terms[0]): ?>
+                                        <span class="category" style="background-color: <?php echo $color ?>;"><?php echo $terms[0]->name ?></span>
+                                    <?php endif; ?>
+                                </a>
+                            </li>
+                        <?php endif; ?>
                     <?php endwhile; ?>
-                    <?php endfor; ?>
                     </ul>
                 <?php else: ?>
-                    <?php if( $noChannels ): ?>
-                        <p class="channels-error"><svg class="icon"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-error"></use></svg>
-                        <?php __("There are no channels of this type in this country.", 'beezup') ?>
-                        </p>
-                    <?php endif; ?>
+                    <p class="channels-error"><svg class="icon"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-error"></use></svg>
+                    <?php _e("There are no partners.", 'beezup') ?>
+                    </p>
                 <?php endif; ?>
             </div>
 
