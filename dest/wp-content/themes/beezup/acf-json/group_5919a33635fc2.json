@@ -78,6 +78,25 @@
             "maxlength": ""
         },
         {
+            "key": "field_5c1ceff4d9281",
+            "label": "Recrutement - Texte du lien",
+            "name": "recruitment_link_text",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": "",
+            "maxlength": ""
+        },
+        {
             "key": "field_5bc0994b00dae",
             "label": "Téléphone",
             "name": "phoneTel",
@@ -114,5 +133,5 @@
     "hide_on_screen": "",
     "active": 1,
     "description": "",
-    "modified": 1539685009
+    "modified": 1545400696
 }

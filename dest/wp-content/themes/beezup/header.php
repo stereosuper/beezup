@@ -66,6 +66,14 @@
 							<div class='wrapper-menu-head'>
 								<?php echo beezup_mlp_navigation(); ?>
 								<ul id='menuHead' class='menu-head'>
+									<?php if( $recruitment_page = get_field('recruitment_page', 'options') && $recruitment_link_text = get_field('recruitment_link_text', 'options') ): ?>
+										<li class='head-recruitment'>
+											<a href='<?php echo $recruitment_page ?>'>
+												<svg class='icon icon-thumbs-up'><use xlink:href='#icon-thumbs-up'></use></svg>
+												<span><?php echo $recruitment_link_text ?></span>
+											</a>
+										</li>
+									<?php endif; ?>
 									<?php if( get_field('connectLink', 'options') && get_field('connectLinkText', 'options') ){ ?>
 										<li class='head-connect'>
 											<a href='<?php the_field('connectLink', 'options'); ?>' target='_blank' rel='nofollow'>
