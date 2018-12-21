@@ -39,21 +39,23 @@
                                 }
                             ?>
                             <div class="recruitment-ads">
-                                <p><?php _e('Nous recherchons actuellement...', 'beezup') ?></p>
-                                <ul>
-                                    <?php foreach ($recruitment_articles as $article): ?>
+                                <?php if (sizeof($recruitment_articles) > 0): ?>
+                                    <p><?php _e('Nous recherchons actuellement...', 'beezup') ?></p>
+                                    <ul>
+                                        <?php foreach ($recruitment_articles as $article): ?>
+                                            <li>
+                                                <a class="link-arrow" href="<?php echo $article['link'] ?>">
+                                                    <?php echo $article['ad_text'] ?>
+                                                </a>
+                                            </li>
+                                        <?php endforeach; ?>
                                         <li>
-                                            <a class="link-arrow" href="<?php echo $article['link'] ?>">
-                                                <?php echo $article['ad_text'] ?>
+                                            <a class="link-arrow" href="<?php echo get_permalink(get_option('page_for_posts')) ?>">
+                                                <?php _e('Consulter l\'ensemble des offres', 'beezup') ?>
                                             </a>
                                         </li>
-                                    <?php endforeach; ?>
-                                    <li>
-                                        <a class="link-arrow" href="<?php echo get_permalink(get_option('page_for_posts')) ?>">
-                                            <?php _e('Consulter l\'ensemble des offres', 'beezup') ?>
-                                        </a>
-                                    </li>
-                                </ul>
+                                    </ul>
+                                <?php endif; ?>
                             </div>
                         <?php endif; ?>
                         <?php if ($is_recruitment_page): ?>

@@ -9,7 +9,7 @@
     }
     &-ads {
         width: $col * 4;
-        margin-left: calc(#{$col} + #{$gutter});
+        margin-left: calc(#{$col} - #{$gutter});
         p {
             margin-top: 0;
             margin-bottom: $gutter * 2;
@@ -18,6 +18,7 @@
             font-weight: 600;
         }
         ul {
+            margin: 0;
             li {
                 padding: 0;
                 margin-top: 0;
@@ -26,6 +27,12 @@
                 &::before,
                 &::after {
                     display: none;
+                }
+                a {
+                    &:hover {
+                        color: $white;
+                        opacity: 0.6;
+                    }
                 }
             }
         }
@@ -48,6 +55,79 @@
                 }
                 &::after {
                     background-image: url("../layoutImg/puce.svg");
+                }
+            }
+        }
+    }
+}
+
+@media (max-width: $desktop-small) {
+    .recruitment {
+        .container {
+            flex-direction: column-reverse;
+            align-items: center;
+        }
+        &-ads {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: $col * 9;
+            margin-left: 0;
+            margin-top: $gutter * 3;
+            ul {
+                display: flex;
+                justify-content: space-between;
+                flex-wrap: wrap;
+                width: 100%;
+                li {
+                    display: flex;
+                    justify-content: center;
+                    width: calc(50% - 10px);
+                    &:nth-last-child(-n + 2):not(:last-child):nth-child(odd) {
+                        margin-bottom: 0;
+                    }
+                    &:last-child():not(odd) {
+                        margin-bottom: 0;
+                    }
+                    a {
+                        display: inline-block;
+                        padding-right: 10px;
+                    }
+                }
+            }
+        }
+        &-description {
+            width: 100%;
+            margin-left: 0;
+        }
+    }
+}
+
+@media (max-width: $tablet) {
+    .recruitment {
+        &-ads {
+            width: 100%;
+            p {
+                margin-bottom: $gutter;
+            }
+            ul {
+                flex-direction: column;
+                justify-content: flex-start;
+                align-items: center;
+                flex-wrap: nowrap;
+                width: 100%;
+                li {
+                    display: flex;
+                    justify-content: center;
+                    width: auto;
+                    margin-bottom: $gutter;
+                    &:nth-last-child(-n + 2):not(:last-child):nth-child(odd) {
+                        margin-bottom: $gutter;
+                    }
+                    a {
+                        display: inline-block;
+                        padding-right: 10px;
+                    }
                 }
             }
         }
