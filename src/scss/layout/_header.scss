@@ -506,6 +506,14 @@
         transition: $transition;
         > li {
             margin: 0 0 35px;
+            &.head-tel {
+                width: auto;
+                margin-left: auto;
+                background-color: transparent;
+                a {
+                    color: $white;
+                }
+            }
         }
         span {
             display: none;
@@ -514,14 +522,6 @@
             width: 25px;
             height: 25px;
             margin: 0;
-        }
-    }
-
-    .head-tel {
-        width: auto;
-        background-color: transparent;
-        a {
-            color: $white;
         }
     }
 
