@@ -2,10 +2,10 @@
 
 $subject = isset($_POST['subject']) ? strip_tags(stripslashes($_POST['subject'])) : '';
 
-if( $subject === 'support' || $subject === 'partnership' ){
+if( $subject === 'partnership' ){
     $contactId = get_field('contactId2', 'options');
     $contactLists = get_field('contactLists2', 'options');
-}else if( $subject === 'other' || $subject === 'question'){
+}else if( $subject === 'other'){
     $contactId = get_field('contactId3', 'options');
     $contactLists = get_field('contactLists3', 'options');
 }else if( $subject === 'accounting' ){
@@ -28,17 +28,14 @@ if( $subject === 'support' || $subject === 'partnership' ){
             <div>
                 <div class='select'>
                     <select name='subject' id='subject'>
-                        <option value='demo'><?php _e('Demo request', 'beezup'); ?></option>
                         <option value='sales'><?php _e('Sales', 'beezup'); ?></option>
                         <?php if( get_field('contactId2', 'options') ){ ?>
-                            <option value='support' <?php if($subject === 'support'){ echo 'selected'; } ?>><?php _e('Support', 'beezup'); ?></option>
                             <option value='partnership' <?php if($subject === 'partnership'){ echo 'selected'; } ?>><?php _e('Partnership', 'beezup'); ?></option>
                         <?php } ?>
                         <?php if( get_field('contactId4', 'options') ){ ?>
                             <option value='accounting' <?php if($subject === 'accounting'){ echo 'selected'; } ?>><?php _e('Accounting', 'beezup'); ?></option>
                         <?php } ?>
                         <?php if( get_field('contactId3', 'options') ){ ?>
-                            <option value='question' <?php if($subject === 'question'){ echo 'selected'; } ?>><?php _e('Question about BeezUP solution', 'beezup'); ?></option>
                             <option value='other' <?php if($subject === 'other'){ echo 'selected'; } ?>><?php _e('Other', 'beezup'); ?></option>
                         <?php } ?>
                     </select>
