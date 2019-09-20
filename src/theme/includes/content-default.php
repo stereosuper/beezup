@@ -8,13 +8,12 @@
                     $recruitment_page_id = url_to_postid(get_field('recruitment_page', 'option'));
                     $current_page_id = get_the_ID();
                     
-                    $is_recruitment_page = false;
-                    if ($recruitment_page_id === $current_page_id) {
-                        $is_recruitment_page = true;
-                    } 
+                    $is_recruitment_page = $recruitment_page_id === $current_page_id;
+
+                    $col = get_sub_field('blockFullCol');
                 ?>
                 <section class='<?php echo $is_recruitment_page ? 'recruitment' : '' ?> block-full default '>
-                    <div class='<?php echo $is_recruitment_page ? 'container' : 'container-small' ?> clearfix'>
+                    <div class='<?php echo $is_recruitment_page || $col ? 'container' : 'container-small'; if( $col ) echo ' has-col' ?> clearfix'>
                         <?php if ($is_recruitment_page): ?>
                             <?php 
                                 $recruitment_articles = [];
@@ -61,7 +60,15 @@
                         <?php if ($is_recruitment_page): ?>
                             <div class="recruitment-description">
                         <?php endif; ?>
-                        <?php echo apply_filters('bj_lazy_load_html', get_sub_field('blockFull')); ?>
+
+                        <div><?php echo apply_filters('bj_lazy_load_html', get_sub_field('blockFull')); ?></div>
+                        <?php if( $col ) : ?>
+                            <div>
+                                <div><?php echo $col['white']; ?></div>
+                                <?php echo $col['small']; ?>
+                            </div>
+                        <?php endif; ?>
+
                         <?php if ($is_recruitment_page): ?>
                             </div>
                         <?php endif; ?>

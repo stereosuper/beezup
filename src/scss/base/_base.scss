@@ -473,10 +473,16 @@ a {
             }
         }
     }
+    h2{
+        color: $white;
+    }
     .link-arrow {
         &:after {
             background-image: url("../layoutImg/arrow-right-white.svg");
         }
+    }
+    .has-col{
+        display: flex;
     }
 }
 .block-pale {
