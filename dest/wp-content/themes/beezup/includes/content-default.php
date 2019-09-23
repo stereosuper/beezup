@@ -12,8 +12,8 @@
 
                     $col = get_sub_field('blockFullCol');
                 ?>
-                <section class='<?php echo $is_recruitment_page ? 'recruitment' : '' ?> block-full default '>
-                    <div class='<?php echo $is_recruitment_page || $col ? 'container' : 'container-small'; if( $col ) echo ' has-col' ?> clearfix'>
+                <section class='<?php echo $is_recruitment_page ? 'recruitment' : '';  if( $col['white'] ) echo ' block-has-col' ?> block-full default'>
+                    <div class='<?php echo $is_recruitment_page || $col['white'] ? 'container' : 'container-small'; if( $col['white'] ) echo ' has-col' ?> clearfix'>
                         <?php if ($is_recruitment_page): ?>
                             <?php 
                                 $recruitment_articles = [];
@@ -62,10 +62,10 @@
                         <?php endif; ?>
 
                         <div><?php echo apply_filters('bj_lazy_load_html', get_sub_field('blockFull')); ?></div>
-                        <?php if( $col ) : ?>
+                        <?php if( $col['white'] ) : ?>
                             <div>
-                                <div><?php echo $col['white']; ?></div>
-                                <?php echo $col['small']; ?>
+                                <div class='block-white'><?php echo $col['white']; ?></div>
+                                <div><?php echo $col['small']; ?></div>
                             </div>
                         <?php endif; ?>
 
