@@ -487,33 +487,33 @@ a {
     .has-col{
         display: flex;
         justify-content: space-between;
+        flex-wrap: wrap;
         h2{
             margin-top: 8px;
         }
-        > div{
-            &:first-child{
-                width: 32%;
-                margin: 0 10% 0 0;
-            }
-            &:last-child{
-                width: 67.5%;
-                h2{
-                    margin-top: 2.3em;
-                }
+        a{
+            color: $secondary;
+        }
+        .link-arrow{
+            &:after{
+                background: url(../layoutImg/arrow-right.svg) no-repeat;
             }
         }
-    }
-    .block-white{
-        padding: 40px 95px 80px;
-        margin: -85px 0 0;
-        background: #fff;
-        color: $text;
-        box-shadow: 0 0 60px rgba(#000, 0.1);
-        h2{
-            color: $primary;
+        .col{
+            width: 60%;
+            padding: 40px 95px 55px;
+            margin: -85px -95px 0;
+            background: #fff;
+            color: $text;
+            box-shadow: 0 0 60px rgba(#000, 0.1);
+            h2{
+                margin-top: 2.3em;
+                color: $primary;
+            }
         }
-        + div{
-            padding: 40px 95px 0;
+        .small{
+            width: 100%;
+            padding: 40px 0 0;
             font-size: 1.3rem;
             li{
                 padding: 0 0 0 10px;
@@ -615,22 +615,14 @@ a {
     .block-full{
         .has-col{
             display: block;
-            > div{
-                &:first-child{
-                    width: 100%;
-                    margin: 0;
-                }
-                &:last-child{
-                    width: 100%;
-                }
+            .col{
+                width: 100%;
+                padding: 5px 45px 30px;
+                margin: 50px 0 0;
             }
         }
-        .block-white{
-            padding: 5px 45px 30px;
-            margin: 50px 0 0;
-            + div{
-                padding: 20px 45px 0;
-            }
+        .small{
+            padding: 20px 45px 0;
         }
     }
 }

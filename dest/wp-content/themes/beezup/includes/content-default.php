@@ -9,11 +9,9 @@
                     $current_page_id = get_the_ID();
                     
                     $is_recruitment_page = $recruitment_page_id === $current_page_id;
-
-                    $col = get_sub_field('blockFullCol');
                 ?>
-                <section class='<?php echo $is_recruitment_page ? 'recruitment' : '';  if( $col['white'] ) echo ' block-has-col' ?> block-full default'>
-                    <div class='<?php echo $is_recruitment_page || $col['white'] ? 'container' : 'container-small'; if( $col['white'] ) echo ' has-col' ?> clearfix'>
+                <section class='<?php echo $is_recruitment_page ? 'recruitment' : ''; ?> block-full default'>
+                    <div class='<?php echo $is_recruitment_page ? 'container' : 'container-small'; ?> clearfix'>
                         <?php if ($is_recruitment_page): ?>
                             <?php 
                                 $recruitment_articles = [];
@@ -62,15 +60,25 @@
                         <?php endif; ?>
 
                         <div><?php echo apply_filters('bj_lazy_load_html', get_sub_field('blockFull')); ?></div>
-                        <?php if( $col['white'] ) : ?>
-                            <div>
-                                <div class='block-white'><?php echo $col['white']; ?></div>
-                                <div><?php echo $col['small']; ?></div>
-                            </div>
-                        <?php endif; ?>
 
                         <?php if ($is_recruitment_page): ?>
                             </div>
+                        <?php endif; ?>
+                    </div>
+                </section>
+            <?php } else if ( get_row_layout() == 'blockFullCols' ) { ?>
+                <?php 
+                    $col2 = get_sub_field('col2');
+                    $small = get_sub_field('small');
+                ?>
+                <section class='block-has-col block-full default'>
+                    <div class='container-small has-col clearfix'>
+                        <div class='col'><?php the_sub_field('col1'); ?></div>
+                        <?php if( $col2 ) : ?>
+                            <div class='col'><?php echo $col2; ?></div>
+                        <?php endif; ?>
+                        <?php if( $small ) : ?>
+                            <div class='small'><?php echo $small; ?></div>
                         <?php endif; ?>
                     </div>
                 </section>
