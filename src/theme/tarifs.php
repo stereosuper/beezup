@@ -163,7 +163,7 @@ get_header(); ?>
                                                     </div>
                                                 <?php } ?>
                                                 <?php if( have_rows('detail4') ){ ?>
-                                                    <div class='feature-content js-feature-price1 hidden'>
+                                                    <div class='feature-content js-feature-price4 hidden'>
                                                         <?php while( have_rows('detail4') ){ the_row(); ?>
                                                             <span>
                                                                 <?php
