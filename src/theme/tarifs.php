@@ -93,7 +93,7 @@ get_header(); ?>
                                 </div>
                             <?php } ?>
 
-                            <ul class='tarif-content'>
+                            <ul class='tarif-content' id='tarif-content'>
                                 <?php while( have_rows('featuresSection') ){ the_row(); ?>
                                     <li class='section-feature'><div>
 
@@ -106,24 +106,81 @@ get_header(); ?>
                                                 <span class='feature-title'><?php the_sub_field('title'); ?></span>
 
                                                 <?php if( have_rows('detail') ){ ?>
-                                                <div class='feature-content'>
-                                                    <?php while( have_rows('detail') ){ the_row(); ?>
-                                                        <span>
-                                                            <?php
-                                                            if( get_sub_field('text') ){
-                                                                if( get_sub_field('link') ){ ?>
-                                                                    <a href='<?php the_sub_field('link'); ?>'><?php the_sub_field('text'); ?></a>
-                                                                <?php }else{
-                                                                    the_sub_field('text');
+                                                    <div class='feature-content js-feature-price1'>
+                                                        <?php while( have_rows('detail') ){ the_row(); ?>
+                                                            <span>
+                                                                <?php
+                                                                if( get_sub_field('text') ){
+                                                                    if( get_sub_field('link') ){ ?>
+                                                                        <a href='<?php the_sub_field('link'); ?>'><?php the_sub_field('text'); ?></a>
+                                                                    <?php }else{
+                                                                        the_sub_field('text');
+                                                                    }
+                                                                }elseif( get_sub_field('check') ){
+                                                                    echo '<svg class="icon icon-check"><use xlink:href="#icon-check"></use></svg>';
                                                                 }
-                                                            }elseif( get_sub_field('check') ){
-                                                                echo '<svg class="icon icon-check"><use xlink:href="#icon-check"></use></svg>';
-                                                            }
-                                                            ?>
-                                                        </span>
-                                                    <?php } ?>
-                                                </div>
-                                            <?php } ?>
+                                                                ?>
+                                                            </span>
+                                                        <?php } ?>
+                                                    </div>
+                                                <?php } ?>
+                                                <?php if( have_rows('detail2') ){ ?>
+                                                    <div class='feature-content js-feature-price2 hidden'>
+                                                        <?php while( have_rows('detail2') ){ the_row(); ?>
+                                                            <span>
+                                                                <?php
+                                                                if( get_sub_field('text') ){
+                                                                    if( get_sub_field('link') ){ ?>
+                                                                        <a href='<?php the_sub_field('link'); ?>'><?php the_sub_field('text'); ?></a>
+                                                                    <?php }else{
+                                                                        the_sub_field('text');
+                                                                    }
+                                                                }elseif( get_sub_field('check') ){
+                                                                    echo '<svg class="icon icon-check"><use xlink:href="#icon-check"></use></svg>';
+                                                                }
+                                                                ?>
+                                                            </span>
+                                                        <?php } ?>
+                                                    </div>
+                                                <?php } ?>
+                                                <?php if( have_rows('detail3') ){ ?>
+                                                    <div class='feature-content js-feature-price3 hidden'>
+                                                        <?php while( have_rows('detail3') ){ the_row(); ?>
+                                                            <span>
+                                                                <?php
+                                                                if( get_sub_field('text') ){
+                                                                    if( get_sub_field('link') ){ ?>
+                                                                        <a href='<?php the_sub_field('link'); ?>'><?php the_sub_field('text'); ?></a>
+                                                                    <?php }else{
+                                                                        the_sub_field('text');
+                                                                    }
+                                                                }elseif( get_sub_field('check') ){
+                                                                    echo '<svg class="icon icon-check"><use xlink:href="#icon-check"></use></svg>';
+                                                                }
+                                                                ?>
+                                                            </span>
+                                                        <?php } ?>
+                                                    </div>
+                                                <?php } ?>
+                                                <?php if( have_rows('detail4') ){ ?>
+                                                    <div class='feature-content js-feature-price1 hidden'>
+                                                        <?php while( have_rows('detail4') ){ the_row(); ?>
+                                                            <span>
+                                                                <?php
+                                                                if( get_sub_field('text') ){
+                                                                    if( get_sub_field('link') ){ ?>
+                                                                        <a href='<?php the_sub_field('link'); ?>'><?php the_sub_field('text'); ?></a>
+                                                                    <?php }else{
+                                                                        the_sub_field('text');
+                                                                    }
+                                                                }elseif( get_sub_field('check') ){
+                                                                    echo '<svg class="icon icon-check"><use xlink:href="#icon-check"></use></svg>';
+                                                                }
+                                                                ?>
+                                                            </span>
+                                                        <?php } ?>
+                                                    </div>
+                                                <?php } ?>
                                             </div>
                                         <?php } ?>
                                     <?php } ?>
