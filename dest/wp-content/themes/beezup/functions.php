@@ -1,6 +1,6 @@
 <?php
 
-define( 'BEEZUP_VERSION', 1.0 );
+define( 'BEEZUP_VERSION', '1.0.2' );
 define( 'BEEZUP_API_URL', 'https://api.beezup.com/v2/public/' );
 
 

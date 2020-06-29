@@ -60,15 +60,15 @@
             "maxlength": ""
         },
         {
-            "key": "field_595b638eee13c",
-            "label": "Formulaire - Newsletter Sendinblue ID",
-            "name": "newsletterId",
+            "key": "field_5ef9f459fad66",
+            "label": "Id formulaire de contact",
+            "name": "contactFormId",
             "type": "text",
-            "instructions": "",
+            "instructions": "Écrire ici l'id du formulaire de contact (la valeur de l'attribut id situé sur la balise form).",
             "required": 0,
             "conditional_logic": 0,
             "wrapper": {
-                "width": "50",
+                "width": "",
                 "class": "",
                 "id": ""
             },
@@ -79,15 +79,15 @@
             "maxlength": ""
         },
         {
-            "key": "field_595d226dbb40c",
-            "label": "Formulaire - Newsletter Sendinblue listes",
-            "name": "newsletterLists",
+            "key": "field_5efa1c6bc0312",
+            "label": "Source formulaire de contact",
+            "name": "contactFormSrc",
             "type": "text",
-            "instructions": "Ecrire ici l'ID de la liste dans laquelle le formulaire est envoyé. S'il y en a plusieurs, les séparer par \"|\" (cmd+maj+l), par ex: 30|60",
+            "instructions": "Écrire ici la source du script de formulaire de contact (url de l'attribut src situé sur la balise script).",
             "required": 0,
             "conditional_logic": 0,
             "wrapper": {
-                "width": "50",
+                "width": "",
                 "class": "",
                 "id": ""
             },
@@ -98,15 +98,15 @@
             "maxlength": ""
         },
         {
-            "key": "field_595b63a2ee13d",
-            "label": "Formulaire - Contact Sendinblue ID (Commercial)",
-            "name": "contactId",
+            "key": "field_5efa01ce1e39b",
+            "label": "Id formulaire newsletter",
+            "name": "newsletterFormId",
             "type": "text",
-            "instructions": "",
+            "instructions": "Écrire ici l'id du formulaire de newsletter (la valeur de l'attribut id situé sur la balise form).",
             "required": 0,
             "conditional_logic": 0,
             "wrapper": {
-                "width": "50",
+                "width": "",
                 "class": "",
                 "id": ""
             },
@@ -117,129 +117,15 @@
             "maxlength": ""
         },
         {
-            "key": "field_595d22c7bb40d",
-            "label": "Formulaire - Contact Sendinblue listes (Commercial)",
-            "name": "contactLists",
+            "key": "field_5efa1e95c866f",
+            "label": "Source formulaire newsletter",
+            "name": "newsletterFormSrc",
             "type": "text",
-            "instructions": "Ecrire ici l'ID de la liste dans laquelle le formulaire est envoyé. S'il y en a plusieurs, les séparer par \"|\" (cmd+maj+l), par ex: 30|60",
+            "instructions": "Écrire ici la source du script de formulaire de newsletter (url de l'attribut src situé sur la balise script).",
             "required": 0,
             "conditional_logic": 0,
             "wrapper": {
-                "width": "50",
-                "class": "",
-                "id": ""
-            },
-            "default_value": "",
-            "placeholder": "",
-            "prepend": "",
-            "append": "",
-            "maxlength": ""
-        },
-        {
-            "key": "field_59943dc7284dd",
-            "label": "Formulaire - Contact Sendinblue ID (Supports et partenariats)",
-            "name": "contactId2",
-            "type": "text",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "50",
-                "class": "",
-                "id": ""
-            },
-            "default_value": "",
-            "placeholder": "",
-            "prepend": "",
-            "append": "",
-            "maxlength": ""
-        },
-        {
-            "key": "field_59943dd5284df",
-            "label": "Formulaire - Contact Sendinblue listes  (Supports et partenariats)",
-            "name": "contactLists2",
-            "type": "text",
-            "instructions": "Ecrire ici l'ID de la liste dans laquelle le formulaire est envoyé. S'il y en a plusieurs, les séparer par \"|\" (cmd+maj+l), par ex: 30|60",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "50",
-                "class": "",
-                "id": ""
-            },
-            "default_value": "",
-            "placeholder": "",
-            "prepend": "",
-            "append": "",
-            "maxlength": ""
-        },
-        {
-            "key": "field_59a3d8ddd6915",
-            "label": "Formulaire - Contact Sendinblue ID (Comptabilité)",
-            "name": "contactId4",
-            "type": "text",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "50",
-                "class": "",
-                "id": ""
-            },
-            "default_value": "",
-            "placeholder": "",
-            "prepend": "",
-            "append": "",
-            "maxlength": ""
-        },
-        {
-            "key": "field_59a3d8ecd6916",
-            "label": "Formulaire - Contact Sendinblue listes (Comptabilité)",
-            "name": "contactLists4",
-            "type": "text",
-            "instructions": "Ecrire ici l'ID de la liste dans laquelle le formulaire est envoyé. S'il y en a plusieurs, les séparer par \"|\" (cmd+maj+l), par ex: 30|60",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "50",
-                "class": "",
-                "id": ""
-            },
-            "default_value": "",
-            "placeholder": "",
-            "prepend": "",
-            "append": "",
-            "maxlength": ""
-        },
-        {
-            "key": "field_59943dc4284dc",
-            "label": "Formulaire - Contact Sendinblue ID (Autres)",
-            "name": "contactId3",
-            "type": "text",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "50",
-                "class": "",
-                "id": ""
-            },
-            "default_value": "",
-            "placeholder": "",
-            "prepend": "",
-            "append": "",
-            "maxlength": ""
-        },
-        {
-            "key": "field_59943dd4284de",
-            "label": "Formulaire - Contact Sendinblue listes (Autres)",
-            "name": "contactLists3",
-            "type": "text",
-            "instructions": "Ecrire ici l'ID de la liste dans laquelle le formulaire est envoyé. S'il y en a plusieurs, les séparer par \"|\" (cmd+maj+l), par ex: 30|60",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "50",
+                "width": "",
                 "class": "",
                 "id": ""
             },
@@ -251,10 +137,10 @@
         },
         {
             "key": "field_595d0399c64bf",
-            "label": "Google Analytics ID",
-            "name": "ga",
+            "label": "Google Tag Manager ID",
+            "name": "gtagId",
             "type": "text",
-            "instructions": "Le code Google Analytics ne sera présent dans la page que si ce champ est rempli",
+            "instructions": "Le code Google Tag Manager ne sera présent dans la page que si ce champ est rempli",
             "required": 0,
             "conditional_logic": 0,
             "wrapper": {
@@ -346,5 +232,5 @@
     "hide_on_screen": "",
     "active": 1,
     "description": "",
-    "modified": 1545225723
+    "modified": 1593450168
 }

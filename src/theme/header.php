@@ -26,14 +26,15 @@
 		<?php beezup_mlp_href_US(); ?>
 
 		<script>document.getElementsByTagName('html')[0].className = 'js';</script>
-
-		<script async src="https://www.googletagmanager.com/gtag/js?id=UA-1941909-3"></script>
+		<?php if ($gtag_id = get_field('gtagId', 'options')): ?>
+		<script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo $gtag_id; ?>"></script>
 		<script>
 		window.dataLayer = window.dataLayer || [];
 		function gtag(){dataLayer.push(arguments);}
 		gtag('js', new Date());
-		gtag('config', 'UA-1941909-3');
+		gtag('config', '<?php echo $gtag_id; ?>');
 		</script>
+		<?php endif; ?>
 	</head>
 
 	<body <?php body_class('wrapper-sticky'); ?>>

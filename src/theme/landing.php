@@ -17,9 +17,11 @@ get_header(); ?>
             <aside>
                 <div>
                     <h3><?php the_field('form_title'); ?></h3>
-                    <?php if( get_field('formID') && get_field('listID') ){ ?>
-                        <?php get_template_part( 'includes/sib-form-landing' ); ?>
-                    <?php } ?>
+                    <?php if($landingFormScript = get_field('landingFormScript')) : ?>
+                    <script>
+                        <?php echo $landingFormScript; ?>
+                    </script>
+                    <?php endif; ?>
                 </div>
                 <div>
                     <h3 class='word-title'><?php the_field('word_title'); ?></h3>

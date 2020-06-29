@@ -88,14 +88,15 @@ get_header(); ?>
         </section>
     <?php endif; ?>
 
-    <?php if(get_field('contactId', 'options') && get_field('contactLists', 'options')): ?>
+    <?php if($contact_form_script = get_field('contactFormScript', 'options')): ?>
         <section id="contact-form-will-scroll" class='contact-form container-medium relative'>
             <div class='block-half is-alone'>
                 <?php if ($form_title = get_field('form_title')): ?>
                     <h2 class="title contact-title"><?php echo $form_title ?></h2>
                 <?php endif; ?>
-                <?php // get_template_part( 'includes/form' ); ?>
-                <?php get_template_part( 'includes/sib-form' ); ?>
+                <script>
+                    <?php echo $contact_form_script ?>
+                </script>
             </div>
 
             <?php if( have_rows('people', 'options') ): $count = 0; ?>
