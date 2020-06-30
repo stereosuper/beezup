@@ -122,5 +122,8 @@
             </script>
         <?php } ?>
 
+        <!-- Plezi tracking script  -->
+		<script type='text/javascript' async src='https://app.plezi.co/scripts/ossleads_analytics.js?tenant=5ef4d32ce317a77a7349837a&tw=5ef4d32fe317a77a7349842a'></script>
+
     </body>
 </html>

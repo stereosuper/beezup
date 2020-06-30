@@ -137,10 +137,10 @@
         },
         {
             "key": "field_595d0399c64bf",
-            "label": "Google Tag Manager ID",
-            "name": "gtagId",
+            "label": "Google Analytics ID",
+            "name": "gaId",
             "type": "text",
-            "instructions": "Le code Google Tag Manager ne sera présent dans la page que si ce champ est rempli",
+            "instructions": "Le code Google Analytics ne sera présent dans la page que si ce champ est rempli",
             "required": 0,
             "conditional_logic": 0,
             "wrapper": {
@@ -232,5 +232,5 @@
     "hide_on_screen": "",
     "active": 1,
     "description": "",
-    "modified": 1593450168
+    "modified": 1593514997
 }

@@ -26,13 +26,13 @@
 		<?php beezup_mlp_href_US(); ?>
 
 		<script>document.getElementsByTagName('html')[0].className = 'js';</script>
-		<?php if ($gtag_id = get_field('gtagId', 'options')): ?>
-		<script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo $gtag_id; ?>"></script>
+		<?php if ($ga_id = get_field('gaId', 'options')): ?>
+		<script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo $ga_id; ?>"></script>
 		<script>
 		window.dataLayer = window.dataLayer || [];
 		function gtag(){dataLayer.push(arguments);}
 		gtag('js', new Date());
-		gtag('config', '<?php echo $gtag_id; ?>');
+		gtag('config', '<?php echo $ga_id; ?>');
 		</script>
 		<?php endif; ?>
 	</head>

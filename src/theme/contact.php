@@ -88,15 +88,18 @@ get_header(); ?>
         </section>
     <?php endif; ?>
 
-    <?php if($contact_form_script = get_field('contactFormScript', 'options')): ?>
+    <?php
+    $contact_form_script_id = get_field('contactFormId', 'options');
+    $contact_form_script_src = get_field('contactFormSrc', 'options');
+    if($contact_form_script_id && $contact_form_script_src):
+    ?>
         <section id="contact-form-will-scroll" class='contact-form container-medium relative'>
             <div class='block-half is-alone'>
                 <?php if ($form_title = get_field('form_title')): ?>
                     <h2 class="title contact-title"><?php echo $form_title ?></h2>
                 <?php endif; ?>
-                <script>
-                    <?php echo $contact_form_script ?>
-                </script>
+                <form id="<?php echo $contact_form_script_id ?>"></form>
+                <script async src="<?php echo $contact_form_script_src ?>"></script>
             </div>
 
             <?php if( have_rows('people', 'options') ): $count = 0; ?>

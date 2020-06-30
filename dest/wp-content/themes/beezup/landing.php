@@ -17,10 +17,13 @@ get_header(); ?>
             <aside>
                 <div>
                     <h3><?php the_field('form_title'); ?></h3>
-                    <?php if($landingFormScript = get_field('landingFormScript')) : ?>
-                    <script>
-                        <?php echo $landingFormScript; ?>
-                    </script>
+                    <?php
+                    $landing_form_script_id = get_field('landingFormId', 'options');
+                    $landing_form_script_src = get_field('landingFormSrc', 'options');
+                    if($landing_form_script_id && $landing_form_script_src):
+                    ?>
+                    <form id="<?php echo $landing_form_script_id ?>"></form>
+                    <script async src="<?php echo $landing_form_script_src ?>"></script>
                     <?php endif; ?>
                 </div>
                 <div>
