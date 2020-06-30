@@ -1,0 +1,11 @@
+#r8_tsm_script_code {
+    width: 100%;
+}
+
+.r8_tsm_page_select {
+    width: 400px;
+}
+
+#script-active .inside label {
+    line-height: 2;
+}
