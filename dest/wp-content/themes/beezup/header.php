@@ -19,7 +19,8 @@
 		<meta name='application-name' content='BeezUP'>
 		<meta name='theme-color' content='#fff'>
 
-		<meta name='google-site-verification' content='TJR55WFDlDD5M3YInFBEKBXLDk9yPDp3zI-6dgYmyJI' />
+		<meta name="google-site-verification" content="2r_x6px3JdzDZHScbYLKGbI1jx6NqLZhu1zvvCZa8nY" />
+		<meta name="google-site-verification" content="9Db3rIQkWYpb2stGqzQMJoDfh-xnmBs-FoCB7OFKD4s" />
 
 		<?php wp_head(); ?>
 
