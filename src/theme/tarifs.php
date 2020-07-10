@@ -295,19 +295,23 @@ get_header(); ?>
         </section>
      <?php } ?>
     
-    <?php if(get_field('contactId', 'options') && get_field('contactLists', 'options')){ ?>
+    <?php if(get_field('contactId', 'options') && get_field('contactLists', 'options')) : ?>
         <section class='container contact-us'>
-            <?php if( get_field('contactTitle') ){ ?>
+            <?php if( get_field('contactTitle') ) : ?>
                 <div class='contact-us-txt'>
                     <h2 class='h1'><?php the_field('contactTitle'); ?></h2>
                     <?php the_field('contactText'); ?>
+                    <?php if( get_field('contactLink', 'options') && get_field('contactLinkText', 'options') ) : ?>
+                        <a id='header-contact-button' class='btn btn-contact' href='<?php the_field('contactLink', 'options'); ?>' title='<?php the_field('contactLinkText', 'options'); ?>'>
+                            <span><?php the_field('contactLinkText', 'options'); ?></span>
+                        </a>
+                    <?php endif; ?>
                 </div>
-            <?php } ?>
-
-            <?php //get_template_part( 'includes/form' ); ?>
-            <?php get_template_part( 'includes/sib-form' ); ?>
+            <?php endif; ?>
+            <?php // get_template_part( 'includes/form' ); ?>
+            <?php // get_template_part( 'includes/sib-form' ); ?>
         </section>
-    <?php } ?>
+    <?php endif; ?>
 
     <?php get_template_part('includes/free-links'); ?>
 
