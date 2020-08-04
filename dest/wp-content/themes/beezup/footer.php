@@ -98,8 +98,8 @@
 
         <?php wp_footer(); ?>
 
-        <?php if( is_page_template( 'contact.php' ) || is_page_template( 'tarifs.php' ) ){ ?>
-            <script defer src="https://www.google.com/recaptcha/api.js?onload=myCallBack&render=explicit&hl=fr"></script>
+        <?php //if( is_page_template( 'contact.php' ) || is_page_template( 'tarifs.php' ) ){ ?>
+            <!--<script defer src="https://www.google.com/recaptcha/api.js?onload=myCallBack&render=explicit&hl=fr"></script>
 
             <script defer>
                 var verifyCallback = function(response) {
@@ -115,11 +115,11 @@
                           'sitekey' : '6Lf9DiwUAAAAAMoeVnb6WB4Chvbq-15a19__3E0N',
                           'theme' : 'light',
                           'callback' : verifyCallback,
-                          'hl' : '<?php the_field('lang2', 'options'); ?>'
+                          'hl' : '<?php //the_field('lang2', 'options'); ?>'
                         });
                     }
                 };
-            </script>
-        <?php } ?>
+            </script>-->
+        <?php //} ?>
     </body>
 </html>
