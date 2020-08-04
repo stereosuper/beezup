@@ -791,13 +791,13 @@ function beezup_scripts(){
     wp_deregister_script( 'wp-embed' );
 	
     wp_register_script( 'beezup-scripts', get_template_directory_uri() . '/js/main.js', array(), BEEZUP_VERSION, true );
-    //wp_register_script( 'sendinblue-scripts', 'https://my.sendinblue.com/public/theme/version4/assets/js/src/subscribe-validate.js', array(), null, true );
+   // wp_register_script( 'sendinblue-scripts', 'https://my.sendinblue.com/public/theme/version4/assets/js/src/subscribe-validate.js', array(), null, true );
     if ( $isFormPage ) {
         wp_register_script( 'calendly-scripts', 'https://calendly.com/assets/external/widget.js', array(), null, true );
     }
 
     wp_enqueue_script( 'beezup-scripts');
-    //wp_enqueue_script( 'sendinblue-scripts');
+   // wp_enqueue_script( 'sendinblue-scripts');
     if ( $isFormPage ) {
         wp_enqueue_script( 'calendly-scripts');
     }
@@ -824,13 +824,13 @@ function beezup_scripts(){
 add_action( 'wp_enqueue_scripts', 'beezup_scripts' );
 
 // Add inline scripts to wp-footer
-function beezup_footer(){ ?>
+/* function beezup_footer(){ ?>
     <!-- SendinBlue Ajax Form validation -->
     <script>
         var sib_prefix = 'sib', sib_dateformat = 'dd-mm-yyyy';
     </script>
 <?php }
-add_action( 'wp_footer', 'beezup_footer');
+add_action( 'wp_footer', 'beezup_footer'); */
 
 /*-----------------------------------------------------------------------------------*/
 /* I18n
