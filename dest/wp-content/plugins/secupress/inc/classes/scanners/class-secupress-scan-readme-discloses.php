@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /**
  * `readme.txt` disclose scan class.
@@ -17,7 +17,7 @@ class SecuPress_Scan_Readme_Discloses extends SecuPress_Scan implements SecuPres
 	 *
 	 * @var (string)
 	 */
-	const VERSION = '1.0.3';
+	const VERSION = '1.2';
 
 
 	/** Properties. ============================================================================= */
@@ -42,10 +42,10 @@ class SecuPress_Scan_Readme_Discloses extends SecuPress_Scan implements SecuPres
 
 		/** Translators: %s is a file name */
 		$this->title    = sprintf( __( 'Check if the %s files from your plugins and themes are protected.', 'secupress' ), '<code>readme.txt</code>' );
-		$this->more     = __( 'When an attacker wants to hack into a WordPress site, (s)he will search for all available informations. The goal is to find something useful that will help him penetrate your site. Don\'t let them easily find any informations.', 'secupress' );
+		$this->more     = __( 'When an attacker wants to hack into a WordPress site, they will search for all available informations. The goal is to find something useful that will help him penetrate your site. Don’t let them easily find any informations.', 'secupress' );
 		$this->more_fix = sprintf(
 			__( 'Activate the %1$s protection from the module %2$s.', 'secupress' ),
-			'<strong>' . __( 'Protect readme files', 'secupress' ) . '</strong>',
+			'<strong>' . __( 'Protect Readme Files', 'secupress' ) . '</strong>',
 			'<a href="' . esc_url( secupress_admin_url( 'modules', 'sensitive-data' ) ) . '#row-content-protect_readmes">' . __( 'Sensitive Data', 'secupress' ) . '</a>'
 		);
 
@@ -71,7 +71,7 @@ class SecuPress_Scan_Readme_Discloses extends SecuPress_Scan implements SecuPres
 		$config_file = $is_apache ? '.htaccess' : 'web.config';
 		/** Translators: 1 is the name of a protection, 2 is the name of a module. */
 		$activate_protection_message = sprintf( __( 'But you can activate the %1$s protection from the module %2$s.', 'secupress' ),
-			'<strong>' . __( 'Protect readme files', 'secupress' ) . '</strong>',
+			'<strong>' . __( 'Protect Readme Files', 'secupress' ) . '</strong>',
 			'<a target="_blank" href="' . esc_url( secupress_admin_url( 'modules', 'sensitive-data' ) ) . '#row-content-protect_readmes">' . __( 'Sensitive Data', 'secupress' ) . '</a>'
 		);
 
@@ -116,7 +116,7 @@ class SecuPress_Scan_Readme_Discloses extends SecuPress_Scan implements SecuPres
 	 * @return (string)
 	 */
 	public static function get_docs_url() {
-		return __( 'http://docs.secupress.me/article/102-readme-txt-access-scan', 'secupress' );
+		return __( 'https://docs.secupress.me/article/102-readme-txt-access-scan', 'secupress' );
 	}
 
 
@@ -130,13 +130,16 @@ class SecuPress_Scan_Readme_Discloses extends SecuPress_Scan implements SecuPres
 	 * @return (array) The scan results.
 	 */
 	public function scan() {
+
+		$activated = $this->filter_scanner( __CLASS__ );
+		if ( true === $activated ) {
+			$this->add_message( 0 );
+			return parent::scan();
+		}
+
 		$protected = $this->are_files_protected();
 
-		if ( is_null( $protected ) ) {
-			// "warning"
-			$this->add_message( 100 );
-
-		} elseif ( ! $protected ) {
+		if ( ! $protected ) {
 			// "bad"
 			$this->add_message( 200 );
 
@@ -153,6 +156,44 @@ class SecuPress_Scan_Readme_Discloses extends SecuPress_Scan implements SecuPres
 
 
 	/** Fix. ==================================================================================== */
+
+	/**
+	 * Try to fix the flaw(s).
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function need_manual_fix() {
+		return [ 'fix' => 'fix' ];
+	}
+
+	/**
+	 * Get an array containing ALL the forms that would fix the scan if it requires user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) An array of HTML templates (form contents most of the time).
+	 */
+	protected function get_fix_action_template_parts() {
+		return [ 'fix' => '&nbsp;' ];
+	}
+
+	/**
+	 * Try to fix the flaw(s) after requiring user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function manual_fix() {
+		if ( $this->has_fix_action_part( 'fix' ) ) {
+			$this->fix();
+		}
+		// "good"
+		$this->add_fix_message( 1 );
+		return parent::manual_fix();
+	}
 
 	/**
 	 * Try to fix the flaw(s).
@@ -305,10 +346,7 @@ class SecuPress_Scan_Readme_Discloses extends SecuPress_Scan implements SecuPres
 		// Get file contents.
 		$response = wp_remote_get( site_url( $file ), $this->get_default_request_args() );
 
-		if ( is_wp_error( $response ) ) {
-			// "warning".
-			return null;
-		} elseif ( 200 === wp_remote_retrieve_response_code( $response ) ) {
+		if ( ! is_wp_error( $response ) && 200 === wp_remote_retrieve_response_code( $response ) ) {
 			// "bad".
 			return false;
 		}

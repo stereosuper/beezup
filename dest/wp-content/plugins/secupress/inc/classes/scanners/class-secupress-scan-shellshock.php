@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /**
  * Shellshock scan class.
@@ -20,7 +20,7 @@ class SecuPress_Scan_Shellshock extends SecuPress_Scan implements SecuPress_Scan
 	 *
 	 * @var (string)
 	 */
-	const VERSION = '1.1.1';
+	const VERSION = '1.2';
 
 
 	/** Properties. ============================================================================= */
@@ -41,7 +41,7 @@ class SecuPress_Scan_Shellshock extends SecuPress_Scan implements SecuPress_Scan
 	 * @since 1.1.4
 	 */
 	protected function init() {
-		$this->title = __( 'Check if your website is vulnerable to <strong>Shellshock</strong>.', 'secupress' );
+		$this->title = __( 'Check if your server is vulnerable to <strong>Shellshock</strong>.', 'secupress' );
 		$this->more  = __( '<strong>Shellshock</strong> is a critic vulnerability allowing an attacker to remotely execute malicious code on a server.', 'secupress' );
 		$this->more_fix = sprintf(
 			__( 'Activate the option %1$s in the %2$s module.', 'secupress' ),
@@ -70,7 +70,7 @@ class SecuPress_Scan_Shellshock extends SecuPress_Scan implements SecuPress_Scan
 		$messages = array(
 			// "good"
 			0   => __( 'The server is not vulnerable to <strong>Shellshock</strong>.', 'secupress' ),
-			1   => __( 'The protection against <strong>Shellshock</strong> has been activated. It won\'t fix the vulnerability (only your host can) but it will prevent an attacker to exploit it remotely.', 'secupress' ),
+			1   => __( 'The protection against <strong>Shellshock</strong> has been activated. It won’t fix the vulnerability (only your host can) but it will prevent an attacker to exploit it remotely.', 'secupress' ),
 			// "warning"
 			100 => sprintf( __( 'Unable to determine the status of the <strong>Shellshock</strong> flaw (%s).', 'secupress' ), '<em>CVE-2014-6271</em>' ) . ' ' . $activate_protection_message,
 			101 => sprintf( __( 'Unable to determine the status of the <strong>Shellshock</strong> flaw (%s).', 'secupress' ), '<em>CVE-2014-7169</em>' ) . ' ' . $activate_protection_message,
@@ -99,7 +99,7 @@ class SecuPress_Scan_Shellshock extends SecuPress_Scan implements SecuPress_Scan
 	 * @return (string)
 	 */
 	public static function get_docs_url() {
-		return __( 'http://docs.secupress.me/article/115-shellshock-scan', 'secupress' );
+		return __( 'https://docs.secupress.me/article/115-shellshock-scan', 'secupress' );
 	}
 
 
@@ -113,13 +113,20 @@ class SecuPress_Scan_Shellshock extends SecuPress_Scan implements SecuPress_Scan
 	 * @return (array) The scan results.
 	 */
 	public function scan() {
+
+		$activated = $this->filter_scanner( __CLASS__ );
+		if ( true === $activated ) {
+			$this->add_message( 0 );
+			return parent::scan();
+		}
+
 		if ( 'WIN' === strtoupper( substr( PHP_OS, 0, 3 ) ) ) {
 			// "good"
 			$this->add_message( 0 );
 			return parent::scan();
 		}
 
-		if ( function_exists( 'proc_open' ) ) {
+		if ( ! secupress_is_function_disabled( 'proc_open' ) ) {
 			// Scan with `proc_open()`.
 			$env  = array( 'SHELL_SHOCK_TEST' => '() { :;}; echo VULNERABLE' );
 			$desc = array(
@@ -133,10 +140,7 @@ class SecuPress_Scan_Shellshock extends SecuPress_Scan implements SecuPress_Scan
 			$output = isset( $pipes[1] ) ? stream_get_contents( $pipes[1] ) : 'error';
 			proc_close( $p );
 
-			if ( 'error' === $output ) {
-				// "warning"
-				$this->add_message( 100 );
-			} elseif ( false !== strpos( $output, 'VULNERABLE' ) ) {
+			if ( false !== strpos( $output, 'VULNERABLE' ) ) {
 				// "bad"
 				$this->add_message( 200 );
 			}
@@ -147,10 +151,7 @@ class SecuPress_Scan_Shellshock extends SecuPress_Scan implements SecuPress_Scan
 			$output    = isset( $pipes[1] ) ? stream_get_contents( $pipes[1] ) : 'error';
 			proc_close( $p );
 
-			if ( 'error' === $output ) {
-				// "warning"
-				$this->add_message( 101 );
-			} elseif ( trim( $output ) === $test_date ) {
+			if ( trim( $output ) === $test_date ) {
 				// "bad"
 				$this->add_message( 201 );
 			}
@@ -169,9 +170,6 @@ class SecuPress_Scan_Shellshock extends SecuPress_Scan implements SecuPress_Scan
 					// "good"
 					$this->add_message( 0 );
 				}
-			} else {
-				// "warning"
-				$this->add_message( 102 );
 			}
 		}
 
@@ -183,6 +181,44 @@ class SecuPress_Scan_Shellshock extends SecuPress_Scan implements SecuPress_Scan
 
 
 	/** Fix. ==================================================================================== */
+
+	/**
+	 * Try to fix the flaw(s).
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function need_manual_fix() {
+		return [ 'fix' => 'fix' ];
+	}
+
+	/**
+	 * Get an array containing ALL the forms that would fix the scan if it requires user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) An array of HTML templates (form contents most of the time).
+	 */
+	protected function get_fix_action_template_parts() {
+		return [ 'fix' => '&nbsp;' ];
+	}
+
+	/**
+	 * Try to fix the flaw(s) after requiring user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function manual_fix() {
+		if ( $this->has_fix_action_part( 'fix' ) ) {
+			$this->fix();
+		}
+		// "good"
+		$this->add_fix_message( 1 );
+		return parent::manual_fix();
+	}
 
 	/**
 	 * Try to fix the flaw(s).

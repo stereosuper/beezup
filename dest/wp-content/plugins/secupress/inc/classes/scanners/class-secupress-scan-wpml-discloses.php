@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /**
  * WPML version disclose scan class.
@@ -17,7 +17,7 @@ class SecuPress_Scan_Wpml_Discloses extends SecuPress_Scan implements SecuPress_
 	 *
 	 * @var (string)
 	 */
-	const VERSION = '1.0.3';
+	const VERSION = '1.2';
 
 
 	/** Properties. ============================================================================= */
@@ -40,7 +40,7 @@ class SecuPress_Scan_Wpml_Discloses extends SecuPress_Scan implements SecuPress_
 	protected function init() {
 		/** Translators: %s is a plugin name. */
 		$this->title    = sprintf( __( 'Check if the %s plugin discloses its version.', 'secupress' ), 'WPML' );
-		$this->more     = __( 'When an attacker wants to hack into a WordPress site, (s)he will search for all available informations. The goal is to find something useful that will help him penetrate your site. Don\'t let them easily find any informations.', 'secupress' );
+		$this->more     = __( 'When an attacker wants to hack into a WordPress site, they will search for all available informations. The goal is to find something useful that will help him penetrate your site. Don’t let them easily find any informations.', 'secupress' );
 		$this->more_fix = sprintf(
 			/** Translators: 1 is a plugin name, 2 is the name of a protection, 3 is the name of a module. */
 			__( 'Hide the %1$s version to prevent giving too much information to attackers. The %2$s protection from the module %3$s will be activated.', 'secupress' ),
@@ -80,9 +80,9 @@ class SecuPress_Scan_Wpml_Discloses extends SecuPress_Scan implements SecuPress_
 			// DEPRECATED, NOT IN USE ANYMORE.
 			1   => __( 'The generator meta tag should not be displayed anymore.', 'secupress' ),
 			/** Translators: %s is a plugin name. */
-			2   => sprintf( __( 'The %s\'s version should be removed from your styles URLs now.', 'secupress' ), 'WPML' ),
+			2   => sprintf( __( 'The %s’s version should be removed from your styles URLs now.', 'secupress' ), 'WPML' ),
 			/** Translators: %s is a plugin name. */
-			3   => sprintf( __( 'The %s\'s version should be removed from your scripts URLs now.', 'secupress' ), 'WPML' ),
+			3   => sprintf( __( 'The %s’s version should be removed from your scripts URLs now.', 'secupress' ), 'WPML' ),
 		);
 
 		if ( isset( $message_id ) ) {
@@ -103,7 +103,7 @@ class SecuPress_Scan_Wpml_Discloses extends SecuPress_Scan implements SecuPress_
 	 * @return (string)
 	 */
 	public static function get_docs_url() {
-		return __( 'http://docs.secupress.me/article/104-wpml-version-number-disclosure-scan', 'secupress' );
+		return __( 'https://docs.secupress.me/article/104-wpml-version-number-disclosure-scan', 'secupress' );
 	}
 
 
@@ -117,6 +117,13 @@ class SecuPress_Scan_Wpml_Discloses extends SecuPress_Scan implements SecuPress_
 	 * @return (array) The scan results.
 	 */
 	public function scan() {
+
+		$activated = $this->filter_scanner( __CLASS__ );
+		if ( true === $activated ) {
+			$this->add_message( 0 );
+			return parent::scan();
+		}
+
 		$discloses = array();
 
 		// Get home page contents.
@@ -134,9 +141,6 @@ class SecuPress_Scan_Wpml_Discloses extends SecuPress_Scan implements SecuPress_
 				// "bad"
 				$discloses[] = 'META';
 			}
-		} else {
-			// "warning"
-			$this->add_message( 100 );
 		}
 
 		// What about style tag src?
@@ -171,6 +175,44 @@ class SecuPress_Scan_Wpml_Discloses extends SecuPress_Scan implements SecuPress_
 
 
 	/** Fix. ==================================================================================== */
+
+	/**
+	 * Try to fix the flaw(s).
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function need_manual_fix() {
+		return [ 'fix' => 'fix' ];
+	}
+
+	/**
+	 * Get an array containing ALL the forms that would fix the scan if it requires user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) An array of HTML templates (form contents most of the time).
+	 */
+	protected function get_fix_action_template_parts() {
+		return [ 'fix' => '&nbsp;' ];
+	}
+
+	/**
+	 * Try to fix the flaw(s) after requiring user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function manual_fix() {
+		if ( $this->has_fix_action_part( 'fix' ) ) {
+			$this->fix();
+		}
+		// "good"
+		$this->add_fix_message( 1 );
+		return parent::manual_fix();
+	}
 
 	/**
 	 * Try to fix the flaw(s).

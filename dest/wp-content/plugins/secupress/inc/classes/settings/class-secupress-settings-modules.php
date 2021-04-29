@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /**
  * Modules settings class.
@@ -170,7 +170,7 @@ class SecuPress_Settings_Modules extends SecuPress_Settings {
 		$modules = static::get_modules();
 		$module  = $module ? $module : $this->modulenow;
 
-		return isset( $modules[ $module ]['with_reset_box'] ) ? (bool) $modules[ $module ]['with_reset_box'] : false;
+		return isset( $modules[ $module ]['with_reset_box'] ) ? (bool) $modules[ $module ]['with_reset_box'] : true;
 	}
 
 
@@ -202,43 +202,32 @@ class SecuPress_Settings_Modules extends SecuPress_Settings {
 	 * @since 1.0
 	 */
 	public function print_page() {
-		$is_welcome = 'welcome' !== $this->get_current_module() ? false : true;
+		$secupress_has_sideads = apply_filters( 'secupress.no_sidebar', true ) && apply_filters( 'secupress.no_sideads', true );
 		?>
 		<div class="wrap">
 
 			<?php secupress_admin_heading( __( 'Modules', 'secupress' ) ); ?>
 			<?php settings_errors(); ?>
 
-			<div class="secupress-wrapper<?php echo ( $is_welcome ? '' : ' secupress-flex secupress-flex-top' ) ?><?php echo ( ! secupress_is_pro() ? ' secupress-has-sideads' : '' ) ?>">
-
-				<?php
-				/**
-				 * Don't print sidebar if we are in Welcome page.
-				 * Modules are included in the content of the page.
-				 */
-				if ( ! $is_welcome ) {
-					?>
-					<div class="secupress-modules-sidebar">
-						<div class="secupress-sidebar-header">
-							<div class="secupress-flex">
-								<div class="secupress-sh-logo">
-									<?php echo secupress_get_logo(); ?>
-								</div>
-								<div class="secupress-sh-name">
-									<p class="secupress-sh-title">
-										<?php echo secupress_get_logo_word( array( 'width' => 81, 'height' => 19 ) ); ?>
-									</p>
-								</div>
+			<div class="secupress-wrapper secupress-flex secupress-flex-top<?php echo ( $secupress_has_sideads ? ' secupress-has-sideads' : '' ) ?>">
+				<div class="secupress-modules-sidebar">
+					<div class="secupress-sidebar-header">
+						<div class="secupress-flex">
+							<div class="secupress-sh-logo">
+								<?php echo secupress_get_logo(); ?>
+							</div>
+							<div class="secupress-sh-name">
+								<p class="secupress-sh-title">
+									<?php echo secupress_get_logo_word( array( 'width' => 81, 'height' => 19 ) ); ?>
+								</p>
 							</div>
 						</div>
-
-						<ul id="secupress-modules-navigation" class="secupress-modules-list-links">
-							<?php $this->print_tabs(); ?>
-						</ul>
 					</div>
-					<?php
-				} ?>
 
+					<ul id="secupress-modules-navigation" class="secupress-modules-list-links">
+						<?php $this->print_tabs(); ?>
+					</ul>
+				</div>
 				<div class="secupress-tab-content secupress-tab-content-<?php echo $this->get_current_module(); ?>" id="secupress-tab-content">
 					<?php $this->print_current_module(); ?>
 				</div>
@@ -266,7 +255,13 @@ class SecuPress_Settings_Modules extends SecuPress_Settings {
 			<li>
 				<a href="<?php echo esc_url( secupress_admin_url( 'modules', $key ) ); ?>" class="<?php echo $class; ?> module-<?php echo sanitize_key( $key ); ?>">
 					<span class="secupress-tab-name"><?php echo $module['title']; ?></span>
-					<span class="secupress-tab-summary"><?php echo $module['summaries']['small']; ?></span>
+					<span class="secupress-tab-summary">
+					<?php
+					if ( apply_filters( 'secupress.settings.description', true ) ) {
+						echo $module['summaries']['small'];
+					}
+					?>
+					</span>
 					<i class="secupress-icon-<?php echo $icon; ?>" aria-hidden="true"></i>
 				</a>
 			</li>
@@ -282,7 +277,7 @@ class SecuPress_Settings_Modules extends SecuPress_Settings {
 	 */
 	final public function print_open_form_tag() {
 		?>
-		<form id="secupress-module-form-settings" method="post" action="<?php echo $this->get_form_action(); ?>">
+		<form id="secupress-module-form-settings" method="post" action="<?php echo $this->get_form_action(); ?>" enctype="multipart/form-data">
 		<?php
 	}
 
@@ -304,22 +299,10 @@ class SecuPress_Settings_Modules extends SecuPress_Settings {
 	 * @since 1.0
 	 */
 	protected function print_current_module() {
-		// No module.
-		if ( 'welcome' === $this->get_current_module() ) {
-			$this->load_module_settings();
-			return;
-		}
-		// Get Pro Page.
-		if ( 'get-pro' === $this->get_current_module() ) {
-			$this->load_module_settings();
-			return;
-		}
 		?>
 		<div class="secupress-tab-content-header">
 			<?php
 			$this->print_module_title();
-			$this->print_module_description();
-			$this->print_module_icon();
 			?>
 		</div>
 
@@ -354,17 +337,19 @@ class SecuPress_Settings_Modules extends SecuPress_Settings {
 		}
 		// //// Todo save settings with history.
 		$this->set_current_section( 'reset' );
-		$this->set_section_description( __( 'If you need to reset this module\'s settings to the default, you can do it here, the best settings for your site will be set.', 'secupress' ) );
-		$this->add_section( __( 'Module settings', 'secupress' ), array( 'with_save_button' => false ) );
+		$this->set_section_description( __( 'When you need to reset this module’s settings to the default.', 'secupress' ) );
+		// For now, remove the reset button since settings are linked to module activation, I don't want to deactivate all in one click :s
+		// $this->add_section( __( 'Module settings', 'secupress' ), array( 'with_save_button' => false ) );
 
 		$this->set_current_plugin( 'reset' );
 
 		$this->add_field( array(
-			'title'      => __( 'Reset settings?', 'secupress' ),
 			'name'       => 'reset',
 			'field_type' => 'field_button',
+			'style'      => 'small',
+			'class'      => 'secupress-button-secondary',
 			'url'        => wp_nonce_url( admin_url( 'admin-post.php?action=secupress_reset_settings&module=' . $this->get_current_module() ), 'secupress_reset_' . $this->get_current_module() ),
-			'label'      => sprintf( __( 'Reset the %s\'s settings.', 'secupress' ), $this->get_module_title() ),
+			'label'      => sprintf( __( 'Reset the %s’s settings', 'secupress' ), $this->get_module_title() ),
 		) );
 
 		$this->do_sections();
@@ -381,7 +366,10 @@ class SecuPress_Settings_Modules extends SecuPress_Settings {
 	 * @return (object) The class instance.
 	 */
 	protected function print_module_title( $tag = 'h2' ) {
-		echo '<' . $tag . ' class="secupress-tc-title">' . $this->get_module_title() . "</$tag>\n";
+		echo "<$tag class=\"secupress-tc-title\">";
+			$this->print_module_icon();
+			echo $this->get_module_title();
+		echo "</$tag>\n";
 		return $this;
 	}
 
@@ -447,7 +435,7 @@ class SecuPress_Settings_Modules extends SecuPress_Settings {
 	 * @since 1.0
 	 */
 	protected function scheduled_backups() {
-		echo '<a href="' . esc_url( secupress_admin_url( 'modules', 'get-pro' ) ) . '" class="secupress-button secupress-ghost secupress-button-tertiary">' . __( 'Learn more about SecuPress Pro', 'secupress' ) . '</a>';
+		echo '<a href="' . esc_url( secupress_admin_url( 'get-pro' ) ) . '" class="secupress-button secupress-ghost secupress-button-tertiary">' . __( 'Learn more about SecuPress Pro', 'secupress' ) . '</a>';
 			_e( 'This feature is available in SecuPress Pro', 'secupress' );
 	}
 
@@ -458,7 +446,7 @@ class SecuPress_Settings_Modules extends SecuPress_Settings {
 	 * @since 1.0
 	 */
 	protected function scheduled_scan() {
-		echo '<a href="' . esc_url( secupress_admin_url( 'modules', 'get-pro' ) ) . '" class="secupress-button secupress-ghost secupress-button-tertiary">' . __( 'Learn more about SecuPress Pro', 'secupress' ) . '</a>';
+		echo '<a href="' . esc_url( secupress_admin_url( 'get-pro' ) ) . '" class="secupress-button secupress-ghost secupress-button-tertiary">' . __( 'Learn more about SecuPress Pro', 'secupress' ) . '</a>';
 			_e( 'This feature is available in SecuPress Pro', 'secupress' );
 	}
 
@@ -469,7 +457,7 @@ class SecuPress_Settings_Modules extends SecuPress_Settings {
 	 * @since 1.0
 	 */
 	protected function scheduled_monitoring() {
-		echo '<a href="' . esc_url( secupress_admin_url( 'modules', 'get-pro' ) ) . '" class="secupress-button secupress-ghost secupress-button-tertiary">' . __( 'Learn more about SecuPress Pro', 'secupress' ) . '</a>';
+		echo '<a href="' . esc_url( secupress_admin_url( 'get-pro' ) ) . '" class="secupress-button secupress-ghost secupress-button-tertiary">' . __( 'Learn more about SecuPress Pro', 'secupress' ) . '</a>';
 			_e( 'This feature is available in SecuPress Pro', 'secupress' );
 	}
 
@@ -479,76 +467,77 @@ class SecuPress_Settings_Modules extends SecuPress_Settings {
 	 *
 	 * @since 1.0
 	 */
-	protected function banned_ips() {
+	protected function blacklist_ips() {
 		$ban_ips            = get_site_option( SECUPRESS_BAN_IP );
-		$ban_ips            = is_array( $ban_ips ) ? $ban_ips : array();
+		$ban_ips            = is_array( $ban_ips ) ? $ban_ips : [];
 		$offset             = get_option( 'gmt_offset' ) * HOUR_IN_SECONDS;
-		$in_ten_years       = time() + YEAR_IN_SECONDS * 10;
 		$page_url           = secupress_admin_url( 'modules', 'logs' );
 		$referer_arg        = '&_wp_http_referer=' . urlencode( esc_url_raw( $page_url ) );
 		$is_search          = false;
 		$search_val         = '';
-		$empty_list_message = __( 'No banned IPs yet.', 'secupress' );
+		$empty_list_message = __( 'Empty disallowed IP list', 'secupress' );
 
 		// Ban form.
 		echo '<form id="form-ban-ip" class="hide-if-js" action="' . esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=secupress-ban-ip' . $referer_arg ), 'secupress-ban-ip' ) ) . '" method="post">';
 			echo '<label for="secupress-ban-ip" class="screen-reader-text">' . __( 'Specify an IP to ban.', 'secupress' ) . '</label><br/>';
-			echo '<input type="text" id="secupress-ban-ip" name="ip" value=""/> ';
+			echo '<p class="description">' . __( 'You can use <a href="https://docs.secupress.me/article/161-ip-range">IP ranges</a>.', 'secupress' ) . '</p>';
+			echo '<textarea cols="50" id="secupress-ban-ip" name="ip"></textarea> ';
 			echo '<button type="submit" class="secupress-button secupress-button-mini">' . __( 'Ban IP', 'secupress' ) . '</button>';
 		echo "</form>\n";
 
 		// Search.
 		if ( $ban_ips && ! empty( $_POST['secupress-search-banned-ip'] ) ) { // WPCS: CSRF ok.
-			$search    = urldecode( trim( $_POST['secupress-search-banned-ip'] ) ); // WPCS: CSRF ok.
-			$is_search = true;
+			$search_val = urldecode( trim( $_POST['secupress-search-banned-ip'] ) ); // WPCS: CSRF ok.
+			$is_search  = true;
+			$search_val = preg_quote( $search_val, '~' );
+			$found_ips  = preg_grep('~' . $search_val . '~', array_keys( $ban_ips ) );
+			$found_ips  = array_flip( $found_ips );
+			$ban_ips    = array_intersect_key( $ban_ips, $found_ips );
 
-			if ( secupress_ip_is_valid( $search ) ) {
-				$search_val = esc_attr( $search );
-
-				if ( isset( $ban_ips[ $search ] ) ) {
-					$ban_ips = array(
-						$search => $ban_ips[ $search ],
-					);
-				} else {
-					$ban_ips            = array();
-					$empty_list_message = __( 'IP not found.', 'secupress' );
-				}
-			} else {
-				$ban_ips            = array();
-				$empty_list_message = __( 'Not a valid IP.', 'secupress' );
+			if ( empty( $ban_ips ) ) {
+				$empty_list_message = __( 'IP not found.', 'secupress' );
 			}
 		}
 
 		// Search form.
-		echo '<form id="form-search-ip"' . ( $ban_ips || $is_search ? '' : ' class="hidden"' ) . ' method="post">';
+		echo '<form action="' . esc_url_raw( secupress_get_current_url('raw') ) . '" id="form-search-ip"' . ( $ban_ips || $is_search ? '' : ' class="hidden"' ) . ' method="post">';
 			echo '<label for="secupress-search-banned-ip" class="screen-reader-text">' . __( 'Search IP', 'secupress' ) . '</label><br/>';
-			echo '<input type="search" id="secupress-search-banned-ip" name="secupress-search-banned-ip" value="' . $search_val . '"/> ';
+			echo '<input type="search" id="secupress-search-banned-ip" name="secupress-search-banned-ip" value="' . esc_attr( wp_unslash( $search_val ) ) . '"/> ';
 			echo '<button type="submit" class="secupress-button secupress-button-primary" data-loading-i18n="' . esc_attr__( 'Searching...', 'secupress' ) . '" data-original-i18n="' . esc_attr__( 'Search IP', 'secupress' ) . '">' . __( 'Search IP', 'secupress' ) . '</button> ';
 			echo '<span class="spinner secupress-inline-spinner hide-if-no-js"></span>';
-			echo '<a class="secupress-button secupress-button-secondary' . ( $search_val ? '' : ' hidden' ) . '" id="reset-banned-ips-list" href="' . esc_url( $page_url ) . '" data-loading-i18n="' . esc_attr__( 'Reseting...', 'secupress' ) . '" data-original-i18n="' . esc_attr__( 'Reset', 'secupress' ) . '">' . __( 'Reset', 'secupress' ) . '</a> ';
-			echo '<span class="spinner secupress-inline-spinner' . ( $search_val ? ' hide-if-no-js' : ' hidden' ) . '"></span>';
+			echo '<a class="secupress-button secupress-button-secondary' . ( $search_val ? '' : ' hidden' ) . '" href="' . esc_url( $page_url ) . '" ">' . __( 'Cancel search', 'secupress' ) . '</a> ';
 		echo "</form>\n";
 
-		// Slice the list a bit: limit to 100 last results.
-		if ( count( $ban_ips ) > 100 ) {
-			$ban_ips = array_slice( $ban_ips, -100 );
-			/** Translators: %d is 100 */
-			echo '<p>' . sprintf( __( 'Last %d banned IPs:', 'secupress' ), 100 ) . "</p>\n";
+		// Slice the list a bit: limit last results.
+		/**
+		* How many IP max to display
+		*
+		* @param (int) $limit 50 by default
+		*/
+		$limit     = apply_filters( 'secupress.ip_list.limit_max', 50 );
+		$count_ips = count( $ban_ips );
+		if ( $count_ips > $limit ) {
+			$ban_ips = array_slice( $ban_ips, - $limit );
+			echo '<p>' . sprintf( __( 'Last %1$s/%2$s disallowed IPs:', 'secupress' ), number_format_i18n( $limit ), $count_ips ) . '</p>' . "\n";
 		}
 
 		// Display the list.
 		echo '<ul id="secupress-banned-ips-list" class="secupress-boxed-group">';
 		if ( $ban_ips ) {
 			foreach ( $ban_ips as $ip => $time ) {
-				echo '<li class="secupress-large-row">';
+				echo '<li class="secupress-large-row" data-ip="' . esc_attr( $ip ) . '">';
 					$format = __( 'M jS Y', 'secupress' ) . ' ' . __( 'G:i', 'secupress' );
-					$time   = $time > $in_ten_years ? __( 'Forever', 'secupress' ) : date_i18n( $format, $time + $offset );
+					$time   = date_i18n( $format, $time + $offset );
 					$href   = wp_nonce_url( admin_url( 'admin-post.php?action=secupress-unban-ip&ip=' . esc_attr( $ip ) . $referer_arg ), 'secupress-unban-ip_' . $ip );
 
-					printf( '<strong>%s</strong> <em>(%s)</em>', esc_html( $ip ), $time );
-					printf( '<span><a class="a-unban-ip" href="%s">%s</a> <span class="spinner secupress-inline-spinner hide-if-no-js"></span></span>', esc_url( $href ), __( 'Delete', 'secupress' ) );
+					printf( __( '<strong>%s</strong> <em>(Banned until %s)</em>', 'secupress' ), esc_html( $ip ), $time );
+					printf( '<span><a class="a-unban-ip" href="%s">%s</a> <span class="spinner secupress-inline-spinner hide-if-no-js"></span></span>', esc_url( $href ), __( 'Remove', 'secupress' ) );
 				echo "</li>\n";
 			}
+			if ( $count_ips > $limit ) {
+				echo '<li>' . __( 'Do a search to find more.', 'secupress' ) . '</li>';
+			}
+			unset( $count_ips );
 		} else {
 			echo '<li id="no-ips">' . $empty_list_message . '</li>';
 		}
@@ -561,7 +550,7 @@ class SecuPress_Settings_Modules extends SecuPress_Settings {
 			echo '<a class="secupress-button secupress-button-secondary' . ( $ban_ips || $is_search ? '' : ' hidden' ) . '" id="secupress-clear-ips-button" href="' . esc_url( $clear_href ) . '" data-loading-i18n="' . esc_attr__( 'Clearing...', 'secupress' ) . '" data-original-i18n="' . esc_attr__( 'Clear all IPs', 'secupress' ) . '">' . __( 'Clear all IPs', 'secupress' ) . "</a>\n";
 			echo '<span class="spinner secupress-inline-spinner' . ( $ban_ips || $is_search ? ' hide-if-no-js' : ' hidden' ) . '"></span>';
 			// For JS: ban a IP.
-			echo '<button type="button" class="secupress-button secupress-button-primary hide-if-no-js" id="secupress-ban-ip-button" data-loading-i18n="' . esc_attr__( 'Banishing...', 'secupress' ) . '" data-original-i18n="' . esc_attr__( 'Ban new IP', 'secupress' ) . '">' . __( 'Ban new IP', 'secupress' ) . "</button>\n";
+			echo '<button type="button" class="secupress-button secupress-button-primary hide-if-no-js" id="secupress-ban-ip-button" data-loading-i18n="' . esc_attr__( 'Ban in progress...', 'secupress' ) . '" data-original-i18n="' . esc_attr__( 'Disallow', 'secupress' ) . '">' . __( 'Disallow', 'secupress' ) . "</button>\n";
 			echo '<span class="spinner secupress-inline-spinner hide-if-no-js"></span>';
 		echo "</p>\n";
 	}
@@ -574,47 +563,90 @@ class SecuPress_Settings_Modules extends SecuPress_Settings {
 	 *
 	 * @param (array) $args An array of parameters. See `::field()`.
 	 */
-	protected function ips_whitelist( $args ) {
-		$name_attribute = 'secupress_' . $this->modulenow . '_settings[' . $args['name'] . ']';
-		$disabled       = ! empty( $args['disabled'] ) || static::is_pro_feature( $args['name'] );
-		$disabled       = $disabled ? ' disabled="disabled"' : '';
-		$attributes     = $disabled;
-		$attributes    .= empty( $args['attributes']['cols'] ) ? ' cols="50"' : '';
-		$attributes    .= empty( $args['attributes']['rows'] ) ? ' rows="5"'  : '';
-		$whitelist      = secupress_get_module_option( $args['name'] );
+	protected function whitelist_ips( $args ) {
+		$ban_ips            = get_site_option( SECUPRESS_WHITE_IP );
+		$ban_ips            = is_array( $ban_ips ) ? $ban_ips : [];
+		$offset             = get_option( 'gmt_offset' ) * HOUR_IN_SECONDS;
+		$page_url           = secupress_admin_url( 'modules', 'logs' );
+		$referer_arg        = '&_wp_http_referer=' . urlencode( esc_url_raw( $page_url ) );
+		$is_search          = false;
+		$search_val         = '';
+		$empty_list_message = __( 'Empty allowed IP list', 'secupress' );
 
-		if ( $whitelist ) {
-			$whitelist = explode( "\n", $whitelist );
-			$whitelist = array_map( 'secupress_ip_is_valid', $whitelist );
-			$whitelist = array_filter( $whitelist );
-			natsort( $whitelist );
-			$whitelist = implode( "\n", $whitelist );
+		// Ban form.
+		echo '<form id="form-whitelist-ip" class="hide-if-js" action="' . esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=secupress-whitelist-ip' . $referer_arg ), 'secupress-whitelist-ip' ) ) . '" method="post">';
+			echo '<label for="secupress-whitelist-ip" class="screen-reader-text">' . __( 'Specify an IP to add to the allowed list.', 'secupress' ) . '</label><br/>';
+			echo '<p class="description">' . __( 'You can use <a href="https://docs.secupress.me/article/161-ip-range">IP ranges</a>.', 'secupress' ) . '</p>';
+			echo '<textarea cols="50" id="secupress-whitelist-ip" name="ip"></textarea> ';
+			echo '<button type="submit" class="secupress-button secupress-button-mini">' . __( 'Allow IP', 'secupress' ) . '</button>';
+		echo "</form>\n";
+
+		// Search.
+		if ( $ban_ips && ! empty( $_POST['secupress-search-whitelist-ip'] ) ) { // WPCS: CSRF ok.
+			$search_val = urldecode( trim( $_POST['secupress-search-whitelist-ip'] ) ); // WPCS: CSRF ok.
+			$is_search  = true;
+			$search_val = preg_quote( $search_val, '~' );
+			$found_ips  = preg_grep('~' . $search_val . '~', array_keys( $ban_ips ) );
+			$found_ips  = array_flip( $found_ips );
+			$ban_ips    = array_intersect_key( $ban_ips, $found_ips );
+
+			if ( empty( $ban_ips ) ) {
+				$empty_list_message = __( 'IP not found.', 'secupress' );
+			}
+		}
+
+		// Search form.
+		echo '<form action="' . esc_url_raw( $page_url ) . '" id="form-search-whitelist-ip"' . ( $ban_ips || $is_search ? '' : ' class="hidden"' ) . ' method="post">';
+			echo '<label for="secupress-search-whitelist-ip" class="screen-reader-text">' . __( 'Search IP', 'secupress' ) . '</label><br/>';
+			echo '<input type="search" id="secupress-search-whitelist-ip" name="secupress-search-whitelist-ip" value="' . esc_attr( wp_unslash( $search_val ) ) . '"/> ';
+			echo '<button type="submit" class="secupress-button secupress-button-primary" data-loading-i18n="' . esc_attr__( 'Searching...', 'secupress' ) . '" data-original-i18n="' . esc_attr__( 'Search IP', 'secupress' ) . '">' . __( 'Search IP', 'secupress' ) . '</button> ';
+			echo '<span class="spinner secupress-inline-spinner hide-if-no-js"></span>';
+			echo '<a class="secupress-button secupress-button-secondary' . ( $search_val ? '' : ' hidden' ) . '" href="' . esc_url( $page_url ) . '" data-loading-i18n="' . esc_attr__( 'Reset in progress...', 'secupress' ) . '" data-original-i18n="' . esc_attr__( 'Reset', 'secupress' ) . '">' . __( 'Cancel search', 'secupress' ) . '</a> ';
+		echo "</form>\n";
+
+		// Slice the list a bit: limit last results.
+		/**
+		* How many IP max to display
+		*
+		* @param (int) $limit 50 by default
+		*/
+		$limit     = apply_filters( 'secupress.ip_list.limit_max', 50 );
+		$count_ips = count( $ban_ips );
+		if ( $count_ips > $limit ) {
+			$ban_ips = array_slice( $ban_ips, - $limit );
+			echo '<p>' . sprintf( __( 'Last %1$s/%2$s allowed IPs:', 'secupress' ), number_format_i18n( $limit ), $count_ips ) . '</p>' . "\n";
+		}
+
+		// Display the list.
+		echo '<ul id="secupress-whitelist-ips-list" class="secupress-boxed-group">';
+		if ( $ban_ips ) {
+			foreach ( $ban_ips as $ip => $time ) {
+				echo '<li class="secupress-large-row" data-ip="' . esc_attr( $ip ) . '">';
+					$href   = wp_nonce_url( admin_url( 'admin-post.php?action=secupress-unwhitelist-ip&ip=' . esc_attr( $ip ) . $referer_arg ), 'secupress-unwhitelist-ip_' . $ip );
+
+					printf( '<strong>%s</strong>', esc_html( $ip ) );
+					printf( '<span><a class="a-unwhitelist-ip" href="%s">%s</a> <span class="spinner secupress-inline-spinner hide-if-no-js"></span></span>', esc_url( $href ), __( 'Remove', 'secupress' ) );
+				echo "</li>\n";
+			}
+			if ( $count_ips > $limit ) {
+				echo '<li>' . __( 'Do a search to find more.', 'secupress' ) . '</li>';
+			}
+			unset( $count_ips );
 		} else {
-			$whitelist = '';
+			echo '<li id="no-whitelist-ips">' . $empty_list_message . '</li>';
 		}
+		echo "</ul>\n";
 
-		// Labels.
-		$label_open  = '';
-		$label_close = '';
-		if ( '' !== $args['label_before'] || '' !== $args['label'] || '' !== $args['label_after'] ) {
-			$label_open  = '<label' . ( $disabled ? ' class="disabled"' : '' ) . '>';
-			$label_close = '</label>';
-		}
-
-		$this->print_open_form_tag();
-
-			echo $label_open;
-				echo $args['label'] ? $args['label'] . '<br/>' : '';
-				echo $args['label_before'];
-				echo '<textarea id="' . $args['label_for'] . '" name="' . $name_attribute . '"' . $attributes . '>' . esc_textarea( $whitelist ) . "</textarea>\n";
-				echo $args['label_after'];
-			echo $label_close;
-
-			echo '<p class="description">' . __( 'One IP address per line.', 'secupress' ) . "</p>\n";
-
-			echo '<p class="submit"><button type="submit" class="secupress-button secupress-button-primary"' . $disabled . '> ' . __( 'Save whitelist', 'secupress' ) . '</button></p>';
-
-		$this->print_close_form_tag();
+		// Actions.
+		echo '<p id="secupress-whitelist-ips-actions">';
+			// Display a button to unban all IPs.
+			$clear_href = wp_nonce_url( admin_url( 'admin-post.php?action=secupress-clear-whitelist-ips' . $referer_arg ), 'secupress-clear-whitelist-ips' );
+			echo '<a class="secupress-button secupress-button-secondary' . ( $ban_ips || $is_search ? '' : ' hidden' ) . '" id="secupress-clear-whitelist-ips-button" href="' . esc_url( $clear_href ) . '" data-loading-i18n="' . esc_attr__( 'Clearing...', 'secupress' ) . '" data-original-i18n="' . esc_attr__( 'Clear all IPs', 'secupress' ) . '">' . __( 'Clear all IPs', 'secupress' ) . "</a>\n";
+			echo '<span class="spinner secupress-inline-spinner' . ( $ban_ips || $is_search ? ' hide-if-no-js' : ' hidden' ) . '"></span>';
+			// For JS: ban a IP.
+			echo '<button type="button" class="secupress-button secupress-button-primary hide-if-no-js" id="secupress-whitelist-ip-button" data-loading-i18n="' . esc_attr__( 'Adding to allowed list...', 'secupress' ) . '" data-original-i18n="' . esc_attr__( 'Allow', 'secupress' ) . '">' . __( 'Allow', 'secupress' ) . "</button>\n";
+			echo '<span class="spinner secupress-inline-spinner hide-if-no-js"></span>';
+		echo "</p>\n";
 	}
 
 
@@ -650,7 +682,7 @@ class SecuPress_Settings_Modules extends SecuPress_Settings {
 				?>
 			</p>
 			<p class="description desc">
-				<?php _e( 'Post creation or update will not be logged, but rather password and profile update, email changes, new administrator user, admin has logged in...', 'secupress' ); ?>
+				<?php _e( 'Post creation or update will not be logged, but rather password and profile update, email changes, new administrator user, important role has logged in...', 'secupress' ); ?>
 			</p>
 			<p class="submit"><button type="submit" class="secupress-button secupress-button-primary"><?php _e( 'Submit' ); ?></button></p>
 		</form>
@@ -701,7 +733,7 @@ class SecuPress_Settings_Modules extends SecuPress_Settings {
 	 */
 	protected function backup_history() {
 		?>
-		<p id="secupress-no-backups"><em><?php _e( 'No backups found yet, run one now?', 'secupress' ); ?></em></p>
+		<p id="secupress-no-backups"><em><?php _e( 'No backups found yet.', 'secupress' ); ?></em></p>
 		<?php
 	}
 
@@ -757,7 +789,7 @@ class SecuPress_Settings_Modules extends SecuPress_Settings {
 		?>
 		<p class="submit">
 			<button type="button" disabled="disabled" class="secupress-button">
-				<?php _e( 'Search for malicious files', 'secupress' ); ?>
+				<?php _e( 'Search for malwares', 'secupress' ); ?>
 			</button>
 		</p>
 		<?php
@@ -794,6 +826,17 @@ class SecuPress_Settings_Modules extends SecuPress_Settings {
 	 * @return (object) The class instance.
 	 */
 	final protected function load_plugin_settings( $plugin ) {
+		/**
+		 * Give the possibility to hide a full block of options
+		 *
+		 * @since 1.4
+		 *
+		 * @param (bool) false by default
+		 */
+
+		if ( false !== apply_filters( 'secupress.settings.load_plugin.' . $plugin, false ) ) {
+			return;
+		}
 		$plugin_file = SECUPRESS_MODULES_PATH . $this->modulenow . '/settings/' . $plugin . '.php';
 
 		return $this->require_settings_file( $plugin_file, $plugin );

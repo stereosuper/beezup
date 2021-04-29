@@ -27,7 +27,7 @@ body {
     color: $text;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background: url("../layoutImg/quadrillage.png") no-repeat 50% 30px;
+    background: url('../layoutImg/quadrillage.png') no-repeat 50% 30px;
 }
 
 h1,
@@ -49,6 +49,10 @@ h2,
 .h2,
 h3 {
     font-family: $fira-bold;
+}
+
+h1 {
+    color: #01324a;
 }
 
 h1,
@@ -150,8 +154,8 @@ blockquote,
     &:before {
         position: absolute;
     }
-    &:after {
-        content: "";
+    /*&:after {
+        content: '';
         width: 2px;
         height: 2px;
         position: absolute;
@@ -159,14 +163,14 @@ blockquote,
         left: 27px;
         border-radius: 50%;
         background: $primary;
-    }
+    }*/
     p {
         margin: 0;
         font-family: $fira-italic;
         color: $grey;
         &:before,
         &:after {
-            content: "";
+            content: '';
             position: absolute;
             border-radius: 50%;
             background: $primary;
@@ -187,7 +191,7 @@ blockquote,
 }
 blockquote {
     &:before {
-        content: "“";
+        content: '“';
         top: 12px;
         left: 29px;
         font-size: 5em;
@@ -196,12 +200,12 @@ blockquote {
 }
 .star {
     &:before {
-        content: "";
+        content: '';
         width: 24px;
         height: 22px;
         top: 36px;
         left: 38px;
-        background: url("../layoutImg/star.svg") no-repeat;
+        background: url('../layoutImg/star.svg') no-repeat;
     }
 }
 
@@ -216,7 +220,7 @@ li {
     position: relative;
     &:before,
     &:after {
-        content: "";
+        content: '';
         position: absolute;
     }
     &:after {
@@ -224,7 +228,7 @@ li {
         height: 6px;
         top: 7px;
         left: 0;
-        background: url("../layoutImg/puce.svg") no-repeat;
+        background: url('../layoutImg/puce.svg') no-repeat;
     }
     &:nth-child(even) {
         &:after {
@@ -258,7 +262,7 @@ ol {
             top: 9px;
         }
         &:before {
-            content: counter(ol-counter) ".";
+            content: counter(ol-counter) '.';
             top: 0;
             left: 20px;
             font-family: $fira-medium;
@@ -274,19 +278,19 @@ dd {
 }
 dt {
     &:after {
-        content: ": ";
+        content: ': ';
     }
 }
 dd {
     + dt {
         &:before {
-            content: "\A";
+            content: '\A';
             white-space: pre;
         }
     }
     + dd {
         &:before {
-            content: ", ";
+            content: ', ';
             margin: 0 0 0 -0.25em;
         }
     }
@@ -451,7 +455,7 @@ a {
         padding: 40px;
         margin: 40px 0;
     }
-    &.block-has-col{
+    &.block-has-col {
         margin: 120px 0 70px;
     }
     a {
@@ -476,53 +480,53 @@ a {
             }
         }
     }
-    h2{
+    h2 {
         color: $white;
     }
     .link-arrow {
         &:after {
-            background-image: url("../layoutImg/arrow-right-white.svg");
+            background-image: url('../layoutImg/arrow-right-white.svg');
         }
     }
-    .has-col{
+    .has-col {
         display: flex;
         justify-content: space-between;
         flex-wrap: wrap;
-        h2{
+        h2 {
             margin-top: 8px;
         }
-        a{
+        a {
             color: $secondary;
         }
-        .link-arrow{
-            &:after{
+        .link-arrow {
+            &:after {
                 background: url(../layoutImg/arrow-right.svg) no-repeat;
             }
         }
-        .col{
+        .col {
             width: 60%;
             padding: 40px 95px 55px;
             margin: -85px -95px 0;
             background: #fff;
             color: $text;
             box-shadow: 0 0 60px rgba(#000, 0.1);
-            h2{
+            h2 {
                 margin-top: 2.3em;
                 color: $primary;
             }
         }
-        .small{
+        .small {
             width: 100%;
             padding: 40px 0 0;
             font-size: 1.3rem;
-            li{
+            li {
                 padding: 0 0 0 10px;
-                &:before{
+                &:before {
                     width: 3px;
                     height: 3px;
                     left: 0;
                 }
-                &:after{
+                &:after {
                     content: none;
                 }
             }
@@ -535,7 +539,7 @@ a {
     background: $white;
     color: $text;
     &:before {
-        content: "";
+        content: '';
         position: absolute;
         top: 0;
         left: 0;
@@ -612,16 +616,16 @@ a {
         margin-top: 5em;
     }
 
-    .block-full{
-        .has-col{
+    .block-full {
+        .has-col {
             display: block;
-            .col{
+            .col {
                 width: 100%;
                 padding: 5px 45px 30px;
                 margin: 50px 0 0;
             }
         }
-        .small{
+        .small {
             padding: 20px 45px 0;
         }
     }

@@ -22,11 +22,6 @@ class Mlp_Db_Table_List implements Mlp_Db_Table_List_Interface {
 	private $no_tables_found = 'no_tables_found';
 
 	/**
-	 * @type string
-	 */
-	private $cache_group = 'mlp';
-
-	/**
 	 * Constructor.
 	 *
 	 * @param wpdb $wpdb
@@ -35,8 +30,9 @@ class Mlp_Db_Table_List implements Mlp_Db_Table_List_Interface {
 
 		$this->wpdb = $wpdb;
 
-		if ( ! function_exists( 'wp_get_db_schema' ) )
+		if ( ! function_exists( 'wp_get_db_schema' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/schema.php';
+		}
 	}
 
 	/**
@@ -47,17 +43,11 @@ class Mlp_Db_Table_List implements Mlp_Db_Table_List_Interface {
 	 */
 	public function get_all_table_names() {
 
-		$cached = wp_cache_get( 'table_names', $this->cache_group );
-
-		if ( ! empty ( $cached ) && is_array( $cached ) )
-			return $cached;
-
 		$names = $this->get_names_from_db();
 
-		wp_cache_set( 'table_names', $names, $this->cache_group );
-
-		if ( array ( $this->no_tables_found ) === $names )
+		if ( array( $this->no_tables_found ) === $names ) {
 			return array();
+		}
 
 		return $names;
 	}
@@ -106,12 +96,13 @@ class Mlp_Db_Table_List implements Mlp_Db_Table_List_Interface {
 		$all_tables = $this->get_all_table_names();
 		$prefix     = $this->wpdb->get_blog_prefix( $site_id );
 		$exclude    = $this->get_not_custom_site_tables( $site_id, $prefix );
-		$out        = array ();
+		$out        = array();
 
 		foreach ( $all_tables as $name ) {
 
-			if ( $this->is_valid_custom_site_table( $name, $exclude, $prefix ) )
+			if ( $this->is_valid_custom_site_table( $name, $exclude, $prefix ) ) {
 				$out[] = $name;
+			}
 		}
 
 		return $out;
@@ -125,10 +116,10 @@ class Mlp_Db_Table_List implements Mlp_Db_Table_List_Interface {
 	 */
 	public function get_mlp_tables() {
 
-		return array (
+		return array(
 			$this->wpdb->base_prefix . 'mlp_languages',
 			$this->wpdb->base_prefix . 'mlp_site_relations',
-			$this->wpdb->base_prefix . 'multilingual_linked'
+			$this->wpdb->base_prefix . 'multilingual_linked',
 		);
 	}
 
@@ -160,8 +151,9 @@ class Mlp_Db_Table_List implements Mlp_Db_Table_List_Interface {
 
 		$core    = $this->get_site_core_tables( $site_id );
 
-		if ( $site_prefix !== $this->wpdb->base_prefix )
+		if ( $site_prefix !== $this->wpdb->base_prefix ) {
 			return $core;
+		}
 
 		// We are on the main site. This is difficult, because there is no clear
 		// distinction between custom network tables and custom site tables.
@@ -198,10 +190,11 @@ class Mlp_Db_Table_List implements Mlp_Db_Table_List_Interface {
 
 		preg_match_all( $pattern, $schema, $matches );
 
-		if ( empty ( $matches[ 1 ] ) )
+		if ( empty( $matches[1] ) ) {
 			return array();
+		}
 
-		return $matches[ 1 ];
+		return $matches[1];
 	}
 
 	/**
@@ -215,8 +208,9 @@ class Mlp_Db_Table_List implements Mlp_Db_Table_List_Interface {
 		$names = $this->wpdb->get_col( $query );
 
 		// Make sure there is something in the array, so we don't try that again.
-		if ( empty ( $names ) )
-			return array ( $this->no_tables_found );
+		if ( empty( $names ) ) {
+			return array( $this->no_tables_found );
+		}
 
 		return $names;
 	}

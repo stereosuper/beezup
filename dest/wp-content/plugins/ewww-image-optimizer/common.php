@@ -10,39 +10,17 @@
  * @package EWWW_Image_Optimizer
  */
 
-// TODO: use <picture> element to serve webp.
-// TODO: see if we can offer a rebuild option, to fill in missing thumbs.
-// TODO: so, if lazy loading support stinks, can we roll our own? that's an image "optimization", right?...
-// TODO: prevent bad ajax errors from firing when we click the toggle on the Optimization Log, and the plugin status from doing 403s...
-// TODO: use a transient to do health checks on the schedule optimizer.
-// TODO: add a column to track compression level used for each image, and later implement a way to (re)compress at a specific compression level.
-// TODO: might be able to use the Custom Bulk Actions in 4.7 to support the bulk optimize drop-down menu.
-// TODO: see if there is a way to query the last couple months (or 30 days) worth of attachments, but only when the user is not using year/month folders. This way, they can catch extraneous images if possible. Use the post_date field, and do a media_scan followed by the folder scan to catch remaining images.
-// TODO: move resizing options into their own sub-menu.
-// TODO: need to make the scheduler so it can resume without having to re-run the queue population, and then we can probably also flush the queue when scheduled opt starts, but later it would be nice to implement the bulk_loop as the aux_loop so that it could handle media properly.
-// TODO: implement a search for the bulk table, or maybe we should just move it to it's own page?
-// TODO: port bulk changes to NextGEN and FlaGallery.
-// TODO: extend custom WP_Image_Editor class from s3 uploader plugin on github.
-// TODO: make a bulk restore function.
-// TODO: Add a custom async function for parallel mode to store image as pending and use the row ID instead of relative path.
-// TODO: write some tests for update_table and check_table, find_already_opt, and remove_dups.
-// TODO: write some conversion tests.
-// TODO: do a bottom paginator for the show optimized images table.
-// TODO: use wp_http_supports( array( 'ssl' ) ) to detect whether we should use https.
-// TODO: check this patch, to see if the use of 'full' causes any issues: https://core.trac.wordpress.org/ticket/37840 .
-// TODO: see if it is possible to do more "loose" matching on the .htaccess web rules.
-// TODO: show a background optimization indicator in the plugin status.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EWWW_IMAGE_OPTIMIZER_VERSION', '341.0' );
+define( 'EWWW_IMAGE_OPTIMIZER_VERSION', '612' );
 
 // Initialize a couple globals.
-$ewww_debug = '';
+$eio_debug  = '';
 $ewww_defer = true;
 
-if ( WP_DEBUG ) {
+if ( WP_DEBUG && function_exists( 'memory_get_usage' ) ) {
 	$ewww_memory = 'plugin load: ' . memory_get_usage( true ) . "\n";
 }
 
@@ -51,12 +29,12 @@ global $wpdb;
 if ( ! isset( $wpdb->ewwwio_images ) ) {
 	$wpdb->ewwwio_images = $wpdb->prefix . 'ewwwio_images';
 }
+if ( ! isset( $wpdb->ewwwio_queue ) ) {
+	$wpdb->ewwwio_queue = $wpdb->prefix . 'ewwwio_queue';
+}
 
-// Check for Pantheon environment, and turn on relative folder usage at level 3.
-if ( ! empty( $_ENV['PANTHEON_ENVIRONMENT'] ) && in_array( $_ENV['PANTHEON_ENVIRONMENT'], array( 'test', 'live', 'dev' ) ) ) {
-	if ( ! defined( 'EWWW_IMAGE_OPTIMIZER_RELATIVE' ) ) {
-		define( 'EWWW_IMAGE_OPTIMIZER_RELATIVE', 3 );
-	}
+if ( ! defined( 'EWWW_IMAGE_OPTIMIZER_RELATIVE' ) ) {
+	define( 'EWWW_IMAGE_OPTIMIZER_RELATIVE', true );
 }
 
 // Used for manipulating exif info.
@@ -68,25 +46,47 @@ use lsolesen\pel\PelTag;
  * Hooks
  */
 
+// Loads the plugin translations.
+add_action( 'plugins_loaded', 'ewww_image_optimizer_preinit' );
+// Runs any checks that need to run everywhere and early.
+add_action( 'init', 'ewww_image_optimizer_init', 9 );
+// Load our front-end parsers for ExactDN and/or Alt WebP.
+add_action( 'init', 'ewww_image_optimizer_parser_init', 99 );
+// Initializes the plugin for admin interactions, like saving network settings and scheduling cron jobs.
+add_action( 'admin_init', 'ewww_image_optimizer_admin_init' );
+// Check the current screen ID to see if temp debugging should still be enabled.
+add_action( 'current_screen', 'ewww_image_optimizer_current_screen', 10, 1 );
 // If automatic optimization is NOT disabled.
 if ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_noauto' ) ) {
-	// Resizes and auto-rotates images.
-	add_filter( 'wp_handle_upload', 'ewww_image_optimizer_handle_upload' );
-	// Turns off the ewwwio_image_editor during uploads.
-	add_action( 'add_attachment', 'ewww_image_optimizer_add_attachment' );
-	// Turns off ewwwio_image_editor during Enable Media Replace.
-	add_filter( 'emr_unfiltered_get_attached_file', 'ewww_image_optimizer_image_sizes' );
-	// Enables direct integration to the editor's save function.
-	add_filter( 'wp_image_editors', 'ewww_image_optimizer_load_editor', 60 );
+	if ( ! defined( 'EWWW_IMAGE_OPTIMIZER_DISABLE_EDITOR' ) || ! EWWW_IMAGE_OPTIMIZER_DISABLE_EDITOR ) {
+		// Turns off the ewwwio_image_editor during uploads.
+		add_action( 'add_attachment', 'ewww_image_optimizer_add_attachment' );
+		// Turn off the editor when scaling down the original (core WP 5.3+).
+		add_filter( 'big_image_size_threshold', 'ewww_image_optimizer_image_sizes' );
+		// Turns off ewwwio_image_editor during Enable Media Replace.
+		add_filter( 'emr_unfiltered_get_attached_file', 'ewww_image_optimizer_image_sizes' );
+		// Checks to see if thumb regen or other similar operation is running via REST API.
+		add_action( 'rest_api_init', 'ewww_image_optimizer_restapi_compat_check' );
+		// Detect WP/LR Sync when it starts.
+		add_action( 'wplr_presync_media', 'ewww_image_optimizer_image_sizes' );
+		// Enables direct integration to the editor's save function.
+		add_filter( 'wp_image_editors', 'ewww_image_optimizer_load_editor', 60 );
+	}
 	// Processes an image via the metadata after upload.
 	add_filter( 'wp_generate_attachment_metadata', 'ewww_image_optimizer_resize_from_meta_data', 15, 2 );
 	// Add hook for PTE confirmation to make sure new resizes are optimized.
 	add_filter( 'wp_get_attachment_metadata', 'ewww_image_optimizer_pte_check' );
+	// Resizes and auto-rotates MediaPress images.
+	add_filter( 'mpp_handle_upload', 'ewww_image_optimizer_handle_mpp_upload' );
+	// Processes a MediaPress image via the metadata after upload.
+	add_filter( 'mpp_generate_metadata', 'ewww_image_optimizer_resize_from_meta_data', 15, 2 );
+	// Processes an attachment after IRSC has done a thumb regen.
+	add_filter( 'sirsc_attachment_images_ready', 'ewww_image_optimizer_resize_from_meta_data', 15, 2 );
 }
+// Skips resizing for images with 'noresize' in the filename.
+add_filter( 'ewww_image_optimizer_resize_dimensions', 'ewww_image_optimizer_noresize', 10, 2 );
 // Makes sure the optimizer never optimizes it's own testing images.
 add_filter( 'ewww_image_optimizer_bypass', 'ewww_image_optimizer_ignore_self', 10, 2 );
-// This filter turns off ewwwio_image_editor during save from the actual image editor and ensures that we parse the resizes list during the image editor save function.
-add_filter( 'load_image_to_edit_path', 'ewww_image_optimizer_editor_save_pre' );
 // Adds a column to the media library list view to display optimization results.
 add_filter( 'manage_media_columns', 'ewww_image_optimizer_columns' );
 // Outputs the actual column information for each attachment.
@@ -97,58 +97,71 @@ add_filter( 'ewww_image_optimizer_bulk_permissions', 'ewww_image_optimizer_admin
 add_filter( 'ewww_image_optimizer_admin_permissions', 'ewww_image_optimizer_admin_permissions', 8 );
 add_filter( 'ewww_image_optimizer_superadmin_permissions', 'ewww_image_optimizer_superadmin_permissions', 8 );
 // Add a link to the plugins page so the user can go straight to the settings page.
-$ewww_plugin_slug = plugin_basename( EWWW_IMAGE_OPTIMIZER_PLUGIN_FILE );
-add_filter( "plugin_action_links_$ewww_plugin_slug", 'ewww_image_optimizer_settings_link' );
+add_filter( 'plugin_action_links_' . EWWW_IMAGE_OPTIMIZER_PLUGIN_FILE_REL, 'ewww_image_optimizer_settings_link' );
 // Filter the registered sizes so we can remove any that the user disabled.
 add_filter( 'intermediate_image_sizes_advanced', 'ewww_image_optimizer_image_sizes_advanced' );
 // Ditto for PDF files (or anything non-image).
 add_filter( 'fallback_intermediate_image_sizes', 'ewww_image_optimizer_fallback_sizes' );
-// Filters the settings page output when cloud settings are enabled.
-add_filter( 'ewww_image_optimizer_settings', 'ewww_image_optimizer_filter_settings_page' );
 // Processes screenshots imported with MyArcadePlugin.
 add_filter( 'myarcade_filter_screenshot', 'ewww_image_optimizer_myarcade_thumbnail' );
 // Processes thumbnails created by MyArcadePlugin.
 add_filter( 'myarcade_filter_thumbnail', 'ewww_image_optimizer_myarcade_thumbnail' );
+// This filter turns off ewwwio_image_editor during save from the actual image editor and ensures that we parse the resizes list during the image editor save function.
+add_filter( 'load_image_to_edit_path', 'ewww_image_optimizer_editor_save_pre' );
 // Allows the user to override the default JPG quality used by WordPress.
-add_filter( 'jpeg_quality', 'ewww_image_optimizer_set_jpg_quality' );
+add_filter( 'jpeg_quality', 'ewww_image_optimizer_set_jpg_quality', PHP_INT_MAX - 1 );
+// Allows the user to override the default WebP quality used by EWWW IO.
+add_filter( 'webp_quality', 'ewww_image_optimizer_set_webp_quality' );
+// Prevent WP from over-riding EWWW IO's resize settings.
+add_filter( 'big_image_size_threshold', 'ewww_image_optimizer_adjust_big_image_threshold', 10, 3 );
 // Makes sure the plugin bypasses any files affected by the Folders to Ignore setting.
 add_filter( 'ewww_image_optimizer_bypass', 'ewww_image_optimizer_ignore_file', 10, 2 );
-// Loads the plugin translations.
-add_action( 'plugins_loaded', 'ewww_image_optimizer_preinit' );
-// Checks for nextgen/nextcellent/flagallery existence, and loads the appropriate classes.
-add_action( 'init', 'ewww_image_optimizer_gallery_support' );
-// Initializes the plugin for admin interactions, like saving network settings and scheduling cron jobs.
-add_action( 'admin_init', 'ewww_image_optimizer_admin_init' );
+// Ensure we populate the queue with webp images for WP Offload S3.
+add_filter( 'as3cf_attachment_file_paths', 'ewww_image_optimizer_as3cf_attachment_file_paths', 10, 2 );
+// Make sure to remove webp images from remote storage when an attachment is deleted.
+add_filter( 'as3cf_remove_attachment_paths', 'ewww_image_optimizer_as3cf_remove_attachment_file_paths', 10, 2 );
+// Fix the ContentType for WP Offload S3 on WebP images.
+add_filter( 'as3cf_object_meta', 'ewww_image_optimizer_as3cf_object_meta' );
+// Get admin color scheme and save it for later.
+add_action( 'admin_head', 'ewww_image_optimizer_save_admin_colors' );
 // Legacy (non-AJAX) action hook for manually optimizing an image.
 add_action( 'admin_action_ewww_image_optimizer_manual_optimize', 'ewww_image_optimizer_manual' );
 // Legacy (non-AJAX) action hook for manually restoring a converted image.
 add_action( 'admin_action_ewww_image_optimizer_manual_restore', 'ewww_image_optimizer_manual' );
 // Legacy (non-AJAX) action hook for manually restoring a backup from the API.
 add_action( 'admin_action_ewww_image_optimizer_manual_cloud_restore', 'ewww_image_optimizer_manual' );
-// Legacy (non-AJAX) action hook for manually attempting conversion on an image.
-add_action( 'admin_action_ewww_image_optimizer_manual_convert', 'ewww_image_optimizer_manual' );
 // Cleanup routine when an attachment is deleted.
 add_action( 'delete_attachment', 'ewww_image_optimizer_delete' );
+// Cleanup db records when Enable Media Replace replaces a file.
+add_action( 'wp_handle_replace', 'ewww_image_optimizer_media_replace' );
+// Cleanup db records when Phoenix Media Rename is finished.
+add_action( 'pmr_renaming_successful', 'ewww_image_optimizer_media_rename', 10, 2 );
+// Cleanup db records when Image Regenerate & Select Crop deletes a file.
+add_action( 'sirsc_image_file_deleted', 'ewww_image_optimizer_file_deleted', 10, 2 );
 // Adds the EWWW IO pages to the admin menu.
 add_action( 'admin_menu', 'ewww_image_optimizer_admin_menu', 60 );
 // Adds the EWWW IO settings to the network admin menu.
 add_action( 'network_admin_menu', 'ewww_image_optimizer_network_admin_menu' );
-// Adds the hook to modify the media library bulk actions via admin_print_footer_scripts.
-add_action( 'load-upload.php', 'ewww_image_optimizer_load_admin_js' );
-// Non-AJAX handler to reroute selected IDs to the bulk optimizer.
-add_action( 'admin_action_bulk_optimize', 'ewww_image_optimizer_bulk_action_handler' );
-// Ditto, but handles the actions from the bottom of the media page.
-add_action( 'admin_action_-1', 'ewww_image_optimizer_bulk_action_handler' );
+// Handle the bulk actions from the media library.
+add_filter( 'handle_bulk_actions-upload', 'ewww_image_optimizer_bulk_action_handler', 10, 3 );
 // Adds scripts to ajaxify the one-click actions on the media library, and register tooltips for conversion links.
 add_action( 'admin_enqueue_scripts', 'ewww_image_optimizer_media_scripts' );
 // Adds scripts for the EWWW IO settings page.
 add_action( 'admin_enqueue_scripts', 'ewww_image_optimizer_settings_script' );
 // Enables scheduled optimization via wp-cron.
 add_action( 'ewww_image_optimizer_auto', 'ewww_image_optimizer_auto' );
+// Correct records for files renamed by MFR.
+add_action( 'mfrh_path_renamed', 'ewww_image_optimizer_path_renamed', 10, 3 );
 // Correct any records in the table created during retina generation.
 add_action( 'wr2x_retina_file_added', 'ewww_image_optimizer_retina', 20, 2 );
+// AJAX action hook to verify an API key.
+add_action( 'wp_ajax_ewww_cloud_key_verify', 'ewww_image_optimizer_cloud_key_verify_ajax' );
+// AJAX action hook to activate Easy IO.
+add_action( 'wp_ajax_ewww_exactdn_activate', 'ewww_image_optimizer_exactdn_activate_ajax' );
 // AJAX action hook for inserting WebP rewrite rules into .htaccess.
 add_action( 'wp_ajax_ewww_webp_rewrite', 'ewww_image_optimizer_webp_rewrite' );
+// AJAX action hook for removing WebP rewrite rules from .htaccess.
+add_action( 'wp_ajax_ewww_webp_unwrite', 'ewww_image_optimizer_webp_unwrite' );
 // AJAX action hook for manually optimizing/converting an image.
 add_action( 'wp_ajax_ewww_manual_optimize', 'ewww_image_optimizer_manual' );
 // AJAX action hook for manually restoring a converted image.
@@ -157,40 +170,135 @@ add_action( 'wp_ajax_ewww_manual_restore', 'ewww_image_optimizer_manual' );
 add_action( 'wp_ajax_ewww_manual_cloud_restore', 'ewww_image_optimizer_manual' );
 // AJAX action hook for manually restoring a single image backup from the API.
 add_action( 'wp_ajax_ewww_manual_cloud_restore_single', 'ewww_image_optimizer_cloud_restore_single_image_handler' );
+// AJAX action hook to dismiss the WooCommerce regen notice.
+add_action( 'wp_ajax_ewww_dismiss_wc_regen', 'ewww_image_optimizer_dismiss_wc_regen' );
+// AJAX action hook to dismiss the WP/LR Sync regen notice.
+add_action( 'wp_ajax_ewww_dismiss_lr_sync', 'ewww_image_optimizer_dismiss_lr_sync' );
+// AJAX action hook to disable the media library notice.
+add_action( 'wp_ajax_ewww_dismiss_media_notice', 'ewww_image_optimizer_dismiss_media_notice' );
+// AJAX action hook to disable the 'review request' notice.
+add_action( 'wp_ajax_ewww_dismiss_review_notice', 'ewww_image_optimizer_dismiss_review_notice' );
 // Adds script to highlight mis-sized images on the front-end (for logged in admins only).
-add_action( 'wp_enqueue_scripts', 'ewww_image_optimizer_resize_detection_script' );
+add_action( 'wp_head', 'ewww_image_optimizer_resize_detection_script' );
 // Adds a button on the admin bar to allow highlighting mis-sized images on-demand.
 add_action( 'admin_bar_init', 'ewww_image_optimizer_admin_bar_init' );
 // Non-AJAX handler to delete the API key, and reroute back to the settings page.
 add_action( 'admin_action_ewww_image_optimizer_remove_cloud_key', 'ewww_image_optimizer_remove_cloud_key' );
+// Non-AJAX handler to disable Easy IO and reroute back to the settings page.
+add_action( 'admin_action_ewww_image_optimizer_remove_easyio', 'ewww_image_optimizer_remove_easyio' );
+// Non-AJAX handler to enable Force WebP for GIF files.
+add_action( 'admin_action_ewww_image_optimizer_enable_force_gif2webp', 'ewww_image_optimizer_enable_force_gif2webp' );
+// Non-AJAX handler to retest async/background mode.
+add_action( 'admin_action_ewww_image_optimizer_retest_background_optimization', 'ewww_image_optimizer_retest_background_optimization' );
+// Non-AJAX handler to view the debug log, and display it.
+add_action( 'admin_action_ewww_image_optimizer_view_debug_log', 'ewww_image_optimizer_view_debug_log' );
 // Non-AJAX handler to delete the debug log, and reroute back to the settings page.
 add_action( 'admin_action_ewww_image_optimizer_delete_debug_log', 'ewww_image_optimizer_delete_debug_log' );
+// Check if WebP option was turned off and is now enabled.
+add_filter( 'pre_update_option_ewww_image_optimizer_webp', 'ewww_image_optimizer_webp_maybe_enabled', 10, 2 );
+// Check Scheduled Opt option has just been disabled and clear the queues/stop the process.
+add_filter( 'pre_update_option_ewww_image_optimizer_auto', 'ewww_image_optimizer_scheduled_optimizaton_changed', 10, 2 );
 // Makes sure to flush out any scheduled jobs on deactivation.
 register_deactivation_hook( EWWW_IMAGE_OPTIMIZER_PLUGIN_FILE, 'ewww_image_optimizer_network_deactivate' );
-// Removes the .htaccess rules for webp when uninstalled.
-register_uninstall_hook( EWWW_IMAGE_OPTIMIZER_PLUGIN_FILE, 'ewww_image_optimizer_uninstall' );
 // add_action( 'shutdown', 'ewwwio_memory_output' );.
 // Makes sure we flush the debug info to the log on shutdown.
 add_action( 'shutdown', 'ewww_image_optimizer_debug_log' );
-// If Alt WebP Rewriting is enabled.
-if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_for_cdn' ) ) {
-	// Start an output buffer before any output starts.
-	add_action( 'template_redirect', 'ewww_image_optimizer_buffer_start' );
-	if ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) {
-		// Load the non-minified, non-inline version of the webp rewrite script.
-		add_action( 'wp_enqueue_scripts', 'ewww_image_optimizer_webp_debug_script' );
-	} elseif ( defined( 'EWWW_IMAGE_OPTIMIZER_WEBP_EXTERNAL_SCRIPT' ) && EWWW_IMAGE_OPTIMIZER_WEBP_EXTERNAL_SCRIPT ) {
-		// Load the minified, non-inline version of the webp rewrite script.
-		add_action( 'wp_enqueue_scripts', 'ewww_image_optimizer_webp_min_script' );
-	} else {
-		// Loads jQuery and the minified inline webp rewrite script.
-		add_action( 'wp_enqueue_scripts', 'ewww_image_optimizer_webp_load_jquery' );
-		add_action( 'wp_head', 'ewww_image_optimizer_webp_inline_script' );
-	}
-}
 
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'classes/class-ewwwio-cli.php' );
+}
+if ( 'done' !== get_option( 'ewww_image_optimizer_relative_migration_status' ) ) {
+	require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'classes/class-ewwwio-relative-migration.php' );
+}
+
+/**
+ * Setup page parsing classes after theme functions.php is loaded and plugins have run init routines.
+ */
+function ewww_image_optimizer_parser_init() {
+	$buffer_start = false;
+	// If ExactDN is enabled.
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn' ) && false === strpos( add_query_arg( null, null ), 'exactdn_disable=1' ) ) {
+		if ( ! ewww_image_optimizer_get_option( 'exactdn_all_the_things' ) ) {
+			// Un-configure Autoptimize CDN domain.
+			if ( defined( 'AUTOPTIMIZE_PLUGIN_DIR' ) && strpos( ewww_image_optimizer_get_option( 'autoptimize_cdn_url' ), 'exactdn' ) ) {
+				ewww_image_optimizer_set_option( 'autoptimize_cdn_url', '' );
+			}
+		}
+		$buffer_start = true;
+		/**
+		 * Page Parsing class for working with HTML content.
+		 */
+		require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'classes/class-eio-page-parser.php' );
+		/**
+		 * ExactDN class for parsing image urls and rewriting them.
+		 */
+		require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'classes/class-exactdn.php' );
+	} else {
+		// Un-configure Autoptimize CDN domain.
+		if ( defined( 'AUTOPTIMIZE_PLUGIN_DIR' ) && strpos( ewww_image_optimizer_get_option( 'autoptimize_cdn_url' ), 'exactdn' ) ) {
+			ewww_image_optimizer_set_option( 'autoptimize_cdn_url', '' );
+		}
+	}
+	// If Lazy Load is enabled.
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_lazy_load' ) ) {
+		$buffer_start = true;
+		/**
+		 * Page Parsing class for working with HTML content.
+		 */
+		require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'classes/class-eio-page-parser.php' );
+		/**
+		 * Lazy Load class for parsing image urls and rewriting them to defer off-screen images.
+		 */
+		require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'classes/class-eio-lazy-load.php' );
+
+		global $eio_lazy_load;
+		$eio_lazy_load = new EIO_Lazy_Load();
+	}
+	// If Alt WebP Rewriting is enabled.
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_for_cdn' ) && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn' ) ) {
+		$buffer_start = true;
+		/**
+		 * Page Parsing class for working with HTML content.
+		 */
+		require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'classes/class-eio-page-parser.php' );
+		/**
+		 * Alt WebP class for parsing image urls and rewriting them for WebP support.
+		 */
+		require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'classes/class-eio-alt-webp.php' );
+	}
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_picture_webp' ) && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn' ) ) {
+		$buffer_start = true;
+		/**
+		 * Page Parsing class for working with HTML content.
+		 */
+		require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'classes/class-eio-page-parser.php' );
+		/**
+		 * Picture WebP class for parsing img elements and rewriting them with WebP URLs.
+		 */
+		require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'classes/class-eio-picture-webp.php' );
+	}
+	if ( $buffer_start ) {
+		// Start an output buffer before any output starts.
+		add_action( 'template_redirect', 'ewww_image_optimizer_buffer_start', 0 );
+	}
+}
+
+/**
+ * Starts an output buffer and registers the callback function to do WebP replacement.
+ */
+function ewww_image_optimizer_buffer_start() {
+	ob_start( 'ewww_image_optimizer_filter_page_output' );
+}
+
+/**
+ * Run the page through any registered EWWW IO filters.
+ *
+ * @param string $buffer The full HTML page generated since the output buffer was started.
+ * @return string The altered buffer containing the full page with WebP images inserted.
+ */
+function ewww_image_optimizer_filter_page_output( $buffer ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	return apply_filters( 'ewww_image_optimizer_filter_page_output', $buffer );
 }
 
 /**
@@ -217,8 +325,68 @@ function ewww_image_optimizer_get_plugin_version( $plugin_file ) {
 	$default_headers = array(
 		'Version' => 'Version',
 	);
+
 	$plugin_data = get_file_data( $plugin_file, $default_headers, 'plugin' );
+
 	return $plugin_data;
+}
+
+/**
+ * Checks to see if some other lazy loader is active.
+ *
+ * @return bool True if third-party lazy load detected, false otherwise.
+ */
+function ewwwio_other_lazy_detected() {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	if ( class_exists( 'RocketLazyLoadPlugin\Plugin' ) || defined( 'ROCKET_LL_VERSION' ) ) {
+		$rocketll_settings = get_option( 'rocket_lazyload_options' );
+		if ( is_array( $rocketll_settings ) && ! empty( $rocketll_settings['images'] ) ) {
+			ewwwio_debug_message( 'rocket lazy detected (standalone free plugin)' );
+			return true;
+		}
+	}
+	if ( class_exists( 'WP_Rocket\Plugin' ) || defined( 'WP_ROCKET_VERSION' ) ) {
+		$rocket_settings = get_option( 'wp_rocket_settings' );
+		if ( is_array( $rocket_settings ) && ! empty( $rocket_settings['lazyload'] ) ) {
+			ewwwio_debug_message( 'WP Rocket with lazy detected' );
+			return true;
+		}
+	}
+	if ( class_exists( 'autoptimizeExtra' ) || defined( 'AUTOPTIMIZE_PLUGIN_VERSION' ) ) {
+		$ao_extra = get_option( 'autoptimize_imgopt_settings' );
+		if ( ! empty( $ao_extra['autoptimize_imgopt_checkbox_field_3'] ) ) {
+			ewwwio_debug_message( 'Autoptimize lazy detected' );
+			return true;
+		}
+	}
+	if ( class_exists( 'SiteGround_Optimizer\Helper\Helper' ) && get_option( 'siteground_optimizer_lazyload_images' ) ) {
+		ewwwio_debug_message( 'SG Optimizer lazy detected' );
+		return true;
+	}
+	if ( class_exists( '\A3Rev\LazyLoad' ) || defined( 'A3_LAZY_VERSION' ) ) {
+		ewwwio_debug_message( 'A3 lazy detected' );
+		return true;
+	}
+	if ( class_exists( 'WpFastestCache' ) || defined( 'WPFC_WP_PLUGIN_DIR' ) ) {
+		if ( ! empty( $GLOBALS['wp_fastest_cache_options']->wpFastestCacheLazyLoad ) ) {
+			ewwwio_debug_message( 'WPFC lazy detected' );
+			return true;
+		}
+	}
+	if ( class_exists( '\W3TC\Dispatcher' ) || defined( 'W3TC_VERSION' ) ) {
+		if ( method_exists( '\W3TC\Dispatcher', 'config' ) ) {
+			$w3tc_config = \W3TC\Dispatcher::config();
+			if ( method_exists( $w3tc_config, 'get_boolean' ) && $w3tc_config->get_boolean( 'lazyload.enabled' ) ) {
+				ewwwio_debug_message( 'W3TC lazy detected' );
+				return true;
+			}
+		}
+	}
+	if ( class_exists( '\Automattic\Jetpack\Jetpack_Lazy_Images' ) && class_exists( '\Jetpack' ) && Jetpack::is_module_active( 'lazy-images' ) ) {
+		ewwwio_debug_message( 'Jetpack lazy detected' );
+		return true;
+	}
+	return false;
 }
 
 /**
@@ -228,9 +396,9 @@ function ewww_image_optimizer_get_plugin_version( $plugin_file ) {
  */
 function ewww_image_optimizer_ce_webp_enabled() {
 	if ( class_exists( 'Cache_Enabler' ) ) {
-		$ce_options = Cache_Enabler::$options;
-		if ( $ce_options['webp'] ) {
-			ewwwio_debug_message( 'Cache Enabler webp option enabled' );
+		$ce_options = get_option( 'cache_enabler', array() );
+		if ( ! empty( $ce_options['convert_image_urls_to_webp'] ) || ! empty( $ce_options['webp'] ) ) {
+			ewwwio_debug_message( 'Cache Enabler WebP option enabled' );
 			return true;
 		}
 	}
@@ -238,627 +406,31 @@ function ewww_image_optimizer_ce_webp_enabled() {
 }
 
 /**
- * Starts an output buffer and registers the callback function to do WebP replacement. functions to capture all page output, replace image urls with webp derivatives, and add webp fallback
- */
-function ewww_image_optimizer_buffer_start() {
-	ob_start( 'ewww_image_optimizer_filter_page_output' );
-}
-
-/**
- * Copies attributes from the original img element to the noscript element.
+ * Checks to see if the WebP rules from WPFC are enabled.
  *
- * @param object $image A DOMElement (extension of DOMNode) representing an img element.
- * @param object $nscript Passed by reference, a DOMElement that will be given all the (known) attributes of $image.
- * @param string $prefix Optional. Value to prepend to all attribute names. Default 'data-'.
+ * @return bool True if the WebP rules from WPFC are found.
  */
-function ewww_image_optimizer_webp_attr_copy( $image, &$nscript, $prefix = 'data-' ) {
-	if ( ! is_object( $image ) || ! is_object( $nscript ) ) {
-		return;
-	}
-	$attributes = array(
-		'align',
-		'alt',
-		'border',
-		'crossorigin',
-		'height',
-		'hspace',
-		'ismap',
-		'longdesc',
-		'usemap',
-		'vspace',
-		'width',
-		'accesskey',
-		'class',
-		'contenteditable',
-		'contextmenu',
-		'dir',
-		'draggable',
-		'dropzone',
-		'hidden',
-		'id',
-		'lang',
-		'spellcheck',
-		'style',
-		'tabindex',
-		'title',
-		'translate',
-		'sizes',
-		'data-lazy-type',
-		'data-attachment-id',
-		'data-permalink',
-		'data-orig-size',
-		'data-comments-opened',
-		'data-image-meta',
-		'data-image-title',
-		'data-image-description',
-	);
-	foreach ( $attributes as $attribute ) {
-		if ( $image->getAttribute( $attribute ) ) {
-			$nscript->setAttribute( $prefix . $attribute, $image->getAttribute( $attribute ) );
+function ewww_image_optimizer_wpfc_webp_enabled() {
+	if ( class_exists( 'WpFastestCache' ) ) {
+		$wpfc_abspath = get_home_path() . '.htaccess';
+		ewwwio_debug_message( "looking for WPFC rules in $wpfc_abspath" );
+		$wpfc_rules = ewwwio_extract_from_markers( $wpfc_abspath, 'WEBPWpFastestCache' );
+		if ( empty( $wpfc_rules ) ) {
+			$wpfc_abspath = ABSPATH . '.htaccess';
+			ewwwio_debug_message( "looking for WPFC rules in $wpfc_abspath" );
+			$wpfc_rules = ewwwio_extract_from_markers( $wpfc_abspath, 'WEBPWpFastestCache' );
 		}
-	}
-}
-
-/**
- * Replaces images within a srcset attribute with their .webp derivatives.
- *
- * @param string $srcset A valid srcset attribute from an img element.
- * @param string $home_url The 'home' url for the WordPress site.
- * @param bool   $valid_path True if a CDN path has been specified and matches the img element.
- * @return bool|string False if no changes were made, or the new srcset if any WebP images replaced the originals.
- */
-function ewww_image_optimizer_webp_srcset_replace( $srcset, $home_url, $valid_path ) {
-	$srcset_urls = explode( ' ', $srcset );
-	$found_webp = false;
-	if ( ewww_image_optimizer_iterable( $srcset_urls ) ) {
-		ewwwio_debug_message( 'found srcset urls' );
-		foreach ( $srcset_urls as $srcurl ) {
-			if ( is_numeric( substr( $srcurl, 0, 1 ) ) ) {
-				continue;
+		if ( ! empty( $wpfc_rules ) ) {
+			ewwwio_debug_message( 'WPFC webp rules enabled' );
+			if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn' ) ) {
+				ewwwio_debug_message( 'removing htaccess webp to prevent ExactDN problems' );
+				insert_with_markers( $wpfc_abspath, 'WEBPWpFastestCache', '' );
+				return false;
 			}
-			$srcfilepath = ABSPATH . str_replace( $home_url, '', $srcurl );
-			ewwwio_debug_message( "looking for srcurl on disk: $srcfilepath" );
-			if ( $valid_path || is_file( $srcfilepath . '.webp' ) ) {
-				$srcset = preg_replace( "|$srcurl|", $srcurl . '.webp', $srcset );
-				$found_webp = true;
-				ewwwio_debug_message( "replacing $srcurl in $srcset" );
-			}
+			return true;
 		}
 	}
-	if ( $found_webp ) {
-		return $srcset;
-	} else {
-		return false;
-	}
-}
-
-/**
- * Replaces images with the Jetpack data attributes with their .webp derivatives.
- *
- * @param object $image A DOMElement (extension of DOMNode) representing an img element.
- * @param object $nscript Passed by reference, a DOMElement that will be assigned the jetpack data attributes.
- * @param string $home_url The 'home' url for the WordPress site.
- * @param bool   $valid_path True if a CDN path has been specified and matches the img element.
- */
-function ewww_image_optimizer_webp_jetpack_replace( $image, &$nscript, $home_url, $valid_path ) {
-	if ( $image->getAttribute( 'data-orig-file' ) ) {
-		$origfilepath = ABSPATH . str_replace( $home_url, '', $image->getAttribute( 'data-orig-file' ) );
-		ewwwio_debug_message( "looking for data-orig-file on disk: $origfilepath" );
-		if ( $valid_path || is_file( $origfilepath . '.webp' ) ) {
-			$nscript->setAttribute( 'data-webp-orig-file', $image->getAttribute( 'data-orig-file' ) . '.webp' );
-			ewwwio_debug_message( "replacing $origfilepath in data-orig-file" );
-		}
-	}
-	if ( $image->getAttribute( 'data-medium-file' ) ) {
-		$mediumfilepath = ABSPATH . str_replace( $home_url, '', $image->getAttribute( 'data-medium-file' ) );
-		ewwwio_debug_message( "looking for data-medium-file on disk: $mediumfilepath" );
-		if ( $valid_path || is_file( $mediumfilepath . '.webp' ) ) {
-			$nscript->setAttribute( 'data-webp-medium-file', $image->getAttribute( 'data-medium-file' ) . '.webp' );
-			ewwwio_debug_message( "replacing $mediumfilepath in data-medium-file" );
-		}
-	}
-	if ( $image->getAttribute( 'data-large-file' ) ) {
-		$largefilepath = ABSPATH . str_replace( $home_url, '', $image->getAttribute( 'data-large-file' ) );
-		ewwwio_debug_message( "looking for data-large-file on disk: $largefilepath" );
-		if ( $valid_path || is_file( $largefilepath . '.webp' ) ) {
-			$nscript->setAttribute( 'data-webp-large-file', $image->getAttribute( 'data-large-file' ) . '.webp' );
-			ewwwio_debug_message( "replacing $largefilepath in data-large-file" );
-		}
-	}
-}
-
-/**
- * Search for amp-img elements and rewrite them with fallback elements for WebP replacement.
- *
- * Any amp-img elements will be given the fallback attribute and wrapped inside another amp-img
- * element with a WebP src attribute if WebP derivatives exist.
- *
- * @param string $buffer The entire HTML page from the output buffer.
- * @return string The altered buffer containing the full page with WebP images inserted.
- */
-function ewww_image_optimizer_filter_amp_webp( $buffer ) {
-	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	// Modify buffer here, and then return the updated code.
-	if ( class_exists( 'DOMDocument' ) ) {
-		$expanded_head = false;
-		$html = new DOMDocument;
-		$libxml_previous_error_reporting = libxml_use_internal_errors( true );
-		$html->formatOutput = false;
-		$html->encoding = 'utf-8';
-		if ( defined( 'LIBXML_VERSION' ) && LIBXML_VERSION < 20800 ) {
-			ewwwio_debug_message( 'libxml version too old for amp: ' . LIBXML_VERSION );
-			return $buffer;
-		} elseif ( ! defined( 'LIBXML_VERSION' ) ) {
-			// When libxml is too old, we dare not modify the buffer.
-			ewwwio_debug_message( 'cannot detect libxml version for amp' );
-			return $buffer;
-		}
-		$html->loadHTML( $buffer );
-		ewwwio_debug_message( 'parsing AMP as html' );
-		$html->encoding = 'utf-8';
-		$home_url = get_site_url();
-		$webp_paths = ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_paths' );
-		if ( ! is_array( $webp_paths ) ) {
-			$webp_paths = array();
-		}
-		$home_relative_url = preg_replace( '/https?:/', '', $home_url );
-		$images = $html->getElementsByTagName( 'amp-img' );
-		if ( ewww_image_optimizer_iterable( $images ) ) {
-			foreach ( $images as $image ) {
-				if ( 'amp-img' == $image->parentNode->tagName ) {
-					continue;
-				}
-				$srcset = '';
-				ewwwio_debug_message( 'parsing an AMP image' );
-				$file = $image->getAttribute( 'src' );
-				$valid_path = false;
-				if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_force' ) ) {
-					// Check for CDN paths within the img src attribute.
-					foreach ( $webp_paths as $webp_path ) {
-						if ( strpos( $file, $webp_path ) !== false ) {
-							$valid_path = true;
-						}
-					}
-				}
-				if ( strpos( $file, $home_relative_url ) === 0 ) {
-					$filepath = str_replace( $home_relative_url, ABSPATH, $file );
-				} else {
-					$filepath = str_replace( $home_url, ABSPATH, $file );
-				}
-				ewwwio_debug_message( "the AMP image is at $filepath" );
-				// If a CDN path match was found, or .webp image existsence is confirmed, and this is not a lazy-load 'dummy' image.
-				if ( ( $valid_path || is_file( $filepath . '.webp' ) ) && ! strpos( $file, 'assets/images/dummy.png' ) && ! strpos( $file, 'base64,R0lGOD' ) && ! strpos( $file, 'lazy-load/images/1x1' ) ) {
-					$parent_image = $image->cloneNode();
-					$parent_image->setAttribute( 'src', $file . '.webp' );
-					if ( $image->getAttribute( 'srcset' ) ) {
-						$srcset = $image->getAttribute( 'srcset' );
-						$srcset_webp = ewww_image_optimizer_webp_srcset_replace( $srcset, $home_url, $valid_path );
-						if ( $srcset_webp ) {
-							$parent_image->setAttribute( 'srcset', $srcset_webp );
-						}
-					}
-					$fallback_attr = $html->createAttribute( 'fallback' );
-					$image->appendChild( $fallback_attr );
-					$image->parentNode->replaceChild( $parent_image, $image );
-					$parent_image->appendChild( $image );
-				}
-			} // End foreach().
-		} // End if().
-		ewwwio_debug_message( 'preparing to dump page back to $buffer' );
-		$buffer = $html->saveHTML( $html->documentElement );
-		libxml_clear_errors();
-		libxml_use_internal_errors( $libxml_previous_error_reporting );
-		if ( false ) { // Set to true for extra debugging.
-			ewwwio_debug_message( 'html head' );
-			ewwwio_debug_message( $html_head[0] );
-			ewwwio_debug_message( 'buffer beginning' );
-			ewwwio_debug_message( substr( $buffer, 0, 500 ) );
-		}
-		if ( false ) { // Set to true for extra debugging.
-			ewwwio_debug_message( 'buffer after replacement' );
-			ewwwio_debug_message( substr( $buffer, 0, 500 ) );
-		}
-	} // End if().
-	if ( false ) { // Set to true for extra logging.
-		ewww_image_optimizer_debug_log();
-	}
-	return $buffer;
-}
-
-/**
- * Search for img elements and rewrite them with noscript elements for WebP replacement.
- *
- * Any img elements or elements that may be used in place of img elements by JS are checked to see
- * if WebP derivatives exist. The element is then wrapped within a noscript element for fallback,
- * and noscript element receives a copy of the attributes from the img along with webp replacement
- * values for those attributes.
- *
- * @param string $buffer The full HTML page generated since the output buffer was started.
- * @return string The altered buffer containing the full page with WebP images inserted.
- */
-function ewww_image_optimizer_filter_page_output( $buffer ) {
-	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	// If this is an admin page, don't filter it.
-	if ( ( empty( $buffer ) || is_admin() ) ) {
-		return $buffer;
-	}
-	// If Cache Enabler's WebP option is enabled, don't filter it.
-	if ( ewww_image_optimizer_ce_webp_enabled() ) {
-		return $buffer;
-	}
-	$uri = $_SERVER['REQUEST_URI'];
-	// Based on the uri, if this is a cornerstone editing page, don't filter the response.
-	if ( strpos( $uri, '&cornerstone=1' ) || strpos( $uri, 'cornerstone-endpoint' ) !== false ) {
-		return $buffer;
-	}
-	if ( ! empty( $_GET['et_fb'] ) ) {
-		return $buffer;
-	}
-	// Modify buffer here, and then return the updated code.
-	if ( class_exists( 'DOMDocument' ) ) {
-		// If this is XML (not XHTML), don't modify the page.
-		if ( preg_match( '/<\?xml/', $buffer ) ) {
-			return $buffer;
-		}
-		$expanded_head = false;
-		preg_match( '/.+<head ?\>/s', $buffer, $html_head );
-		if ( empty( $html_head ) ) {
-			ewwwio_debug_message( 'did not find head tag' );
-			preg_match( '/.+<head [^>]*>/s', $buffer, $html_head );
-			if ( empty( $html_head ) ) {
-				ewwwio_debug_message( 'did not find expanded head tag either' );
-				return $buffer;
-			}
-		}
-		if ( strpos( $buffer, 'amp-boilerplate' ) ) {
-			ewwwio_debug_message( 'AMP page processing' );
-			return $buffer;
-		}
-		$html = new DOMDocument;
-		$libxml_previous_error_reporting = libxml_use_internal_errors( true );
-		$html->formatOutput = false;
-		$html->encoding = 'utf-8';
-		if ( defined( 'LIBXML_VERSION' ) && LIBXML_VERSION < 20800 ) {
-			ewwwio_debug_message( 'libxml version: ' . LIBXML_VERSION );
-			// Converts the buffer from utf-8 to html-entities.
-			$buffer = mb_convert_encoding( $buffer, 'HTML-ENTITIES', 'UTF-8' );
-		} elseif ( ! defined( 'LIBXML_VERSION' ) ) {
-			// When libxml is too old, we dare not modify the buffer.
-			ewwwio_debug_message( 'cannot detect libxml version' );
-			return $buffer;
-		}
-		if ( preg_match( '/<.DOCTYPE.+xhtml/', $buffer ) ) {
-			$html->recover = true;
-			$xhtml_parse = $html->loadXML( $buffer );
-			ewwwio_debug_message( 'parsing as xhtml' );
-		} elseif ( empty( $xhtml_parse ) ) {
-			$html->loadHTML( $buffer );
-			ewwwio_debug_message( 'parsing as html' );
-		}
-		$html->encoding = 'utf-8';
-		$home_url = get_site_url();
-		$webp_paths = ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_paths' );
-		if ( ! is_array( $webp_paths ) ) {
-			$webp_paths = array();
-		}
-		$home_relative_url = preg_replace( '/https?:/', '', $home_url );
-		$images = $html->getElementsByTagName( 'img' );
-		if ( ewww_image_optimizer_iterable( $images ) ) {
-			foreach ( $images as $image ) {
-				if ( 'noscript' == $image->parentNode->tagName ) {
-					continue;
-				}
-				$srcset = '';
-				ewwwio_debug_message( 'parsing an image' );
-				$file = $image->getAttribute( 'src' );
-				$valid_path = false;
-				if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_force' ) ) {
-					// Check for CDN paths within the img src attribute.
-					foreach ( $webp_paths as $webp_path ) {
-						if ( strpos( $file, $webp_path ) !== false ) {
-							$valid_path = true;
-						}
-					}
-				}
-				if ( strpos( $file, $home_relative_url ) === 0 ) {
-					$filepath = str_replace( $home_relative_url, ABSPATH, $file );
-				} else {
-					$filepath = str_replace( $home_url, ABSPATH, $file );
-				}
-				ewwwio_debug_message( "the image is at $filepath" );
-				// If a CDN path match was found, or .webp image existsence is confirmed, and this is not a lazy-load 'dummy' image.
-				if ( ( $valid_path || is_file( $filepath . '.webp' ) ) && ! strpos( $file, 'assets/images/dummy.png' ) && ! strpos( $file, 'base64,R0lGOD' ) && ! strpos( $file, 'lazy-load/images/1x1' ) ) {
-					$nscript = $html->createElement( 'noscript' );
-					$nscript->setAttribute( 'data-img', $file );
-					$nscript->setAttribute( 'data-webp', $file . '.webp' );
-					if ( $image->getAttribute( 'srcset' ) ) {
-						$srcset = $image->getAttribute( 'srcset' );
-						$srcset_webp = ewww_image_optimizer_webp_srcset_replace( $srcset, $home_url, $valid_path );
-						if ( $srcset_webp ) {
-							$nscript->setAttribute( 'data-srcset-webp', $srcset_webp );
-						}
-						$nscript->setAttribute( 'data-srcset-img', $srcset );
-					}
-					if ( $image->getAttribute( 'data-orig-file' ) && $image->getAttribute( 'data-medium-file' ) && $image->getAttribute( 'data-large-file' ) ) {
-						ewww_image_optimizer_webp_jetpack_replace( $image, $nscript, $home_url, $valid_path );
-					}
-					ewww_image_optimizer_webp_attr_copy( $image, $nscript );
-					$nscript->setAttribute( 'class', 'ewww_webp' );
-					$image->parentNode->replaceChild( $nscript, $image );
-					$nscript->appendChild( $image );
-				}
-				// Look for NextGEN attributes that need to be altered.
-				if ( empty( $file ) && $image->getAttribute( 'data-src' ) && $image->getAttribute( 'data-thumbnail' ) ) {
-					$file = $image->getAttribute( 'data-src' );
-					$thumb = $image->getAttribute( 'data-thumbnail' );
-					ewwwio_debug_message( "checking webp for ngg data-src: $file" );
-					$filepath = ABSPATH . str_replace( $home_url, '', $file );
-					ewwwio_debug_message( "checking webp for ngg data-thumbnail: $thumb" );
-					$thumbpath = ABSPATH . str_replace( $home_url, '', $thumb );
-					if ( ! $valid_path && ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_force' ) ) {
-						// Check the image for configured CDN paths.
-						foreach ( $webp_paths as $webp_path ) {
-							if ( strpos( $file, $webp_path ) !== false ) {
-								$valid_path = true;
-							}
-						}
-					}
-					if ( $valid_path || is_file( $filepath . '.webp' ) ) {
-						ewwwio_debug_message( "found webp for ngg data-src: $filepath" );
-						$image->setAttribute( 'data-webp', $file . '.webp' );
-					}
-					if ( $valid_path || is_file( $thumbpath . '.webp' ) ) {
-						ewwwio_debug_message( "found webp for ngg data-thumbnail: $thumbpath" );
-						$image->setAttribute( 'data-webp-thumbnail', $thumb . '.webp' );
-					}
-				}
-				// NOTE: lazy loads are shutoff for now, since they don't work consistently
-				// WP Retina 2x lazy loads.
-				if ( false && empty( $file ) && $image->getAttribute( 'data-srcset' ) && strpos( $image->getAttribute( 'class' ), 'lazyload' ) ) {
-					$srcset = $image->getAttribute( 'data-srcset' );
-					if ( ! $valid_path && ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_force' ) ) {
-						// Check the image for configured CDN paths.
-						foreach ( $webp_paths as $webp_path ) {
-							if ( strpos( $srcset, $webp_path ) !== false ) {
-								$valid_path = true;
-							}
-						}
-					}
-					$srcset_webp = ewww_image_optimizer_webp_srcset_replace( $srcset, $home_url, $valid_path );
-					if ( $srcset_webp ) {
-						$nimage = $html->createElement( 'img' );
-						$nimage->setAttribute( 'data-srcset-webp', $srcset_webp );
-						$nimage->setAttribute( 'data-srcset-img', $srcset );
-						ewww_image_optimizer_webp_attr_copy( $image, $nimage, '' );
-						$nimage->setAttribute( 'class', $image->getAttribute( 'class' ) . ' ewww_webp_lazy_retina' );
-						$image->parentNode->replaceChild( $nimage, $image );
-					}
-				}
-				// Hueman theme lazy-loads.
-				if ( false && ! empty( $file ) && strpos( $file, 'image/gif;base64,R0lGOD' ) && $image->getAttribute( 'data-src' ) && $image->getAttribute( 'data-srcset' ) ) {
-					$dummy = $file;
-					$file = $image->getAttribute( 'data-src' );
-					ewwwio_debug_message( "checking webp for hueman data-src: $file" );
-					$filepath = ABSPATH . str_replace( $home_url, '', $file );
-					if ( ! $valid_path && ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_force' ) ) {
-						// Check the image for configured CDN paths.
-						foreach ( $webp_paths as $webp_path ) {
-							if ( strpos( $file, $webp_path ) !== false ) {
-								$valid_path = true;
-							}
-						}
-					}
-					if ( $valid_path || is_file( $filepath . '.webp' ) ) {
-						ewwwio_debug_message( "found webp for Hueman lazyload: $filepath" );
-						$nscript = $html->createElement( 'noscript' );
-						$nscript->setAttribute( 'data-src', $dummy );
-						$nscript->setAttribute( 'data-img', $file );
-						$nscript->setAttribute( 'data-webp-src', $file . '.webp' );
-						$image->setAttribute( 'src', $file );
-						if ( $image->getAttribute( 'data-srcset' ) ) {
-							$srcset = $image->getAttribute( 'data-srcset' );
-							$srcset_webp = ewww_image_optimizer_webp_srcset_replace( $srcset, $home_url, $valid_path );
-							if ( $srcset_webp ) {
-								$nscript->setAttribute( 'data-srcset-webp', $srcset_webp );
-							}
-							$nscript->setAttribute( 'data-srcset-img', $srcset );
-						}
-						ewww_image_optimizer_webp_attr_copy( $image, $nscript );
-						$nscript->setAttribute( 'class', 'ewww_webp_lazy_hueman' );
-						$image->parentNode->replaceChild( $nscript, $image );
-						$nscript->appendChild( $image );
-					}
-				}
-				// Lazy Load plugin (and hopefully Cherry variant) and BJ Lazy Load.
-				if ( false && ! empty( $file ) && ( strpos( $file, 'image/gif;base64,R0lGOD' ) || strpos( $file, 'lazy-load/images/1x1' ) ) && $image->getAttribute( 'data-lazy-src' ) && ! empty( $image->nextSibling ) && 'noscript' == $image->nextSibling->nodeName ) {
-					$dummy = $file;
-					$nimage = $html->createElement( 'img' );
-					$nimage->setAttribute( 'src', $dummy );
-					$file = $image->getAttribute( 'data-lazy-src' );
-					ewwwio_debug_message( "checking webp for Lazy Load data-lazy-src: $file" );
-					$filepath = ABSPATH . str_replace( $home_url, '', $file );
-					if ( ! $valid_path && ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_force' ) ) {
-						// Check the image for configured CDN paths.
-						foreach ( $webp_paths as $webp_path ) {
-							if ( strpos( $file, $webp_path ) !== false ) {
-								$valid_path = true;
-							}
-						}
-					}
-					if ( $valid_path || is_file( $filepath . '.webp' ) ) {
-						ewwwio_debug_message( "found webp for Lazy Load: $filepath" );
-						$nimage->setAttribute( 'data-lazy-img-src', $file );
-						$nimage->setAttribute( 'data-lazy-webp-src', $file . '.webp' );
-						if ( $image->getAttribute( 'srcset' ) ) {
-							$srcset = $image->getAttribute( 'srcset' );
-							$srcset_webp = ewww_image_optimizer_webp_srcset_replace( $srcset, $home_url, $valid_path );
-							if ( $srcset_webp ) {
-								$nimage->setAttribute( 'data-srcset-webp', $srcset_webp );
-							}
-							$nimage->setAttribute( 'data-srcset', $srcset );
-						}
-						if ( $image->getAttribute( 'data-lazy-srcset' ) ) {
-							$srcset = $image->getAttribute( 'data-lazy-srcset' );
-							$srcset_webp = ewww_image_optimizer_webp_srcset_replace( $srcset, $home_url, $valid_path );
-							if ( $srcset_webp ) {
-								$nimage->setAttribute( 'data-lazy-srcset-webp', $srcset_webp );
-							}
-							$nimage->setAttribute( 'data-lazy-srcset-img', $srcset );
-						}
-						ewww_image_optimizer_webp_attr_copy( $image, $nimage, '' );
-						$nimage->setAttribute( 'class', $image->getAttribute( 'class' ) . ' ewww_webp_lazy_load' );
-						$image->parentNode->replaceChild( $nimage, $image );
-					}
-				} // End if().
-				if ( $image->getAttribute( 'data-lazyload' ) ) {
-					$lazyload = $image->getAttribute( 'data-lazyload' );
-					if ( ! empty( $lazyload ) ) {
-						$lazyloadpath = ABSPATH . str_replace( $home_url, '', $lazyload );
-						if ( ! $valid_path && ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_force' ) ) {
-							// Check the image for configured CDN paths.
-							foreach ( $webp_paths as $webp_path ) {
-								if ( strpos( $lazyload, $webp_path ) !== false ) {
-									$valid_path = true;
-								}
-							}
-						}
-						if ( $valid_path || is_file( $lazyloadpath . '.webp' ) ) {
-							ewwwio_debug_message( "found webp for data-lazyload: $filepath" );
-							$image->setAttribute( 'data-webp-lazyload', $lazyload . '.webp' );
-						}
-					}
-				}
-			} // End foreach().
-		} // End if().
-		// NextGEN slides listed as 'a' elements.
-		$links = $html->getElementsByTagName( 'a' );
-		if ( ewww_image_optimizer_iterable( $links ) ) {
-			foreach ( $links as $link ) {
-				ewwwio_debug_message( 'parsing a link' );
-				if ( $link->getAttribute( 'data-src' ) && $link->getAttribute( 'data-thumbnail' ) ) {
-					$file = $link->getAttribute( 'data-src' );
-					$thumb = $link->getAttribute( 'data-thumbnail' );
-					$valid_path = false;
-					if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_force' ) ) {
-						// Check the image for configured CDN paths.
-						foreach ( $webp_paths as $webp_path ) {
-							if ( strpos( $file, $webp_path ) !== false ) {
-								$valid_path = true;
-							}
-						}
-					}
-					ewwwio_debug_message( "checking webp for ngg data-src: $file" );
-					$filepath = ABSPATH . str_replace( $home_url, '', $file );
-					ewwwio_debug_message( "checking webp for ngg data-thumbnail: $thumb" );
-					$thumbpath = ABSPATH . str_replace( $home_url, '', $thumb );
-					if ( $valid_path || is_file( $filepath . '.webp' ) ) {
-						ewwwio_debug_message( "found webp for ngg data-src: $filepath" );
-						$link->setAttribute( 'data-webp', $file . '.webp' );
-					}
-					if ( $valid_path || is_file( $thumbpath . '.webp' ) ) {
-						ewwwio_debug_message( "found webp for ngg data-thumbnail: $thumbpath" );
-						$link->setAttribute( 'data-webp-thumbnail', $thumb . '.webp' );
-					}
-				}
-			}
-		}
-		// Revolution Slider 'li' elements.
-		$listitems = $html->getElementsByTagName( 'li' );
-		if ( ewww_image_optimizer_iterable( $listitems ) ) {
-			foreach ( $listitems as $listitem ) {
-				ewwwio_debug_message( 'parsing a listitem' );
-				if ( $listitem->getAttribute( 'data-title' ) === 'Slide' && ( $listitem->getAttribute( 'data-lazyload' ) || $listitem->getAttribute( 'data-thumb' ) ) ) {
-					$thumb = $listitem->getAttribute( 'data-thumb' );
-					$valid_path = false;
-					if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_force' ) ) {
-						// Check the image for configured CDN paths.
-						foreach ( $webp_paths as $webp_path ) {
-							if ( strpos( $thumb, $webp_path ) !== false ) {
-								$valid_path = true;
-							}
-						}
-					}
-					ewwwio_debug_message( "checking webp for revslider data-thumb: $thumb" );
-					$thumbpath = str_replace( $home_url, ABSPATH, $thumb );
-					if ( $valid_path || is_file( $thumbpath . '.webp' ) ) {
-						ewwwio_debug_message( "found webp for revslider data-thumb: $thumbpath" );
-						$listitem->setAttribute( 'data-webp-thumb', $thumb . '.webp' );
-					}
-					$param_num = 1;
-					while ( $param_num < 11 ) {
-						$parameter = '';
-						if ( $listitem->getAttribute( 'data-param' . $param_num ) ) {
-							$parameter = $listitem->getAttribute( 'data-param' . $param_num );
-							ewwwio_debug_message( "checking webp for revslider data-param$param_num: $parameter" );
-							if ( ! empty( $parameter ) && strpos( $parameter, 'http' ) === 0 ) {
-								$parameter_path = str_replace( $home_url, ABSPATH, $parameter );
-								ewwwio_debug_message( "looking for $parameter_path" );
-								if ( $valid_path || is_file( $parameter_path . '.webp' ) ) {
-									ewwwio_debug_message( "found webp for data-param$param_num: $parameter_path" );
-									$listitem->setAttribute( 'data-webp-param' . $param_num, $parameter . '.webp' );
-								}
-							}
-						}
-						$param_num++;
-					}
-				}
-			} // End foreach().
-		} // End if().
-		// Video elements, looking for poster attributes that are images.
-		$videos = $html->getElementsByTagName( 'video' );
-		if ( ewww_image_optimizer_iterable( $videos ) ) {
-			foreach ( $videos as $video ) {
-				ewwwio_debug_message( 'parsing a video element' );
-				if ( $link->getAttribute( 'poster' ) ) {
-					$file = $link->getAttribute( 'poster' );
-					$valid_path = false;
-					if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_force' ) ) {
-						// Check the image for configured CDN paths.
-						foreach ( $webp_paths as $webp_path ) {
-							if ( strpos( $file, $webp_path ) !== false ) {
-								$valid_path = true;
-							}
-						}
-					}
-					ewwwio_debug_message( "checking webp for video poster: $file" );
-					$filepath = ABSPATH . str_replace( $home_url, '', $file );
-					if ( $valid_path || is_file( $filepath . '.webp' ) ) {
-						ewwwio_debug_message( "found webp for video poster: $filepath" );
-						$video->setAttribute( 'data-poster-webp', $file . '.webp' );
-						$video->setAttribute( 'data-poster-image', $file );
-						$video->removeAttribute( 'poster' );
-					}
-				}
-			}
-		}
-		ewwwio_debug_message( 'preparing to dump page back to $buffer' );
-		if ( ! empty( $xhtml_parse ) ) {
-			$buffer = $html->saveXML( $html->documentElement );
-		} else {
-			$buffer = $html->saveHTML( $html->documentElement );
-		}
-		libxml_clear_errors();
-		libxml_use_internal_errors( $libxml_previous_error_reporting );
-		if ( false ) { // Set to true for extra debugging.
-			ewwwio_debug_message( 'html head' );
-			ewwwio_debug_message( $html_head[0] );
-			ewwwio_debug_message( 'buffer beginning' );
-			ewwwio_debug_message( substr( $buffer, 0, 500 ) );
-		}
-		if ( ! empty( $html_head ) ) {
-			$buffer = preg_replace( '/<html.+>\s.*<head>/', $html_head[0], $buffer );
-		}
-		// Do some cleanup for the Easy Social Share Buttons for WordPress plugin (can't have <li> elements with newlines between them).
-		$buffer = preg_replace( '/\s(<li class="essb_item)/', '$1', $buffer );
-		if ( false ) { // Set to true for extra debugging.
-			ewwwio_debug_message( 'buffer after replacement' );
-			ewwwio_debug_message( substr( $buffer, 0, 500 ) );
-		}
-	} // End if().
-	if ( false ) { // Set to true for extra logging.
-		ewww_image_optimizer_debug_log();
-	}
-	return $buffer;
+	return false;
 }
 
 /**
@@ -913,15 +485,42 @@ if ( ! function_exists( 'boolval' ) ) {
 }
 
 /**
+ * Wrapper around json_encode to handle non-utf8 characters.
+ *
+ * @param mixed $value The value to encode to JSON.
+ * @return string The JSON-encoded version of the value.
+ */
+function ewwwio_json_encode( $value ) {
+	if ( is_string( $value ) && function_exists( 'utf8_encode' ) && ! seems_utf8( $value ) ) {
+		$value = utf8_encode( $value );
+	} elseif ( is_string( $value ) && ! seems_utf8( $value ) ) {
+		$value = '';
+	} elseif ( is_array( $value ) ) {
+		$parsed_value = array();
+		foreach ( $value as $key => $data ) {
+			if ( is_string( $data ) && function_exists( 'utf8_encode' ) && ! seems_utf8( $data ) ) {
+				$data = utf8_encode( $data );
+			} elseif ( is_string( $data ) && ! seems_utf8( $data ) ) {
+				$data = '';
+			}
+			$parsed_value[ $key ] = $data;
+		}
+		$value = $parsed_value;
+	}
+	return json_encode( $value );
+}
+
+/**
  * Find out if set_time_limit() is allowed
  */
 function ewww_image_optimizer_stl_check() {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	if ( ewww_image_optimizer_safemode_check() ) {
-		return false;
-	}
 	if ( defined( 'EWWW_IMAGE_OPTIMIZER_DISABLE_STL' ) && EWWW_IMAGE_OPTIMIZER_DISABLE_STL ) {
 		ewwwio_debug_message( 'stl disabled by user' );
+		return false;
+	}
+	if ( function_exists( 'wp_is_ini_value_changeable' ) && ! wp_is_ini_value_changeable( 'max_execution_time' ) ) {
+		ewwwio_debug_message( 'max_execution_time not configurable' );
 		return false;
 	}
 	return ewww_image_optimizer_function_exists( 'set_time_limit' );
@@ -931,28 +530,197 @@ function ewww_image_optimizer_stl_check() {
  * Checks if a function is disabled or does not exist.
  *
  * @param string $function The name of a function to test.
+ * @param bool   $debug Whether to output debugging.
  * @return bool True if the function is available, False if not.
  */
-function ewww_image_optimizer_function_exists( $function ) {
-	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+function ewww_image_optimizer_function_exists( $function, $debug = false ) {
 	if ( function_exists( 'ini_get' ) ) {
 		$disabled = @ini_get( 'disable_functions' );
-		ewwwio_debug_message( "disable_functions: $disabled" );
+		if ( $debug ) {
+			ewwwio_debug_message( "disable_functions: $disabled" );
+		}
 	}
 	if ( extension_loaded( 'suhosin' ) && function_exists( 'ini_get' ) ) {
 		$suhosin_disabled = @ini_get( 'suhosin.executor.func.blacklist' );
-		ewwwio_debug_message( "suhosin_blacklist: $suhosin_disabled" );
+		if ( $debug ) {
+			ewwwio_debug_message( "suhosin_blacklist: $suhosin_disabled" );
+		}
 		if ( ! empty( $suhosin_disabled ) ) {
 			$suhosin_disabled = explode( ',', $suhosin_disabled );
 			$suhosin_disabled = array_map( 'trim', $suhosin_disabled );
 			$suhosin_disabled = array_map( 'strtolower', $suhosin_disabled );
-			if ( function_exists( $function ) && ! in_array( $function, $suhosin_disabled ) ) {
+			if ( function_exists( $function ) && ! in_array( $function, $suhosin_disabled, true ) ) {
 				return true;
 			}
 			return false;
 		}
 	}
 	return function_exists( $function );
+}
+
+/**
+ * Save the multi-site settings, if this is the WP admin, and they've been POSTed.
+ */
+function ewww_image_optimizer_save_network_settings() {
+	if ( ! is_admin() ) {
+		return;
+	}
+	if ( ! function_exists( 'is_plugin_active_for_network' ) && is_multisite() ) {
+		// Need to include the plugin library for the is_plugin_active function.
+		require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+	}
+	if ( is_multisite() && is_plugin_active_for_network( EWWW_IMAGE_OPTIMIZER_PLUGIN_FILE_REL ) ) {
+		ewwwio_debug_message( 'saving network settings' );
+		// Set the common network settings if they have been POSTed.
+		if (
+			! empty( $_REQUEST['_wpnonce'] ) &&
+			wp_verify_nonce( sanitize_key( $_REQUEST['_wpnonce'] ), 'ewww_image_optimizer_options-options' ) &&
+			isset( $_POST['option_page'] ) &&
+			false !== strpos( sanitize_text_field( wp_unslash( $_POST['option_page'] ) ), 'ewww_image_optimizer_options' ) &&
+			current_user_can( 'manage_network_options' ) &&
+			! get_site_option( 'ewww_image_optimizer_allow_multisite_override' ) &&
+			false === strpos( wp_get_referer(), 'options-general' )
+		) {
+			ewwwio_debug_message( 'network-wide settings, no override' );
+			$ewww_image_optimizer_debug = ( empty( $_POST['ewww_image_optimizer_debug'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_debug', $ewww_image_optimizer_debug );
+			$ewww_image_optimizer_metadata_remove = ( empty( $_POST['ewww_image_optimizer_metadata_remove'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_metadata_remove', $ewww_image_optimizer_metadata_remove );
+			$ewww_image_optimizer_jpg_level = empty( $_POST['ewww_image_optimizer_jpg_level'] ) ? '' : (int) $_POST['ewww_image_optimizer_jpg_level'];
+			update_site_option( 'ewww_image_optimizer_jpg_level', $ewww_image_optimizer_jpg_level );
+			$ewww_image_optimizer_png_level = empty( $_POST['ewww_image_optimizer_png_level'] ) ? '' : (int) $_POST['ewww_image_optimizer_png_level'];
+			update_site_option( 'ewww_image_optimizer_png_level', $ewww_image_optimizer_png_level );
+			$ewww_image_optimizer_gif_level = empty( $_POST['ewww_image_optimizer_gif_level'] ) ? '' : (int) $_POST['ewww_image_optimizer_gif_level'];
+			update_site_option( 'ewww_image_optimizer_gif_level', $ewww_image_optimizer_gif_level );
+			$ewww_image_optimizer_pdf_level = empty( $_POST['ewww_image_optimizer_pdf_level'] ) ? '' : (int) $_POST['ewww_image_optimizer_pdf_level'];
+			update_site_option( 'ewww_image_optimizer_pdf_level', $ewww_image_optimizer_pdf_level );
+			$ewww_image_optimizer_svg_level = empty( $_POST['ewww_image_optimizer_svg_level'] ) ? '' : (int) $_POST['ewww_image_optimizer_svg_level'];
+			update_site_option( 'ewww_image_optimizer_svg_level', $ewww_image_optimizer_svg_level );
+			$ewww_image_optimizer_delete_originals = ( empty( $_POST['ewww_image_optimizer_delete_originals'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_delete_originals', $ewww_image_optimizer_delete_originals );
+			$ewww_image_optimizer_jpg_to_png = ( empty( $_POST['ewww_image_optimizer_jpg_to_png'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_jpg_to_png', $ewww_image_optimizer_jpg_to_png );
+			$ewww_image_optimizer_png_to_jpg = ( empty( $_POST['ewww_image_optimizer_png_to_jpg'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_png_to_jpg', $ewww_image_optimizer_png_to_jpg );
+			$ewww_image_optimizer_gif_to_png = ( empty( $_POST['ewww_image_optimizer_gif_to_png'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_gif_to_png', $ewww_image_optimizer_gif_to_png );
+			$ewww_image_optimizer_webp = ( empty( $_POST['ewww_image_optimizer_webp'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_webp', $ewww_image_optimizer_webp );
+			$ewww_image_optimizer_jpg_background = empty( $_POST['ewww_image_optimizer_jpg_background'] ) ? '' : sanitize_text_field( wp_unslash( $_POST['ewww_image_optimizer_jpg_background'] ) );
+			update_site_option( 'ewww_image_optimizer_jpg_background', ewww_image_optimizer_jpg_background( $ewww_image_optimizer_jpg_background ) );
+			$ewww_image_optimizer_jpg_quality = empty( $_POST['ewww_image_optimizer_jpg_quality'] ) ? '' : (int) $_POST['ewww_image_optimizer_jpg_quality'];
+			update_site_option( 'ewww_image_optimizer_jpg_quality', ewww_image_optimizer_jpg_quality( $ewww_image_optimizer_jpg_quality ) );
+			$ewww_image_optimizer_webp_quality = empty( $_POST['ewww_image_optimizer_webp_quality'] ) ? '' : (int) $_POST['ewww_image_optimizer_webp_quality'];
+			update_site_option( 'ewww_image_optimizer_webp_quality', ewww_image_optimizer_webp_quality( $ewww_image_optimizer_webp_quality ) );
+			$ewww_image_optimizer_disable_convert_links = ( empty( $_POST['ewww_image_optimizer_disable_convert_links'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_disable_convert_links', $ewww_image_optimizer_disable_convert_links );
+			$ewww_image_optimizer_backup_files = ( empty( $_POST['ewww_image_optimizer_backup_files'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_backup_files', $ewww_image_optimizer_backup_files );
+			$ewww_image_optimizer_auto = ( empty( $_POST['ewww_image_optimizer_auto'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_auto', $ewww_image_optimizer_auto );
+			$ewww_image_optimizer_aux_paths = empty( $_POST['ewww_image_optimizer_aux_paths'] ) ? '' : sanitize_textarea_field( wp_unslash( $_POST['ewww_image_optimizer_aux_paths'] ) );
+			update_site_option( 'ewww_image_optimizer_aux_paths', ewww_image_optimizer_aux_paths_sanitize( $ewww_image_optimizer_aux_paths ) );
+			$ewww_image_optimizer_exclude_paths = empty( $_POST['ewww_image_optimizer_exclude_paths'] ) ? '' : sanitize_textarea_field( wp_unslash( $_POST['ewww_image_optimizer_exclude_paths'] ) );
+			update_site_option( 'ewww_image_optimizer_exclude_paths', ewww_image_optimizer_exclude_paths_sanitize( $ewww_image_optimizer_exclude_paths ) );
+			$ewww_image_optimizer_enable_cloudinary = ( empty( $_POST['ewww_image_optimizer_enable_cloudinary'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_enable_cloudinary', $ewww_image_optimizer_enable_cloudinary );
+			$exactdn_all_the_things = ( empty( $_POST['exactdn_all_the_things'] ) ? false : true );
+			update_site_option( 'exactdn_all_the_things', $exactdn_all_the_things );
+			$exactdn_lossy = ( empty( $_POST['exactdn_lossy'] ) ? false : true );
+			update_site_option( 'exactdn_lossy', $exactdn_lossy );
+			$exactdn_exclude = empty( $_POST['exactdn_exclude'] ) ? '' : sanitize_textarea_field( wp_unslash( $_POST['exactdn_exclude'] ) );
+			update_site_option( 'exactdn_exclude', ewww_image_optimizer_exclude_paths_sanitize( $exactdn_exclude ) );
+			$ewww_image_optimizer_add_missing_dims = ( empty( $_POST['ewww_image_optimizer_add_missing_dims'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_add_missing_dims', $ewww_image_optimizer_add_missing_dims );
+			$ewww_image_optimizer_lazy_load = ( empty( $_POST['ewww_image_optimizer_lazy_load'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_lazy_load', $ewww_image_optimizer_lazy_load );
+			$ewww_image_optimizer_ll_autoscale = ( empty( $_POST['ewww_image_optimizer_ll_autoscale'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_ll_autoscale', $ewww_image_optimizer_ll_autoscale );
+			$ewww_image_optimizer_use_lqip = ( empty( $_POST['ewww_image_optimizer_use_lqip'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_use_lqip', $ewww_image_optimizer_use_lqip );
+			$ewww_image_optimizer_use_siip = ( empty( $_POST['ewww_image_optimizer_use_siip'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_use_siip', $ewww_image_optimizer_use_siip );
+			$ewww_image_optimizer_ll_all_things = empty( $_POST['ewww_image_optimizer_ll_all_things'] ) ? '' : sanitize_textarea_field( wp_unslash( $_POST['ewww_image_optimizer_ll_all_things'] ) );
+			update_site_option( 'ewww_image_optimizer_ll_all_things', ewww_image_optimizer_exclude_paths_sanitize( $ewww_image_optimizer_ll_all_things ) );
+			$ewww_image_optimizer_ll_exclude = empty( $_POST['ewww_image_optimizer_ll_exclude'] ) ? '' : sanitize_textarea_field( wp_unslash( $_POST['ewww_image_optimizer_ll_exclude'] ) );
+			update_site_option( 'ewww_image_optimizer_ll_exclude', ewww_image_optimizer_exclude_paths_sanitize( $ewww_image_optimizer_ll_exclude ) );
+			$ewww_image_optimizer_maxmediawidth = empty( $_POST['ewww_image_optimizer_maxmediawidth'] ) ? 0 : (int) $_POST['ewww_image_optimizer_maxmediawidth'];
+			update_site_option( 'ewww_image_optimizer_maxmediawidth', $ewww_image_optimizer_maxmediawidth );
+			$ewww_image_optimizer_maxmediaheight = empty( $_POST['ewww_image_optimizer_maxmediaheight'] ) ? 0 : (int) $_POST['ewww_image_optimizer_maxmediaheight'];
+			update_site_option( 'ewww_image_optimizer_maxmediaheight', $ewww_image_optimizer_maxmediaheight );
+			$ewww_image_optimizer_resize_detection = ( empty( $_POST['ewww_image_optimizer_resize_detection'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_resize_detection', $ewww_image_optimizer_resize_detection );
+			$ewww_image_optimizer_resize_existing = ( empty( $_POST['ewww_image_optimizer_resize_existing'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_resize_existing', $ewww_image_optimizer_resize_existing );
+			$ewww_image_optimizer_resize_other_existing = ( empty( $_POST['ewww_image_optimizer_resize_other_existing'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_resize_other_existing', $ewww_image_optimizer_resize_other_existing );
+			$ewww_image_optimizer_parallel_optimization = ( empty( $_POST['ewww_image_optimizer_parallel_optimization'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_parallel_optimization', $ewww_image_optimizer_parallel_optimization );
+			$ewww_image_optimizer_include_media_paths = ( empty( $_POST['ewww_image_optimizer_include_media_paths'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_include_media_paths', $ewww_image_optimizer_include_media_paths );
+			$ewww_image_optimizer_include_originals = ( empty( $_POST['ewww_image_optimizer_include_originals'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_include_originals', $ewww_image_optimizer_include_originals );
+			$ewww_image_optimizer_webp_for_cdn = ( empty( $_POST['ewww_image_optimizer_webp_for_cdn'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_webp_for_cdn', $ewww_image_optimizer_webp_for_cdn );
+			$ewww_image_optimizer_picture_webp = ( empty( $_POST['ewww_image_optimizer_picture_webp'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_picture_webp', $ewww_image_optimizer_picture_webp );
+			$ewww_image_optimizer_webp_rewrite_exclude = empty( $_POST['ewww_image_optimizer_webp_rewrite_exclude'] ) ? '' : sanitize_textarea_field( wp_unslash( $_POST['ewww_image_optimizer_webp_rewrite_exclude'] ) );
+			update_site_option( 'ewww_image_optimizer_webp_rewrite_exclude', ewww_image_optimizer_exclude_paths_sanitize( $ewww_image_optimizer_webp_rewrite_exclude ) );
+			$ewww_image_optimizer_webp_force = ( empty( $_POST['ewww_image_optimizer_webp_force'] ) ? false : true );
+			update_site_option( 'ewww_image_optimizer_webp_force', $ewww_image_optimizer_webp_force );
+			$ewww_image_optimizer_webp_paths = ( empty( $_POST['ewww_image_optimizer_webp_paths'] ) ? '' : sanitize_textarea_field( wp_unslash( $_POST['ewww_image_optimizer_webp_paths'] ) ) );
+			update_site_option( 'ewww_image_optimizer_webp_paths', ewww_image_optimizer_webp_paths_sanitize( $ewww_image_optimizer_webp_paths ) );
+			$ewww_image_optimizer_allow_multisite_override = empty( $_POST['ewww_image_optimizer_allow_multisite_override'] ) ? false : true;
+			update_site_option( 'ewww_image_optimizer_allow_multisite_override', $ewww_image_optimizer_allow_multisite_override );
+			$ewww_image_optimizer_enable_help = empty( $_POST['ewww_image_optimizer_enable_help'] ) ? false : true;
+			update_site_option( 'ewww_image_optimizer_enable_help', $ewww_image_optimizer_enable_help );
+			global $ewwwio_tracking;
+			$ewww_image_optimizer_allow_tracking = empty( $_POST['ewww_image_optimizer_allow_tracking'] ) ? false : $ewwwio_tracking->check_for_settings_optin( (bool) $_POST['ewww_image_optimizer_allow_tracking'] );
+			update_site_option( 'ewww_image_optimizer_allow_tracking', $ewww_image_optimizer_allow_tracking );
+			add_action( 'network_admin_notices', 'ewww_image_optimizer_network_settings_saved' );
+			if ( ! empty( $_POST['ewww_image_optimizer_exactdn'] ) && ! class_exists( 'ExactDN' ) ) {
+				/**
+				 * Page Parsing class for working with HTML content.
+				 */
+				require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'classes/class-eio-page-parser.php' );
+				/**
+				 * ExactDN class for parsing image urls and rewriting them.
+				 */
+				require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'classes/class-exactdn.php' );
+			}
+		} elseif (
+			isset( $_POST['ewww_image_optimizer_allow_multisite_override_active'] ) &&
+			current_user_can( 'manage_network_options' ) &&
+			isset( $_REQUEST['_wpnonce'] ) &&
+			wp_verify_nonce( sanitize_key( $_REQUEST['_wpnonce'] ), 'ewww_image_optimizer_options-options' )
+		) {
+			ewwwio_debug_message( 'network-wide settings, single-site overriding' );
+			$ewww_image_optimizer_allow_multisite_override = empty( $_POST['ewww_image_optimizer_allow_multisite_override'] ) ? false : true;
+			update_site_option( 'ewww_image_optimizer_allow_multisite_override', $ewww_image_optimizer_allow_multisite_override );
+			global $ewwwio_tracking;
+			$ewww_image_optimizer_allow_tracking = empty( $_POST['ewww_image_optimizer_allow_tracking'] ) ? false : $ewwwio_tracking->check_for_settings_optin( (bool) $_POST['ewww_image_optimizer_allow_tracking'] );
+			update_site_option( 'ewww_image_optimizer_allow_tracking', $ewww_image_optimizer_allow_tracking );
+			add_action( 'network_admin_notices', 'ewww_image_optimizer_network_settings_saved' );
+		} // End if().
+	} // End if().
+	if ( is_multisite() && get_site_option( 'ewww_image_optimizer_allow_multisite_override' ) &&
+		! ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) &&
+		! ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) &&
+		! ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_level' ) &&
+		! ewww_image_optimizer_get_option( 'ewww_image_optimizer_pdf_level' ) &&
+		! ewww_image_optimizer_get_option( 'ewww_image_optimizer_svg_level' )
+	) {
+		ewww_image_optimizer_set_defaults();
+		update_option( 'ewww_image_optimizer_disable_pngout', true );
+		update_option( 'ewww_image_optimizer_disable_svgcleaner', true );
+		update_option( 'ewww_image_optimizer_optipng_level', 2 );
+		update_option( 'ewww_image_optimizer_pngout_level', 2 );
+		update_option( 'ewww_image_optimizer_metadata_remove', true );
+		update_option( 'ewww_image_optimizer_jpg_level', '10' );
+		update_option( 'ewww_image_optimizer_png_level', '10' );
+		update_option( 'ewww_image_optimizer_gif_level', '10' );
+		update_option( 'ewww_image_optimizer_svg_level', 0 );
+	}
 }
 
 /**
@@ -963,12 +731,41 @@ function ewww_image_optimizer_preinit() {
 }
 
 /**
- * Checks to see if NextGEN, Nextcellent, or GRAND FlaGallery are enabled.
- *
- * If a supported gallery is found, loads the class(es) to support integration with that gallery.
+ * Runs early for checks that need to happen on init before anything else.
  */
-function ewww_image_optimizer_gallery_support() {
+function ewww_image_optimizer_init() {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+
+	// Check to see if this is the settings page and enable debugging temporarily if it is.
+	global $ewwwio_temp_debug;
+	$ewwwio_temp_debug = ! empty( $ewwwio_temp_debug ) ? $ewwwio_temp_debug : false;
+	if ( is_admin() && ! wp_doing_ajax() ) {
+		if ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_debug' ) ) {
+			$ewwwio_temp_debug = true;
+		}
+	}
+
+	// For the settings page, check for the enable-local param and take appropriate action.
+	if ( ! empty( $_GET['enable-local'] ) && ! empty( $_REQUEST['_wpnonce'] ) && wp_verify_nonce( sanitize_key( $_REQUEST['_wpnonce'] ), 'ewww_image_optimizer_options-options' ) ) {
+		update_option( 'ewww_image_optimizer_local_mode', true );
+		update_site_option( 'ewww_image_optimizer_local_mode', true );
+	} elseif ( isset( $_GET['enable-local'] ) && ! (bool) $_GET['enable-local'] && ! empty( $_REQUEST['_wpnonce'] ) && wp_verify_nonce( sanitize_key( $_REQUEST['_wpnonce'] ), 'ewww_image_optimizer_options-options' ) ) {
+		delete_option( 'ewww_image_optimizer_local_mode', true );
+		delete_site_option( 'ewww_image_optimizer_local_mode', true );
+	}
+	if ( ! empty( $_GET['complete_wizard'] ) && ! empty( $_REQUEST['_wpnonce'] ) && wp_verify_nonce( sanitize_key( $_REQUEST['_wpnonce'] ), 'ewww_image_optimizer_options-options' ) ) {
+		update_option( 'ewww_image_optimizer_wizard_complete', true, false );
+	}
+	if ( ! empty( $_GET['uncomplete_wizard'] ) && ! empty( $_REQUEST['_wpnonce'] ) && wp_verify_nonce( sanitize_key( $_REQUEST['_wpnonce'] ), 'ewww_image_optimizer_options-options' ) ) {
+		update_option( 'ewww_image_optimizer_wizard_complete', false, false );
+	}
+	// Resizes and auto-rotates images.
+	add_filter( 'wp_handle_upload', 'ewww_image_optimizer_handle_upload' );
+	if ( class_exists( 'S3_Uploads' ) ) {
+		ewwwio_debug_message( 's3-uploads detected, deferring resize_upload' );
+		add_filter( 'ewww_image_optimizer_defer_resizing', '__return_true' );
+	}
+
 	$active_plugins = get_option( 'active_plugins' );
 	if ( is_multisite() && is_array( $active_plugins ) ) {
 		$sitewide_plugins = get_site_option( 'active_sitewide_plugins' );
@@ -977,13 +774,15 @@ function ewww_image_optimizer_gallery_support() {
 		}
 	}
 	if ( ewww_image_optimizer_iterable( $active_plugins ) ) {
+		ewwwio_debug_message( 'checking active plugins' );
 		foreach ( $active_plugins as $active_plugin ) {
 			if ( strpos( $active_plugin, '/nggallery.php' ) || strpos( $active_plugin, '\nggallery.php' ) ) {
 				$ngg = ewww_image_optimizer_get_plugin_version( trailingslashit( WP_PLUGIN_DIR ) . $active_plugin );
 				// Include the file that loads the nextgen gallery optimization functions.
 				ewwwio_debug_message( 'Nextgen version: ' . $ngg['Version'] );
-				if ( preg_match( '/^2\./', $ngg['Version'] ) ) { // For Nextgen 2 support.
-					ewwwio_debug_message( "loading nextgen2 support for $active_plugin" );
+				if ( 1 < intval( substr( $ngg['Version'], 0, 1 ) ) ) { // For Nextgen 2+ support.
+					$nextgen_major_version = substr( $ngg['Version'], 0, 1 );
+					ewwwio_debug_message( "loading nextgen $nextgen_major_version support for $active_plugin" );
 					require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'classes/class-ewww-nextgen.php' );
 				} else {
 					preg_match( '/\d+\.\d+\.(\d+)/', $ngg['Version'], $nextgen_minor_version );
@@ -1002,6 +801,13 @@ function ewww_image_optimizer_gallery_support() {
 			}
 		}
 	}
+	if ( defined( 'DOING_WPLR_REQUEST' ) && DOING_WPLR_REQUEST && ! defined( 'EWWWIO_WPLR_AUTO' ) ) {
+		// Unhook all automatic processing, and save an option that (does not autoload) tells the user LR Sync regenerated their images and they should run the bulk optimizer.
+		remove_filter( 'wp_image_editors', 'ewww_image_optimizer_load_editor', 60 );
+		remove_filter( 'wp_generate_attachment_metadata', 'ewww_image_optimizer_resize_from_meta_data', 15 );
+		add_filter( 'wp_generate_attachment_metadata', 'ewww_image_optimizer_lr_sync_update' );
+		add_filter( 'ewww_image_optimizer_allowed_reopt', '__return_true' );
+	}
 }
 
 /**
@@ -1011,14 +817,22 @@ function ewww_image_optimizer_gallery_support() {
  */
 function ewww_image_optimizer_upgrade() {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	ewwwio_memory( __FUNCTION__ );
+	global $ewwwio_upgrading;
+	$ewwwio_upgrading = false;
 	if ( get_option( 'ewww_image_optimizer_version' ) < EWWW_IMAGE_OPTIMIZER_VERSION ) {
 		if ( wp_doing_ajax() ) {
 			return;
 		}
+		$ewwwio_upgrading = true;
 		ewww_image_optimizer_enable_background_optimization();
 		ewww_image_optimizer_install_table();
 		ewww_image_optimizer_set_defaults();
+		// This will get re-enabled if things are too slow.
+		ewww_image_optimizer_set_option( 'exactdn_prevent_db_queries', false );
+		if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn' ) && ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn_verify_method' ) > 0 ) {
+			delete_option( 'ewww_image_optimizer_exactdn_verify_method' );
+			delete_site_option( 'ewww_image_optimizer_exactdn_verify_method' );
+		}
 		if ( get_option( 'ewww_image_optimizer_version' ) < 297.5 ) {
 			// Cleanup background test mess.
 			wp_clear_scheduled_hook( 'wp_ewwwio_test_optimize_cron' );
@@ -1031,8 +845,66 @@ function ewww_image_optimizer_upgrade() {
 			$wpdb->query( "DELETE FROM $wpdb->options WHERE option_name LIKE 'wp_ewwwio_test_optimize_batch_%'" );
 
 		}
+		if ( ! get_option( 'ewww_image_optimizer_version' ) && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn' ) ) {
+			add_option( 'exactdn_never_been_active', true, '', false );
+		}
 		if ( get_option( 'ewww_image_optimizer_version' ) < 280 ) {
 			ewww_image_optimizer_migrate_settings_to_levels();
+		}
+		if ( get_option( 'ewww_image_optimizer_version' ) > 0 && get_option( 'ewww_image_optimizer_version' ) < 434 && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpegtran_copy' ) ) {
+			ewww_image_optimizer_set_option( 'ewww_image_optimizer_metadata_remove', false );
+		}
+		if ( get_option( 'ewww_image_optimizer_version' ) < 454 ) {
+			update_option( 'ewww_image_optimizer_bulk_resume', '' );
+			update_option( 'ewww_image_optimizer_aux_resume', '' );
+			ewww_image_optimizer_delete_pending();
+
+			// Make sure some of our options are not autoloaded (since they can be huge).
+			$bulk_attachments = get_option( 'ewww_image_optimizer_flag_attachments', '' );
+			delete_option( 'ewww_image_optimizer_flag_attachments' );
+			add_option( 'ewww_image_optimizer_flag_attachments', $bulk_attachments, '', 'no' );
+			$bulk_attachments = get_option( 'ewww_image_optimizer_ngg_attachments', '' );
+			delete_option( 'ewww_image_optimizer_ngg_attachments' );
+			add_option( 'ewww_image_optimizer_ngg_attachments', $bulk_attachments, '', 'no' );
+		}
+		if ( get_option( 'ewww_image_optimizer_version' ) < 530 ) {
+			ewww_image_optimizer_migrate_option_queue_to_table();
+		}
+		if ( get_option( 'ewww_image_optimizer_version' ) < 550 && ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_force' ) ) {
+			ewww_image_optimizer_set_option( 'ewww_image_optimizer_force_gif2webp', false );
+		} elseif ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_force_gif2webp' ) ) {
+			ewww_image_optimizer_set_option( 'ewww_image_optimizer_force_gif2webp', true );
+		}
+		if (
+			get_option( 'ewww_image_optimizer_version' ) <= 601.0 &&
+			PHP_OS !== 'WINNT' &&
+			ewwwio_is_file( EWWW_IMAGE_OPTIMIZER_TOOL_PATH . '/pngout-static' ) &&
+			is_writable( EWWW_IMAGE_OPTIMIZER_TOOL_PATH . '/pngout-static' )
+		) {
+			ewwwio_debug_message( 'removing old version of pngout' );
+			ewwwio_delete_file( EWWW_IMAGE_OPTIMIZER_TOOL_PATH . '/pngout-static' );
+		}
+		if ( get_option( 'ewww_image_optimizer_version' ) && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_review_time' ) ) {
+			$review_time = rand( time(), time() + 51 * DAY_IN_SECONDS );
+			add_option( 'ewww_image_optimizer_review_time', $review_time, '', false );
+			add_site_option( 'ewww_image_optimizer_review_time', $review_time );
+		} elseif ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_review_time' ) ) {
+			$review_time = time() + 7 * DAY_IN_SECONDS;
+			add_option( 'ewww_image_optimizer_review_time', $review_time, '', false );
+			add_site_option( 'ewww_image_optimizer_review_time', $review_time );
+		}
+		if ( get_option( 'ewww_image_optimizer_version' ) && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_wizard_complete' ) ) {
+			add_option( 'ewww_image_optimizer_wizard_complete', true, '', false );
+			add_site_option( 'ewww_image_optimizer_wizard_complete', true );
+		}
+		if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn' ) ) {
+			if ( 'external' === get_option( 'elementor_css_print_method' ) ) {
+				update_option( 'elementor_css_print_method', 'internal' );
+			}
+			if ( function_exists( 'et_get_option' ) && function_exists( 'et_update_option' ) && 'on' === et_get_option( 'et_pb_static_css_file', 'on' ) ) {
+				et_update_option( 'et_pb_static_css_file', 'off' );
+				et_update_option( 'et_pb_css_in_footer', 'off' );
+			}
 		}
 		ewww_image_optimizer_remove_obsolete_settings();
 		update_option( 'ewww_image_optimizer_version', EWWW_IMAGE_OPTIMIZER_VERSION );
@@ -1061,10 +933,22 @@ function ewww_image_optimizer_enable_background_optimization() {
 	}
 	ewww_image_optimizer_set_option( 'ewww_image_optimizer_background_optimization', false );
 	ewwwio_debug_message( 'running test async handler' );
-	$ewwwio_test_async->data( array(
-		'ewwwio_test_verify' => '949c34123cf2a4e4ce2f985135830df4a1b2adc24905f53d2fd3f5df5b162932',
-	) )->dispatch();
+	$ewwwio_test_async->data( array( 'ewwwio_test_verify' => '949c34123cf2a4e4ce2f985135830df4a1b2adc24905f53d2fd3f5df5b162932' ) )->dispatch();
 	ewww_image_optimizer_debug_log();
+}
+
+/**
+ * Re-tests background optimization at a user's request.
+ */
+function ewww_image_optimizer_retest_background_optimization() {
+	if ( ! current_user_can( apply_filters( 'ewww_image_optimizer_admin_permissions', '' ) ) ) {
+		wp_die( esc_html__( 'Access denied.', 'ewww-image-optimizer' ) );
+	}
+	ewww_image_optimizer_enable_background_optimization();
+	sleep( 10 );
+	$sendback = wp_get_referer();
+	wp_safe_redirect( $sendback );
+	exit;
 }
 
 /**
@@ -1077,163 +961,10 @@ function ewww_image_optimizer_enable_background_optimization() {
 function ewww_image_optimizer_admin_init() {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 	ewwwio_memory( __FUNCTION__ );
-	ewww_image_optimizer_cloud_init();
-	ewww_image_optimizer_upgrade();
-	if ( ! function_exists( 'is_plugin_active_for_network' ) && is_multisite() ) {
-		// Need to include the plugin library for the is_plugin_active function.
-		require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
-	}
-	if ( is_multisite() && is_plugin_active_for_network( EWWW_IMAGE_OPTIMIZER_PLUGIN_FILE_REL ) ) {
-		// Set the common network settings if they have been POSTed.
-		if ( isset( $_POST['ewww_image_optimizer_delay'] ) && current_user_can( 'manage_network_options' ) && ! get_site_option( 'ewww_image_optimizer_allow_multisite_override' ) && wp_verify_nonce( $_REQUEST['_wpnonce'], 'ewww_image_optimizer_options-options' ) ) {
-			if ( ewww_image_optimizer_function_exists( 'print_r' ) ) {
-				ewwwio_debug_message( print_r( $_POST, true ) );
-			}
-			$_POST['ewww_image_optimizer_debug'] = ( empty( $_POST['ewww_image_optimizer_debug'] ) ? false : true );
-			update_site_option( 'ewww_image_optimizer_debug', $_POST['ewww_image_optimizer_debug'] );
-			$_POST['ewww_image_optimizer_jpegtran_copy'] = ( empty( $_POST['ewww_image_optimizer_jpegtran_copy'] ) ? false : true );
-			update_site_option( 'ewww_image_optimizer_jpegtran_copy', $_POST['ewww_image_optimizer_jpegtran_copy'] );
-			$_POST['ewww_image_optimizer_jpg_level'] = empty( $_POST['ewww_image_optimizer_jpg_level'] ) ? '' : $_POST['ewww_image_optimizer_jpg_level'];
-			update_site_option( 'ewww_image_optimizer_jpg_level', (int) $_POST['ewww_image_optimizer_jpg_level'] );
-			$_POST['ewww_image_optimizer_png_level'] = empty( $_POST['ewww_image_optimizer_png_level'] ) ? '' : $_POST['ewww_image_optimizer_png_level'];
-			update_site_option( 'ewww_image_optimizer_png_level', (int) $_POST['ewww_image_optimizer_png_level'] );
-			$_POST['ewww_image_optimizer_gif_level'] = empty( $_POST['ewww_image_optimizer_gif_level'] ) ? '' : $_POST['ewww_image_optimizer_gif_level'];
-			update_site_option( 'ewww_image_optimizer_gif_level', (int) $_POST['ewww_image_optimizer_gif_level'] );
-			$_POST['ewww_image_optimizer_pdf_level'] = empty( $_POST['ewww_image_optimizer_pdf_level'] ) ? '' : $_POST['ewww_image_optimizer_pdf_level'];
-			update_site_option( 'ewww_image_optimizer_pdf_level', (int) $_POST['ewww_image_optimizer_pdf_level'] );
-			$_POST['ewww_image_optimizer_lossy_skip_full'] = ( empty( $_POST['ewww_image_optimizer_lossy_skip_full'] ) ? false : true );
-			update_site_option( 'ewww_image_optimizer_lossy_skip_full', $_POST['ewww_image_optimizer_lossy_skip_full'] );
-			$_POST['ewww_image_optimizer_metadata_skip_full'] = ( empty( $_POST['ewww_image_optimizer_metadata_skip_full'] ) ? false : true );
-			update_site_option( 'ewww_image_optimizer_metadata_skip_full', $_POST['ewww_image_optimizer_metadata_skip_full'] );
-			$_POST['ewww_image_optimizer_delete_originals'] = ( empty( $_POST['ewww_image_optimizer_delete_originals'] ) ? false : true );
-			update_site_option( 'ewww_image_optimizer_delete_originals', $_POST['ewww_image_optimizer_delete_originals'] );
-			$_POST['ewww_image_optimizer_jpg_to_png'] = ( empty( $_POST['ewww_image_optimizer_jpg_to_png'] ) ? false : true );
-			update_site_option( 'ewww_image_optimizer_jpg_to_png', $_POST['ewww_image_optimizer_jpg_to_png'] );
-			$_POST['ewww_image_optimizer_png_to_jpg'] = ( empty( $_POST['ewww_image_optimizer_png_to_jpg'] ) ? false : true );
-			update_site_option( 'ewww_image_optimizer_png_to_jpg', $_POST['ewww_image_optimizer_png_to_jpg'] );
-			$_POST['ewww_image_optimizer_gif_to_png'] = ( empty( $_POST['ewww_image_optimizer_gif_to_png'] ) ? false : true );
-			update_site_option( 'ewww_image_optimizer_gif_to_png', $_POST['ewww_image_optimizer_gif_to_png'] );
-			$_POST['ewww_image_optimizer_webp'] = ( empty( $_POST['ewww_image_optimizer_webp'] ) ? false : true );
-			update_site_option( 'ewww_image_optimizer_webp', $_POST['ewww_image_optimizer_webp'] );
-			$_POST['ewww_image_optimizer_jpg_background'] = empty( $_POST['ewww_image_optimizer_jpg_background'] ) ? '' : $_POST['ewww_image_optimizer_jpg_background'];
-			update_site_option( 'ewww_image_optimizer_jpg_background', ewww_image_optimizer_jpg_background( $_POST['ewww_image_optimizer_jpg_background'] ) );
-			$_POST['ewww_image_optimizer_jpg_quality'] = empty( $_POST['ewww_image_optimizer_jpg_quality'] ) ? '' : $_POST['ewww_image_optimizer_jpg_quality'];
-			update_site_option( 'ewww_image_optimizer_jpg_quality', ewww_image_optimizer_jpg_quality( $_POST['ewww_image_optimizer_jpg_quality'] ) );
-			$_POST['ewww_image_optimizer_disable_convert_links'] = ( empty( $_POST['ewww_image_optimizer_disable_convert_links'] ) ? false : true );
-			update_site_option( 'ewww_image_optimizer_disable_convert_links', $_POST['ewww_image_optimizer_disable_convert_links'] );
-			$_POST['ewww_image_optimizer_backup_files'] = ( empty( $_POST['ewww_image_optimizer_backup_files'] ) ? false : true );
-			update_site_option( 'ewww_image_optimizer_backup_files', $_POST['ewww_image_optimizer_backup_files'] );
-			$_POST['ewww_image_optimizer_cloud_key'] = empty( $_POST['ewww_image_optimizer_cloud_key'] ) ? '' : $_POST['ewww_image_optimizer_cloud_key'];
-			update_site_option( 'ewww_image_optimizer_cloud_key', ewww_image_optimizer_cloud_key_sanitize( $_POST['ewww_image_optimizer_cloud_key'] ) );
-			$_POST['ewww_image_optimizer_auto'] = ( empty( $_POST['ewww_image_optimizer_auto'] ) ? false : true );
-			update_site_option( 'ewww_image_optimizer_auto', $_POST['ewww_image_optimizer_auto'] );
-			$_POST['ewww_image_optimizer_aux_paths'] = empty( $_POST['ewww_image_optimizer_aux_paths'] ) ? '' : $_POST['ewww_image_optimizer_aux_paths'];
-			update_site_option( 'ewww_image_optimizer_aux_paths', ewww_image_optimizer_aux_paths_sanitize( $_POST['ewww_image_optimizer_aux_paths'] ) );
-			$_POST['ewww_image_optimizer_exclude_paths'] = empty( $_POST['ewww_image_optimizer_exclude_paths'] ) ? '' : $_POST['ewww_image_optimizer_exclude_paths'];
-			update_site_option( 'ewww_image_optimizer_exclude_paths', ewww_image_optimizer_exclude_paths_sanitize( $_POST['ewww_image_optimizer_exclude_paths'] ) );
-			$_POST['ewww_image_optimizer_enable_cloudinary'] = ( empty( $_POST['ewww_image_optimizer_enable_cloudinary'] ) ? false : true );
-			update_site_option( 'ewww_image_optimizer_enable_cloudinary', $_POST['ewww_image_optimizer_enable_cloudinary'] );
-			$_POST['ewww_image_optimizer_delay'] = empty( $_POST['ewww_image_optimizer_delay'] ) ? '' : $_POST['ewww_image_optimizer_delay'];
-			update_site_option( 'ewww_image_optimizer_delay', (int) $_POST['ewww_image_optimizer_delay'] );
-			$_POST['ewww_image_optimizer_maxmediawidth'] = empty( $_POST['ewww_image_optimizer_maxmediawidth'] ) ? 0 : $_POST['ewww_image_optimizer_maxmediawidth'];
-			update_site_option( 'ewww_image_optimizer_maxmediawidth', (int) $_POST['ewww_image_optimizer_maxmediawidth'] );
-			$_POST['ewww_image_optimizer_maxmediaheight'] = empty( $_POST['ewww_image_optimizer_maxmediaheight'] ) ? 0 : $_POST['ewww_image_optimizer_maxmediaheight'];
-			update_site_option( 'ewww_image_optimizer_maxmediaheight', (int) $_POST['ewww_image_optimizer_maxmediaheight'] );
-			$_POST['ewww_image_optimizer_maxotherwidth'] = empty( $_POST['ewww_image_optimizer_maxotherwidth'] ) ? 0 : $_POST['ewww_image_optimizer_maxotherwidth'];
-			update_site_option( 'ewww_image_optimizer_maxotherwidth', (int) $_POST['ewww_image_optimizer_maxotherwidth'] );
-			$_POST['ewww_image_optimizer_maxotherheight'] = empty( $_POST['ewww_image_optimizer_maxotherheight'] ) ? 0 : $_POST['ewww_image_optimizer_maxotherheight'];
-			update_site_option( 'ewww_image_optimizer_maxotherheight', (int) $_POST['ewww_image_optimizer_maxotherheight'] );
-			$_POST['ewww_image_optimizer_resize_detection'] = ( empty( $_POST['ewww_image_optimizer_resize_detection'] ) ? false : true );
-			update_site_option( 'ewww_image_optimizer_resize_detection', $_POST['ewww_image_optimizer_resize_detection'] );
-			$_POST['ewww_image_optimizer_resize_existing'] = ( empty( $_POST['ewww_image_optimizer_resize_existing'] ) ? false : true );
-			update_site_option( 'ewww_image_optimizer_resize_existing', $_POST['ewww_image_optimizer_resize_existing'] );
-			$_POST['ewww_image_optimizer_skip_size'] = empty( $_POST['ewww_image_optimizer_skip_size'] ) ? '' : $_POST['ewww_image_optimizer_skip_size'];
-			update_site_option( 'ewww_image_optimizer_skip_size', (int) $_POST['ewww_image_optimizer_skip_size'] );
-			$_POST['ewww_image_optimizer_skip_png_size'] = empty( $_POST['ewww_image_optimizer_skip_png_size'] ) ? '' : $_POST['ewww_image_optimizer_skip_png_size'];
-			update_site_option( 'ewww_image_optimizer_skip_png_size', (int) $_POST['ewww_image_optimizer_skip_png_size'] );
-			$_POST['ewww_image_optimizer_parallel_optimization'] = ( empty( $_POST['ewww_image_optimizer_parallel_optimization'] ) ? false : true );
-			update_site_option( 'ewww_image_optimizer_parallel_optimization', $_POST['ewww_image_optimizer_parallel_optimization'] );
-			$_POST['ewww_image_optimizer_include_media_paths'] = ( empty( $_POST['ewww_image_optimizer_include_media_paths'] ) ? false : true );
-			update_site_option( 'ewww_image_optimizer_include_media_paths', $_POST['ewww_image_optimizer_include_media_paths'] );
-			$_POST['ewww_image_optimizer_webp_for_cdn'] = ( empty( $_POST['ewww_image_optimizer_webp_for_cdn'] ) ? false : true );
-			update_site_option( 'ewww_image_optimizer_webp_for_cdn', $_POST['ewww_image_optimizer_webp_for_cdn'] );
-			$_POST['ewww_image_optimizer_webp_force'] = ( empty( $_POST['ewww_image_optimizer_webp_force'] ) ? false : true );
-			update_site_option( 'ewww_image_optimizer_webp_force', $_POST['ewww_image_optimizer_webp_force'] );
-			$_POST['ewww_image_optimizer_webp_paths'] = ( empty( $_POST['ewww_image_optimizer_webp_paths'] ) ? '' : $_POST['ewww_image_optimizer_webp_paths'] );
-			update_site_option( 'ewww_image_optimizer_webp_paths', ewww_image_optimizer_webp_paths_sanitize( $_POST['ewww_image_optimizer_webp_paths'] ) );
-			$_POST['ewww_image_optimizer_allow_multisite_override'] = empty( $_POST['ewww_image_optimizer_allow_multisite_override'] ) ? false : true;
-			update_site_option( 'ewww_image_optimizer_allow_multisite_override', $_POST['ewww_image_optimizer_allow_multisite_override'] );
-			global $ewwwio_tracking;
-			$_POST['ewww_image_optimizer_allow_tracking'] = empty( $_POST['ewww_image_optimizer_allow_tracking'] ) ? false : $ewwwio_tracking->check_for_settings_optin( $_POST['ewww_image_optimizer_allow_tracking'] );
-			update_site_option( 'ewww_image_optimizer_allow_tracking', $_POST['ewww_image_optimizer_allow_tracking'] );
-			add_action( 'network_admin_notices', 'ewww_image_optimizer_network_settings_saved' );
-		} elseif ( isset( $_POST['ewww_image_optimizer_allow_multisite_override_active'] ) && current_user_can( 'manage_network_options' ) && wp_verify_nonce( $_REQUEST['_wpnonce'], 'ewww_image_optimizer_options-options' ) ) {
-			$_POST['ewww_image_optimizer_allow_multisite_override'] = empty( $_POST['ewww_image_optimizer_allow_multisite_override'] ) ? false : true;
-			update_site_option( 'ewww_image_optimizer_allow_multisite_override', $_POST['ewww_image_optimizer_allow_multisite_override'] );
-			global $ewwwio_tracking;
-			$_POST['ewww_image_optimizer_allow_tracking'] = empty( $_POST['ewww_image_optimizer_allow_tracking'] ) ? false : $ewwwio_tracking->check_for_settings_optin( $_POST['ewww_image_optimizer_allow_tracking'] );
-			update_site_option( 'ewww_image_optimizer_allow_tracking', $_POST['ewww_image_optimizer_allow_tracking'] );
-			add_action( 'network_admin_notices', 'ewww_image_optimizer_network_settings_saved' );
-		} // End if().
-	} // End if().
-	if ( is_multisite() && get_site_option( 'ewww_image_optimizer_allow_multisite_override' ) &&
-		! ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) &&
-		! ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) &&
-		! ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_level' ) &&
-		! ewww_image_optimizer_get_option( 'ewww_image_optimizer_pdf_level' )
-	) {
-		ewww_image_optimizer_set_defaults();
-		update_option( 'ewww_image_optimizer_disable_pngout', true );
-		update_option( 'ewww_image_optimizer_optipng_level', 2 );
-		update_option( 'ewww_image_optimizer_pngout_level', 2 );
-		update_option( 'ewww_image_optimizer_jpegtran_copy', true );
-		update_option( 'ewww_image_optimizer_jpg_level', '10' );
-		update_option( 'ewww_image_optimizer_png_level', '10' );
-		update_option( 'ewww_image_optimizer_gif_level', '10' );
-	}
-	// Register all the common EWWW IO settings.
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_debug', 'boolval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_jpegtran_copy', 'boolval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_jpg_level', 'intval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_png_level', 'intval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_gif_level', 'intval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_pdf_level', 'intval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_lossy_skip_full', 'boolval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_metadata_skip_full', 'boolval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_delete_originals', 'boolval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_jpg_to_png', 'boolval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_png_to_jpg', 'boolval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_gif_to_png', 'boolval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_webp', 'boolval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_jpg_background', 'ewww_image_optimizer_jpg_background' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_jpg_quality', 'ewww_image_optimizer_jpg_quality' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_disable_convert_links', 'boolval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_backup_files', 'boolval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_cloud_key', 'ewww_image_optimizer_cloud_key_sanitize' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_auto', 'boolval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_aux_paths', 'ewww_image_optimizer_aux_paths_sanitize' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_exclude_paths', 'ewww_image_optimizer_exclude_paths_sanitize' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_enable_cloudinary', 'boolval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_delay', 'intval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_maxmediawidth', 'intval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_maxmediaheight', 'intval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_maxotherwidth', 'intval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_maxotherheight', 'intval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_resize_detection', 'boolval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_resize_existing', 'boolval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_disable_resizes', 'ewww_image_optimizer_disable_resizes_sanitize' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_disable_resizes_opt', 'ewww_image_optimizer_disable_resizes_sanitize' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_skip_size', 'intval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_skip_png_size', 'intval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_parallel_optimization', 'boolval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_include_media_paths', 'boolval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_webp_for_cdn', 'boolval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_webp_force', 'boolval' );
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_webp_paths', 'ewww_image_optimizer_webp_paths_sanitize' );
-	global $ewwwio_tracking;
-	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_allow_tracking', array( $ewwwio_tracking, 'check_for_settings_optin' ) );
-	ewww_image_optimizer_exec_init();
-	ewww_image_optimizer_cron_setup( 'ewww_image_optimizer_auto' );
+	/**
+	 * EWWWIO_HS_Beacon class for embedding the HelpScout Beacon.
+	 */
+	require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'classes/class-eio-hs-beacon.php' );
 	/**
 	 * Require the file that does the bulk processing.
 	 */
@@ -1246,12 +977,161 @@ function ewww_image_optimizer_admin_init() {
 	 * Require the files that migrate WebP images from extension replacement to extension appending.
 	 */
 	require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'mwebp.php' );
+	ewww_image_optimizer_cloud_init();
+	ewww_image_optimizer_upgrade();
+
+	// Do settings validation for multi-site.
+	ewww_image_optimizer_save_network_settings();
+
+	// Register all the common EWWW IO settings.
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_debug', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_metadata_remove', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_jpg_level', 'intval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_png_level', 'intval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_gif_level', 'intval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_pdf_level', 'intval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_svg_level', 'intval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_backup_files', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_enable_cloudinary', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_jpg_quality', 'ewww_image_optimizer_jpg_quality' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_webp_quality', 'ewww_image_optimizer_webp_quality' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_parallel_optimization', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_auto', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_include_media_paths', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_include_originals', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_aux_paths', 'ewww_image_optimizer_aux_paths_sanitize' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_exclude_paths', 'ewww_image_optimizer_exclude_paths_sanitize' );
+	global $ewwwio_tracking;
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_allow_tracking', array( $ewwwio_tracking, 'check_for_settings_optin' ) );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_enable_help', 'boolval' );
+	/* register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_exactdn', 'boolval' ); */
+	register_setting( 'ewww_image_optimizer_options', 'exactdn_all_the_things', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'exactdn_lossy', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'exactdn_exclude', 'ewww_image_optimizer_exclude_paths_sanitize' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_add_missing_dims', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_lazy_load', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_ll_autoscale', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_use_lqip', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_use_siip', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_ll_all_things', 'sanitize_text_field' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_ll_exclude', 'ewww_image_optimizer_exclude_paths_sanitize' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_resize_detection', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_maxmediawidth', 'intval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_maxmediaheight', 'intval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_resize_existing', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_resize_other_existing', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_disable_resizes', 'ewww_image_optimizer_disable_resizes_sanitize' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_disable_resizes_opt', 'ewww_image_optimizer_disable_resizes_sanitize' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_disable_convert_links', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_delete_originals', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_jpg_to_png', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_png_to_jpg', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_gif_to_png', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_jpg_background', 'ewww_image_optimizer_jpg_background' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_webp', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_webp_force', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_webp_paths', 'ewww_image_optimizer_webp_paths_sanitize' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_webp_for_cdn', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_picture_webp', 'boolval' );
+	register_setting( 'ewww_image_optimizer_options', 'ewww_image_optimizer_webp_rewrite_exclude', 'ewww_image_optimizer_exclude_paths_sanitize' );
+	ewww_image_optimizer_exec_init();
+	ewww_image_optimizer_cron_setup( 'ewww_image_optimizer_auto' );
 	// Queue the function that contains custom styling for our progressbars.
 	add_action( 'admin_enqueue_scripts', 'ewww_image_optimizer_progressbar_style' );
+	if ( defined( 'EWWW_IMAGE_OPTIMIZER_CLOUD_KEY' ) && get_option( 'ewww_image_optimizer_cloud_key_invalid' ) ) {
+		add_action( 'network_admin_notices', 'ewww_image_optimizer_notice_invalid_key' );
+		add_action( 'admin_notices', 'ewww_image_optimizer_notice_invalid_key' );
+	}
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_enabled' ) ) {
+		add_action( 'admin_notices', 'ewww_image_optimizer_notice_webp_bulk' );
+		if ( ewww_image_optimizer_cloud_based_media() ) {
+			ewww_image_optimizer_set_option( 'ewww_image_optimizer_webp_force', true );
+		}
+	}
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_auto' ) && ! ewww_image_optimizer_background_mode_enabled() ) {
+		add_action( 'network_admin_notices', 'ewww_image_optimizer_notice_schedule_noasync' );
+		add_action( 'admin_notices', 'ewww_image_optimizer_notice_schedule_noasync' );
+	}
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_force' ) && ewww_image_optimizer_get_option( 'ewww_image_optimizer_force_gif2webp' ) && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ) {
+		ewww_image_optimizer_set_option( 'ewww_image_optimizer_force_gif2webp', false );
+	}
+	// Prevent ShortPixel AIO messiness.
+	remove_action( 'admin_notices', 'autoptimizeMain::notice_plug_imgopt' );
+	if ( class_exists( 'autoptimizeExtra' ) || defined( 'AUTOPTIMIZE_PLUGIN_VERSION' ) ) {
+		$ao_extra = get_option( 'autoptimize_imgopt_settings' );
+		if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn' ) && ! empty( $ao_extra['autoptimize_imgopt_checkbox_field_1'] ) ) {
+			ewwwio_debug_message( 'detected ExactDN + SP conflict' );
+			$ao_extra['autoptimize_imgopt_checkbox_field_1'] = 0;
+			update_option( 'autoptimize_imgopt_settings', $ao_extra );
+			add_action( 'admin_notices', 'ewww_image_optimizer_notice_exactdn_sp_conflict' );
+		}
+	}
+	global $exactdn;
+	if (
+		! ewww_image_optimizer_get_option( 'ewww_image_optimizer_local_mode' ) &&
+		! ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) &&
+		ewww_image_optimizer_easy_active()
+	) {
+		// Suppress the custom column in the media library if local mode is disabled and easy mode is active.
+		remove_filter( 'manage_media_columns', 'ewww_image_optimizer_columns' );
+	} else {
+		add_action( 'admin_notices', 'ewww_image_optimizer_notice_media_listmode' );
+	}
+	if ( ewww_image_optimizer_easy_active() ) {
+		ewww_image_optimizer_set_option( 'ewww_image_optimizer_webp', false );
+		ewww_image_optimizer_set_option( 'ewww_image_optimizer_webp_force', false );
+	}
+
 	// Alert user if multiple re-optimizations detected.
-	add_action( 'network_admin_notices', 'ewww_image_optimizer_notice_reoptimization' );
-	add_action( 'admin_notices', 'ewww_image_optimizer_notice_reoptimization' );
-	ewww_image_optimizer_ajax_compat_check();
+	if ( ! defined( 'EWWWIO_DISABLE_REOPT_NOTICE' ) ) {
+		add_action( 'network_admin_notices', 'ewww_image_optimizer_notice_reoptimization' );
+		add_action( 'admin_notices', 'ewww_image_optimizer_notice_reoptimization' );
+	}
+	if (
+		is_super_admin() &&
+		ewww_image_optimizer_get_option( 'ewww_image_optimizer_review_time' ) &&
+		ewww_image_optimizer_get_option( 'ewww_image_optimizer_review_time' ) < time() &&
+		! ewww_image_optimizer_get_option( 'ewww_image_optimizer_dismiss_review_notice' )
+	) {
+		add_action( 'admin_notices', 'ewww_image_optimizer_notice_review' );
+		add_action( 'admin_footer', 'ewww_image_optimizer_notice_review_script' );
+	}
+	if ( ! empty( $_GET['page'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+		if ( 'regenerate-thumbnails' === $_GET['page'] // phpcs:ignore WordPress.Security.NonceVerification
+			|| 'force-regenerate-thumbnails' === $_GET['page'] // phpcs:ignore WordPress.Security.NonceVerification
+			|| 'ajax-thumbnail-rebuild' === $_GET['page'] // phpcs:ignore WordPress.Security.NonceVerification
+			|| 'regenerate_thumbnails_advanced' === $_GET['page'] // phpcs:ignore WordPress.Security.NonceVerification
+			|| 'rta_generate_thumbnails' === $_GET['page'] // phpcs:ignore WordPress.Security.NonceVerification
+		) {
+			// Add a notice for thumb regeneration.
+			add_action( 'admin_notices', 'ewww_image_optimizer_thumbnail_regen_notice' );
+		}
+	}
+	if ( ! empty( $_GET['ewww_pngout'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+		add_action( 'admin_notices', 'ewww_image_optimizer_pngout_installed' );
+		add_action( 'network_admin_notices', 'ewww_image_optimizer_pngout_installed' );
+	}
+	if ( ! empty( $_GET['ewww_svgcleaner'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+		add_action( 'admin_notices', 'ewww_image_optimizer_svgcleaner_installed' );
+		add_action( 'network_admin_notices', 'ewww_image_optimizer_svgcleaner_installed' );
+	}
+	if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
+		ewww_image_optimizer_privacy_policy_content();
+		ewww_image_optimizer_ajax_compat_check();
+	}
+	if ( class_exists( 'WooCommerce' ) && ewww_image_optimizer_get_option( 'ewww_image_optimizer_wc_regen' ) ) {
+		add_action( 'admin_notices', 'ewww_image_optimizer_notice_wc_regen' );
+		add_action( 'admin_footer', 'ewww_image_optimizer_wc_regen_script' );
+	}
+	if ( class_exists( 'Meow_WPLR_Sync_Core' ) && ewww_image_optimizer_get_option( 'ewww_image_optimizer_lr_sync' ) ) {
+		add_action( 'admin_notices', 'ewww_image_optimizer_notice_lr_sync' );
+		add_action( 'admin_footer', 'ewww_image_optimizer_lr_sync_script' );
+	}
+	// Increase the version when the next bump is coming.
+	if ( defined( 'PHP_VERSION_ID' ) && PHP_VERSION_ID < 50600 ) {
+		add_action( 'network_admin_notices', 'ewww_image_optimizer_php55_warning' );
+		add_action( 'admin_notices', 'ewww_image_optimizer_php55_warning' );
+	}
 	ewwwio_memory( __FUNCTION__ );
 }
 
@@ -1265,10 +1145,10 @@ function ewww_image_optimizer_admin_init() {
 function ewww_image_optimizer_cron_setup( $event ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 	// Setup scheduled optimization if the user has enabled it, and it isn't already scheduled.
-	if ( ewww_image_optimizer_get_option( $event ) == true && ! wp_next_scheduled( $event ) ) {
+	if ( ewww_image_optimizer_get_option( $event ) && ! wp_next_scheduled( $event ) ) {
 		ewwwio_debug_message( "scheduling $event" );
 		wp_schedule_event( time(), apply_filters( 'ewww_image_optimizer_schedule', 'hourly', $event ), $event );
-	} elseif ( ewww_image_optimizer_get_option( $event ) == true ) {
+	} elseif ( ewww_image_optimizer_get_option( $event ) ) {
 		ewwwio_debug_message( "$event already scheduled: " . wp_next_scheduled( $event ) );
 	} elseif ( wp_next_scheduled( $event ) ) {
 		ewwwio_debug_message( "un-scheduling $event" );
@@ -1300,18 +1180,205 @@ function ewww_image_optimizer_ajax_compat_check() {
 	if ( ! wp_doing_ajax() ) {
 		return;
 	}
-	// Check for (Force) Regenerate Thumbnails action (includes MLP regnerate).
-	if ( ! empty( $_REQUEST['action'] ) && 'regeneratethumbnail' == $_REQUEST['action'] ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	$action = ! empty( $_REQUEST['action'] ) ? sanitize_key( $_REQUEST['action'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+	if ( $action ) {
+		ewwwio_debug_message( "doing $action" );
+	}
+	// Check for (Force) Regenerate Thumbnails action (includes MLP regenerate).
+	if (
+		'regeneratethumbnail' === $action ||
+		'rta_regenerate_thumbnails' === $action ||
+		'meauh_save_image' === $action ||
+		'hotspot_save' === $action
+	) {
+		ewwwio_debug_message( 'doing regeneratethumbnail' );
 		ewww_image_optimizer_image_sizes( false );
+		add_filter( 'ewww_image_optimizer_allowed_reopt', '__return_true' );
+		return;
+	}
+	if ( 'mic_crop_image' === $action ) {
+		ewwwio_debug_message( 'doing Manual Image Crop' );
+		if ( ! defined( 'EWWWIO_EDITOR_OVERWRITE' ) ) {
+			define( 'EWWWIO_EDITOR_OVERWRITE', true );
+		}
+		add_filter( 'ewww_image_optimizer_allowed_reopt', '__return_true' );
+		return;
+	}
+	if ( false !== strpos( $action, 'wc_regenerate_images' ) ) {
+		// Unhook all automatic processing, and save an option that (does not autoload) tells the user WC regenerated their images and they should run the bulk optimizer.
+		remove_filter( 'wp_image_editors', 'ewww_image_optimizer_load_editor', 60 );
+		remove_filter( 'wp_generate_attachment_metadata', 'ewww_image_optimizer_resize_from_meta_data', 15 );
+		update_option( 'ewww_image_optimizer_wc_regen', true, false );
+		return;
+	}
+	// Check for Image Watermark plugin.
+	$iwaction = ! empty( $_REQUEST['iw-action'] ) ? sanitize_key( $_REQUEST['iw-action'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+	if ( $iwaction ) {
+		ewwwio_debug_message( "doing $iwaction" );
+		global $ewww_preempt_editor;
+		$ewww_preempt_editor = true;
+		if ( 'applywatermark' === $iwaction ) {
+			remove_filter( 'wp_generate_attachment_metadata', 'ewww_image_optimizer_resize_from_meta_data', 15 );
+			add_action( 'iw_after_apply_watermark', 'ewww_image_optimizer_single_size_optimize', 10, 2 );
+		}
+		add_filter( 'ewww_image_optimizer_allowed_reopt', '__return_true' );
+		return;
 	}
 	// Check for other MLP actions, including multi-regen.
-	if ( ! empty( $_REQUEST['action'] ) && class_exists( 'MaxGalleriaMediaLib' ) && ( 'regen_mlp_thumbnails' == $_REQUEST['action'] || 'move_media' == $_REQUEST['action'] || 'copy_media' == $_REQUEST['action'] || 'maxgalleria_rename_image' == $_REQUEST['action'] ) ) {
+	if ( class_exists( 'MaxGalleriaMediaLib' ) && ( 'regen_mlp_thumbnails' === $action || 'move_media' === $action || 'copy_media' === $action || 'maxgalleria_rename_image' === $action ) ) {
+		ewwwio_debug_message( 'doing regen_mlp_thumbnails' );
 		ewww_image_optimizer_image_sizes( false );
+		add_filter( 'ewww_image_optimizer_allowed_reopt', '__return_true' );
+		return;
 	}
 	// Check for MLP upload.
-	if ( ! empty( $_REQUEST['action'] ) && class_exists( 'MaxGalleriaMediaLib' ) && ! empty( $_REQUEST['nonce'] ) && 'upload_attachment' == $_REQUEST['action'] ) {
+	if ( class_exists( 'MaxGalleriaMediaLib' ) && ! empty( $_REQUEST['nonce'] ) && 'upload_attachment' === $action ) { // phpcs:ignore WordPress.Security.NonceVerification
+		ewwwio_debug_message( 'doing maxgalleria upload' );
 		ewww_image_optimizer_image_sizes( false );
+		add_filter( 'ewww_image_optimizer_allowed_reopt', '__return_true' );
+		return;
 	}
+	// Check for Image Regenerate and Select Crop (better way).
+	if ( defined( 'DOING_SIRSC' ) && DOING_SIRSC ) {
+		ewwwio_debug_message( 'IRSC action/regen' );
+		ewww_image_optimizer_image_sizes( false );
+		add_filter( 'ewww_image_optimizer_allowed_reopt', '__return_true' );
+		return;
+	} elseif ( 0 === strpos( $action, 'sirsc' ) ) {
+		// Image Regenerate and Select Crop (old check).
+		ewwwio_debug_message( 'IRSC action/regen (old)' );
+		ewww_image_optimizer_image_sizes( false );
+		add_filter( 'ewww_image_optimizer_allowed_reopt', '__return_true' );
+		return;
+	}
+	// Check for Phoenix Media Rename action.
+	if ( class_exists( 'Phoenix_Media_Rename' ) && 'phoenix_media_rename' === $action ) {
+		ewwwio_debug_message( 'Phoenix Media Rename, verifying' );
+		if ( check_ajax_referer( 'phoenix_media_rename', '_wpnonce', false ) ) {
+			ewwwio_debug_message( 'PMR verified' );
+			remove_filter( 'wp_generate_attachment_metadata', 'ewww_image_optimizer_resize_from_meta_data', 15 );
+			ewww_image_optimizer_image_sizes( false );
+			add_filter( 'ewww_image_optimizer_allowed_reopt', '__return_true' );
+			return;
+		}
+	}
+}
+
+/**
+ * Adds suggested privacy policy content for site admins.
+ *
+ * Note that this is just a suggestion, it should be customized for your site.
+ */
+function ewww_image_optimizer_privacy_policy_content() {
+	if ( ! function_exists( 'wp_add_privacy_policy_content' ) || ! function_exists( 'wp_kses_post' ) ) {
+		return;
+	}
+	$content = '<p class="privacy-policy-tutorial">';
+	if ( ! defined( 'EWWW_IO_CLOUD_PLUGIN' ) || ! EWWW_IO_CLOUD_PLUGIN ) {
+		$content .= wp_kses_post( __( 'By default, the EWWW Image Optimizer does not store any personal data nor share it with anyone.', 'ewww-image-optimizer' ) ) . '</p><p>';
+	}
+	$content .= wp_kses_post( __( 'If you accept user-submitted images and use the API or Easy IO, those images may be transmitted to third-party servers in foreign countries. If Backup Originals is enabled, images are stored for 30 days. Otherwise, no images are stored on the API for longer than 30 minutes.', 'ewww-image-optimizer' ) ) . '</p>';
+	$content .= '<p><strong>' . wp_kses_post( __( 'Suggested API Text:' ) ) . '</strong> <i>' . wp_kses_post( __( 'User-submitted images may be transmitted to image compression servers in the United States and stored there for up to 30 days.' ) ) . '</i></p>';
+	$content .= '<p><strong>' . wp_kses_post( __( 'Suggested Easy IO Text:' ) ) . '</strong> <i>' . wp_kses_post( __( 'User-submitted images that are displayed on this site will be transmitted and stored on a global network of third-party servers (a CDN).' ) ) . '</i></p>';
+	wp_add_privacy_policy_content( 'EWWW Image Optimizer', $content );
+}
+
+/**
+ * Check the current screen, currently used to temporarily enable debugging on settings page.
+ *
+ * @param object $screen Information about the page/screen currently being loaded.
+ */
+function ewww_image_optimizer_current_screen( $screen ) {
+	global $ewwwio_temp_debug;
+	global $eio_debug;
+	if ( false === strpos( $screen->id, 'settings_page_ewww-image-optimizer' ) && false === strpos( $screen->id, 'settings_page_easy-image-optimizer' ) ) {
+		$ewwwio_temp_debug = false;
+		$eio_debug         = '';
+	}
+}
+
+/**
+ * Optimize a single image from an attachment, based on the size and ID.
+ *
+ * @param int    $id The attachment ID number.
+ * @param string $size The slug/name of the image size.
+ */
+function ewww_image_optimizer_single_size_optimize( $id, $size ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	session_write_close();
+	$meta = wp_get_attachment_metadata( $id );
+	global $wpdb;
+	if ( strpos( $wpdb->charset, 'utf8' ) === false ) {
+		ewww_image_optimizer_db_init();
+		global $ewwwdb;
+	} else {
+		$ewwwdb = $wpdb;
+	}
+	list( $file_path, $upload_path ) = ewww_image_optimizer_attachment_path( $meta, $id );
+	ewwwio_debug_message( "retrieved file path: $file_path" );
+	$type            = ewww_image_optimizer_mimetype( $file_path, 'i' );
+	$supported_types = array(
+		'image/jpeg',
+		'image/png',
+		'image/gif',
+		'application/pdf',
+		'image/svg+xml',
+	);
+	if ( ! in_array( $type, $supported_types, true ) ) {
+		ewwwio_debug_message( "mimetype not supported: $id" );
+		return;
+	}
+	if ( 'full' === $size ) {
+		$ewww_image         = new EWWW_Image( $id, 'media', $file_path );
+		$ewww_image->resize = 'full';
+
+		// Run the optimization and store the results.
+		ewww_image_optimizer( $file_path, 4, false, false, true );
+		return;
+	}
+	// Resized version, continue.
+	if ( isset( $meta['sizes'] ) && is_array( $meta['sizes'][ $size ] ) ) {
+		$disabled_sizes = ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_resizes_opt', false, true );
+		ewwwio_debug_message( "processing size: $size" );
+		$base_dir = trailingslashit( dirname( $file_path ) );
+		$data     = $meta['sizes'][ $size ];
+		if ( strpos( $size, 'webp' ) === 0 ) {
+			return;
+		}
+		if ( ! empty( $disabled_sizes[ $size ] ) ) {
+			return;
+		}
+		if ( ! empty( $disabled_sizes['pdf-full'] ) && 'full' === $size ) {
+			return;
+		}
+		if ( empty( $data['file'] ) ) {
+			return;
+		}
+		// If this is a unique size.
+		$resize_path = $base_dir . wp_basename( $data['file'] );
+		if ( 'application/pdf' === $type && 'full' === $size ) {
+			$size = 'pdf-full';
+			ewwwio_debug_message( 'processing full size pdf preview' );
+		}
+		$ewww_image         = new EWWW_Image( $id, 'media', $resize_path );
+		$ewww_image->resize = $size;
+		// Run the optimization and store the results.
+		ewww_image_optimizer( $resize_path );
+		// Optimize retina images, if they exist.
+		if ( function_exists( 'wr2x_get_retina' ) ) {
+			$retina_path = wr2x_get_retina( $resize_path );
+		} else {
+			$retina_path = false;
+		}
+		if ( $retina_path && ewwwio_is_file( $retina_path ) ) {
+			$ewww_image         = new EWWW_Image( $id, 'media', $retina_path );
+			$ewww_image->resize = $size . '-retina';
+			ewww_image_optimizer( $retina_path );
+		} else {
+			ewww_image_optimizer_hidpi_optimize( $resize_path );
+		}
+	} // End if().
 }
 
 if ( ! function_exists( 'wp_doing_ajax' ) ) {
@@ -1330,10 +1397,37 @@ if ( ! function_exists( 'wp_doing_ajax' ) ) {
 }
 
 /**
+ * Checks to see if this is a REST API request, and whether the WP_Image_Editor hooks should be undone.
+ *
+ * @since 4.0.6
+ */
+function ewww_image_optimizer_restapi_compat_check() {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	if ( ! empty( $GLOBALS['wp']->query_vars['rest_route'] ) && false !== strpos( $GLOBALS['wp']->query_vars['rest_route'], '/regenerate-thumbnails' ) ) {
+		ewwwio_debug_message( 'doing regenerate-thumbnails via REST' );
+		ewww_image_optimizer_image_sizes( false );
+		add_filter( 'ewww_image_optimizer_allowed_reopt', '__return_true' );
+		return;
+	}
+	if (
+		! empty( $GLOBALS['wp']->query_vars['rest_route'] ) &&
+		strpos( $GLOBALS['wp']->query_vars['rest_route'], '/media/' ) &&
+		preg_match( '/media\/\d+\/edit$/', $GLOBALS['wp']->query_vars['rest_route'] )
+	) {
+		ewwwio_debug_message( 'image edited via REST' );
+		global $ewww_preempt_editor;
+		$ewww_preempt_editor = true;
+	}
+}
+
+/**
  * Disables all the local tools by setting their constants to false.
  */
 function ewww_image_optimizer_disable_tools() {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	if ( ! defined( 'EWWW_IMAGE_OPTIMIZER_NOEXEC' ) ) {
+		define( 'EWWW_IMAGE_OPTIMIZER_NOEXEC', true );
+	}
 	if ( ! defined( 'EWWW_IMAGE_OPTIMIZER_JPEGTRAN' ) ) {
 		define( 'EWWW_IMAGE_OPTIMIZER_JPEGTRAN', false );
 	}
@@ -1349,8 +1443,11 @@ function ewww_image_optimizer_disable_tools() {
 	if ( ! defined( 'EWWW_IMAGE_OPTIMIZER_PNGQUANT' ) ) {
 		define( 'EWWW_IMAGE_OPTIMIZER_PNGQUANT', false );
 	}
-	if ( ! defined( 'EWWW_IMAGE_OPTIMIZER_WEBP' ) ) {
-		define( 'EWWW_IMAGE_OPTIMIZER_WEBP', false );
+	if ( ! defined( 'EWWW_IMAGE_OPTIMIZER_CWEBP' ) ) {
+		define( 'EWWW_IMAGE_OPTIMIZER_CWEBP', false );
+	}
+	if ( ! defined( 'EWWW_IMAGE_OPTIMIZER_SVGCLEANER' ) ) {
+		define( 'EWWW_IMAGE_OPTIMIZER_SVGCLEANER', false );
 	}
 	ewwwio_memory( __FUNCTION__ );
 }
@@ -1364,11 +1461,56 @@ function ewww_image_optimizer_progressbar_style() {
 }
 
 /**
+ * Grabs the color scheme information from the current admin theme and saves it for later.
+ *
+ * @global $ewwwio_admin_color The color we want to use for theming.
+ * @global array $_wp_admin_css_colors An array of available admin color/theme objects.
+ */
+function ewww_image_optimizer_save_admin_colors() {
+	global $ewwwio_admin_color;
+	global $_wp_admin_css_colors;
+	if ( function_exists( 'wp_add_inline_style' ) ) {
+		$user_info = wp_get_current_user();
+		if (
+			is_array( $_wp_admin_css_colors ) &&
+			! empty( $user_info->admin_color ) &&
+			isset( $_wp_admin_css_colors[ $user_info->admin_color ] ) &&
+			is_object( $_wp_admin_css_colors[ $user_info->admin_color ] ) &&
+			is_array( $_wp_admin_css_colors[ $user_info->admin_color ]->colors ) &&
+			! empty( $_wp_admin_css_colors[ $user_info->admin_color ]->colors[2] ) &&
+			preg_match( '/^\#([0-9a-fA-F]){3,6}$/', $_wp_admin_css_colors[ $user_info->admin_color ]->colors[2] )
+		) {
+			$ewwwio_admin_color = $_wp_admin_css_colors[ $user_info->admin_color ]->colors[2];
+		}
+	}
+	if ( empty( $ewwwio_admin_color ) ) {
+		$ewwwio_admin_color = '#0073aa';
+	}
+}
+
+/**
  * Determines the background color to use based on the selected admin theme.
  */
 function ewww_image_optimizer_admin_background() {
+	global $ewwwio_admin_color;
+	if ( ! empty( $ewwwio_admin_color ) && preg_match( '/^\#([0-9a-fA-F]){3,6}$/', $ewwwio_admin_color ) ) {
+		return $ewwwio_admin_color;
+	}
 	if ( function_exists( 'wp_add_inline_style' ) ) {
 		$user_info = wp_get_current_user();
+		global $_wp_admin_css_colors;
+		if (
+			is_array( $_wp_admin_css_colors ) &&
+			! empty( $user_info->admin_color ) &&
+			isset( $_wp_admin_css_colors[ $user_info->admin_color ] ) &&
+			is_object( $_wp_admin_css_colors[ $user_info->admin_color ] ) &&
+			is_array( $_wp_admin_css_colors[ $user_info->admin_color ]->colors ) &&
+			! empty( $_wp_admin_css_colors[ $user_info->admin_color ]->colors[2] ) &&
+			preg_match( '/^\#([0-9a-fA-F]){3,6}$/', $_wp_admin_css_colors[ $user_info->admin_color ]->colors[2] )
+		) {
+			$ewwwio_admin_color = $_wp_admin_css_colors[ $user_info->admin_color ]->colors[2];
+			return $ewwwio_admin_color;
+		}
 		switch ( $user_info->admin_color ) {
 			case 'midnight':
 				return '#e14d43';
@@ -1388,7 +1530,7 @@ function ewww_image_optimizer_admin_background() {
 				return '#0073aa';
 		}
 	}
-	ewwwio_memory( __FUNCTION__ );
+	return '#0073aa';
 }
 
 /**
@@ -1400,7 +1542,7 @@ function ewww_image_optimizer_admin_background() {
  * @return bool True if this is a 'large network'.
  */
 function ewww_image_optimizer_large_network( $large_network, $criteria, $count ) {
-	if ( 'sites' == $criteria && $count > 1000 ) {
+	if ( 'sites' === $criteria && $count > 1000 ) {
 		return true;
 	}
 	return false;
@@ -1415,23 +1557,51 @@ function ewww_image_optimizer_install_table() {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 	global $wpdb;
 	$wpdb->ewwwio_images = $wpdb->prefix . 'ewwwio_images';
+	$wpdb->ewwwio_queue  = $wpdb->prefix . 'ewwwio_queue';
 
 	// Get the current wpdb charset and collation.
 	$db_collation = $wpdb->get_charset_collate();
 	ewwwio_debug_message( "current collation: $db_collation" );
 
+	$primary_key_definition = 'PRIMARY KEY  (id),';
 	// See if the path column exists, and what collation it uses to determine the column index size.
-	if ( $wpdb->get_var( "SHOW TABLES LIKE '$wpdb->ewwwio_images'" ) == $wpdb->ewwwio_images ) {
+	if ( $wpdb->get_var( "SHOW TABLES LIKE '$wpdb->ewwwio_images'" ) === $wpdb->ewwwio_images ) {
 		ewwwio_debug_message( 'upgrading table and checking collation for path, table exists' );
+		$mysql_version = 'unknown';
+		if ( method_exists( $wpdb, 'db_server_info' ) ) {
+			$mysql_version = strtolower( $wpdb->db_server_info() );
+		}
+		ewwwio_debug_message( $mysql_version );
+		if ( false !== strpos( $mysql_version, 'maria' ) && false !== strpos( $mysql_version, '10.4.' ) ) {
+			$primary_key_definition = 'UNIQUE KEY id (id),';
+		}
+		if ( false && false === strpos( $mysql_version, 'maria' ) || false === strpos( $mysql_version, '10.4.' ) ) {
+			ewwwio_debug_message( 'checking primary/unique index' );
+			if ( ! $wpdb->get_results( "SHOW INDEX FROM $wpdb->ewwwio_images WHERE Key_name = 'PRIMARY'", ARRAY_A ) ) {
+				ewwwio_debug_message( 'adding primary index' );
+				$wpdb->query( "ALTER TABLE $wpdb->ewwwio_images ADD PRIMARY KEY(id)" );
+			}
+			if ( $wpdb->get_results( "SHOW INDEX FROM $wpdb->ewwwio_images WHERE Key_name = 'id'", ARRAY_A ) ) {
+				ewwwio_debug_message( 'dropping unique index' );
+				$wpdb->query( "ALTER TABLE $wpdb->ewwwio_images DROP INDEX id" );
+			}
+		}
+		// Check if the old path_image_size index exists, and drop it.
+		if ( $wpdb->get_results( "SHOW INDEX FROM $wpdb->ewwwio_images WHERE Key_name = 'path_image_size'", ARRAY_A ) ) {
+			ewwwio_debug_message( 'getting rid of path_image_size index' );
+			$wpdb->query( "ALTER TABLE $wpdb->ewwwio_images DROP INDEX path_image_size" );
+		}
+		// Make sure there are valid dates in updated column.
 		$wpdb->query( "UPDATE $wpdb->ewwwio_images SET updated = '1971-01-01 00:00:00' WHERE updated < '1001-01-01 00:00:01'" );
+		// Check the current collation and adjust it if necessary.
 		$column_collate = $wpdb->get_col_charset( $wpdb->ewwwio_images, 'path' );
-		if ( ! empty( $column_collate ) && 'utf8mb4' !== $column_collate ) {
+		if ( ! empty( $column_collate ) && ! is_wp_error( $column_collate ) && 'utf8mb4' !== $column_collate ) {
 			$path_index_size = 255;
 			ewwwio_debug_message( "current column collation: $column_collate" );
 			if ( strpos( $column_collate, 'utf8' ) === false ) {
 				ewwwio_debug_message( 'converting path column to utf8' );
 				$wpdb->query( "ALTER TABLE $wpdb->ewwwio_images CHANGE path path BLOB" );
-				if ( $wpdb->has_cap( 'utf8mb4_520' && strpos( $db_collation, 'utf8mb4' ) ) ) {
+				if ( $wpdb->has_cap( 'utf8mb4_520' ) && strpos( $db_collation, 'utf8mb4' ) ) {
 					ewwwio_debug_message( 'using mb4 version 5.20' );
 					$wpdb->query( "ALTER TABLE $wpdb->ewwwio_images DROP INDEX path_image_size" );
 					$wpdb->query( "ALTER TABLE $wpdb->ewwwio_images CONVERT TO CHARACTER SET utf8mb4, CHANGE path path TEXT" );
@@ -1488,45 +1658,53 @@ function ewww_image_optimizer_install_table() {
 	 * trace: tracelog from the last optimization if debugging was enabled.
 	 */
 	$sql = "CREATE TABLE $wpdb->ewwwio_images (
-		id int(14) unsigned NOT NULL AUTO_INCREMENT,
-		attachment_id bigint(20) unsigned,
+		id int unsigned NOT NULL AUTO_INCREMENT,
+		attachment_id bigint unsigned,
 		gallery varchar(10),
 		resize varchar(75),
 		path text NOT NULL,
 		converted text NOT NULL,
 		results varchar(75) NOT NULL,
-		image_size int(10) unsigned,
-		orig_size int(10) unsigned,
+		image_size int unsigned,
+		orig_size int unsigned,
 		backup varchar(100),
-		level int(5) unsigned,
-		pending tinyint(1) NOT NULL DEFAULT 0,
-		updates int(5) unsigned,
+		level int unsigned,
+		pending tinyint NOT NULL DEFAULT 0,
+		updates int unsigned,
 		updated timestamp DEFAULT '1971-01-01 00:00:00' ON UPDATE CURRENT_TIMESTAMP,
 		trace blob,
-		UNIQUE KEY id (id),
-		KEY path_image_size (path($path_index_size),image_size),
+		$primary_key_definition
+		KEY path (path($path_index_size)),
 		KEY attachment_info (gallery(3),attachment_id)
 	) $db_collation;";
 
 	// Include the upgrade library to install/upgrade a table.
 	require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 	$updates = dbDelta( $sql );
-	if ( ewww_image_optimizer_function_exists( 'print_r' ) ) {
-		ewwwio_debug_message( 'db upgrade results: ' . print_r( $updates, true ) );
-	}
+	ewwwio_debug_message( 'images db upgrade results: ' . implode( '<br>', $updates ) );
 
-	// Make sure some of our options are not autoloaded (since they can be huge).
-	$bulk_attachments = get_option( 'ewww_image_optimizer_bulk_attachments', '' );
-	delete_option( 'ewww_image_optimizer_bulk_attachments' );
-	add_option( 'ewww_image_optimizer_bulk_attachments', $bulk_attachments, '', 'no' );
-	$bulk_attachments = get_option( 'ewww_image_optimizer_flag_attachments', '' );
-	delete_option( 'ewww_image_optimizer_flag_attachments' );
-	add_option( 'ewww_image_optimizer_flag_attachments', $bulk_attachments, '', 'no' );
-	$bulk_attachments = get_option( 'ewww_image_optimizer_ngg_attachments', '' );
-	delete_option( 'ewww_image_optimizer_ngg_attachments' );
-	add_option( 'ewww_image_optimizer_ngg_attachments', $bulk_attachments, '', 'no' );
-	delete_option( 'ewww_image_optimizer_aux_attachments' );
-	delete_option( 'ewww_image_optimizer_defer_attachments' );
+	/*
+	 * Create a table with 5 columns:
+	 * id: unique for each record/image,
+	 * attachment_id: the unique id within the media library, nextgen, or flag
+	 * gallery: 'media', 'nextgen', 'nextcell', 'flag', plus -async variants.
+	 * scanned: 1 if the image is queued for optimization, 0 if it still needs scanning.
+	 * new: 1 if the image is a 'new' upload queued for optimization, 0 otherwise.
+	 */
+	$sql = "CREATE TABLE $wpdb->ewwwio_queue (
+		id int unsigned NOT NULL AUTO_INCREMENT,
+		attachment_id bigint unsigned,
+		gallery varchar(20),
+		scanned tinyint NOT NULL DEFAULT 0,
+		new tinyint NOT NULL DEFAULT 0,
+		PRIMARY KEY  (id),
+		KEY attachment_info (gallery(3),attachment_id)
+	) COLLATE utf8_general_ci;";
+
+	// Include the upgrade library to install/upgrade a table.
+	require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+	$updates = dbDelta( $sql );
+	ewwwio_debug_message( 'queue db upgrade results: ' . implode( '<br>', $updates ) );
 }
 
 /**
@@ -1606,14 +1784,413 @@ function ewww_image_optimizer_remove_obsolete_settings() {
 	delete_option( 'ewww_image_optimizer_bulk_image_count' );
 	delete_option( 'ewww_image_optimizer_maxwidth' );
 	delete_option( 'ewww_image_optimizer_maxheight' );
+	delete_option( 'ewww_image_optimizer_exactdn_failures' );
+	delete_option( 'ewww_image_optimizer_exactdn_suspended' );
+	delete_option( 'ewww_image_optimizer_bulk_attachments' );
+	delete_option( 'ewww_image_optimizer_aux_attachments' );
+	delete_option( 'ewww_image_optimizer_defer_attachments' );
+}
+
+/**
+ * Migrate any option-based queues to the queue table.
+ */
+function ewww_image_optimizer_migrate_option_queue_to_table() {
+	global $wpdb;
+	global $ewwwio_media_background;
+	if ( ! class_exists( 'WP_Background_Process' ) ) {
+		require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'background.php' );
+	}
+	if ( ! is_object( $ewwwio_media_background ) ) {
+		$ewwwio_media_background = new EWWWIO_Media_Background_Process();
+	}
+	$key    = 'wp_ewwwio_media_optimize_batch_%';
+	$queues = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT *
+			FROM $wpdb->options
+			WHERE option_name LIKE %s",
+			$key
+		),
+		ARRAY_A
+	);
+	if ( ! empty( $queues ) ) {
+		foreach ( $queues as $queue ) {
+			$items = maybe_unserialize( $queue['option_value'] );
+			if ( ewww_image_optimizer_iterable( $items ) ) {
+				foreach ( $items as $item ) {
+					$ewwwio_media_background->push_to_queue(
+						array(
+							'id'  => $item['id'],
+							'new' => 0,
+						)
+					);
+				}
+			}
+			$ewwwio_media_background->dispatch();
+		}
+	}
+	// Clear all queues.
+	$key = 'wp_ewwwio_%';
+	$wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->options WHERE option_name LIKE %s", $key ) );
+	$key = '%ewwwio-background-in-progress-%';
+	$wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->options WHERE option_name LIKE %s", $key ) );
+}
+
+/**
+ * Checks to see if the WebP conversion was just enabled.
+ *
+ * @param mixed $new_value The new value, in this case it will be boolean usually.
+ * @param mixed $old_value The old value, also a boolean generally.
+ * @return mixed The new value, unaltered.
+ */
+function ewww_image_optimizer_webp_maybe_enabled( $new_value, $old_value ) {
+	if ( ! empty( $new_value ) && (bool) $new_value !== (bool) $old_value ) {
+		update_option( 'ewww_image_optimizer_webp_enabled', true );
+	}
+	return $new_value;
+}
+
+/**
+ * Checks if a plugin is offloading media to cloud storage and removing local copies.
+ *
+ * @return bool True if a plugin is removing local files, false otherwise..
+ */
+function ewww_image_optimizer_cloud_based_media() {
+	if ( class_exists( 'Amazon_S3_And_CloudFront' ) ) {
+		global $as3cf;
+		if ( is_object( $as3cf ) && $as3cf->get_setting( 'serve-from-s3' ) && $as3cf->get_setting( 'remove-local-file' ) ) {
+			return true;
+		}
+	}
+	if ( class_exists( 'S3_Uploads' ) && function_exists( 's3_uploads_enabled' ) && s3_uploads_enabled() ) {
+		return true;
+	}
+	if ( class_exists( 'wpCloud\StatelessMedia\EWWW' ) && function_exists( 'ud_get_stateless_media' ) ) {
+		$sm = ud_get_stateless_media();
+		if ( method_exists( $sm, 'get' ) ) {
+			$sm_mode = $sm->get( 'sm.mode' );
+			if ( 'disabled' !== $sm_mode ) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+/**
+ * Checks to see if Scheduled Optimization was just disabled.
+ *
+ * @param mixed $new_value The new value, in this case it will be boolean usually.
+ * @param mixed $old_value The old value, also a boolean generally.
+ * @return mixed The new value, unaltered.
+ */
+function ewww_image_optimizer_scheduled_optimizaton_changed( $new_value, $old_value ) {
+	if ( empty( $new_value ) && (bool) $new_value !== (bool) $old_value ) {
+		global $ewwwio_image_background;
+		if ( ! class_exists( 'WP_Background_Process' ) ) {
+			require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'background.php' );
+		}
+		$ewwwio_image_background->cancel_process();
+		update_option( 'ewwwio_stop_scheduled_scan', true, false );
+	}
+	return $new_value;
+}
+
+/**
+ * Display a notice that the user should run the bulk optimizer after WebP activation.
+ */
+function ewww_image_optimizer_notice_webp_bulk() {
+	$already_done = ewww_image_optimizer_aux_images_table_count();
+	if ( $already_done > 50 ) {
+		echo "<div id='ewww-image-optimizer-pngout-success' class='notice notice-info'><p><a href='" .
+			esc_url( admin_url( 'upload.php?page=ewww-image-optimizer-bulk&ewww_webp_only=1&ewww_force=1' ) ) .
+			"'>" . esc_html__( 'It looks like you already started optimizing your images, you will need to generate WebP images via the Bulk Optimizer.', 'ewww-image-optimizer' ) . '</a></p></div>';
+	} else {
+		echo "<div id='ewww-image-optimizer-pngout-success' class='notice notice-info'><p><a href='" .
+			esc_url( admin_url( 'upload.php?page=ewww-image-optimizer-bulk' ) ) .
+			"'>" . esc_html__( 'Use the Bulk Optimizer to generate WebP images for existing uploads.', 'ewww-image-optimizer' ) . '</a></p></div>';
+	}
+	delete_option( 'ewww_image_optimizer_webp_enabled' );
+}
+
+/**
+ * Display a success or failure message after PNGOUT installation.
+ */
+function ewww_image_optimizer_pngout_installed() {
+	if ( ! empty( $_REQUEST['ewww_pngout'] ) && 'success' === $_REQUEST['ewww_pngout'] ) { // phpcs:ignore WordPress.Security.NonceVerification
+		echo "<div id='ewww-image-optimizer-pngout-success' class='notice notice-success fade'>\n" .
+			'<p>' . esc_html__( 'Pngout was successfully installed.', 'ewww-image-optimizer' ) . "</p>\n" .
+			"</div>\n";
+	}
+	if ( ! empty( $_REQUEST['ewww_pngout'] ) && 'failed' === $_REQUEST['ewww_pngout'] ) { // phpcs:ignore WordPress.Security.NonceVerification
+		echo "<div id='ewww-image-optimizer-pngout-failure' class='notice notice-error'>\n" .
+			'<p>' . sprintf(
+				/* translators: 1: An error message 2: The folder where pngout should be installed */
+				esc_html__( 'Pngout was not installed: %1$s. Make sure this folder is writable: %2$s', 'ewww-image-optimizer' ),
+				( ! empty( $_REQUEST['ewww_error'] ) ? esc_html( sanitize_text_field( wp_unslash( $_REQUEST['ewww_error'] ) ) ) : esc_html( 'unknown error', 'ewww-image-optimizer' ) ), // phpcs:ignore WordPress.Security.NonceVerification
+				esc_html( EWWW_IMAGE_OPTIMIZER_TOOL_PATH )
+			) . "</p>\n" .
+			"</div>\n";
+	}
+}
+
+/**
+ * Display a success or failure message after SVGCLEANER installation.
+ */
+function ewww_image_optimizer_svgcleaner_installed() {
+	if ( ! empty( $_REQUEST['ewww_svgcleaner'] ) && 'success' === $_REQUEST['ewww_svgcleaner'] ) { // phpcs:ignore WordPress.Security.NonceVerification
+		echo "<div id='ewww-image-optimizer-pngout-success' class='notice notice-success fade'>\n" .
+			'<p>' . esc_html__( 'Svgcleaner was successfully installed.', 'ewww-image-optimizer' ) . "</p>\n" .
+			"</div>\n";
+	}
+	if ( ! empty( $_REQUEST['ewww_svgcleaner'] ) && 'failed' === $_REQUEST['ewww_svgcleaner'] ) { // phpcs:ignore WordPress.Security.NonceVerification
+		echo "<div id='ewww-image-optimizer-pngout-failure' class='notice notice-error'>\n" .
+			'<p>' . sprintf(
+				/* translators: 1: An error message 2: The folder where svgcleaner should be installed */
+				esc_html__( 'Svgcleaner was not installed: %1$s. Make sure this folder is writable: %2$s', 'ewww-image-optimizer' ),
+				( ! empty( $_REQUEST['ewww_error'] ) ? esc_html( sanitize_text_field( wp_unslash( $_REQUEST['ewww_error'] ) ) ) : esc_html( 'unknown error', 'ewww-image-optimizer' ) ), // phpcs:ignore WordPress.Security.NonceVerification
+				esc_html( EWWW_IMAGE_OPTIMIZER_TOOL_PATH )
+			) . "</p>\n" .
+			"</div>\n";
+	}
+}
+
+/**
+ * Display a notice that we could not activate an ExactDN domain.
+ */
+function ewww_image_optimizer_notice_exactdn_activation_error() {
+	return;
+	global $exactdn_activate_error;
+	if ( empty( $exactdn_activate_error ) ) {
+		$exactdn_activate_error = 'error unknown';
+	}
+	echo '<div id="ewww-image-optimizer-notice-exactdn-error" class="notice notice-error"><p>' .
+		sprintf(
+			/* translators: %s: A link to the documentation */
+			esc_html__( 'Could not activate Easy IO, please try again in a few minutes. If this error continues, please see %s for troubleshooting steps.', 'ewww-image-optimizer' ),
+			'https://docs.ewww.io/article/66-exactdn-not-verified'
+		) .
+		'<br><code>' . esc_html( $exactdn_activate_error ) . '</code>' .
+		'</p></div>';
+}
+
+/**
+ * Let the user know ExactDN setup was successful.
+ */
+function ewww_image_optimizer_notice_exactdn_activation_success() {
+	return;
+	?>
+	<div id="ewww-image-optimizer-notice-exactdn-success" class="notice notice-success"><p>
+		<strong><?php esc_html_e( 'Easy IO setup and verification is complete.', 'ewww-image-optimizer' ); ?></strong>
+		<?php esc_html_e( 'If you have problems, try disabling Lazy Load and Include All Resources. Finally, disable Easy IO if problems remain.', 'ewww-image-optimizer' ); ?><br>
+		<a class='ewww-contact-root' href='https://ewww.io/contact-us/'>
+			<?php esc_html_e( 'Then, let us know so we can find a fix for the problem.', 'ewww-image-optimizer' ); ?>
+		</a>
+	</p></div>
+	<?php
+}
+
+/**
+ * Let the user know the local domain appears to have changed from what Easy IO has recorded in the db.
+ */
+function ewww_image_optimizer_notice_exactdn_domain_mismatch() {
+	global $exactdn;
+	if ( ! isset( $exactdn->upload_domain ) ) {
+		return;
+	}
+	?>
+	<div id="ewww-image-optimizer-notice-exactdn-domain-mismatch" class="notice notice-warning">
+		<p>
+	<?php
+			printf(
+				/* translators: 1: old domain name, 2: current domain name */
+				esc_html__( 'Easy IO detected that the Site URL has changed since the initial activation (previously %1$s, currently %2$s).', 'ewww-image-optimizer' ),
+				'<strong>' . esc_html( ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn_local_domain' ) ) . '</strong>',
+				'<strong>' . esc_html( $exactdn->upload_domain ) . '</strong>'
+			);
+	?>
+			<br>
+		<?php
+		printf(
+			/* translators: %s: settings page */
+			esc_html__( 'Please visit the %s to refresh the Easy IO settings and verify activation status.', 'ewww-image-optimizer' ),
+			'<a href="' . esc_url( ewww_image_optimizer_get_settings_link() ) . '">' . esc_html__( 'settings page', 'ewww-image-optimizer' ) . '</a>'
+		);
+		?>
+		</p>
+	</div>
+	<?php
+}
+
+/**
+ * Let the user know they need to disable the WP Offload Media CNAME.
+ */
+function ewww_image_optimizer_notice_exactdn_as3cf_cname_active() {
+	?>
+	<div id="ewww-image-optimizer-notice-exactdn-as3cf-cname-active" class="notice notice-error">
+		<p>
+			<?php esc_html_e( 'Easy IO cannot optimize your images while using a custom domain (CNAME) in WP Offload Media. Please disable the custom domain in the WP Offload Media settings.', 'ewww-image-optimizer' ); ?>
+		</p>
+	</div>
+	<?php
+}
+
+/**
+ * Inform the user that we disabled SP AIO to prevent conflicts with ExactDN.
+ */
+function ewww_image_optimizer_notice_exactdn_sp_conflict() {
+	echo "<div id='ewww-image-optimizer-exactdn-sp' class='notice notice-warning'><p>" . esc_html__( 'ShortPixel image optimization has been disabled to prevent conflicts with Easy IO (EWWW Image Optimizer).', 'ewww-image-optimizer' ) . '</p></div>';
+}
+
+/**
+ * Display a notice that PHP version 5.5 support is going away.
+ */
+function ewww_image_optimizer_php55_warning() {
+	echo '<div id="ewww-image-optimizer-notice-php55" class="notice notice-info"><p><a href="https://docs.ewww.io/article/55-upgrading-php" target="_blank" data-beacon-article="5ab2baa6042863478ea7c2ae">' . esc_html__( 'The next major release of EWWW Image Optimizer will require PHP 5.6 or greater. Newer versions of PHP, like 7.1 and 7.2, are significantly faster and much more secure. If you are unsure how to upgrade to a supported version, ask your webhost for instructions.', 'ewww-image-optimizer' ) . '</a></p></div>';
 }
 
 /**
  * Lets the user know their network settings have been saved.
  */
 function ewww_image_optimizer_network_settings_saved() {
-	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	echo "<div id='ewww-image-optimizer-settings-saved' class='updated fade'><p><strong>" . esc_html__( 'Settings saved', 'ewww-image-optimizer' ) . '.</strong></p></div>';
+	echo "<div id='ewww-image-optimizer-settings-saved' class='notice notice-success updated fade'><p><strong>" . esc_html__( 'Settings saved', 'ewww-image-optimizer' ) . '.</strong></p></div>';
+}
+
+/**
+ * Warn the user that scheduled optimization will no longer work without background/async mode.
+ */
+function ewww_image_optimizer_notice_schedule_noasync() {
+	global $ewwwio_upgrading;
+	if ( $ewwwio_upgrading ) {
+		return;
+	}
+	echo "<div id='ewww-image-optimizer-schedule-noasync' class='notice notice-warning'><p>" . esc_html__( 'Scheduled Optimization will not work without background/async ability. See the EWWW Image Optimizer Settings for further instructions.', 'ewww-image-optimizer' ) . '</p></div>';
+}
+
+/**
+ * Informs the user about optimization during thumbnail regeneration.
+ */
+function ewww_image_optimizer_thumbnail_regen_notice() {
+	echo "<div id='ewww-image-optimizer-thumb-regen-notice' class='notice notice-info is-dismissible'><p><strong>" . esc_html__( 'New thumbnails will be optimized by the EWWW Image Optimizer as they are generated. You may wish to disable the plugin and run a bulk optimize later to speed up the process.', 'ewww-image-optimizer' ) . '</strong>';
+	echo '&nbsp;<a href="https://docs.ewww.io/article/49-regenerate-thumbnails" target="_blank" data-beacon-article="5a0f84ed2c7d3a272c0dc801">' . esc_html__( 'Learn more.', 'ewww-image-optimizer' ) . '</a></p></div>';
+}
+
+/**
+ * Lets the user know WooCommerce has regenerated thumbnails and that they need to take action.
+ */
+function ewww_image_optimizer_notice_wc_regen() {
+	echo "<div id='ewww-image-optimizer-wc-regen' class='notice notice-info is-dismissible'><p>" . esc_html__( 'EWWW Image Optimizer has detected a WooCommerce thumbnail regeneration. To optimize new thumbnails, you may run the Bulk Optimizer from the Media menu. This notice may be dismissed after the regeneration is complete.', 'ewww-image-optimizer' ) . '</p></div>';
+}
+
+/**
+ * Loads the inline script to dismiss the WC regen notice.
+ */
+function ewww_image_optimizer_wc_regen_script() {
+	echo
+		"<script>\n" .
+		"jQuery(document).on('click', '#ewww-image-optimizer-wc-regen .notice-dismiss', function() {\n" .
+		"\tvar ewww_dismiss_wc_regen_data = {\n" .
+		"\t\taction: 'ewww_dismiss_wc_regen',\n" .
+		"\t};\n" .
+		"\tjQuery.post(ajaxurl, ewww_dismiss_wc_regen_data, function(response) {\n" .
+		"\t\tif (response) {\n" .
+		"\t\t\tconsole.log(response);\n" .
+		"\t\t}\n" .
+		"\t});\n" .
+		"});\n" .
+		"</script>\n";
+}
+
+/**
+ * Lets the user know LR Sync has regenerated thumbnails and that they need to take action.
+ */
+function ewww_image_optimizer_notice_lr_sync() {
+	echo "<div id='ewww-image-optimizer-lr-sync' class='notice notice-info is-dismissible'><p>" . esc_html__( 'EWWW Image Optimizer has detected a WP/LR Sync process. To optimize new thumbnails, you may run the Bulk Optimizer from the Media menu. This notice may be dismissed after the Sync process is complete.', 'ewww-image-optimizer' ) . '</p></div>';
+}
+
+/**
+ * Loads the inline script to dismiss the LR sync notice.
+ */
+function ewww_image_optimizer_lr_sync_script() {
+	echo
+		"<script>\n" .
+		"jQuery(document).on('click', '#ewww-image-optimizer-lr-sync .notice-dismiss', function() {\n" .
+		"\tvar ewww_dismiss_lr_sync_data = {\n" .
+		"\t\taction: 'ewww_dismiss_lr_sync',\n" .
+		"\t};\n" .
+		"\tjQuery.post(ajaxurl, ewww_dismiss_lr_sync_data, function(response) {\n" .
+		"\t\tif (response) {\n" .
+		"\t\t\tconsole.log(response);\n" .
+		"\t\t}\n" .
+		"\t});\n" .
+		"});\n" .
+		"</script>\n";
+}
+
+/**
+ * Let the user know they can view more options and stats in the Media Library's list mode.
+ */
+function ewww_image_optimizer_notice_media_listmode() {
+	$current_screen = get_current_screen();
+	if ( 'upload' === $current_screen->id && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_dismiss_media_notice' ) ) {
+		$user_info = wp_get_current_user();
+		if ( ! empty( $user_info->wp_media_library_mode ) && 'list' === $user_info->wp_media_library_mode ) {
+			update_option( 'ewww_image_optimizer_dismiss_media_notice', true, false );
+			update_site_option( 'ewww_image_optimizer_dismiss_media_notice', true );
+			return;
+		}
+		?>
+		<div id='ewww-image-optimizer-media-listmode' class='notice notice-info is-dismissible'>
+			<p>
+				<?php esc_html_e( 'Change the Media Library to List mode for additional image optimization information and actions.', 'ewww-image-optimizer' ); ?>
+				<?php ewwwio_help_link( 'https://docs.ewww.io/article/62-power-user-options-in-list-mode', '5b61fdd32c7d3a03f89d41c4' ); ?>
+			</p>
+		</div>
+		<?php
+	}
+}
+
+/**
+ * Ask the user to leave a review for the plugin on wp.org.
+ */
+function ewww_image_optimizer_notice_review() {
+	echo "<div id='ewww-image-optimizer-review' class='notice notice-info is-dismissible'><p>" .
+		esc_html__( "Hi, you've been using the EWWW Image Optimizer for a while, and we hope it has been a big help for you.", 'ewww-image-optimizer' ) . '<br>' .
+		esc_html__( 'If you could take a few moments to rate it on WordPress.org, we would really appreciate your help making the plugin better. Thanks!', 'ewww-image-optimizer' ) .
+		'<br><a target="_blank" href="https://wordpress.org/support/plugin/ewww-image-optimizer/reviews/#new-post" class="button-secondary">' . esc_html__( 'Post Review', 'ewww-image-optimizer' ) . '</a>' .
+		'</p></div>';
+}
+
+/**
+ * Loads the inline script to dismiss the review notice.
+ */
+function ewww_image_optimizer_notice_review_script() {
+	echo
+		"<script>\n" .
+		"jQuery(document).on('click', '#ewww-image-optimizer-review .notice-dismiss', function() {\n" .
+		"\tvar ewww_dismiss_review_data = {\n" .
+		"\t\taction: 'ewww_dismiss_review_notice',\n" .
+		"\t};\n" .
+		"\tjQuery.post(ajaxurl, ewww_dismiss_review_data, function(response) {\n" .
+		"\t\tif (response) {\n" .
+		"\t\t\tconsole.log(response);\n" .
+		"\t\t}\n" .
+		"\t});\n" .
+		"});\n" .
+		"</script>\n";
+}
+
+/**
+ * Inform the user of our beacon function so that they can opt-in.
+ */
+function ewww_image_optimizer_notice_beacon() {
+	$optin_url  = admin_url( 'admin.php?action=eio_opt_into_hs_beacon' );
+	$optout_url = admin_url( 'admin.php?action=eio_opt_out_of_hs_beacon' );
+	echo '<div id="ewww-image-optimizer-hs-beacon" class="notice notice-info"><p>' .
+		esc_html__( 'Enable the EWWW I.O. support beacon, which gives you access to documentation and our support team right from your WordPress dashboard. To assist you more efficiently, we collect the current url, IP address, browser/device information, and debugging information.', 'ewww-image-optimizer' ) .
+		'<br><a href="' . esc_url( $optin_url ) . '" class="button-secondary">' . esc_html__( 'Allow', 'ewww-image-optimizer' ) . '</a>' .
+		'&nbsp;<a href="' . esc_url( $optout_url ) . '" class="button-secondary">' . esc_html__( 'Do not allow', 'ewww-image-optimizer' ) . '</a>' .
+		'</p></div>';
 }
 
 /**
@@ -1623,7 +2200,7 @@ function ewww_image_optimizer_network_settings_saved() {
  */
 function ewww_image_optimizer_notice_reoptimization() {
 	// Allows the user to reset all images back to 1 optimization, which clears the alert.
-	if ( ! empty( $_GET['ewww_reset_reopt_nonce'] ) && wp_verify_nonce( $_GET['ewww_reset_reopt_nonce'], 'reset_reoptimization_counters' ) ) {
+	if ( ! empty( $_GET['ewww_reset_reopt_nonce'] ) && wp_verify_nonce( sanitize_key( $_GET['ewww_reset_reopt_nonce'] ), 'reset_reoptimization_counters' ) ) {
 		global $wpdb;
 		$debug_images = $wpdb->query( "UPDATE $wpdb->ewwwio_images SET updates=1 WHERE updates > 1" );
 		delete_transient( 'ewww_image_optimizer_images_reoptimized' );
@@ -1631,27 +2208,27 @@ function ewww_image_optimizer_notice_reoptimization() {
 		$reoptimized = get_transient( 'ewww_image_optimizer_images_reoptimized' );
 		if ( empty( $reoptimized ) ) {
 			global $wpdb;
-			$reoptimized = $wpdb->get_var( "SELECT COUNT(*) FROM $wpdb->ewwwio_images WHERE updates > 10 AND path NOT LIKE '%wp-content/themes%' AND path NOT LIKE '%wp-content/plugins%'  LIMIT 10" );
+			$reoptimized = $wpdb->get_var( "SELECT COUNT(*) FROM $wpdb->ewwwio_images WHERE updates > 5 AND path NOT LIKE '%wp-content/themes%' AND path NOT LIKE '%wp-content/plugins%'  LIMIT 10" );
 			if ( empty( $reoptimized ) ) {
-				set_transient( 'ewww_image_optimizer_images_reoptimized', 'zero', HOUR_IN_SECONDS );
+				set_transient( 'ewww_image_optimizer_images_reoptimized', 'zero', 12 * HOUR_IN_SECONDS );
 			} else {
-				set_transient( 'ewww_image_optimizer_images_reoptimized', $reoptimized, HOUR_IN_SECONDS );
+				set_transient( 'ewww_image_optimizer_images_reoptimized', $reoptimized, 12 * HOUR_IN_SECONDS );
 			}
-		} elseif ( 'zero' == $reoptimized ) {
+		} elseif ( 'zero' === $reoptimized ) {
 			$reoptimized = 0;
 		}
 		// Do a check for 10+ optimizations on 5+ images.
 		if ( ! empty( $reoptimized ) && $reoptimized > 5 ) {
-			$debugging_page = admin_url( 'upload.php?page=ewww-image-optimizer-dynamic-debug' );
-			$reset_page = wp_nonce_url( $_SERVER['REQUEST_URI'], 'reset_reoptimization_counters', 'ewww_reset_reopt_nonce' );
+			$debugging_page = admin_url( 'tools.php?page=ewww-image-optimizer-tools' );
+			$reset_page     = wp_nonce_url( add_query_arg( null, null ), 'reset_reoptimization_counters', 'ewww_reset_reopt_nonce' );
 			// Display an alert, and let the user reset the warning if they wish.
 			echo "<div id='ewww-image-optimizer-warning-reoptimizations' class='error'><p>" .
 				sprintf(
-					/* translators: %s: A link to the Dynamic Image Debugging page */
-					esc_html__( 'The EWWW Image Optimizer has detected excessive re-optimization of multiple images. Please turn on the Debugging setting, wait for approximately 12 hours, and then visit the %s page.', 'ewww-image-optimizer' ),
-					"<a href='$debugging_page'>" . esc_html__( 'Dynamic Image Debugging', 'ewww-image-optimizer' ) . '</a>'
+					/* translators: %s: A link to the EWWW IO Tools page */
+					esc_html__( 'The EWWW Image Optimizer has detected excessive re-optimization of multiple images. Please use the %s page to Show Re-Optimized Images.', 'ewww-image-optimizer' ),
+					"<a href='" . esc_url( $debugging_page ) . "'>" . esc_html__( 'Tools', 'ewww-image-optimizer' ) . '</a>'
 				) .
-				" <a href='$reset_page'>" . esc_html__( 'Reset Counters' ) . '</a></p></div>';
+				" <a href='" . esc_url( $reset_page ) . "'>" . esc_html__( 'Reset Counters' ) . '</a></p></div>';
 		}
 	}
 }
@@ -1664,22 +2241,31 @@ function ewww_image_optimizer_notice_reoptimization() {
  */
 function ewww_image_optimizer_load_editor( $editors ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	if ( ! class_exists( 'EWWWIO_GD_Editor' ) && ! class_exists( 'EWWWIO_Imagick_Editor' ) ) {
-		require_once( plugin_dir_path( __FILE__ ) . '/classes/class-ewwwio-gd-editor.php' );
-		require_once( plugin_dir_path( __FILE__ ) . '/classes/class-ewwwio-imagick-editor.php' );
-		require_once( plugin_dir_path( __FILE__ ) . '/classes/class-ewwwio-gmagick-editor.php' );
+	if ( class_exists( 'S3_Uploads_Image_Editor_Imagick' ) ) {
+		return $editors;
 	}
-	if ( ! in_array( 'EWWWIO_GD_Editor', $editors ) ) {
+	if ( ! class_exists( 'EWWWIO_GD_Editor' ) && ! class_exists( 'EWWWIO_Imagick_Editor' ) ) {
+		if ( class_exists( 'WP_Image_Editor_GD' ) ) {
+			require_once( plugin_dir_path( __FILE__ ) . '/classes/class-ewwwio-gd-editor.php' );
+		}
+		if ( class_exists( 'WP_Image_Editor_Imagick' ) ) {
+			require_once( plugin_dir_path( __FILE__ ) . '/classes/class-ewwwio-imagick-editor.php' );
+		}
+		if ( class_exists( 'WP_Image_Editor_Gmagick' ) ) {
+			require_once( plugin_dir_path( __FILE__ ) . '/classes/class-ewwwio-gmagick-editor.php' );
+		}
+	}
+	if ( ! in_array( 'EWWWIO_GD_Editor', $editors, true ) ) {
 		array_unshift( $editors, 'EWWWIO_GD_Editor' );
 	}
-	if ( ! in_array( 'EWWWIO_Imagick_Editor', $editors ) ) {
+	if ( ! in_array( 'EWWWIO_Imagick_Editor', $editors, true ) ) {
 		array_unshift( $editors, 'EWWWIO_Imagick_Editor' );
 	}
-	if ( ! in_array( 'EWWWIO_Gmagick_Editor', $editors ) && class_exists( 'WP_Image_Editor_Gmagick' ) ) {
+	if ( ! in_array( 'EWWWIO_Gmagick_Editor', $editors, true ) && class_exists( 'WP_Image_Editor_Gmagick' ) ) {
 		array_unshift( $editors, 'EWWWIO_Gmagick_Editor' );
 	}
-	if ( ewww_image_optimizer_function_exists( 'print_r' ) ) {
-		ewwwio_debug_message( 'loading image editors: ' . print_r( $editors, true ) );
+	if ( is_array( $editors ) ) {
+		ewwwio_debug_message( 'loading image editors: ' . implode( '<br>', $editors ) );
 	}
 	ewwwio_memory( __FUNCTION__ );
 	return $editors;
@@ -1702,8 +2288,11 @@ function ewww_image_optimizer_add_attachment() {
  */
 function ewww_image_optimizer_image_sizes( $sizes ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	remove_filter( 'wp_image_editors', 'ewww_image_optimizer_load_editor', 60 );
+	global $ewww_preempt_editor;
+	$ewww_preempt_editor = true;
+	// This happens right after thumbs and meta are generated.
 	add_filter( 'wp_generate_attachment_metadata', 'ewww_image_optimizer_restore_editor_hooks', 1 );
+	add_filter( 'mpp_generate_metadata', 'ewww_image_optimizer_restore_editor_hooks', 1 );
 	return $sizes;
 }
 
@@ -1717,10 +2306,21 @@ function ewww_image_optimizer_image_sizes( $sizes ) {
  */
 function ewww_image_optimizer_restore_editor_hooks( $metadata = false ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	add_filter( 'wp_image_editors', 'ewww_image_optimizer_load_editor', 60 );
+	if ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_noauto' ) && ( ! defined( 'EWWW_IMAGE_OPTIMIZER_DISABLE_EDITOR' ) || ! EWWW_IMAGE_OPTIMIZER_DISABLE_EDITOR ) ) {
+		global $ewww_preempt_editor;
+		$ewww_preempt_editor = false;
+	}
 	if ( function_exists( 'wr2x_wp_generate_attachment_metadata' ) ) {
 		remove_filter( 'wp_generate_attachment_metadata', 'wr2x_wp_generate_attachment_metadata' );
 		add_filter( 'wp_generate_attachment_metadata', 'ewww_image_optimizer_retina_wrapper' );
+	}
+	if ( class_exists( 'Meow_WR2X_Core' ) ) {
+		global $wr2x_core;
+		if ( is_object( $wr2x_core ) ) {
+			ewwwio_debug_message( 'retina object found' );
+			remove_filter( 'wp_generate_attachment_metadata', array( $wr2x_core, 'wp_generate_attachment_metadata' ) );
+			add_filter( 'wp_generate_attachment_metadata', 'ewww_image_optimizer_retina_wrapper' );
+		}
 	}
 	return $metadata;
 }
@@ -1735,8 +2335,9 @@ function ewww_image_optimizer_restore_editor_hooks( $metadata = false ) {
  */
 function ewww_image_optimizer_editor_save_pre( $image ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	if ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_noauto' ) ) {
-		remove_filter( 'wp_image_editors', 'ewww_image_optimizer_load_editor', 60 );
+	if ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_noauto' ) && ( ! defined( 'EWWW_IMAGE_OPTIMIZER_DISABLE_EDITOR' ) || ! EWWW_IMAGE_OPTIMIZER_DISABLE_EDITOR ) ) {
+		global $ewww_preempt_editor;
+		$ewww_preempt_editor = true;
 		add_filter( 'wp_update_attachment_metadata', 'ewww_image_optimizer_restore_editor_hooks', 1 );
 		add_filter( 'wp_update_attachment_metadata', 'ewww_image_optimizer_resize_from_meta_data', 15, 2 );
 	}
@@ -1754,12 +2355,51 @@ function ewww_image_optimizer_editor_save_pre( $image ) {
  * @return array The unaltered attachment metadata.
  */
 function ewww_image_optimizer_pte_check( $data ) {
-	if ( ! empty( $_GET['pte-action'] ) ) {
-		if ( 'confirm-images' == $_GET['pte-action'] ) {
+	if ( ! empty( $_GET['pte-action'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+		if ( 'confirm-images' === $_GET['pte-action'] ) { // phpcs:ignore WordPress.Security.NonceVerification
 			add_filter( 'wp_update_attachment_metadata', 'ewww_image_optimizer_resize_from_meta_data', 15, 2 );
 		}
 	}
 	return $data;
+}
+
+/**
+ * Updates paths in the database after Media File Rename has run.
+ *
+ * @param array  $post The post information for the image attachment.
+ * @param string $old_filepath The previous filename of the image.
+ * @param string $new_filepath The new filename of the image.
+ */
+function ewww_image_optimizer_path_renamed( $post, $old_filepath, $new_filepath ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	$optimized_query = ewww_image_optimizer_find_already_optimized( $old_filepath );
+	if ( is_array( $optimized_query ) && ! empty( $optimized_query['id'] ) ) {
+		global $wpdb;
+		if ( strpos( $wpdb->charset, 'utf8' ) === false ) {
+			ewww_image_optimizer_db_init();
+			global $ewwwdb;
+		} else {
+			$ewwwdb = $wpdb;
+		}
+		ewwwio_debug_message( "$old_filepath changed to $new_filepath" );
+		// Replace the 'temp' path in the database with the real path.
+		$ewwwdb->update(
+			$ewwwdb->ewwwio_images,
+			array(
+				'path' => ewww_image_optimizer_relativize_path( $new_filepath ),
+			),
+			array(
+				'id' => $optimized_query['id'],
+			)
+		);
+	}
+	// Look for WebP variants and rename them.
+	$old_webp = $old_filepath . '.webp';
+	$new_webp = $new_filepath . '.webp';
+	if ( ewwwio_is_file( $old_webp ) && ! ewwwio_is_file( $new_webp ) ) {
+		ewwwio_debug_message( "renaming $old_webp to $new_webp" );
+		ewwwio_rename( $old_webp, $new_webp );
+	}
 }
 
 /**
@@ -1771,25 +2411,36 @@ function ewww_image_optimizer_pte_check( $data ) {
  * @return array The unaltered metadata.
  */
 function ewww_image_optimizer_retina_wrapper( $meta ) {
-	remove_filter( 'wp_image_editors', 'ewww_image_optimizer_load_editor', 60 );
-	$meta = wr2x_wp_generate_attachment_metadata( $meta );
-	add_filter( 'wp_image_editors', 'ewww_image_optimizer_load_editor', 60 );
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_noauto' ) || ( defined( 'EWWW_IMAGE_OPTIMIZER_DISABLE_EDITOR' ) && EWWW_IMAGE_OPTIMIZER_DISABLE_EDITOR ) ) {
+		return $meta;
+	}
+	global $ewww_preempt_editor;
+	$ewww_preempt_editor = true;
+	if ( class_exists( 'Meow_WR2X_Core' ) ) {
+		global $wr2x_core;
+		if ( is_object( $wr2x_core ) ) {
+			$meta = $wr2x_core->wp_generate_attachment_metadata( $meta );
+		}
+	} else {
+		$meta = wr2x_wp_generate_attachment_metadata( $meta );
+	}
+	$ewww_preempt_editor = false;
 	return $meta;
 }
 
 /**
- * Filters image sizes generated by Wordpress, themes, and plugins allowing users to disable sizes.
+ * Filters image sizes generated by WordPress, themes, and plugins allowing users to disable sizes.
  *
  * @param array $sizes A list of sizes to be generated.
  * @return array A list of sizes, minus any the user wants disabled.
  */
 function ewww_image_optimizer_image_sizes_advanced( $sizes ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	$disabled_sizes = get_option( 'ewww_image_optimizer_disable_resizes' );
-	$flipped = false;
+	$disabled_sizes = ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_resizes', false, true );
+	$flipped        = false;
 	if ( ! empty( $disabled_sizes ) ) {
 		if ( ! empty( $sizes[0] ) ) {
-			$sizes = array_flip( $sizes );
+			$sizes   = array_flip( $sizes );
 			$flipped = true;
 		}
 		if ( ewww_image_optimizer_function_exists( 'print_r' ) ) {
@@ -1818,8 +2469,8 @@ function ewww_image_optimizer_image_sizes_advanced( $sizes ) {
  */
 function ewww_image_optimizer_fallback_sizes( $sizes ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	$disabled_sizes = get_option( 'ewww_image_optimizer_disable_resizes' );
-	$flipped = false;
+	$disabled_sizes = ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_resizes', false, true );
+	$flipped        = false;
 	if ( ! empty( $disabled_sizes ) ) {
 		if ( ewww_image_optimizer_function_exists( 'print_r' ) ) {
 			ewwwio_debug_message( print_r( $sizes, true ) );
@@ -1840,6 +2491,18 @@ function ewww_image_optimizer_fallback_sizes( $sizes ) {
 }
 
 /**
+ * Wrapper around the upload handler for MediaPress.
+ *
+ * @param array $params Parameters related to the file being uploaded.
+ * @return array The unaltered parameters, we only need to pass them on.
+ */
+function ewww_image_optimizer_handle_mpp_upload( $params ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	add_filter( 'mpp_intermediate_image_sizes', 'ewww_image_optimizer_image_sizes', 200 );
+	return ewww_image_optimizer_handle_upload( $params );
+}
+
+/**
  * During an upload, handles resizing, auto-rotation, and sets the 'new_image' global.
  *
  * @global bool $ewww_new_image True if there is a new image being uploaded.
@@ -1849,18 +2512,95 @@ function ewww_image_optimizer_fallback_sizes( $sizes ) {
  */
 function ewww_image_optimizer_handle_upload( $params ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	if ( ewww_image_optimizer_function_exists( 'print_r' ) ) {
+		ewwwio_debug_message( print_r( $params, true ) );
+	}
 	global $ewww_new_image;
 	$ewww_new_image = true;
 	if ( empty( $params['file'] ) ) {
+		if ( ! empty( $params['tmp_name'] ) ) {
+			$file_path = $params['tmp_name'];
+		} else {
+			return $params;
+		}
+	} else {
+		$file_path = $params['file'];
+	}
+	if ( ! ewwwio_is_file( $file_path ) || ! filesize( $file_path ) ) {
+		clearstatcache();
 		return $params;
 	}
-	ewww_image_optimizer_autorotate( $params['file'] );
-	// NOTE: if you use the ewww_image_optimizer_defer_resizing filter to defer the resize operation, only the "other" dimensions will apply
-	// resize here unless the user chose to defer resizing or imsanity is enabled with a max size.
+
+	$orig_size = ewww_image_optimizer_filesize( $file_path );
+
+	ewww_image_optimizer_autorotate( $file_path );
+	$new_image = ewww_image_optimizer_autoconvert( $file_path );
+	if ( $new_image ) {
+		if ( ! empty( $params['tmp_name'] ) && $params['tmp_name'] === $file_path ) {
+			$params['tmp_name'] = $new_image;
+		}
+		if ( ! empty( $params['file'] ) && $params['file'] === $file_path ) {
+			$params['file'] = $new_image;
+		}
+		if ( ! empty( $params['url'] ) && basename( $file_path ) === basename( $params['url'] ) ) {
+			$params['url'] = trailingslashit( dirname( $params['url'] ) ) . basename( $new_image );
+		}
+		$params['type'] = ewww_image_optimizer_mimetype( $new_image, 'i' );
+		if ( ewwwio_is_file( $file_path ) ) {
+			unlink( $file_path );
+		}
+		$file_path = $new_image;
+	}
+	// Resize here unless the user chose to defer resizing or imsanity is enabled with a max size.
 	if ( ! apply_filters( 'ewww_image_optimizer_defer_resizing', false ) && ! function_exists( 'imsanity_get_max_width_height' ) ) {
-		$file_path = $params['file'];
-		if ( ( ! is_wp_error( $params ) ) && is_file( $file_path ) && in_array( $params['type'], array( 'image/png', 'image/gif', 'image/jpeg' ) ) ) {
+		if ( empty( $params['type'] ) ) {
+			$mime_type = ewww_image_optimizer_mimetype( $file_path, 'i' );
+		} else {
+			$mime_type = $params['type'];
+		}
+		if ( ( ! is_wp_error( $params ) ) && ewwwio_is_file( $file_path ) && in_array( $mime_type, array( 'image/png', 'image/gif', 'image/jpeg' ), true ) ) {
 			ewww_image_optimizer_resize_upload( $file_path );
+		}
+	}
+	clearstatcache();
+	if ( ! empty( $orig_size ) && $orig_size > ewww_image_optimizer_filesize( $file_path ) ) {
+		ewwwio_debug_message( "stashing $orig_size for $file_path" );
+		global $wpdb;
+		if ( strpos( $wpdb->charset, 'utf8' ) === false ) {
+			ewww_image_optimizer_db_init();
+			global $ewwwdb;
+		} else {
+			$ewwwdb = $wpdb;
+		}
+		$already_optimized = ewww_image_optimizer_find_already_optimized( $file_path );
+		if ( empty( $already_optimized ) ) {
+			// If the file didn't already get optimized (and it shouldn't), then just insert a dummy record to be updated shortly.
+			ewwwio_debug_message( 'creating new record' );
+			$dbinserted = $ewwwdb->insert(
+				$ewwwdb->ewwwio_images,
+				array(
+					'path'      => ewww_image_optimizer_relativize_path( $file_path ),
+					'orig_size' => $orig_size,
+				)
+			);
+			if ( $dbinserted ) {
+				ewwwio_debug_message( 'insert success' );
+			}
+		} else {
+			// Update the existing record.
+			ewwwio_debug_message( 'updating existing record' );
+			$dbupdated = $ewwwdb->update(
+				$ewwwdb->ewwwio_images,
+				array(
+					'orig_size' => $orig_size,
+				),
+				array(
+					'path' => ewww_image_optimizer_relativize_path( $file_path ),
+				)
+			);
+			if ( $dbupdated ) {
+				ewwwio_debug_message( 'update success' );
+			}
 		}
 	}
 	return $params;
@@ -1870,10 +2610,10 @@ function ewww_image_optimizer_handle_upload( $params ) {
  * Makes sure W3TC uploads all modified files to any configured CDNs.
  *
  * @global array $ewww_attachment {
- *	Stores the ID and meta for later use with W3TC.
+ *     Stores the ID and meta for later use with W3TC.
  *
- *	@int int $id The attachment ID number.
- *	@array array $meta The attachment metadata from the postmeta table.
+ *     @type int $id The attachment ID number.
+ *     @type array $meta The attachment metadata from the postmeta table.
  * }
  *
  * @param array $files Files being updated by W3TC.
@@ -1882,22 +2622,22 @@ function ewww_image_optimizer_handle_upload( $params ) {
 function ewww_image_optimizer_w3tc_update_files( $files ) {
 	global $ewww_attachment;
 	list( $file, $upload_path ) = ewww_image_optimizer_attachment_path( $ewww_attachment['meta'], $ewww_attachment['id'] );
-	$file_info = array();
 	if ( function_exists( 'w3_upload_info' ) ) {
 		$upload_info = w3_upload_info();
 	} else {
 		$upload_info = ewww_image_optimizer_upload_info();
 	}
+	$file_info = array();
 	if ( $upload_info ) {
-		$remote_file = ltrim( $upload_info['baseurlpath'] . $ewww_attachment['meta']['file'], '/' );
-		$home_url = get_site_url();
+		$remote_file  = ltrim( $upload_info['baseurlpath'] . $ewww_attachment['meta']['file'], '/' );
+		$home_url     = get_site_url();
 		$original_url = $home_url . $file;
-		$file_info[] = array(
-			'local_path' => $file,
-			'remote_path' => $remote_file,
+		$file_info[]  = array(
+			'local_path'   => $file,
+			'remote_path'  => $remote_file,
 			'original_url' => $original_url,
 		);
-		$files = array_merge( $files, $file_info );
+		$files        = array_merge( $files, $file_info );
 	}
 	return $files;
 }
@@ -1908,12 +2648,10 @@ function ewww_image_optimizer_w3tc_update_files( $files ) {
  * @return array|bool Information about the uploads dir, or false on failure.
  */
 function ewww_image_optimizer_upload_info() {
-	$upload_info = @wp_upload_dir( null, false );
+	$upload_info = wp_get_upload_dir();
 
 	if ( empty( $upload_info['error'] ) ) {
-		// Errors silenced because of PHP < 5.3.3, yuck.
-		$parse_url = @parse_url( $upload_info['baseurl'] );
-
+		$parse_url = parse_url( $upload_info['baseurl'] );
 		if ( $parse_url ) {
 			$baseurlpath = ( ! empty( $parse_url['path'] ) ? trim( $parse_url['path'], '/' ) : '' );
 		} else {
@@ -1944,17 +2682,31 @@ function ewww_image_optimizer_auto() {
 		ewww_image_optimizer_debug_log();
 		return;
 	}
+	if ( ! class_exists( 'WP_Background_Process' ) ) {
+		require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'background.php' );
+	}
 	global $ewww_defer;
 	$ewww_defer = false;
 	require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'bulk.php' );
 	require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'aux-optimize.php' );
-	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_auto' ) == true ) {
+	global $ewwwio_image_background;
+	if ( $ewwwio_image_background->is_process_running() || $ewwwio_image_background->count_queue() ) {
+		return;
+	}
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_auto' ) ) {
 		ewwwio_debug_message( 'running scheduled optimization' );
+		global $ewwwio_scan_async;
+		$ewwwio_scan_async->data(
+			array(
+				'ewww_scan' => 'scheduled',
+			)
+		)->dispatch();
+		return;
 		ewww_image_optimizer_aux_images_script( 'ewww-image-optimizer-auto' );
 		// Generate our own unique nonce value, because wp_create_nonce() will return the same value for 12-24 hours.
 		$nonce = wp_hash( time() . '|' . 'ewww-image-optimizer-auto' );
 		update_option( 'ewww_image_optimizer_aux_resume', $nonce );
-		$delay = ewww_image_optimizer_get_option( 'ewww_image_optimizer_delay' );
+		$delay = (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_delay' );
 		$count = ewww_image_optimizer_aux_images_table_count_pending();
 		if ( ! empty( $count ) ) {
 			global $wpdb;
@@ -1964,10 +2716,9 @@ function ewww_image_optimizer_auto() {
 			} else {
 				$ewwwdb = $wpdb;
 			}
-			$i = 0;
-			while ( $i < $count &&
-				$attachment = $ewwwdb->get_row( "SELECT id,path FROM $ewwwdb->ewwwio_images WHERE pending=1 LIMIT 1", ARRAY_A )
-			 ) {
+			$i          = 0;
+			$attachment = $ewwwdb->get_row( "SELECT id,path FROM $ewwwdb->ewwwio_images WHERE pending=1 LIMIT 1", ARRAY_A );
+			while ( $i < $count && $attachment ) {
 				// If the nonce has changed since we started, bail out, since that means another aux scan/optimize is running.
 				// Do a direct query using $wpdb, because get_option() is cached.
 				$current_nonce = $wpdb->get_var( "SELECT option_value FROM $wpdb->options WHERE option_name = 'ewww_image_optimizer_aux_resume'" );
@@ -1979,12 +2730,13 @@ function ewww_image_optimizer_auto() {
 					ewwwio_debug_message( "$nonce is fine, compared to $current_nonce" );
 				}
 				if ( ! empty( $attachment['path'] ) ) {
-					$attachment['path'] = ewww_image_optimizer_relative_path_replace( $attachment['path'] );
+					$attachment['path'] = ewww_image_optimizer_absolutize_path( $attachment['path'] );
 				}
 				ewww_image_optimizer_aux_images_loop( $attachment, true );
 				if ( ! empty( $delay ) && ewww_image_optimizer_function_exists( 'sleep' ) ) {
 					sleep( $delay );
 				}
+				$attachment = $ewwwdb->get_row( "SELECT id,path FROM $ewwwdb->ewwwio_images WHERE pending=1 LIMIT 1", ARRAY_A );
 				ewww_image_optimizer_debug_log();
 				$i++;
 			}
@@ -1993,6 +2745,24 @@ function ewww_image_optimizer_auto() {
 	} // End if().
 	ewwwio_memory( __FUNCTION__ );
 	return;
+}
+
+/**
+ * Simulates regenerating a resize for an attachment.
+ */
+function ewww_image_optimizer_resize_dup_check() {
+	$meta = wp_get_attachment_metadata( 34 );
+
+	list( $file, $upload_path ) = ewww_image_optimizer_attachment_path( $meta, 34 );
+
+	$editor        = wp_get_image_editor( $file );
+	$resized_image = $editor->resize( 150, 150, true );
+	$new_file      = $editor->generate_filename();
+	echo esc_html( $new_file );
+	if ( ewwwio_is_file( $new_file ) ) {
+		echo '<br>file already exists<br>';
+	}
+	$saved = $editor->save( $new_file );
 }
 
 /**
@@ -2006,6 +2776,10 @@ function ewww_image_optimizer_network_deactivate( $network_wide ) {
 	global $wpdb;
 	wp_clear_scheduled_hook( 'ewww_image_optimizer_auto' );
 	wp_clear_scheduled_hook( 'ewww_image_optimizer_defer' );
+	// Un-configure Autoptimize CDN domain.
+	if ( defined( 'AUTOPTIMIZE_PLUGIN_DIR' ) && strpos( ewww_image_optimizer_get_option( 'autoptimize_cdn_url' ), 'exactdn' ) ) {
+		ewww_image_optimizer_set_option( 'autoptimize_cdn_url', '' );
+	}
 	if ( $network_wide ) {
 		$blogs = $wpdb->get_results( $wpdb->prepare( "SELECT blog_id FROM $wpdb->blogs WHERE site_id = %d", $wpdb->siteid ), ARRAY_A );
 		if ( ewww_image_optimizer_iterable( $blogs ) ) {
@@ -2013,17 +2787,14 @@ function ewww_image_optimizer_network_deactivate( $network_wide ) {
 				switch_to_blog( $blog['blog_id'] );
 				wp_clear_scheduled_hook( 'ewww_image_optimizer_auto' );
 				wp_clear_scheduled_hook( 'ewww_image_optimizer_defer' );
+				// Un-configure Autoptimize CDN domain.
+				if ( defined( 'AUTOPTIMIZE_PLUGIN_DIR' ) && strpos( ewww_image_optimizer_get_option( 'autoptimize_cdn_url' ), 'exactdn' ) ) {
+					ewww_image_optimizer_set_option( 'autoptimize_cdn_url', '' );
+				}
 				restore_current_blog();
 			}
 		}
 	}
-}
-
-/**
- * Removes rules from .htaccess file added by EWWW for WebP rewriting.
- */
-function ewww_image_optimizer_uninstall() {
-	insert_with_markers( ewww_image_optimizer_htaccess_path(), 'EWWWIO', '' );
 }
 
 /**
@@ -2035,78 +2806,66 @@ function ewww_image_optimizer_network_admin_menu() {
 		require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 	}
 	if ( is_multisite() && is_plugin_active_for_network( EWWW_IMAGE_OPTIMIZER_PLUGIN_FILE_REL ) ) {
-		// Add options page to the settings menu.
 		$permissions = apply_filters( 'ewww_image_optimizer_superadmin_permissions', '' );
+		// Add options page to the settings menu.
 		$ewww_network_options_page = add_submenu_page(
-			'settings.php',				// Slug of parent
-			'EWWW Image Optimizer',			// Page Title
-			'EWWW Image Optimizer',			// Menu title
-			$permissions,				// Capability
-			EWWW_IMAGE_OPTIMIZER_PLUGIN_FILE,	// Slug
-			'ewww_image_optimizer_network_options'		// Function to call.
+			'settings.php',                        // Slug of parent.
+			'EWWW Image Optimizer',                // Page Title.
+			'EWWW Image Optimizer',                // Menu title.
+			$permissions,                          // Capability.
+			'ewww-image-optimizer-options',        // Slug.
+			'ewww_image_optimizer_network_options' // Function to call.
 		);
 	}
-}
-
-/**
- * Simulates regenerating a resize for an attachment.
- */
-function ewww_image_optimizer_resize_dup_check() {
-	$meta = wp_get_attachment_metadata( 34 );
-	list( $file, $upload_path ) = ewww_image_optimizer_attachment_path( $meta, 34 );
-	$editor = wp_get_image_editor( $file );
-	$resized_image = $editor->resize( 150, 150, true );
-	$new_file = $editor->generate_filename();
-	echo $new_file;
-	if ( is_file( $new_file ) ) {
-		echo '<br>file already exists<br>';
-	}
-	$saved = $editor->save( $new_file );
 }
 
 /**
  * Adds various items to the admin menu.
  */
 function ewww_image_optimizer_admin_menu() {
-	$permissions = apply_filters( 'ewww_image_optimizer_bulk_permissions', '' );
 	// Adds bulk optimize to the media library menu.
-	$ewww_bulk_page = add_media_page( esc_html__( 'Bulk Optimize', 'ewww-image-optimizer' ), esc_html__( 'Bulk Optimize', 'ewww-image-optimizer' ), $permissions, 'ewww-image-optimizer-bulk', 'ewww_image_optimizer_bulk_preview' );
-	// TEST TODO: move this to a unit test or something!
-	/* add_media_page( esc_html__( 'Resize checker', 'ewww-image-optimizer' ), esc_html__( 'Duplicate Resize Check', 'ewww-image-optimizer' ), $permissions, 'ewww-image-optimizer-resize-dup-check', 'ewww_image_optimizer_resize_dup_check' ); */
-	$ewww_webp_migrate_page = add_submenu_page( null, esc_html__( 'Migrate WebP Images', 'ewww-image-optimizer' ), esc_html__( 'Migrate WebP Images', 'ewww-image-optimizer' ), $permissions, 'ewww-image-optimizer-webp-migrate', 'ewww_image_optimizer_webp_migrate_preview' );
+	$permissions = apply_filters( 'ewww_image_optimizer_bulk_permissions', '' );
+	if (
+		! ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn' ) ||
+		ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ||
+		! ewww_image_optimizer_exec_check()
+	) {
+		add_media_page( esc_html__( 'Bulk Optimize', 'ewww-image-optimizer' ), esc_html__( 'Bulk Optimize', 'ewww-image-optimizer' ), $permissions, 'ewww-image-optimizer-bulk', 'ewww_image_optimizer_bulk_preview' );
+		// Adds Bulk Optimize to the media library bulk actions.
+		add_filter( 'bulk_actions-upload', 'ewww_image_optimizer_add_bulk_media_actions' );
+	}
+	add_submenu_page( null, esc_html__( 'Migrate WebP Images', 'ewww-image-optimizer' ), esc_html__( 'Migrate WebP Images', 'ewww-image-optimizer' ), $permissions, 'ewww-image-optimizer-webp-migrate', 'ewww_image_optimizer_webp_migrate_preview' );
+
+	// Add tools page.
+	add_management_page(
+		'EWWW Image Optimizer',                                                      // Page title.
+		'EWWW Image Optimizer',                                                      // Menu title.
+		apply_filters( 'ewww_image_optimizer_admin_permissions', 'manage_options' ), // Capability.
+		'ewww-image-optimizer-tools',                                            // Slug.
+		'ewww_image_optimizer_display_tools'                            // Function to call.
+	);
 	if ( ! function_exists( 'is_plugin_active' ) ) {
 		// Need to include the plugin library for the is_plugin_active function.
 		require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 	}
 	if ( ! is_plugin_active_for_network( EWWW_IMAGE_OPTIMIZER_PLUGIN_FILE_REL ) ) {
 		// Add options page to the settings menu.
-		$ewww_options_page = add_options_page(
-			'EWWW Image Optimizer',								// Page title
-			'EWWW Image Optimizer',								// Menu title
-			apply_filters( 'ewww_image_optimizer_admin_permissions', 'manage_options' ),	// Capability
-			EWWW_IMAGE_OPTIMIZER_PLUGIN_FILE,						// Slug
-			'ewww_image_optimizer_options'							// Function to call.
+		add_options_page(
+			'EWWW Image Optimizer',                                                      // Page title.
+			'EWWW Image Optimizer',                                                      // Menu title.
+			apply_filters( 'ewww_image_optimizer_admin_permissions', 'manage_options' ), // Capability.
+			'ewww-image-optimizer-options',                                              // Slug.
+			'ewww_image_optimizer_options'                                               // Function to call.
 		);
 	} else {
 		// Add options page to the single-site settings menu.
-		$ewww_options_page = add_options_page(
-			'EWWW Image Optimizer',								// Page title
-			'EWWW Image Optimizer',								// Menu title
-			apply_filters( 'ewww_image_optimizer_admin_permissions', 'manage_options' ),	// Capability
-			EWWW_IMAGE_OPTIMIZER_PLUGIN_FILE,						// Slug
-			'ewww_image_optimizer_network_singlesite_options'				// Function to call.
+		add_options_page(
+			'EWWW Image Optimizer',                                                      // Page title.
+			'EWWW Image Optimizer',                                                      // Menu title.
+			apply_filters( 'ewww_image_optimizer_admin_permissions', 'manage_options' ), // Capability.
+			'ewww-image-optimizer-options',                                              // Slug.
+			'ewww_image_optimizer_network_singlesite_options'                            // Function to call.
 		);
-	}
-	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_debug' ) ) {
-		// Add Dynamic Image Debugging page for image regeneration issues.
-		add_media_page( esc_html__( 'Dynamic Image Debugging', 'ewww-image-optimizer' ), esc_html__( 'Dynamic Image Debugging', 'ewww-image-optimizer' ), $permissions, 'ewww-image-optimizer-dynamic-debug', 'ewww_image_optimizer_dynamic_image_debug' );
-		// Add Image Queue Debugging to allow clearing and checking queues.
-		add_media_page( esc_html__( 'Image Queue Debugging', 'ewww-image-optimizer' ), esc_html__( 'Image Queue Debugging', 'ewww-image-optimizer' ), $permissions, 'ewww-image-optimizer-queue-debug', 'ewww_image_optimizer_image_queue_debug' );
-	}
-	if ( is_plugin_active( 'image-store/ImStore.php' ) || is_plugin_active_for_network( 'image-store/ImStore.php' ) ) {
-		// Adds an optimize page for Image Store galleries and images.
-		$ims_menu = 'edit.php?post_type=ims_gallery';
-		$ewww_ims_page = add_submenu_page( $ims_menu, esc_html__( 'Image Store Optimize', 'ewww-image-optimizer' ), esc_html__( 'Optimize', 'ewww-image-optimizer' ), 'ims_change_settings', 'ewww-ims-optimize', 'ewww_image_optimizer_ims' );
 	}
 }
 
@@ -2121,34 +2880,35 @@ function ewww_image_optimizer_retina( $id, $retina_path ) {
 	$file_info = pathinfo( $retina_path );
 	$extension = '.' . $file_info['extension'];
 	preg_match( '/-(\d+x\d+)@2x$/', $file_info['filename'], $fileresize );
-	$dimensions = explode( 'x', $fileresize[1] );
+	$dimensions  = explode( 'x', $fileresize[1] );
 	$no_ext_path = $file_info['dirname'] . '/' . preg_replace( '/\d+x\d+@2x$/', '', $file_info['filename'] ) . $dimensions[0] * 2 . 'x' . $dimensions[1] * 2 . '-tmp';
-	$temp_path = $no_ext_path . $extension;
+	$temp_path   = $no_ext_path . $extension;
 	ewwwio_debug_message( "temp path: $temp_path" );
 	// Check for any orphaned webp retina images, and fix their paths.
 	ewwwio_debug_message( "retina path: $retina_path" );
 	$webp_path = $temp_path . '.webp';
 	ewwwio_debug_message( "retina webp path: $webp_path" );
-	if ( is_file( $webp_path ) ) {
-		rename( $webp_path, $retina_path . '.webp' );
+	if ( ewwwio_is_file( $webp_path ) ) {
+		ewwwio_rename( $webp_path, $retina_path . '.webp' );
 	}
 	$opt_size = ewww_image_optimizer_filesize( $retina_path );
 	ewwwio_debug_message( "retina size: $opt_size" );
 	$optimized_query = ewww_image_optimizer_find_already_optimized( $temp_path );
-	if ( is_array( $optimized_query ) && $optimized_query['image_size'] == $opt_size ) {
+	if ( is_array( $optimized_query ) && $optimized_query['image_size'] === $opt_size ) {
 		global $wpdb;
-		if ( strpos( $wpdb->charset, 'utf8' ) === false ) {
+		if ( false === strpos( $wpdb->charset, 'utf8' ) ) {
 			ewww_image_optimizer_db_init();
 			global $ewwwdb;
 		} else {
 			$ewwwdb = $wpdb;
 		}
 		// Replace the 'temp' path in the database with the real path.
-		$ewwwdb->update( $ewwwdb->ewwwio_images,
+		$ewwwdb->update(
+			$ewwwdb->ewwwio_images,
 			array(
-				'path' => ewww_image_optimizer_relative_path_remove( $retina_path ),
+				'path'          => ewww_image_optimizer_relativize_path( $retina_path ),
 				'attachment_id' => $id,
-				'gallery' => 'media',
+				'gallery'       => 'media',
 			),
 			array(
 				'id' => $optimized_query['id'],
@@ -2156,66 +2916,6 @@ function ewww_image_optimizer_retina( $id, $retina_path ) {
 		);
 	}
 	ewwwio_memory( __FUNCTION__ );
-}
-
-/**
- * List IMS images and optimization status.
- *
- * @global object $wpdb
- */
-function ewww_image_optimizer_ims() {
-	global $wpdb;
-	$ims_columns = get_column_headers( 'ims_gallery' );
-	echo "<div class='wrap'><h1>" . esc_html__( 'Image Store Optimization', 'ewww-image-optimizer' ) . '</h1>';
-	if ( empty( $_REQUEST['ewww_gid'] ) ) {
-		$galleries = $wpdb->get_col( "SELECT ID FROM $wpdb->posts WHERE post_type = 'ims_gallery' ORDER BY ID" );
-		if ( ewww_image_optimizer_iterable( $galleries ) ) {
-			$gallery_string = implode( ',', $galleries );
-			echo '<p>' . esc_html__( 'Choose a gallery or', 'ewww-image-optimizer' ) . " <a href='upload.php?page=ewww-image-optimizer-bulk&ids=$gallery_string'>" . esc_html__( 'optimize all galleries', 'ewww-image-optimizer' ) . '</a></p>';
-			echo '<table class="wp-list-table widefat media" cellspacing="0"><thead><tr><th>' . esc_html__( 'Gallery ID', 'ewww-image-optimizer' ) . '</th><th>' . esc_html__( 'Gallery Name', 'ewww-image-optimizer' ) . '</th><th>' . esc_html__( 'Images', 'ewww-image-optimizer' ) . '</th><th>' . esc_html__( 'Image Optimizer', 'ewww-image-optimizer' ) . '</th></tr></thead>';
-			foreach ( $galleries as $gid ) {
-				$image_count = $wpdb->get_var( $wpdb->prepare( "SELECT count(ID) FROM $wpdb->posts WHERE post_type = 'ims_image' AND post_mime_type LIKE '%%image%%' AND post_parent = %d", $gid ) );
-				$gallery_name = get_the_title( $gid );
-				echo "<tr><td>$gid</td>";
-				echo "<td><a href='edit.php?post_type=ims_gallery&page=ewww-ims-optimize&ewww_gid=$gid'>$gallery_name</a></td>";
-				echo "<td>$image_count</td>";
-				echo "<td><a href='upload.php?page=ewww-image-optimizer-bulk&ids=$gid'>" . esc_html__( 'Optimize Gallery', 'ewww-image-optimizer' ) . '</a></td></tr>';
-			}
-			echo '</table>';
-		} else {
-			echo '<p>' . esc_html__( 'No galleries found', 'ewww-image-optimizer' ) . '</p>';
-		}
-	} else {
-		$gid = (int) $_REQUEST['ewww_gid'];
-		$attachments = $wpdb->get_col( $wpdb->prepare( "SELECT ID FROM $wpdb->posts WHERE post_type = 'ims_image' AND post_mime_type LIKE '%%image%%' AND post_parent = %d ORDER BY ID", $gid ) );
-		if ( ewww_image_optimizer_iterable( $attachments ) ) {
-			echo "<p><a href='upload.php?page=ewww-image-optimizer-bulk&ids=$gid'>" . esc_html__( 'Optimize Gallery', 'ewww-image-optimizer' ) . '</a></p>';
-			echo '<table class="wp-list-table widefat media" cellspacing="0"><thead><tr><th>ID</th><th>&nbsp;</th><th>' . esc_html__( 'Title', 'ewww-image-optimizer' ) . '</th><th>' . esc_html__( 'Gallery', 'ewww-image-optimizer' ) . '</th><th>' . esc_html__( 'Image Optimizer', 'ewww-image-optimizer' ) . '</th></tr></thead>';
-			$alternate = true;
-			foreach ( $attachments as $id ) {
-				$meta = get_metadata( 'post', $id );
-				if ( empty( $meta['_wp_attachment_metadata'] ) ) {
-					continue;
-				}
-				$meta = maybe_unserialize( $meta['_wp_attachment_metadata'][0] );
-				$image_name = get_the_title( $id );
-				$gallery_name = get_the_title( $gid );
-				$image_url = esc_url( $meta['sizes']['mini']['url'] );
-?>				<tr<?php if ( $alternate ) { echo " class='alternate'"; } ?>><td><?php echo $id; ?></td>
-<?php				echo "<td style='width:80px' class='column-icon'><img src='$image_url' /></td>";
-				echo "<td class='title'>$image_name</td>";
-				echo "<td>$gallery_name</td><td>";
-				ewww_image_optimizer_custom_column( 'ewww-image-optimizer', $id );
-				echo '</td></tr>';
-				$alternate = ! $alternate;
-			}
-			echo '</table>';
-		} else {
-			echo '<p>' . esc_html__( 'No images found', 'ewww-image-optimizer' ) . '</p>';
-		}
-	} // End if().
-	echo '</div>';
-	return;
 }
 
 /**
@@ -2235,67 +2935,44 @@ function ewww_image_optimizer_myarcade_thumbnail( $url ) {
 }
 
 /**
- * Load full webp script when SCRIPT_DEBUG is enabled.
- */
-function ewww_image_optimizer_webp_debug_script() {
-	if ( ! ewww_image_optimizer_ce_webp_enabled() ) {
-		wp_enqueue_script( 'ewww-webp-load-script', plugins_url( '/includes/load_webp.js', __FILE__ ), array( 'jquery' ), EWWW_IMAGE_OPTIMIZER_VERSION );
-	}
-}
-
-/**
- * Load minified webp script when EWWW_IMAGE_OPTIMIZER_WEBP_EXTERNAL_SCRIPT is set.
- */
-function ewww_image_optimizer_webp_min_script() {
-	if ( ! ewww_image_optimizer_ce_webp_enabled() ) {
-		wp_enqueue_script( 'ewww-webp-load-script', plugins_url( '/includes/load_webp.min.js', __FILE__ ), array( 'jquery' ), EWWW_IMAGE_OPTIMIZER_VERSION );
-	}
-}
-
-/**
- * Enqueue script dependency for alt webp rewriting when running inline.
- */
-function ewww_image_optimizer_webp_load_jquery() {
-	if ( ! ewww_image_optimizer_ce_webp_enabled() ) {
-		wp_enqueue_script( 'jquery' );
-	}
-}
-
-/**
- * Load minified inline version of webp script (from jscompress.com).
- */
-function ewww_image_optimizer_webp_inline_script() {
-	if ( ! ewww_image_optimizer_ce_webp_enabled() ) {
-?>
-<script>
-function check_webp_feature(a,b){var c={alpha:"UklGRkoAAABXRUJQVlA4WAoAAAAQAAAAAAAAAAAAQUxQSAwAAAARBxAR/Q9ERP8DAABWUDggGAAAABQBAJ0BKgEAAQAAAP4AAA3AAP7mtQAAAA==",animation:"UklGRlIAAABXRUJQVlA4WAoAAAASAAAAAAAAAAAAQU5JTQYAAAD/////AABBTk1GJgAAAAAAAAAAAAAAAAAAAGQAAABWUDhMDQAAAC8AAAAQBxAREYiI/gcA"},d=!1,e=new Image;e.onload=function(){var a=e.width>0&&e.height>0;d=!0,b(a)},e.onerror=function(){d=!1,b(!1)},e.src="data:image/webp;base64,"+c[a]}function ewww_load_images(a){jQuery(document).arrive(".ewww_webp",function(){ewww_load_images(a)}),function(b){function d(a,d){for(var e=["align","alt","border","crossorigin","height","hspace","ismap","longdesc","usemap","vspace","width","accesskey","class","contenteditable","contextmenu","dir","draggable","dropzone","hidden","id","lang","spellcheck","style","tabindex","title","translate","sizes","data-attachment-id","data-permalink","data-orig-size","data-comments-opened","data-image-meta","data-image-title","data-image-description"],f=0,g=e.length;f<g;f++){var h=b(a).attr(c+e[f]);void 0!==h&&!1!==h&&b(d).attr(e[f],h)}return d}var c="data-";a&&(b(".batch-image img, .image-wrapper a, .ngg-pro-masonry-item a").each(function(){var a=b(this).attr("data-webp");void 0!==a&&!1!==a&&b(this).attr("data-src",a);var a=b(this).attr("data-webp-thumbnail");void 0!==a&&!1!==a&&b(this).attr("data-thumbnail",a)}),b(".image-wrapper a, .ngg-pro-masonry-item a").each(function(){var a=b(this).attr("data-webp");void 0!==a&&!1!==a&&b(this).attr("href",a)}),b(".rev_slider ul li").each(function(){var a=b(this).attr("data-webp-thumb");void 0!==a&&!1!==a&&b(this).attr("data-thumb",a);for(var c=1;c<11;){var a=b(this).attr("data-webp-param"+c);void 0!==a&&!1!==a&&b(this).attr("data-param"+c,a),c++}}),b(".rev_slider img").each(function(){var a=b(this).attr("data-webp-lazyload");void 0!==a&&!1!==a&&b(this).attr("data-lazyload",a)})),b("img.ewww_webp_lazy_retina").each(function(){if(a){var c=b(this).attr("data-srcset-webp");void 0!==c&&!1!==c&&b(this).attr("data-srcset",c)}else{var c=b(this).attr("data-srcset-img");void 0!==c&&!1!==c&&b(this).attr("data-srcset",c)}b(this).removeClass("ewww_webp_lazy_retina")}),b("video").each(function(){if(a){var c=b(this).attr("data-poster-webp");void 0!==c&&!1!==c&&b(this).attr("poster",c)}else{var c=b(this).attr("data-poster-image");void 0!==c&&!1!==c&&b(this).attr("poster",c)}}),b("img.ewww_webp_lazy_load").each(function(){if(a){b(this).attr("data-lazy-src",b(this).attr("data-lazy-webp-src"));var c=b(this).attr("data-srcset-webp");void 0!==c&&!1!==c&&b(this).attr("srcset",c);var c=b(this).attr("data-lazy-srcset-webp");void 0!==c&&!1!==c&&b(this).attr("data-lazy-srcset",c)}else{b(this).attr("data-lazy-src",b(this).attr("data-lazy-img-src"));var c=b(this).attr("data-srcset");void 0!==c&&!1!==c&&b(this).attr("srcset",c);var c=b(this).attr("data-lazy-srcset-img");void 0!==c&&!1!==c&&b(ewww_img).attr("data-lazy-srcset",c)}b(this).removeClass("ewww_webp_lazy_load")}),b(".ewww_webp_lazy_hueman").each(function(){var c=document.createElement("img");if(b(c).attr("src",b(this).attr("data-src")),a){b(c).attr("data-src",b(this).attr("data-webp-src"));var e=b(this).attr("data-srcset-webp");void 0!==e&&!1!==e&&b(c).attr("data-srcset",e)}else{b(c).attr("data-src",b(this).attr("data-img"));var e=b(this).attr("data-srcset-img");void 0!==e&&!1!==e&&b(c).attr("data-srcset",e)}c=d(this,c),b(this).after(c),b(this).removeClass("ewww_webp_lazy_hueman")}),b(".ewww_webp").each(function(){var c=document.createElement("img");if(a){b(c).attr("src",b(this).attr("data-webp"));var e=b(this).attr("data-srcset-webp");void 0!==e&&!1!==e&&b(c).attr("srcset",e);var e=b(this).attr("data-webp-orig-file");void 0!==e&&!1!==e&&b(c).attr("data-orig-file",e);var e=b(this).attr("data-webp-medium-file");void 0!==e&&!1!==e&&b(c).attr("data-medium-file",e);var e=b(this).attr("data-webp-large-file");void 0!==e&&!1!==e&&b(c).attr("data-large-file",e)}else{b(c).attr("src",b(this).attr("data-img"));var e=b(this).attr("data-srcset-img");void 0!==e&&!1!==e&&b(c).attr("srcset",e)}c=d(this,c),b(this).after(c),b(this).removeClass("ewww_webp")})}(jQuery),jQuery.fn.isotope&&jQuery.fn.imagesLoaded&&(jQuery(".fusion-posts-container-infinite").imagesLoaded(function(){jQuery(".fusion-posts-container-infinite").hasClass("isotope")&&jQuery(".fusion-posts-container-infinite").isotope()}),jQuery(".fusion-portfolio:not(.fusion-recent-works) .fusion-portfolio-wrapper").imagesLoaded(function(){jQuery(".fusion-portfolio:not(.fusion-recent-works) .fusion-portfolio-wrapper").isotope()}))}var Arrive=function(a,b,c){"use strict";function l(a,b,c){e.addMethod(b,c,a.unbindEvent),e.addMethod(b,c,a.unbindEventWithSelectorOrCallback),e.addMethod(b,c,a.unbindEventWithSelectorAndCallback)}function m(a){a.arrive=j.bindEvent,l(j,a,"unbindArrive"),a.leave=k.bindEvent,l(k,a,"unbindLeave")}if(a.MutationObserver&&"undefined"!=typeof HTMLElement){var d=0,e=function(){var b=HTMLElement.prototype.matches||HTMLElement.prototype.webkitMatchesSelector||HTMLElement.prototype.mozMatchesSelector||HTMLElement.prototype.msMatchesSelector;return{matchesSelector:function(a,c){return a instanceof HTMLElement&&b.call(a,c)},addMethod:function(a,b,c){var d=a[b];a[b]=function(){return c.length==arguments.length?c.apply(this,arguments):"function"==typeof d?d.apply(this,arguments):void 0}},callCallbacks:function(a){for(var c,b=0;c=a[b];b++)c.callback.call(c.elem)},checkChildNodesRecursively:function(a,b,c,d){for(var g,f=0;g=a[f];f++)c(g,b,d)&&d.push({callback:b.callback,elem:g}),g.childNodes.length>0&&e.checkChildNodesRecursively(g.childNodes,b,c,d)},mergeArrays:function(a,b){var d,c={};for(d in a)c[d]=a[d];for(d in b)c[d]=b[d];return c},toElementsArray:function(b){return void 0===b||"number"==typeof b.length&&b!==a||(b=[b]),b}}}(),f=function(){var a=function(){this._eventsBucket=[],this._beforeAdding=null,this._beforeRemoving=null};return a.prototype.addEvent=function(a,b,c,d){var e={target:a,selector:b,options:c,callback:d,firedElems:[]};return this._beforeAdding&&this._beforeAdding(e),this._eventsBucket.push(e),e},a.prototype.removeEvent=function(a){for(var c,b=this._eventsBucket.length-1;c=this._eventsBucket[b];b--)a(c)&&(this._beforeRemoving&&this._beforeRemoving(c),this._eventsBucket.splice(b,1))},a.prototype.beforeAdding=function(a){this._beforeAdding=a},a.prototype.beforeRemoving=function(a){this._beforeRemoving=a},a}(),g=function(b,d){var g=new f,h=this,i={fireOnAttributesModification:!1};return g.beforeAdding(function(c){var i,e=c.target;c.selector,c.callback;e!==a.document&&e!==a||(e=document.getElementsByTagName("html")[0]),i=new MutationObserver(function(a){d.call(this,a,c)});var j=b(c.options);i.observe(e,j),c.observer=i,c.me=h}),g.beforeRemoving(function(a){a.observer.disconnect()}),this.bindEvent=function(a,b,c){b=e.mergeArrays(i,b);for(var d=e.toElementsArray(this),f=0;f<d.length;f++)g.addEvent(d[f],a,b,c)},this.unbindEvent=function(){var a=e.toElementsArray(this);g.removeEvent(function(b){for(var d=0;d<a.length;d++)if(this===c||b.target===a[d])return!0;return!1})},this.unbindEventWithSelectorOrCallback=function(a){var f,b=e.toElementsArray(this),d=a;f="function"==typeof a?function(a){for(var e=0;e<b.length;e++)if((this===c||a.target===b[e])&&a.callback===d)return!0;return!1}:function(d){for(var e=0;e<b.length;e++)if((this===c||d.target===b[e])&&d.selector===a)return!0;return!1},g.removeEvent(f)},this.unbindEventWithSelectorAndCallback=function(a,b){var d=e.toElementsArray(this);g.removeEvent(function(e){for(var f=0;f<d.length;f++)if((this===c||e.target===d[f])&&e.selector===a&&e.callback===b)return!0;return!1})},this},h=function(){function h(a){var b={attributes:!1,childList:!0,subtree:!0};return a.fireOnAttributesModification&&(b.attributes=!0),b}function i(a,b){a.forEach(function(a){var c=a.addedNodes,d=a.target,f=[];null!==c&&c.length>0?e.checkChildNodesRecursively(c,b,k,f):"attributes"===a.type&&k(d,b,f)&&f.push({callback:b.callback,elem:node}),e.callCallbacks(f)})}function k(a,b,f){if(e.matchesSelector(a,b.selector)&&(a._id===c&&(a._id=d++),-1==b.firedElems.indexOf(a._id))){if(b.options.onceOnly){if(0!==b.firedElems.length)return;b.me.unbindEventWithSelectorAndCallback.call(b.target,b.selector,b.callback)}b.firedElems.push(a._id),f.push({callback:b.callback,elem:a})}}var f={fireOnAttributesModification:!1,onceOnly:!1,existing:!1};j=new g(h,i);var l=j.bindEvent;return j.bindEvent=function(a,b,c){void 0===c?(c=b,b=f):b=e.mergeArrays(f,b);var d=e.toElementsArray(this);if(b.existing){for(var g=[],h=0;h<d.length;h++)for(var i=d[h].querySelectorAll(a),j=0;j<i.length;j++)g.push({callback:c,elem:i[j]});if(b.onceOnly&&g.length)return c.call(g[0].elem);setTimeout(e.callCallbacks,1,g)}l.call(this,a,b,c)},j},i=function(){function d(a){return{childList:!0,subtree:!0}}function f(a,b){a.forEach(function(a){var c=a.removedNodes,f=(a.target,[]);null!==c&&c.length>0&&e.checkChildNodesRecursively(c,b,h,f),e.callCallbacks(f)})}function h(a,b){return e.matchesSelector(a,b.selector)}var c={};k=new g(d,f);var i=k.bindEvent;return k.bindEvent=function(a,b,d){void 0===d?(d=b,b=c):b=e.mergeArrays(c,b),i.call(this,a,b,d)},k},j=new h,k=new i;b&&m(b.fn),m(HTMLElement.prototype),m(NodeList.prototype),m(HTMLCollection.prototype),m(HTMLDocument.prototype),m(Window.prototype);var n={};return l(j,n,"unbindAllArrive"),l(k,n,"unbindAllLeave"),n}}(window,"undefined"==typeof jQuery?null:jQuery,void 0);"undefined"!=typeof jQuery&&check_webp_feature("alpha",ewww_load_images);
-</script>
-<?php	} // End if().
-	// Current length 9473.
-}
-
-/**
  * Enqueue custom jquery stylesheet and scripts for the media library AJAX functions.
  *
  * @param string $hook The unique hook of the page being loaded in the WP admin.
  */
 function ewww_image_optimizer_media_scripts( $hook ) {
-	if ( 'upload.php' == $hook || 'ims_gallery_page_ewww-ims-optimize' == $hook ) {
+	if ( 'upload.php' === $hook || 'ims_gallery_page_ewww-ims-optimize' === $hook ) {
 		add_thickbox();
 		wp_enqueue_script( 'jquery-ui-tooltip' );
-		wp_enqueue_script( 'ewwwmediascript', plugins_url( '/includes/media.js', __FILE__ ), array( 'jquery' ), EWWW_IMAGE_OPTIMIZER_VERSION );
+		wp_enqueue_script( 'ewww-media-script', plugins_url( '/includes/media.js', __FILE__ ), array( 'jquery' ), EWWW_IMAGE_OPTIMIZER_VERSION );
 		wp_enqueue_style( 'jquery-ui-tooltip-custom', plugins_url( '/includes/jquery-ui-1.10.1.custom.css', __FILE__ ), array(), EWWW_IMAGE_OPTIMIZER_VERSION );
 		// Submit a couple variables to the javascript to work with.
-		$loading_image = plugins_url( '/images/wpspin.gif', __FILE__ );
 		$loading_image = plugins_url( '/images/spinner.gif', __FILE__ );
 		wp_localize_script(
-			'ewwwmediascript',
+			'ewww-media-script',
 			'ewww_vars',
 			array(
 				'optimizing' => '<p>' . esc_html__( 'Optimizing', 'ewww-image-optimizer' ) . "&nbsp;<img src='$loading_image' /></p>",
-				'restoring' => '<p>' . esc_html__( 'Restoring', 'ewww-image-optimizer' ) . "&nbsp;<img src='$loading_image' /></p>",
+				'restoring'  => '<p>' . esc_html__( 'Restoring', 'ewww-image-optimizer' ) . "&nbsp;<img src='$loading_image' /></p>",
 			)
 		);
+	}
+}
+
+/**
+ * Gets the link to the main EWWW IO settings.
+ *
+ * @return string The link to the main settings (network vs. single-site).
+ */
+function ewww_image_optimizer_get_settings_link() {
+	if ( ! function_exists( 'is_plugin_active_for_network' ) && is_multisite() ) {
+		// Need to include the plugin library for the is_plugin_active function.
+		require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+	}
+	// Load the html for the settings link.
+	if ( is_multisite() && is_plugin_active_for_network( EWWW_IMAGE_OPTIMIZER_PLUGIN_FILE_REL ) && ! get_site_option( 'ewww_image_optimizer_allow_multisite_override' ) ) {
+		return network_admin_url( 'settings.php?page=ewww-image-optimizer-options' );
+	} else {
+		return admin_url( 'options-general.php?page=ewww-image-optimizer-options' );
 	}
 }
 
@@ -2306,16 +2983,10 @@ function ewww_image_optimizer_media_scripts( $hook ) {
  * @return array The new list of links to be displayed.
  */
 function ewww_image_optimizer_settings_link( $links ) {
-	if ( ! function_exists( 'is_plugin_active_for_network' ) && is_multisite() ) {
-		// Need to include the plugin library for the is_plugin_active function.
-		require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+	if ( ! is_array( $links ) ) {
+		$links = array();
 	}
-	// Load the html for the settings link.
-	if ( is_multisite() && is_plugin_active_for_network( EWWW_IMAGE_OPTIMIZER_PLUGIN_FILE_REL ) ) {
-		$settings_link = '<a href="network/settings.php?page=' . plugin_basename( EWWW_IMAGE_OPTIMIZER_PLUGIN_FILE ) . '">' . esc_html__( 'Settings', 'ewww-image-optimizer' ) . '</a>';
-	} else {
-		$settings_link = '<a href="options-general.php?page=' . plugin_basename( EWWW_IMAGE_OPTIMIZER_PLUGIN_FILE ) . '">' . esc_html__( 'Settings', 'ewww-image-optimizer' ) . '</a>';
-	}
+	$settings_link = '<a href="' . ewww_image_optimizer_get_settings_link() . '">' . esc_html__( 'Settings', 'ewww-image-optimizer' ) . '</a>';
 	// Load the settings link into the plugin links array.
 	array_unshift( $links, $settings_link );
 	// Send back the plugin links array.
@@ -2334,7 +3005,7 @@ function ewww_image_optimizer_gd_support() {
 		ewwwio_debug_message( 'GD found, supports:' );
 		if ( ewww_image_optimizer_iterable( $gd_support ) ) {
 			foreach ( $gd_support as $supports => $supported ) {
-				 ewwwio_debug_message( "$supports: $supported" );
+				ewwwio_debug_message( "$supports: $supported" );
 			}
 			ewwwio_memory( __FUNCTION__ );
 			if ( ( ! empty( $gd_support['JPEG Support'] ) || ! empty( $gd_support['JPG Support'] ) ) && ! empty( $gd_support['PNG Support'] ) ) {
@@ -2352,12 +3023,14 @@ function ewww_image_optimizer_gd_support() {
  */
 function ewww_image_optimizer_imagick_support() {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	if ( extension_loaded( 'imagick' ) ) {
+	if ( extension_loaded( 'imagick' ) && class_exists( 'Imagick' ) ) {
 		$imagick = new Imagick();
 		$formats = $imagick->queryFormats();
-		if ( in_array( 'PNG', $formats ) && in_array( 'JPG', $formats ) ) {
+		ewwwio_debug_message( implode( ',', $formats ) );
+		if ( in_array( 'PNG', $formats, true ) && in_array( 'JPG', $formats, true ) ) {
 			return true;
 		}
+		ewwwio_debug_message( 'imagick found, but PNG or JPG not supported' );
 	}
 	return false;
 }
@@ -2369,16 +3042,57 @@ function ewww_image_optimizer_imagick_support() {
  */
 function ewww_image_optimizer_gmagick_support() {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	if ( extension_loaded( 'gmagick' ) ) {
+	if ( extension_loaded( 'gmagick' ) && class_exists( 'Gmagick' ) ) {
 		$gmagick = new Gmagick();
 		$formats = $gmagick->queryFormats();
-		if ( in_array( 'PNG', $formats ) && in_array( 'JPG', $formats ) ) {
+		ewwwio_debug_message( implode( ',', $formats ) );
+		if ( in_array( 'PNG', $formats, true ) && in_array( 'JPG', $formats, true ) ) {
 			return true;
 		}
+		ewwwio_debug_message( 'gmagick found, but PNG or JPG not supported' );
 	}
 	return false;
 }
 
+/**
+ * Filter the filename past any folders the user chose to ignore.
+ *
+ * @param bool   $bypass True to skip optimization, defaults to false.
+ * @param string $filename The file about to be optimized.
+ * @return bool True if the file matches any folders to ignore.
+ */
+function ewww_image_optimizer_ignore_file( $bypass, $filename ) {
+	$ignore_folders = ewww_image_optimizer_get_option( 'ewww_image_optimizer_exclude_paths' );
+	if ( ! ewww_image_optimizer_iterable( $ignore_folders ) ) {
+		return $bypass;
+	}
+	foreach ( $ignore_folders as $ignore_folder ) {
+		if ( strpos( $filename, $ignore_folder ) !== false ) {
+			return true;
+		}
+	}
+	return $bypass;
+}
+
+/**
+ * Add a file to the exclusions list.
+ *
+ * @param string $file_path The path of the file to ignore.
+ */
+function ewww_image_optimizer_add_file_exclusion( $file_path ) {
+	if ( ! is_string( $file_path ) ) {
+		return;
+	}
+	// Add it to the files to ignore.
+	$ignore_folders = ewww_image_optimizer_get_option( 'ewww_image_optimizer_exclude_paths' );
+	if ( ! is_array( $ignore_folders ) ) {
+		$ignore_folders = array();
+	}
+	$file_path        = str_replace( ABSPATH, '', $file_path );
+	$file_path        = str_replace( WP_CONTENT_DIR, '', $file_path );
+	$ignore_folders[] = $file_path;
+	ewww_image_optimizer_set_option( 'ewww_image_optimizer_exclude_paths', $ignore_folders );
+}
 /**
  * Sanitize the list of disabled resizes.
  *
@@ -2405,48 +3119,80 @@ function ewww_image_optimizer_aux_paths_sanitize( $input ) {
 		return '';
 	}
 	$path_array = array();
-	$paths = explode( "\n", $input );
+	if ( is_array( $input ) ) {
+		$paths = $input;
+	} elseif ( is_string( $input ) ) {
+		$paths = explode( "\n", $input );
+	}
+	$abspath     = false;
+	$permissions = apply_filters( 'ewww_image_optimizer_superadmin_permissions', '' );
+	if ( is_multisite() && current_user_can( $permissions ) ) {
+		$abspath = true;
+	} elseif ( ! is_multisite() ) {
+		$abspath = true;
+	}
+	$blog_one = false;
+	if ( 1 === get_current_blog_id() ) {
+		$blog_one = true;
+	}
 	if ( ewww_image_optimizer_iterable( $paths ) ) {
 		$i = 0;
 		foreach ( $paths as $path ) {
 			$i++;
 			$path = sanitize_text_field( $path );
 			ewwwio_debug_message( "validating auxiliary path: $path" );
-			// Retrieve the location of the wordpress upload folder.
-			$upload_dir = apply_filters( 'ewww_image_optimizer_folder_restriction', wp_upload_dir( null, false ) );
+			// Retrieve the location of the WordPress upload folder.
+			$upload_dir = wp_get_upload_dir();
 			// Retrieve the path of the upload folder from the array.
 			$upload_path = trailingslashit( $upload_dir['basedir'] );
-			if ( is_dir( $path ) && ( strpos( $path, ABSPATH ) === 0 || strpos( $path, $upload_path ) === 0 ) ) {
+			if ( ! $abspath && $blog_one && false !== strpos( $path, $upload_path . 'sites' ) ) {
+				add_settings_error(
+					'ewww_image_optimizer_aux_paths',
+					"ewwwio-aux-paths-$i",
+					sprintf(
+						/* translators: %s: A file system path */
+						esc_html__( 'Could not save Folder to Optimize: %s. Access denied.', 'ewww-image-optimizer' ),
+						esc_html( $path )
+					)
+				);
+				continue;
+			}
+			if ( ( ( $abspath && strpos( $path, ABSPATH ) === 0 ) || strpos( $path, $upload_path ) === 0 ) && ewwwio_is_dir( $path ) ) {
 				$path_array[] = $path;
 				continue;
 			}
 			// If they put in a relative path.
-			if ( is_dir( ABSPATH . ltrim( $path, '/' ) ) ) {
+			if ( $abspath && ewwwio_is_dir( ABSPATH . ltrim( $path, '/' ) ) ) {
 				$path_array[] = ABSPATH . ltrim( $path, '/' );
 				continue;
 			}
 			// Or a path relative to the upload dir?
-			if ( is_dir( $upload_path . ltrim( $path, '/' ) ) ) {
+			if ( ewwwio_is_dir( $upload_path . ltrim( $path, '/' ) ) ) {
 				$path_array[] = $upload_path . ltrim( $path, '/' );
 				continue;
 			}
 			// What if they put in a url?
 			$pathabsurl = ABSPATH . ltrim( str_replace( get_site_url(), '', $path ), '/' );
-			if ( is_dir( $pathabsurl ) ) {
+			if ( $abspath && ewwwio_is_dir( $pathabsurl ) ) {
 				$path_array[] = $pathabsurl;
 				continue;
 			}
 			// Or a url in the uploads folder?
 			$pathupurl = $upload_path . ltrim( str_replace( $upload_dir['baseurl'], '', $path ), '/' );
-			if ( is_dir( $pathupurl ) ) {
+			if ( ewwwio_is_dir( $pathupurl ) ) {
 				$path_array[] = $pathupurl;
 				continue;
 			}
 			if ( ! empty( $path ) ) {
-				add_settings_error( 'ewww_image_optimizer_aux_paths', "ewwwio-aux-paths-$i", sprintf(
-					/* translators: %s: A file system path */
-					esc_html__( 'Could not save Folder to Optimize: %s. Please ensure that it is a valid location on the server.', 'ewww-image-optimizer' ), esc_html( $path )
-				) );
+				add_settings_error(
+					'ewww_image_optimizer_aux_paths',
+					"ewwwio-aux-paths-$i",
+					sprintf(
+						/* translators: %s: A file system path */
+						esc_html__( 'Could not save Folder to Optimize: %s. Please ensure that it is a valid location on the server.', 'ewww-image-optimizer' ),
+						esc_html( $path )
+					)
+				);
 			}
 		} // End foreach().
 	} // End if().
@@ -2466,13 +3212,17 @@ function ewww_image_optimizer_exclude_paths_sanitize( $input ) {
 		return '';
 	}
 	$path_array = array();
-	$paths = explode( "\n", $input );
+	if ( is_array( $input ) ) {
+		$paths = $input;
+	} elseif ( is_string( $input ) ) {
+		$paths = explode( "\n", $input );
+	}
 	if ( ewww_image_optimizer_iterable( $paths ) ) {
 		$i = 0;
 		foreach ( $paths as $path ) {
 			$i++;
 			ewwwio_debug_message( "validating path exclusion: $path" );
-			$path = sanitize_text_field( $path );
+			$path = trim( sanitize_text_field( $path ), '*' );
 			if ( ! empty( $path ) ) {
 				$path_array[] = $path;
 			}
@@ -2492,43 +3242,36 @@ function ewww_image_optimizer_webp_paths_sanitize( $paths ) {
 	if ( empty( $paths ) ) {
 		return '';
 	}
-	$paths_entered = explode( "\n", $paths );
 	$paths_saved = array();
+	if ( is_array( $paths ) ) {
+		$paths_entered = $paths;
+	} elseif ( is_string( $paths ) ) {
+		$paths_entered = explode( "\n", $paths );
+	}
 	if ( ewww_image_optimizer_iterable( $paths_entered ) ) {
 		$i = 0;
 		foreach ( $paths_entered as $path ) {
 			$i++;
-			$original_path = esc_html( $path );
-			$path = esc_url( $path, null, 'db' );
+			$original_path = esc_html( trim( $path, '*' ) );
+			$path          = esc_url( $path, null, 'db' );
 			if ( ! empty( $path ) ) {
 				if ( ! substr_count( $path, '.' ) ) {
-					add_settings_error( 'ewww_image_optimizer_webp_paths', "ewwwio-webp-paths-$i", sprintf(
-						/* translators: %s: A url or domain name */
-						esc_html__( 'Could not save WebP URL: %s.', 'ewww-image-optimizer' ), esc_html( $original_path )
-					) . ' ' . esc_html__( 'Please enter a valid url including the domain name.', 'ewww-image-optimizer' ) );
+					add_settings_error(
+						'ewww_image_optimizer_webp_paths',
+						"ewwwio-webp-paths-$i",
+						sprintf(
+							/* translators: %s: A url or domain name */
+							esc_html__( 'Could not save WebP URL: %s.', 'ewww-image-optimizer' ),
+							esc_html( $original_path )
+						) . ' ' . esc_html__( 'Please enter a valid URL including the domain name.', 'ewww-image-optimizer' )
+					);
 					continue;
 				}
-				$paths_saved[] = str_replace( 'http://', '', $path );
+				$paths_saved[] = trailingslashit( str_replace( 'http://', '', $path ) );
 			}
 		}
 	}
 	return $paths_saved;
-}
-
-/**
- * Replacement for escapeshellarg() that won't kill non-ASCII characters.
- *
- * @param string $arg A value to sanitize/escape for commmand-line usage.
- * @return string The value after being escaped.
- */
-function ewww_image_optimizer_escapeshellarg( $arg ) {
-	if ( PHP_OS === 'WINNT' ) {
-		$safe_arg = '"' . $arg . '"';
-	} else {
-		$safe_arg = "'" . str_replace( "'", "'\"'\"'", $arg ) . "'";
-	}
-	ewwwio_memory( __FUNCTION__ );
-	return $safe_arg;
 }
 
 /**
@@ -2539,7 +3282,7 @@ function ewww_image_optimizer_escapeshellarg( $arg ) {
  */
 function ewww_image_optimizer_jpg_background( $background = null ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	if ( null === $background ) {
+	if ( is_null( $background ) ) {
 		// Retrieve the user-supplied value for jpg background color.
 		$background = ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_background' );
 	}
@@ -2569,7 +3312,7 @@ function ewww_image_optimizer_jpg_background( $background = null ) {
  */
 function ewww_image_optimizer_jpg_quality( $quality = null ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	if ( null === $quality ) {
+	if ( is_null( $quality ) ) {
 		// Retrieve the user-supplied value for jpg quality.
 		$quality = ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_quality' );
 	}
@@ -2590,26 +3333,6 @@ function ewww_image_optimizer_jpg_quality( $quality = null ) {
 }
 
 /**
- * Filter the filename past any folders the user chose to ignore.
- *
- * @param bool   $bypass True to skip optimization, defaults to false.
- * @param string $filename The file about to be optimized.
- * @return bool True if the file matches any folders to ignore.
- */
-function ewww_image_optimizer_ignore_file( $bypass, $filename ) {
-	$ignore_folders = ewww_image_optimizer_get_option( 'ewww_image_optimizer_exclude_paths' );
-	if ( ! ewww_image_optimizer_iterable( $ignore_folders ) ) {
-		return $bypass;
-	}
-	foreach ( $ignore_folders as $ignore_folder ) {
-		if ( strpos( $filename, $ignore_folder ) !== false ) {
-			return true;
-		}
-	}
-	return $bypass;
-}
-
-/**
  * Overrides the default JPG quality for WordPress image editing operations.
  *
  * @param int $quality The default JPG quality level.
@@ -2618,9 +3341,92 @@ function ewww_image_optimizer_ignore_file( $bypass, $filename ) {
 function ewww_image_optimizer_set_jpg_quality( $quality ) {
 	$new_quality = ewww_image_optimizer_jpg_quality();
 	if ( ! empty( $new_quality ) ) {
-		return $new_quality;
+		return min( 92, $new_quality );
 	}
-	return $quality;
+	return min( 92, $quality );
+}
+
+/**
+ * Retrieves/sanitizes the WebP quality setting or returns null.
+ *
+ * @param int $quality The WebP quality level as set by the user.
+ * @return int The sanitize WebP quality level.
+ */
+function ewww_image_optimizer_webp_quality( $quality = null ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	if ( is_null( $quality ) ) {
+		// Retrieve the user-supplied value for jpg quality.
+		$quality = ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_quality' );
+	}
+	// Verify that the quality level is an integer, 1-100.
+	if ( preg_match( '/^(100|[1-9][0-9]?)$/', $quality ) ) {
+		ewwwio_debug_message( "webp quality: $quality" );
+		// Send back the valid quality level.
+		return $quality;
+	} else {
+		if ( ! empty( $quality ) ) {
+			add_settings_error( 'ewww_image_optimizer_webp_quality', 'ewwwio-webp-quality', esc_html__( 'Could not save the WebP quality, please enter an integer between 50 and 100.', 'ewww-image-optimizer' ) );
+		}
+		// Send back nothing.
+		return null;
+	}
+}
+
+/**
+ * Overrides the default WebP quality (if a user-defined value is set).
+ *
+ * @param int $quality The default WebP quality level.
+ * @return int The default quality, or the user configured level.
+ */
+function ewww_image_optimizer_set_webp_quality( $quality ) {
+	$new_quality = ewww_image_optimizer_webp_quality();
+	if ( ! empty( $new_quality ) ) {
+		return min( 92, $new_quality );
+	}
+	return min( 92, $quality );
+}
+
+/**
+ * Check default WP threshold and adjust to comply with normal EWWW IO behavior.
+ *
+ * @param int    $size The default WP scaling size, or whatever has been filtered by other plugins.
+ * @param array  $imagesize     {
+ *     Indexed array of the image width and height in pixels.
+ *
+ *     @type int $0 The image width.
+ *     @type int $1 The image height.
+ * }
+ * @param string $file Full path to the uploaded image file.
+ * @return int The proper size to use for scaling originals.
+ */
+function ewww_image_optimizer_adjust_big_image_threshold( $size, $imagesize = array(), $file = '' ) {
+	if ( false !== strpos( $file, 'noresize' ) ) {
+		return false;
+	}
+	$max_size = max(
+		ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediawidth' ),
+		ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediaheight' ),
+		(int) $size
+	);
+	return $max_size;
+}
+
+/**
+ * Setup the global filesystem class variable.
+ */
+function ewwwio_get_filesystem() {
+	require_once( ABSPATH . 'wp-admin/includes/class-wp-filesystem-base.php' );
+	require_once( ABSPATH . 'wp-admin/includes/class-wp-filesystem-direct.php' );
+	global $eio_filesystem;
+	if ( ! defined( 'FS_CHMOD_DIR' ) ) {
+		define( 'FS_CHMOD_DIR', ( fileperms( ABSPATH ) & 0777 | 0755 ) );
+	}
+	if ( ! defined( 'FS_CHMOD_FILE' ) ) {
+		define( 'FS_CHMOD_FILE', ( fileperms( ABSPATH . 'index.php' ) & 0777 | 0644 ) );
+	}
+	if ( ! isset( $eio_filesystem ) || ! is_object( $eio_filesystem ) ) {
+		$eio_filesystem = new WP_Filesystem_Direct( '' );
+	}
 }
 
 /**
@@ -2630,16 +3436,214 @@ function ewww_image_optimizer_set_jpg_quality( $quality ) {
  * @return int The size of the file or zero.
  */
 function ewww_image_optimizer_filesize( $file ) {
-	if ( is_file( $file ) ) {
+	$file = realpath( $file );
+	if ( ewwwio_is_file( $file ) ) {
+		global $eio_filesystem;
+		ewwwio_get_filesystem();
 		// Flush the cache for filesize.
 		clearstatcache();
 		// Find out the size of the new PNG file.
-		return filesize( $file );
+		return $eio_filesystem->size( $file );
 	} else {
 		return 0;
 	}
 }
 
+/**
+ * Check if open_basedir restriction is in effect, and that the path is allowed and exists.
+ *
+ * Note that when the EWWWIO_OPEN_BASEDIR constant is defined, is_file() will be skipped.
+ *
+ * @param string $file The path of the file to check.
+ * @return bool False if open_basedir setting cannot be retrieved, or the file is "out of bounds", true if the file exists.
+ */
+function ewwwio_system_binary_exists( $file ) {
+	if ( ! ewww_image_optimizer_function_exists( 'ini_get' ) && ! defined( 'EWWWIO_OPEN_BASEDIR' ) ) {
+		return false;
+	}
+	if ( defined( 'EWWWIO_OPEN_BASEDIR' ) ) {
+		$basedirs = EWWWIO_OPEN_BASEDIR;
+	} else {
+		$basedirs = ini_get( 'open_basedir' );
+	}
+	if ( empty( $basedirs ) ) {
+		return defined( 'EWWWIO_OPEN_BASEDIR' ) ? true : is_file( $file );
+	}
+	$basedirs = explode( PATH_SEPARATOR, $basedirs );
+	foreach ( $basedirs as $basedir ) {
+		$basedir = trim( $basedir );
+		if ( 0 === strpos( $file, $basedir ) ) {
+			return defined( 'EWWWIO_OPEN_BASEDIR' ) ? true : is_file( $file );
+		}
+	}
+	return false;
+}
+
+/**
+ * Check if a file/directory is readable.
+ *
+ * @param string $file The path to check.
+ * @return bool True if it is, false if it ain't.
+ */
+function ewwwio_is_readable( $file ) {
+	global $eio_filesystem;
+	ewwwio_get_filesystem();
+	return $eio_filesystem->is_readable( $file );
+}
+/**
+ * Check if directory exists, and that it is local rather than using a protocol like http:// or phar://
+ *
+ * @param string $dir The path of the directoy to check.
+ * @return bool True if the directory exists and is local, false otherwise.
+ */
+function ewwwio_is_dir( $dir ) {
+	if ( false !== strpos( $dir, '://' ) ) {
+		return false;
+	}
+	if ( false !== strpos( $dir, 'phar://' ) ) {
+		return false;
+	}
+	global $eio_filesystem;
+	ewwwio_get_filesystem();
+	$dir        = realpath( $dir );
+	$wp_dir     = realpath( ABSPATH );
+	$upload_dir = wp_get_upload_dir();
+	$upload_dir = realpath( $upload_dir['basedir'] );
+
+	$content_dir = realpath( WP_CONTENT_DIR );
+	if ( empty( $content_dir ) ) {
+		$content_dir = $wp_dir;
+	}
+	if ( empty( $upload_dir ) ) {
+		$upload_dir = $content_dir;
+	}
+	$plugin_dir = realpath( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH );
+	if (
+		false === strpos( $dir, $upload_dir ) &&
+		false === strpos( $dir, $content_dir ) &&
+		false === strpos( $dir, $wp_dir ) &&
+		false === strpos( $dir, $plugin_dir )
+	) {
+		return false;
+	}
+	return $eio_filesystem->is_dir( $dir );
+}
+
+/**
+ * Check if file exists, and that it is local rather than using a protocol like http:// or phar://
+ *
+ * @param string $file The path of the file to check.
+ * @return bool True if the file exists and is local, false otherwise.
+ */
+function ewwwio_is_file( $file ) {
+	if ( false !== strpos( $file, '://' ) ) {
+		return false;
+	}
+	if ( false !== strpos( $file, 'phar://' ) ) {
+		return false;
+	}
+	global $eio_filesystem;
+	ewwwio_get_filesystem();
+	$file       = realpath( $file );
+	$wp_dir     = realpath( ABSPATH );
+	$upload_dir = wp_get_upload_dir();
+	$upload_dir = realpath( $upload_dir['basedir'] );
+
+	$content_dir = realpath( WP_CONTENT_DIR );
+	if ( empty( $content_dir ) ) {
+		$content_dir = $wp_dir;
+	}
+	if ( empty( $upload_dir ) ) {
+		$upload_dir = $content_dir;
+	}
+	$plugin_dir = realpath( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH );
+	if (
+		false === strpos( $file, $upload_dir ) &&
+		false === strpos( $file, $content_dir ) &&
+		false === strpos( $file, $wp_dir ) &&
+		false === strpos( $file, $plugin_dir )
+	) {
+		return false;
+	}
+	return $eio_filesystem->is_file( $file );
+}
+
+/**
+ * Check if destination is in an approved location and rename the original.
+ *
+ * @param string $src The path of the original file.
+ * @param string $dst The destination file path.
+ * @return bool True if the file was removed, false otherwise.
+ */
+function ewwwio_rename( $src, $dst ) {
+	global $eio_filesystem;
+	ewwwio_get_filesystem();
+	$src = realpath( $src );
+	if ( false !== strpos( $dst, WP_CONTENT_DIR ) ) {
+		return $eio_filesystem->move( $src, $dst, true );
+	}
+	if ( false !== strpos( $dst, ABSPATH ) ) {
+		return $eio_filesystem->move( $src, $dst, true );
+	}
+	$upload_dir = wp_get_upload_dir();
+	if ( false !== strpos( $dst, $upload_dir['basedir'] ) ) {
+		return $eio_filesystem->move( $src, $dst, true );
+	}
+	return false;
+}
+
+/**
+ * Check if file is in an approved location and remove it.
+ *
+ * @param string $file The path of the file to check.
+ * @param string $dir The path of the folder constraint. Optional.
+ * @return bool True if the file was removed, false otherwise.
+ */
+function ewwwio_delete_file( $file, $dir = '' ) {
+	$file = realpath( $file );
+	if ( ! empty( $dir ) ) {
+		return wp_delete_file_from_directory( $file, $dir );
+	}
+
+	$wp_dir      = realpath( ABSPATH );
+	$upload_dir  = wp_get_upload_dir();
+	$upload_dir  = realpath( $upload_dir['basedir'] );
+	$content_dir = realpath( WP_CONTENT_DIR );
+
+	if ( false !== strpos( $file, $upload_dir ) ) {
+		return wp_delete_file_from_directory( $file, $upload_dir );
+	}
+	if ( false !== strpos( $file, $content_dir ) ) {
+		return wp_delete_file_from_directory( $file, $content_dir );
+	}
+	if ( false !== strpos( $file, $wp_dir ) ) {
+		return wp_delete_file_from_directory( $file, $wp_dir );
+	}
+	return false;
+}
+
+/**
+ * Check if file is in an approved location and chmod it.
+ *
+ * @param string $file The path of the file to check.
+ * @param string $mode The mode to apply to the file.
+ */
+function ewwwio_chmod( $file, $mode ) {
+	global $eio_filesystem;
+	ewwwio_get_filesystem();
+	$file       = realpath( $file );
+	$upload_dir = wp_get_upload_dir();
+	if ( false !== strpos( $file, $upload_dir['basedir'] ) ) {
+		return $eio_filesystem->chmod( $file, $mode );
+	}
+	if ( false !== strpos( $file, WP_CONTENT_DIR ) ) {
+		return $eio_filesystem->chmod( $file, $mode );
+	}
+	if ( false !== strpos( $file, ABSPATH ) ) {
+		return $eio_filesystem->chmod( $file, $mode );
+	}
+	return false;
+}
 /**
  * Make sure an array/object can be parsed by a foreach().
  *
@@ -2647,7 +3651,7 @@ function ewww_image_optimizer_filesize( $file ) {
  * @return bool True if the variable is iterable.
  */
 function ewww_image_optimizer_iterable( $var ) {
-	return ! empty( $var ) && ( is_array( $var ) || is_object( $var ) );
+	return ! empty( $var ) && ( is_array( $var ) || $var instanceof Traversable );
 }
 
 /**
@@ -2657,58 +3661,58 @@ function ewww_image_optimizer_iterable( $var ) {
  */
 function ewww_image_optimizer_manual() {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	global $ewww_force;
+	global $ewww_convert;
 	global $ewww_defer;
 	$ewww_defer = false;
+	add_filter( 'ewww_image_optimizer_allowed_reopt', '__return_true' );
 	// Check permissions of current user.
 	$permissions = apply_filters( 'ewww_image_optimizer_manual_permissions', '' );
-	if ( false === current_user_can( $permissions ) ) {
+	if ( ! current_user_can( $permissions ) ) {
 		// Display error message if insufficient permissions.
 		if ( ! wp_doing_ajax() ) {
 			wp_die( esc_html__( 'You do not have permission to optimize images.', 'ewww-image-optimizer' ) );
 		}
-		wp_die( json_encode( array(
-			'error' => esc_html__( 'You do not have permission to optimize images.', 'ewww-image-optimizer' ),
-		) ) );
+		ewwwio_ob_clean();
+		wp_die( wp_json_encode( array( 'error' => esc_html__( 'You do not have permission to optimize images.', 'ewww-image-optimizer' ) ) ) );
 	}
 	// Make sure we didn't accidentally get to this page without an attachment to work on.
-	if ( false === isset( $_REQUEST['ewww_attachment_ID'] ) ) {
+	if ( empty( $_REQUEST['ewww_attachment_ID'] ) || empty( $_REQUEST['action'] ) ) {
 		// Display an error message since we don't have anything to work on.
 		if ( ! wp_doing_ajax() ) {
-			wp_die( esc_html__( 'No attachment ID was provided.', 'ewww-image-optimizer' ) );
+			wp_die( esc_html__( 'Invalid request.', 'ewww-image-optimizer' ) );
 		}
-		wp_die( json_encode( array(
-			'error' => esc_html__( 'No attachment ID was provided.', 'ewww-image-optimizer' ),
-		) ) );
+		ewwwio_ob_clean();
+		wp_die( wp_json_encode( array( 'error' => esc_html__( 'Invalid request.', 'ewww-image-optimizer' ) ) ) );
 	}
 	session_write_close();
-	// Store the attachment ID value.
-	$attachment_id = intval( $_REQUEST['ewww_attachment_ID'] );
-	if ( empty( $_REQUEST['ewww_manual_nonce'] ) || ! wp_verify_nonce( $_REQUEST['ewww_manual_nonce'], 'ewww-manual' ) ) {
+	if ( empty( $_REQUEST['ewww_manual_nonce'] ) || ! wp_verify_nonce( sanitize_key( $_REQUEST['ewww_manual_nonce'] ), 'ewww-manual' ) ) {
 		if ( ! wp_doing_ajax() ) {
 			wp_die( esc_html__( 'Access denied.', 'ewww-image-optimizer' ) );
 		}
-		wp_die( json_encode( array(
-			'error' => esc_html__( 'Access denied.', 'ewww-image-optimizer' ),
-		) ) );
+		ewwwio_ob_clean();
+		wp_die( wp_json_encode( array( 'error' => esc_html__( 'Access denied.', 'ewww-image-optimizer' ) ) ) );
 	}
+	// Store the attachment ID value.
+	$attachment_id = (int) $_REQUEST['ewww_attachment_ID'];
+	$ewww_force    = ! empty( $_REQUEST['ewww_force'] ) ? true : false;
+	$ewww_convert  = ! empty( $_REQUEST['ewww_convert'] ) ? true : false;
 	// Retrieve the existing attachment metadata.
 	$original_meta = wp_get_attachment_metadata( $attachment_id );
 	// If the call was to optimize...
-	if ( 'ewww_image_optimizer_manual_optimize' === $_REQUEST['action'] ||  'ewww_manual_optimize' === $_REQUEST['action'] ) {
+	if ( 'ewww_image_optimizer_manual_optimize' === $_REQUEST['action'] || 'ewww_manual_optimize' === $_REQUEST['action'] ) {
 		// Call the optimize from metadata function and store the resulting new metadata.
 		$new_meta = ewww_image_optimizer_resize_from_meta_data( $original_meta, $attachment_id );
 	} elseif ( 'ewww_image_optimizer_manual_restore' === $_REQUEST['action'] || 'ewww_manual_restore' === $_REQUEST['action'] ) {
 		$new_meta = ewww_image_optimizer_restore_from_meta_data( $original_meta, $attachment_id );
 	} elseif ( 'ewww_image_optimizer_manual_cloud_restore' === $_REQUEST['action'] || 'ewww_manual_cloud_restore' === $_REQUEST['action'] ) {
-		ewww_image_optimizer_cloud_restore_from_meta_data( $attachment_id, 'media' );
-		$new_meta = $original_meta;
+		$new_meta = ewww_image_optimizer_cloud_restore_from_meta_data( $attachment_id, 'media', $original_meta );
 	} else {
 		if ( ! wp_doing_ajax() ) {
 			wp_die( esc_html__( 'Access denied.', 'ewww-image-optimizer' ) );
 		}
-		wp_die( json_encode( array(
-			'error' => esc_html__( 'Access denied.', 'ewww-image-optimizer' ),
-		) ) );
+		ewwwio_ob_clean();
+		wp_die( wp_json_encode( array( 'error' => esc_html__( 'Access denied.', 'ewww-image-optimizer' ) ) ) );
 	}
 	$basename = '';
 	if ( is_array( $new_meta ) && ! empty( $new_meta['file'] ) ) {
@@ -2717,33 +3721,41 @@ function ewww_image_optimizer_manual() {
 	// Update the attachment metadata in the database.
 	$meta_saved = wp_update_attachment_metadata( $attachment_id, $new_meta );
 	if ( ! $meta_saved ) {
-		ewwwio_debug_message( 'failed to save meta' );
+		ewwwio_debug_message( 'failed to save meta, or no changes' );
 	}
-	if ( get_transient( 'ewww_image_optimizer_cloud_status' ) == 'exceeded' || ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_exceeded' ) > time() ) {
+	if ( get_transient( 'ewww_image_optimizer_cloud_status' ) === 'exceeded' || ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_exceeded' ) > time() ) {
 		if ( ! wp_doing_ajax() ) {
-			wp_die( esc_html__( 'License exceeded', 'ewww-image-optimizer' ) );
+			wp_die( '<a href="https://ewww.io/buy-credits/" target="_blank">' . esc_html__( 'License exceeded', 'ewww-image-optimizer' ) . '</a>' );
 		}
-		wp_die( json_encode( array(
-			'error' => esc_html__( 'License exceeded', 'ewww-image-optimizer' ),
-		) ) );
+		ewwwio_ob_clean();
+		wp_die(
+			wp_json_encode(
+				array(
+					'error' => '<a href="https://ewww.io/buy-credits/" target="_blank">' . esc_html__( 'License exceeded', 'ewww-image-optimizer' ) . '</a>',
+				)
+			)
+		);
 	}
-	$success = ewww_image_optimizer_custom_column( 'ewww-image-optimizer', $attachment_id, $new_meta, true );
+	$success = ewww_image_optimizer_custom_column_capture( 'ewww-image-optimizer', $attachment_id, $new_meta );
 	ewww_image_optimizer_debug_log();
 	// Do a redirect, if this was called via GET.
 	if ( ! wp_doing_ajax() ) {
 		// Store the referring webpage location.
 		$sendback = wp_get_referer();
-		// Sanitize the referring webpage location.
-		$sendback = preg_replace( '|[^a-z0-9-~+_.?#=&;,/:]|i', '', $sendback );
 		// Send the user back where they came from.
-		wp_redirect( $sendback );
-		return;
+		wp_safe_redirect( $sendback );
+		die;
 	}
 	ewwwio_memory( __FUNCTION__ );
-	die( json_encode( array(
-		'success' => $success,
-		'basename' => $basename,
-	) ) );
+	ewwwio_ob_clean();
+	wp_die(
+		wp_json_encode(
+			array(
+				'success'  => $success,
+				'basename' => $basename,
+			)
+		)
+	);
 }
 
 /**
@@ -2769,12 +3781,13 @@ function ewww_image_optimizer_restore_from_meta_data( $meta, $id ) {
 	if ( empty( $db_image ) || ! is_array( $db_image ) || empty( $db_image['path'] ) ) {
 		// Get the filepath based on the meta and id.
 		list( $file_path, $upload_path ) = ewww_image_optimizer_attachment_path( $meta, $id );
+
 		$db_image = ewww_image_optimizer_find_already_optimized( $file_path );
 		if ( empty( $db_image ) || ! is_array( $db_image ) || empty( $db_image['path'] ) ) {
 			return $meta;
 		}
 	}
-	$ewww_image = new EWWW_Image( $id, 'media', ewww_image_optimizer_relative_path_replace( $db_image['path'] ) );
+	$ewww_image = new EWWW_Image( $id, 'media', ewww_image_optimizer_absolutize_path( $db_image['path'] ) );
 	return $ewww_image->restore_with_meta( $meta );
 }
 
@@ -2786,8 +3799,10 @@ function ewww_image_optimizer_restore_from_meta_data( $meta, $id ) {
  *
  * @param int    $id The attachment id number.
  * @param string $gallery Optional. The gallery from whence we came. Default 'media'.
+ * @param array  $meta Optional. The image metadata from the postmeta table.
+ * @return array The altered meta (if size differs), or the original value passed along.
  */
-function ewww_image_optimizer_cloud_restore_from_meta_data( $id, $gallery = 'media' ) {
+function ewww_image_optimizer_cloud_restore_from_meta_data( $id, $gallery = 'media', $meta = array() ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 	global $wpdb;
 	if ( strpos( $wpdb->charset, 'utf8' ) === false ) {
@@ -2796,13 +3811,25 @@ function ewww_image_optimizer_cloud_restore_from_meta_data( $id, $gallery = 'med
 	} else {
 		$ewwwdb = $wpdb;
 	}
-	$images = $ewwwdb->get_results( "SELECT id,path,backup FROM $ewwwdb->ewwwio_images WHERE attachment_id = $id AND gallery = '$gallery'", ARRAY_A );
+	$images = $ewwwdb->get_results( "SELECT id,path,resize,backup FROM $ewwwdb->ewwwio_images WHERE attachment_id = $id AND gallery = '$gallery'", ARRAY_A );
 	foreach ( $images as $image ) {
 		if ( ! empty( $image['path'] ) ) {
-			$image['path'] = ewww_image_optimizer_relative_path_replace( $image['path'] );
+			$image['path'] = ewww_image_optimizer_absolutize_path( $image['path'] );
 		}
 		ewww_image_optimizer_cloud_restore_single_image( $image );
+		if ( 'media' === $gallery && 'full' === $image['resize'] && ! empty( $meta['width'] ) && ! empty( $meta['height'] ) ) {
+			list( $width, $height ) = getimagesize( $image['path'] );
+			if ( (int) $width !== (int) $meta['width'] || (int) $height !== (int) $meta['height'] ) {
+				$meta['height'] = $height;
+				$meta['width']  = $width;
+			}
+		}
 	}
+	if ( class_exists( 'S3_Uploads' ) ) {
+		ewww_image_optimizer_remote_push( $meta, $id );
+		ewwwio_debug_message( 're-uploading to S3(_Uploads)' );
+	}
+	return $meta;
 }
 
 /**
@@ -2814,32 +3841,27 @@ function ewww_image_optimizer_cloud_restore_single_image_handler() {
 	$permissions = apply_filters( 'ewww_image_optimizer_manual_permissions', '' );
 	if ( false === current_user_can( $permissions ) ) {
 		// Display error message if insufficient permissions.
-		wp_die( json_encode( array(
-			'error' => esc_html__( 'You do not have permission to optimize images.', 'ewww-image-optimizer' ),
-		) ) );
+		ewwwio_ob_clean();
+		wp_die( wp_json_encode( array( 'error' => esc_html__( 'You do not have permission to optimize images.', 'ewww-image-optimizer' ) ) ) );
 	}
 	// Make sure we didn't accidentally get to this page without an attachment to work on.
 	if ( empty( $_REQUEST['ewww_image_id'] ) ) {
 		// Display an error message since we don't have anything to work on.
-		wp_die( json_encode( array(
-			'error' => esc_html__( 'No image ID was provided.', 'ewww-image-optimizer' ),
-		) ) );
+		ewwwio_ob_clean();
+		wp_die( wp_json_encode( array( 'error' => esc_html__( 'No image ID was provided.', 'ewww-image-optimizer' ) ) ) );
 	}
-	if ( empty( $_REQUEST['ewww_wpnonce'] ) || ! wp_verify_nonce( $_REQUEST['ewww_wpnonce'], 'ewww-image-optimizer-bulk' ) ) {
-		wp_die( json_encode( array(
-			'error' => esc_html__( 'Access token has expired, please reload the page.', 'ewww-image-optimizer' ),
-		) ) );
+	if ( empty( $_REQUEST['ewww_wpnonce'] ) || ! wp_verify_nonce( sanitize_key( $_REQUEST['ewww_wpnonce'] ), 'ewww-image-optimizer-tools' ) ) {
+		ewwwio_ob_clean();
+		wp_die( wp_json_encode( array( 'error' => esc_html__( 'Access token has expired, please reload the page.', 'ewww-image-optimizer' ) ) ) );
 	}
 	session_write_close();
 	$image = (int) $_REQUEST['ewww_image_id'];
 	if ( ewww_image_optimizer_cloud_restore_single_image( $image ) ) {
-		wp_die( json_encode( array(
-			'success' => 1,
-		) ) );
+		ewwwio_ob_clean();
+		wp_die( wp_json_encode( array( 'success' => 1 ) ) );
 	}
-	wp_die( json_encode( array(
-		'error' => esc_html__( 'Unable to restore image.', 'ewww-image-optimizer' ),
-	) ) );
+	ewwwio_ob_clean();
+	wp_die( wp_json_encode( array( 'error' => esc_html__( 'Unable to restore image.', 'ewww-image-optimizer' ) ) ) );
 }
 
 /**
@@ -2864,49 +3886,51 @@ function ewww_image_optimizer_cloud_restore_single_image( $image ) {
 		$image = $ewwwdb->get_row( "SELECT id,path,backup FROM $ewwwdb->ewwwio_images WHERE id = $image", ARRAY_A );
 	}
 	if ( ! empty( $image['path'] ) ) {
-		$image['path'] = ewww_image_optimizer_relative_path_replace( $image['path'] );
-	}
-	$ewww_cloud_transport = get_transient( 'ewww_image_optimizer_cloud_transport' );
-	if ( empty( $ewww_cloud_transport ) ) {
-		if ( ! ewww_image_optimizer_cloud_verify() ) {
-			return false;
-		} else {
-			$ewww_cloud_transport = get_transient( 'ewww_image_optimizer_cloud_transport' );
-		}
-	}
-	if ( empty( $ewww_cloud_transport ) ) {
-		$ewww_cloud_transport = 'https';
+		$image['path'] = ewww_image_optimizer_absolutize_path( $image['path'] );
 	}
 	$api_key = ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' );
-	$domain = parse_url( get_site_url(), PHP_URL_HOST );
-	$url = "$ewww_cloud_transport://optimize.exactlywww.com/backup/restore.php";
-	$result = wp_remote_post( $url, array(
-		'timeout' => 30,
-		'sslverify' => false,
-		'body' => array(
-			'api_key' => $api_key,
-			'domain' => $domain,
-			'hash' => $image['backup'],
-		),
-	) );
+	$domain  = parse_url( get_site_url(), PHP_URL_HOST );
+	$url     = 'http://optimize.exactlywww.com/backup/restore.php';
+	$ssl     = wp_http_supports( array( 'ssl' ) );
+	if ( $ssl ) {
+		$url = set_url_scheme( $url, 'https' );
+	}
+	$result = wp_remote_post(
+		$url,
+		array(
+			'timeout'   => 30,
+			'sslverify' => false,
+			'body'      => array(
+				'api_key' => $api_key,
+				'domain'  => $domain,
+				'hash'    => $image['backup'],
+			),
+		)
+	);
 	if ( is_wp_error( $result ) ) {
 		$error_message = $result->get_error_message();
-		ewwwio_debug_message( "quota request failed: $error_message" );
+		ewwwio_debug_message( "restore request failed: $error_message" );
 		ewwwio_memory( __FUNCTION__ );
 		return false;
 	} elseif ( ! empty( $result['body'] ) && strpos( $result['body'], 'missing' ) === false ) {
-		$enabled_types = array( 'image/jpeg', 'image/png', 'image/gif', 'application/pdf' );
+		$enabled_types = array( 'image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'image/svg+xml' );
+		if ( ! is_dir( dirname( $image['path'] ) ) ) {
+			wp_mkdir_p( dirname( $image['path'] ) );
+		}
 		file_put_contents( $image['path'] . '.tmp', $result['body'] );
 		$new_type = ewww_image_optimizer_mimetype( $image['path'] . '.tmp', 'i' );
 		$old_type = '';
-		if ( is_file( $image['path'] ) ) {
-			$old_type = ewww_image_optimizer_mimetype( $image['path'] );
+		if ( ewwwio_is_file( $image['path'] ) ) {
+			$old_type = ewww_image_optimizer_mimetype( $image['path'], 'i' );
 		}
-		if ( ! in_array( $new_type, $enabled_types ) ) {
+		if ( ! in_array( $new_type, $enabled_types, true ) ) {
 			return false;
 		}
-		if ( empty( $old_type ) || $old_type == $new_type ) {
-			if ( rename( $image['path'] . '.tmp', $image['path'] ) ) {
+		if ( empty( $old_type ) || $old_type === $new_type ) {
+			if ( ewwwio_rename( $image['path'] . '.tmp', $image['path'] ) ) {
+				if ( ewwwio_is_file( $image['path'] . '.webp' ) && is_writable( $image['path'] . '.webp' ) ) {
+					unlink( $image['path'] . '.webp' );
+				}
 				// Set the results to nothing.
 				$ewwwdb->query( "UPDATE $ewwwdb->ewwwio_images SET results = '', image_size = 0, updates = 0, updated=updated, level = 0 WHERE id = {$image['id']}" );
 				return true;
@@ -2935,133 +3959,510 @@ function ewww_image_optimizer_delete( $id ) {
 	} else {
 		$ewwwdb = $wpdb;
 	}
+	$id = (int) $id;
 	// Finds non-meta images to remove from disk, and from db, as well as converted originals.
-	if (
-		$optimized_images = $ewwwdb->get_results( "SELECT path,converted FROM $ewwwdb->ewwwio_images WHERE attachment_id = $id AND gallery = 'media'", ARRAY_A )
-	) {
+	$optimized_images = $ewwwdb->get_results( "SELECT path,converted FROM $ewwwdb->ewwwio_images WHERE attachment_id = $id AND gallery = 'media'", ARRAY_A );
+	if ( $optimized_images ) {
 		if ( ewww_image_optimizer_iterable( $optimized_images ) ) {
 			foreach ( $optimized_images as $image ) {
 				if ( ! empty( $image['path'] ) ) {
-					$image['path'] = ewww_image_optimizer_relative_path_replace( $image['path'] );
+					$image['path'] = ewww_image_optimizer_absolutize_path( $image['path'] );
 				}
-				if ( ! empty( $image['path'] ) && is_file( $image['path'] ) ) {
-					unlink( $image['path'] );
-					if ( is_file( $image['path'] . '.webp' ) ) {
-						unlink( $image['path'] . '.webp' );
+				if ( ! empty( $image['path'] ) ) {
+					if ( ewwwio_is_file( $image['path'] ) ) {
+						ewwwio_debug_message( 'removing: ' . $image['path'] );
+						ewwwio_delete_file( $image['path'] );
+					}
+					if ( ewwwio_is_file( $image['path'] . '.webp' ) ) {
+						ewwwio_debug_message( 'removing: ' . $image['path'] . '.webp' );
+						ewwwio_delete_file( $image['path'] . '.webp' );
+					}
+					$webpfileold = preg_replace( '/\.\w+$/', '.webp', $image['path'] );
+					if ( ewwwio_is_file( $webpfileold ) ) {
+						ewwwio_debug_message( 'removing: ' . $webpfileold );
+						ewwwio_delete_file( $webpfileold );
 					}
 				}
 				if ( ! empty( $image['converted'] ) ) {
-					$image['converted'] = ewww_image_optimizer_relative_path_replace( $image['converted'] );
+					$image['converted'] = ewww_image_optimizer_absolutize_path( $image['converted'] );
 				}
-				if ( ! empty( $image['converted'] ) && is_file( $image['converted'] ) ) {
-					unlink( $image['converted'] );
-					if ( is_file( $image['converted'] . '.webp' ) ) {
-						unlink( $image['converted'] . '.webp' );
+				if ( ! empty( $image['converted'] ) && ewwwio_is_file( $image['converted'] ) ) {
+					ewwwio_debug_message( 'removing: ' . $image['converted'] );
+					ewwwio_delete_file( $image['converted'] );
+					if ( ewwwio_is_file( $image['converted'] . '.webp' ) ) {
+						ewwwio_debug_message( 'removing: ' . $image['converted'] . '.webp' );
+						ewwwio_delete_file( $image['converted'] . '.webp' );
 					}
 				}
 			}
 		}
-		$ewwwdb->delete( $ewwwdb->ewwwio_images, array(
-			'attachment_id' => $id,
-		) );
+		$ewwwdb->delete( $ewwwdb->ewwwio_images, array( 'attachment_id' => $id ) );
+	}
+	$s3_path = false;
+	$s3_dir  = false;
+	if ( class_exists( 'S3_Uploads' ) && ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp' ) ) {
+		$s3_path = get_attached_file( $id );
+		if ( 0 === strpos( $s3_path, 's3://' ) ) {
+			ewwwio_debug_message( 'removing: ' . $s3_path . '.webp' );
+			unlink( $s3_path . '.webp' );
+		}
+		$s3_dir = trailingslashit( dirname( $s3_path ) );
 	}
 	// Retrieve the image metadata.
 	$meta = wp_get_attachment_metadata( $id );
 	// If the attachment has an original file set.
 	if ( ! empty( $meta['orig_file'] ) ) {
-		unset( $rows );
 		// Get the filepath from the metadata.
 		$file_path = $meta['orig_file'];
 		// Get the base filename.
-		$filename = basename( $file_path );
+		$filename = wp_basename( $file_path );
 		// Delete any residual webp versions.
-		$webpfile = $filename . '.webp';
-		$webpfileold = preg_replace( '/\.\w+$/', '.webp', $filename );
-		if ( is_file( $webpfile ) ) {
-			unlink( $webpfile );
+		$webpfile    = $file_path . '.webp';
+		$webpfileold = preg_replace( '/\.\w+$/', '.webp', $file_path );
+		if ( ewwwio_is_file( $webpfile ) ) {
+			ewwwio_debug_message( 'removing: ' . $webpfile );
+			ewwwio_delete_file( $webpfile );
 		}
-		if ( is_file( $webpfileold ) ) {
-			unlink( $webpfileold );
+		if ( ewwwio_is_file( $webpfileold ) ) {
+			ewwwio_debug_message( 'removing: ' . $webpfileold );
+			ewwwio_delete_file( $webpfileold );
 		}
 		// Retrieve any posts that link the original image.
 		$esql = "SELECT ID, post_content FROM $ewwwdb->posts WHERE post_content LIKE '%$filename%' LIMIT 1";
 		$rows = $ewwwdb->get_row( $esql );
 		// If the original file still exists and no posts contain links to the image.
-		if ( is_file( $file_path ) && empty( $rows ) ) {
-			unlink( $file_path );
-			$ewwwdb->delete( $ewwwdb->ewwwio_images, array(
-				'path' => ewww_image_optimizer_relative_path_remove( $file_path ),
-			) );
+		if ( ewwwio_is_file( $file_path ) && empty( $rows ) ) {
+			ewwwio_debug_message( 'removing: ' . $file_path );
+			ewwwio_delete_file( $file_path );
+			$ewwwdb->delete( $ewwwdb->ewwwio_images, array( 'path' => ewww_image_optimizer_relativize_path( $file_path ) ) );
 		}
 	}
+	$file_path = get_attached_file( $id );
+	// If the attachment has an original file set.
+	if ( ! empty( $meta['original_image'] ) ) {
+		// One way or another, $file_path is now set, and we can get the base folder name.
+		$base_dir = dirname( $file_path ) . '/';
+		// Get the original filename from the metadata.
+		$orig_path = $base_dir . wp_basename( $meta['original_image'] );
+		// Delete any residual webp versions.
+		$webpfile = $orig_path . '.webp';
+		if ( ewwwio_is_file( $webpfile ) ) {
+			ewwwio_debug_message( 'removing: ' . $webpfile );
+			ewwwio_delete_file( $webpfile );
+		}
+		if ( $s3_path && $s3_dir && wp_basename( $meta['original_image'] ) ) {
+			ewwwio_debug_message( 'removing: ' . $s3_dir . wp_basename( $meta['original_image'] ) . '.webp' );
+			unlink( $s3_dir . wp_basename( $meta['original_image'] ) . '.webp' );
+		}
+		$ewwwdb->delete( $ewwwdb->ewwwio_images, array( 'path' => ewww_image_optimizer_relativize_path( $orig_path ) ) );
+	}
 	// Remove the regular image from the ewwwio_images tables.
-	list( $file_path, $upload_path ) = ewww_image_optimizer_attachment_path( $meta, $id );
-	$ewwwdb->delete( $ewwwdb->ewwwio_images, array(
-		'path' => ewww_image_optimizer_relative_path_remove( $file_path ),
-	) );
+	$ewwwdb->delete( $ewwwdb->ewwwio_images, array( 'path' => ewww_image_optimizer_relativize_path( $file_path ) ) );
 	// Resized versions, so we can continue.
 	if ( isset( $meta['sizes'] ) && ewww_image_optimizer_iterable( $meta['sizes'] ) ) {
 		// One way or another, $file_path is now set, and we can get the base folder name.
 		$base_dir = dirname( $file_path ) . '/';
 		foreach ( $meta['sizes'] as $size => $data ) {
 			// Delete any residual webp versions.
-			$webpfile = $base_dir . $data['file'] . '.webp';
-			$webpfileold = preg_replace( '/\.\w+$/', '.webp', $base_dir . $data['file'] );
-			if ( is_file( $webpfile ) ) {
-				unlink( $webpfile );
+			$webpfile    = $base_dir . wp_basename( $data['file'] ) . '.webp';
+			$webpfileold = preg_replace( '/\.\w+$/', '.webp', $base_dir . wp_basename( $data['file'] ) );
+			if ( ewwwio_is_file( $webpfile ) ) {
+				ewwwio_debug_message( 'removing: ' . $webpfile );
+				ewwwio_delete_file( $webpfile );
 			}
-			if ( is_file( $webpfileold ) ) {
-				unlink( $webpfileold );
+			if ( ewwwio_is_file( $webpfileold ) ) {
+				ewwwio_debug_message( 'removing: ' . $webpfileold );
+				ewwwio_delete_file( $webpfileold );
 			}
-			$ewwwdb->delete( $ewwwdb->ewwwio_images, array(
-				'path' => ewww_image_optimizer_relative_path_remove( $base_dir . $data['file'] ),
-			) );
+			if ( $s3_path && $s3_dir && wp_basename( $data['file'] ) ) {
+				ewwwio_debug_message( 'removing: ' . $s3_dir . wp_basename( $data['file'] ) . '.webp' );
+				unlink( $s3_dir . wp_basename( $data['file'] ) . '.webp' );
+			}
+			$ewwwdb->delete( $ewwwdb->ewwwio_images, array( 'path' => ewww_image_optimizer_relativize_path( $base_dir . $data['file'] ) ) );
 			// If the original resize is set, and still exists.
-			if ( ! empty( $data['orig_file'] ) && is_file( $base_dir . $data['orig_file'] ) ) {
+			if ( ! empty( $data['orig_file'] ) && ewwwio_is_file( $base_dir . $data['orig_file'] ) ) {
 				unset( $srows );
 				// Retrieve the filename from the metadata.
 				$filename = $data['orig_file'];
 				// Retrieve any posts that link the image.
-				$esql = "SELECT ID, post_content FROM $ewwwdb->posts WHERE post_content LIKE '%$filename%' LIMIT 1";
+				$esql  = "SELECT ID, post_content FROM $ewwwdb->posts WHERE post_content LIKE '%$filename%' LIMIT 1";
 				$srows = $ewwwdb->get_row( $esql );
 				// If there are no posts containing links to the original, delete it.
 				if ( empty( $srows ) ) {
-					unlink( $base_dir . $data['orig_file'] );
-					$ewwwdb->delete( $ewwwdb->ewwwio_images, array(
-						'path' => ewww_image_optimizer_relative_path_remove( $base_dir . $data['orig_file'] ),
-					) );
+					ewwwio_debug_message( 'removing: ' . $base_dir . $data['orig_file'] );
+					ewwwio_delete_file( $base_dir . $data['orig_file'] );
+					$ewwwdb->delete( $ewwwdb->ewwwio_images, array( 'path' => ewww_image_optimizer_relativize_path( $base_dir . $data['orig_file'] ) ) );
 				}
 			}
 		}
 	}
-	ewwwio_memory( __FUNCTION__ );
-	return;
+	if ( ewwwio_is_file( $file_path . '.webp' ) ) {
+		ewwwio_debug_message( 'removing: ' . $file_path . '.webp' );
+		ewwwio_delete_file( $image['path'] . '.webp' );
+	}
+	$webpfileold = preg_replace( '/\.\w+$/', '.webp', $file_path );
+	if ( ewwwio_is_file( $webpfileold ) ) {
+		ewwwio_debug_message( 'removing: ' . $webpfileold );
+		ewwwio_delete_file( $webpfileold );
+	}
 }
 
 /**
- * Sanitizes and verifies an API key for the cloud service.
+ * Cleans up when a file has been deleted.
+ *
+ * Removes any .webp images, backups from conversion, and removes related database records.
+ *
+ * @global object $wpdb
+ * @global object $ewwwdb A clone of $wpdb unless it is lacking utf8 connectivity.
+ *
+ * @param int    $id The id number for the attachment being deleted.
+ * @param string $file The file being deleted.
+ */
+function ewww_image_optimizer_file_deleted( $id, $file ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	global $wpdb;
+	if ( strpos( $wpdb->charset, 'utf8' ) === false ) {
+		ewww_image_optimizer_db_init();
+		global $ewwwdb;
+	} else {
+		$ewwwdb = $wpdb;
+	}
+	$id = (int) $id;
+	// Finds non-meta images to remove from disk, and from db, as well as converted originals.
+	$maybe_relative_path = ewww_image_optimizer_relativize_path( $file );
+	$query               = $ewwwdb->prepare( "SELECT * FROM $ewwwdb->ewwwio_images WHERE path = %s", $maybe_relative_path );
+	$optimized_images    = $ewwwdb->get_results( $query, ARRAY_A );
+	if ( ewww_image_optimizer_iterable( $optimized_images ) ) {
+		foreach ( $optimized_images as $image ) {
+			if ( ! empty( $image['path'] ) ) {
+				$image['path'] = ewww_image_optimizer_absolutize_path( $image['path'] );
+			}
+			if ( strpos( $image['path'], WP_CONTENT_DIR ) === false ) {
+				continue;
+			}
+			if ( ! empty( $image['converted'] ) ) {
+				$image['converted'] = ewww_image_optimizer_absolutize_path( $image['converted'] );
+			}
+			if ( ! empty( $image['converted'] ) && ewwwio_is_file( $image['converted'] ) ) {
+				ewwwio_delete_file( $image['converted'] );
+				if ( ewwwio_is_file( $image['converted'] . '.webp' ) ) {
+					ewwwio_delete_file( $image['converted'] . '.webp' );
+				}
+			}
+			$ewwwdb->delete( $ewwwdb->ewwwio_images, array( 'id' => $image['id'] ) );
+		}
+	}
+	if ( ewwwio_is_file( $file . '.webp' ) ) {
+		ewwwio_delete_file( $file . '.webp' );
+	}
+}
+
+/**
+ * Cleans records from database when an image is about to be replaced.
+ *
+ * @param array $attachment An array with the attachment/image ID.
+ */
+function ewww_image_optimizer_media_replace( $attachment ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	global $wpdb;
+	if ( strpos( $wpdb->charset, 'utf8' ) === false ) {
+		ewww_image_optimizer_db_init();
+		global $ewwwdb;
+	} else {
+		$ewwwdb = $wpdb;
+	}
+	$id = (int) $attachment['post_id'];
+	// Finds non-meta images to remove from disk, and from db, as well as converted originals.
+	$optimized_images = $ewwwdb->get_results( "SELECT path,converted FROM $ewwwdb->ewwwio_images WHERE attachment_id = $id AND gallery = 'media'", ARRAY_A );
+	if ( $optimized_images ) {
+		if ( ewww_image_optimizer_iterable( $optimized_images ) ) {
+			foreach ( $optimized_images as $image ) {
+				if ( ! empty( $image['path'] ) ) {
+					$image['path'] = ewww_image_optimizer_absolutize_path( $image['path'] );
+				}
+				if ( false === strpos( $image['path'], WP_CONTENT_DIR ) ) {
+					continue;
+				}
+				if ( ! empty( $image['path'] ) ) {
+					if ( ewwwio_is_file( $image['path'] . '.webp' ) ) {
+						ewwwio_delete_file( $image['path'] . '.webp' );
+					}
+				}
+				if ( ! empty( $image['converted'] ) ) {
+					$image['converted'] = ewww_image_optimizer_absolutize_path( $image['converted'] );
+				}
+				if ( ! empty( $image['converted'] ) && ewwwio_is_file( $image['converted'] ) ) {
+					ewwwio_delete_file( $image['converted'] );
+					if ( ewwwio_is_file( $image['converted'] . '.webp' ) ) {
+						ewwwio_delete_file( $image['converted'] . '.webp' );
+					}
+				}
+			}
+		}
+		$ewwwdb->delete( $ewwwdb->ewwwio_images, array( 'attachment_id' => $id ) );
+	}
+	// Retrieve the image metadata.
+	$meta = wp_get_attachment_metadata( $id );
+	// If the attachment has an original file set.
+	if ( ! empty( $meta['orig_file'] ) ) {
+		// Get the filepath from the metadata.
+		$file_path = $meta['orig_file'];
+
+		$webpfile    = $file_path . '.webp';
+		$webpfileold = preg_replace( '/\.\w+$/', '.webp', $file_path );
+		if ( ewwwio_is_file( $webpfile ) ) {
+			ewwwio_delete_file( $webpfile );
+		}
+		if ( ewwwio_is_file( $webpfileold ) ) {
+			ewwwio_delete_file( $webpfileold );
+		}
+		$ewwwdb->delete( $ewwwdb->ewwwio_images, array( 'path' => ewww_image_optimizer_relativize_path( $file_path ) ) );
+	}
+	list( $file_path, $upload_path ) = ewww_image_optimizer_attachment_path( $meta, $id );
+	// If the attachment has an original file set.
+	if ( ! empty( $meta['original_image'] ) ) {
+		// One way or another, $file_path is now set, and we can get the base folder name.
+		$base_dir = dirname( $file_path ) . '/';
+		// Get the original filename from the metadata.
+		$orig_path = $base_dir . wp_basename( $meta['original_image'] );
+		// Delete any residual webp versions.
+		$webpfile = $orig_path . '.webp';
+		if ( ewwwio_is_file( $webpfile ) ) {
+			ewwwio_delete_file( $webpfile );
+		}
+		$ewwwdb->delete( $ewwwdb->ewwwio_images, array( 'path' => ewww_image_optimizer_relativize_path( $orig_path ) ) );
+	}
+	// Remove the regular image from the ewwwio_images tables.
+	$ewwwdb->delete( $ewwwdb->ewwwio_images, array( 'path' => ewww_image_optimizer_relativize_path( $file_path ) ) );
+	// Resized versions, so we can continue.
+	if ( isset( $meta['sizes'] ) && ewww_image_optimizer_iterable( $meta['sizes'] ) ) {
+		// One way or another, $file_path is now set, and we can get the base folder name.
+		$base_dir = dirname( $file_path ) . '/';
+		foreach ( $meta['sizes'] as $size => $data ) {
+			// Delete any residual webp versions.
+			$webpfile    = $base_dir . $data['file'] . '.webp';
+			$webpfileold = preg_replace( '/\.\w+$/', '.webp', $base_dir . $data['file'] );
+			if ( ewwwio_is_file( $webpfile ) ) {
+				ewwwio_delete_file( $webpfile );
+			}
+			if ( ewwwio_is_file( $webpfileold ) ) {
+				ewwwio_delete_file( $webpfileold );
+			}
+			$ewwwdb->delete( $ewwwdb->ewwwio_images, array( 'path' => ewww_image_optimizer_relativize_path( $base_dir . $data['file'] ) ) );
+			// If the original resize is set, and still exists.
+			if ( ! empty( $data['orig_file'] ) ) {
+				// Retrieve the filename from the metadata.
+				$filename = $data['orig_file'];
+				$ewwwdb->delete( $ewwwdb->ewwwio_images, array( 'path' => ewww_image_optimizer_relativize_path( $base_dir . $data['orig_file'] ) ) );
+			}
+		}
+	}
+}
+
+/**
+ * Cleans records from database after an image has been renamed.
+ *
+ * @param string $old_name The filename of the original/old image.
+ * @param string $new_name The filename of the new image.
+ */
+function ewww_image_optimizer_media_rename( $old_name, $new_name ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	global $wpdb;
+	if ( strpos( $wpdb->charset, 'utf8' ) === false ) {
+		ewww_image_optimizer_db_init();
+		global $ewwwdb;
+	} else {
+		$ewwwdb = $wpdb;
+	}
+	if ( ! check_ajax_referer( 'phoenix_media_rename', '_wpnonce', false ) || empty( $_REQUEST['post_id'] ) ) {
+		return;
+	}
+	$id = (int) $_REQUEST['post_id'];
+	ewwwio_debug_message( "image renamed from $old_name to $new_name, looking for old records (id $id)" );
+	// Finds images to remove from disk, and from db, as well as converted originals.
+	$optimized_images = $ewwwdb->get_results( "SELECT id,path,resize,converted FROM $ewwwdb->ewwwio_images WHERE attachment_id = $id AND gallery = 'media'", ARRAY_A );
+	if ( ewww_image_optimizer_iterable( $optimized_images ) ) {
+		foreach ( $optimized_images as $image ) {
+			if ( ! empty( $image['path'] ) ) {
+				$image['path'] = ewww_image_optimizer_absolutize_path( $image['path'] );
+			}
+			ewwwio_debug_message( "checking to see if {$image['path']} is stale" );
+			if ( false === strpos( $image['path'], WP_CONTENT_DIR ) ) {
+				ewwwio_debug_message( 'not in ' . WP_CONTENT_DIR );
+				continue;
+			}
+			if ( ewwwio_is_file( $image['path'] ) ) {
+				ewwwio_debug_message( 'file still exists, skipping' );
+				continue;
+			}
+			if ( ! empty( $image['path'] ) && ewwwio_is_file( $image['path'] . '.webp' ) ) {
+				ewwwio_debug_message( 'removing WebP version' );
+				ewwwio_delete_file( $image['path'] . '.webp' );
+			}
+			if ( ! empty( $image['converted'] ) ) {
+				$image['converted'] = ewww_image_optimizer_absolutize_path( $image['converted'] );
+			}
+			if ( ! empty( $image['converted'] ) && ewwwio_is_file( $image['converted'] ) ) {
+				ewwwio_debug_message( 'removing "converted" file' );
+				ewwwio_delete_file( $image['converted'] );
+				if ( ewwwio_is_file( $image['converted'] . '.webp' ) ) {
+					ewwwio_debug_message( 'and WebP derivative' );
+					ewwwio_delete_file( $image['converted'] . '.webp' );
+				}
+			}
+			if ( 'full' === $image['resize'] ) {
+				ewwwio_debug_message( "updating path for $id (full)" );
+				$new_path = str_replace( wp_basename( $old_name ), wp_basename( $new_name ), $image['path'] );
+				if ( ewwwio_is_file( $new_path ) ) {
+					$new_path = ewww_image_optimizer_relativize_path( $new_path );
+					$ewwwdb->update(
+						$ewwwdb->ewwwio_images,
+						array(
+							'path' => $new_path,
+						),
+						array(
+							'id' => $image['id'],
+						)
+					);
+					continue;
+				}
+			}
+			$ewwwdb->delete( $ewwwdb->ewwwio_images, array( 'id' => $image['id'] ) );
+		}
+	}
+	// Retrieve the image metadata.
+	$meta = wp_get_attachment_metadata( $id );
+	// If the attachment has an original file set.
+	if ( ! empty( $meta['orig_file'] ) && ! ewwwio_is_file( $meta['orig_file'] ) ) {
+		// Get the filepath from the metadata.
+		$file_path = $meta['orig_file'];
+
+		$webpfile    = $file_path . '.webp';
+		$webpfileold = preg_replace( '/\.\w+$/', '.webp', $file_path );
+		if ( ewwwio_is_file( $webpfile ) ) {
+			ewwwio_delete_file( $webpfile );
+		}
+		if ( ewwwio_is_file( $webpfileold ) ) {
+			ewwwio_delete_file( $webpfileold );
+		}
+		$ewwwdb->delete( $ewwwdb->ewwwio_images, array( 'path' => ewww_image_optimizer_relativize_path( $file_path ) ) );
+	}
+	ewww_image_optimizer_resize_from_meta_data( $meta, $id );
+}
+
+/**
+ * Activates Easy IO via AJAX.
+ */
+function ewww_image_optimizer_exactdn_activate_ajax() {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	if ( empty( $_REQUEST['ewww_wpnonce'] ) || ! wp_verify_nonce( sanitize_key( $_REQUEST['ewww_wpnonce'] ), 'ewww-image-optimizer-settings' ) ) {
+		die( wp_json_encode( array( 'error' => esc_html__( 'Access token has expired, please reload the page.', 'ewww-image-optimizer' ) ) ) );
+	}
+	ewww_image_optimizer_set_option( 'ewww_image_optimizer_exactdn', true );
+	if ( ! class_exists( 'ExactDN' ) ) {
+		/**
+		 * Page Parsing class for working with HTML content.
+		 */
+		require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'classes/class-eio-page-parser.php' );
+		/**
+		 * ExactDN class for parsing image urls and rewriting them.
+		 */
+		require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'classes/class-exactdn.php' );
+		global $exactdn;
+		if ( $exactdn->get_exactdn_domain() ) {
+			die( wp_json_encode( array( 'success' => esc_html__( 'Easy IO setup and verification is complete.', 'ewww-image-optimizer' ) ) ) );
+		}
+	}
+	global $exactdn_activate_error;
+	if ( empty( $exactdn_activate_error ) ) {
+		$exactdn_activate_error = 'error unknown';
+	}
+	die(
+		wp_json_encode(
+			array(
+				'error' => sprintf(
+					/* translators: 1: A link to the documentation 2: the error message/details */
+					esc_html__( 'Could not activate Easy IO, please try again in a few minutes. If this error continues, please see %1$s for troubleshooting steps: %2$s', 'ewww-image-optimizer' ),
+					'https://docs.ewww.io/article/66-exactdn-not-verified',
+					'<code>' . esc_html( $exactdn_activate_error ) . '</code>'
+				),
+			)
+		)
+	);
+}
+
+/**
+ * Sanitizes an API key for the cloud service.
  *
  * @param string $key An API key entered by the user.
- * @return string A sanitized and validated API key.
+ * @return string A sanitized API key.
  */
 function ewww_image_optimizer_cloud_key_sanitize( $key ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 	$key = trim( $key );
-	if ( ewww_image_optimizer_function_exists( 'print_r' ) ) {
-		ewwwio_debug_message( print_r( $_REQUEST, true ) );
-	}
-	if ( ewww_image_optimizer_cloud_verify( false, $key ) ) {
-		add_settings_error( 'ewww_image_optimizer_cloud_key', 'ewwwio-cloud-key', esc_html__( 'Successfully validated API key, happy optimizing!', 'ewww-image-optimizer' ), 'updated' );
-		ewwwio_debug_message( 'sanitize (verification) successful' );
-		ewwwio_memory( __FUNCTION__ );
+	if ( ! empty( $key ) && strlen( $key ) < 200 && preg_match( '/^[a-zA-Z0-9]+$/', $key ) ) {
 		return $key;
-	} else {
-		if ( ! empty( $key ) ) {
-			add_settings_error( 'ewww_image_optimizer_cloud_key', 'ewwwio-cloud-key', esc_html__( 'Could not validate API key, please copy and paste your key to ensure it is correct.', 'ewww-image-optimizer' ) );
+	}
+	return '';
+}
+
+/**
+ * Verifies an API key via AJAX.
+ */
+function ewww_image_optimizer_cloud_key_verify_ajax() {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	if ( empty( $_REQUEST['ewww_wpnonce'] ) || ! wp_verify_nonce( sanitize_key( $_REQUEST['ewww_wpnonce'] ), 'ewww-image-optimizer-settings' ) ) {
+		die( wp_json_encode( array( 'error' => esc_html__( 'Access token has expired, please reload the page.', 'ewww-image-optimizer' ) ) ) );
+	}
+	if ( empty( $_POST['compress_api_key'] ) ) {
+		die( wp_json_encode( array( 'error' => esc_html__( 'Please enter your API key and try again.', 'ewww-image-optimizer' ) ) ) );
+	}
+	$api_key = trim( ewww_image_optimizer_cloud_key_sanitize( wp_unslash( $_POST['compress_api_key'] ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+	$url     = 'http://optimize.exactlywww.com/verify/';
+	if ( wp_http_supports( array( 'ssl' ) ) ) {
+		$url = set_url_scheme( $url, 'https' );
+	}
+	$result = ewww_image_optimizer_cloud_post_key( $url, $api_key );
+	if ( is_wp_error( $result ) ) {
+		$url           = set_url_scheme( $url, 'http' );
+		$error_message = $result->get_error_message();
+		ewwwio_debug_message( "verification failed: $error_message" );
+		$result = ewww_image_optimizer_cloud_post_key( $url, $api_key );
+	}
+	if ( is_wp_error( $result ) ) {
+		$error_message = $result->get_error_message();
+		ewwwio_debug_message( "verification failed via $url: $error_message" );
+		die(
+			wp_json_encode(
+				array(
+					'error' => sprintf(
+						/* translators: %s: an error message from the WebP self-test */
+						esc_html__( 'Could not validate API key, HTTP error: %s', 'ewww-image-optimizer' ),
+						$error_message
+					),
+				)
+			)
+		);
+	} elseif ( ! empty( $result['body'] ) && preg_match( '/(great|exceeded)/', $result['body'] ) ) {
+		$verified = $result['body'];
+		if ( preg_match( '/exceeded/', $verified ) ) {
+			die( wp_json_encode( array( 'error' => esc_html__( 'No credits remaining for API key.', 'ewww-image-optimizer' ) ) ) );
 		}
-		ewwwio_debug_message( 'sanitize (verification) failed' );
-		ewwwio_memory( __FUNCTION__ );
-		return '';
+		ewwwio_debug_message( "verification success via: $url" );
+		delete_option( 'ewww_image_optimizer_cloud_key_invalid' );
+		ewww_image_optimizer_set_option( 'ewww_image_optimizer_cloud_key', $api_key );
+		set_transient( 'ewww_image_optimizer_cloud_status', $verified, HOUR_IN_SECONDS );
+		if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) < 20 && ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) < 20 && ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_level' ) < 20 && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_pdf_level' ) ) {
+			ewww_image_optimizer_cloud_enable();
+		}
+		ewwwio_debug_message( "verification body contents: {$result['body']}" );
+		die( wp_json_encode( array( 'success' => esc_html__( 'Successfully validated API key, happy optimizing!', 'ewww-image-optimizer' ) ) ) );
+	} else {
+		ewwwio_debug_message( "verification failed via: $url" );
+		if ( ewww_image_optimizer_function_exists( 'print_r' ) ) {
+			ewwwio_debug_message( print_r( $result, true ) );
+		}
+		die( wp_json_encode( array( 'error' => esc_html__( 'Could not validate API key, please copy and paste your key to ensure it is correct.', 'ewww-image-optimizer' ) ) ) );
 	}
 }
 
@@ -3073,7 +4474,7 @@ function ewww_image_optimizer_cloud_key_sanitize( $key ) {
 function ewww_image_optimizer_full_cloud() {
 	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) && ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) > 10 && ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) > 10 ) {
 		return true;
-	} elseif ( 'ewww-image-optimizer' == 'ewww-image-optimizer-cloud' ) {
+	} elseif ( ! defined( 'EWWW_IMAGE_OPTIMIZER_TOOL_PATH' ) ) {
 		return true;
 	}
 	return false;
@@ -3085,9 +4486,10 @@ function ewww_image_optimizer_full_cloud() {
 function ewww_image_optimizer_cloud_enable() {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 	ewww_image_optimizer_set_option( 'ewww_image_optimizer_jpg_level', 30 );
-	ewww_image_optimizer_set_option( 'ewww_image_optimizer_png_level', 50 );
+	ewww_image_optimizer_set_option( 'ewww_image_optimizer_png_level', 20 );
 	ewww_image_optimizer_set_option( 'ewww_image_optimizer_gif_level', 10 );
 	ewww_image_optimizer_set_option( 'ewww_image_optimizer_pdf_level', 10 );
+	ewww_image_optimizer_set_option( 'ewww_image_optimizer_svg_level', 10 );
 	ewww_image_optimizer_set_option( 'ewww_image_optimizer_backup_files', 1 );
 }
 
@@ -3098,8 +4500,9 @@ function ewww_image_optimizer_cloud_enable() {
  * @return string The useragent with the EWWW IO version appended.
  */
 function ewww_image_optimizer_cloud_useragent( $useragent ) {
-	$useragent .= ' EWWW/' . EWWW_IMAGE_OPTIMIZER_VERSION . ' ';
-	ewwwio_memory( __FUNCTION__ );
+	if ( strpos( $useragent, 'EWWW' ) === false ) {
+		$useragent .= ' EWWW/' . EWWW_IMAGE_OPTIMIZER_VERSION . ' ';
+	}
 	return $useragent;
 }
 
@@ -3108,23 +4511,19 @@ function ewww_image_optimizer_cloud_useragent( $useragent ) {
  *
  * @global object $ewwwio_async_key_verification
  *
+ * @param string $api_key The API key to verify. Default empty string.
  * @param bool   $cache Optional. True to return cached verification results. Default true.
- * @param string $api_key Optional. The API key to verify. Default empty string.
  * @return string|bool False if verification fails, status message otherwise: great/exceeded.
  */
-function ewww_image_optimizer_cloud_verify( $cache = true, $api_key = '' ) {
+function ewww_image_optimizer_cloud_verify( $api_key, $cache = true ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	if ( empty( $api_key ) && ! ( ! empty( $_REQUEST['option_page'] ) && 'ewww_image_optimizer_options' == $_REQUEST['option_page'] ) ) {
-		$api_key = ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' );
-	} elseif ( empty( $api_key ) && ! empty( $_POST['ewww_image_optimizer_cloud_key'] ) ) {
-		$api_key = $_POST['ewww_image_optimizer_cloud_key'];
-	}
+	$sanitize = false;
 	if ( empty( $api_key ) ) {
 		if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) > 10 ) {
 			update_site_option( 'ewww_image_optimizer_jpg_level', 10 );
 			update_option( 'ewww_image_optimizer_jpg_level', 10 );
 		}
-		if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) > 10 && ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) != 40 ) {
+		if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) > 10 && 40 !== (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) ) {
 			update_site_option( 'ewww_image_optimizer_png_level', 10 );
 			update_option( 'ewww_image_optimizer_png_level', 10 );
 		}
@@ -3137,15 +4536,12 @@ function ewww_image_optimizer_cloud_verify( $cache = true, $api_key = '' ) {
 		return false;
 	}
 	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_exceeded' ) > time() ) {
-		set_transient( 'ewww_image_optimizer_cloud_status', 'exceeded', 3600 );
+		set_transient( 'ewww_image_optimizer_cloud_status', 'exceeded', HOUR_IN_SECONDS );
 		ewwwio_debug_message( 'license exceeded notice has not expired' );
 		return 'exceeded';
 	}
-	add_filter( 'http_headers_useragent', 'ewww_image_optimizer_cloud_useragent', PHP_INT_MAX );
 	$ewww_cloud_status = get_transient( 'ewww_image_optimizer_cloud_status' );
-	$ewww_cloud_ip = get_transient( 'ewww_image_optimizer_cloud_ip' );
-	$ewww_cloud_transport = get_transient( 'ewww_image_optimizer_cloud_transport' );
-	if ( ! ewww_image_optimizer_detect_wpsf_location_lock() && $cache && preg_match( '/^(\d{1,3}\.){3}\d{1,3}$/', $ewww_cloud_ip ) && preg_match( '/http/', $ewww_cloud_transport ) && preg_match( '/great/', $ewww_cloud_status ) ) {
+	if ( ! ewww_image_optimizer_detect_wpsf_location_lock() && $cache && preg_match( '/great/', $ewww_cloud_status ) ) {
 		ewwwio_debug_message( 'using cached verification' );
 		global $ewwwio_async_key_verification;
 		if ( ! class_exists( 'WP_Background_Process' ) ) {
@@ -3157,74 +4553,46 @@ function ewww_image_optimizer_cloud_verify( $cache = true, $api_key = '' ) {
 		$ewwwio_async_key_verification->dispatch();
 		return $ewww_cloud_status;
 	}
-	if ( 'https' !== $ewww_cloud_transport && 'http' !== $ewww_cloud_transport ) {
-		$ewww_cloud_transport = 'https';
+	$url = 'http://optimize.exactlywww.com/verify/';
+	$ssl = wp_http_supports( array( 'ssl' ) );
+	if ( $ssl ) {
+		$url = set_url_scheme( $url, 'https' );
 	}
-	if ( preg_match( '/^(\d{1,3}\.){3}\d{1,3}$/', $ewww_cloud_ip ) ) {
-		ewwwio_debug_message( 'using cached ip' );
-		$result = ewww_image_optimizer_cloud_post_key( $ewww_cloud_ip, $ewww_cloud_transport, $api_key );
-		if ( is_wp_error( $result ) ) {
-			$ewww_cloud_transport = 'http';
-			$error_message = $result->get_error_message();
-			ewwwio_debug_message( "verification failed: $error_message" );
-			$result = ewww_image_optimizer_cloud_post_key( $ewww_cloud_ip, $ewww_cloud_transport, $api_key );
-		}
-		if ( is_wp_error( $result ) ) {
-			$error_message = $result->get_error_message();
-			ewwwio_debug_message( "verification failed: $error_message" );
-		} elseif ( ! empty( $result['body'] ) && preg_match( '/(great|exceeded)/', $result['body'] ) ) {
-			$verified = $result['body'];
-			ewwwio_debug_message( "verification success via: $ewww_cloud_transport://$ewww_cloud_ip" );
-		} else {
-			ewwwio_debug_message( "verification failed via: $ewww_cloud_ip" );
-			if ( ewww_image_optimizer_function_exists( 'print_r' ) ) {
-				ewwwio_debug_message( print_r( $result, true ) );
-			}
-		}
+	$result = ewww_image_optimizer_cloud_post_key( $url, $api_key );
+	if ( is_wp_error( $result ) ) {
+		$url           = set_url_scheme( $url, 'http' );
+		$error_message = $result->get_error_message();
+		ewwwio_debug_message( "verification failed: $error_message" );
+		$result = ewww_image_optimizer_cloud_post_key( $url, $api_key );
 	}
-	if ( empty( $verified ) ) {
-		$ewww_cloud_transport = 'https';
-		$servers = gethostbynamel( 'optimize.exactlywww.com' );
-		if ( empty( $servers ) ) {
-			ewwwio_debug_message( 'unable to resolve servers' );
-			return false;
+	if ( is_wp_error( $result ) ) {
+		$error_message = $result->get_error_message();
+		ewwwio_debug_message( "verification failed via $url: $error_message" );
+	} elseif ( ! empty( $result['body'] ) && preg_match( '/(great|exceeded)/', $result['body'] ) ) {
+		$verified = $result['body'];
+		if ( preg_match( '/exceeded/', $verified ) ) {
+			ewww_image_optimizer_set_option( 'ewww_image_optimizer_cloud_exceeded', time() + 300 );
 		}
-		if ( ewww_image_optimizer_iterable( $servers ) ) {
-			foreach ( $servers as $ip ) {
-				$result = ewww_image_optimizer_cloud_post_key( $ip, $ewww_cloud_transport, $api_key );
-				if ( is_wp_error( $result ) ) {
-					$ewww_cloud_transport = 'http';
-					$error_message = $result->get_error_message();
-					ewwwio_debug_message( "verification failed via $ewww_cloud_transport://$ip: $error_message" );
-				} elseif ( ! empty( $result['body'] ) && preg_match( '/(great|exceeded)/', $result['body'] ) ) {
-					$verified = $result['body'];
-					if ( preg_match( '/exceeded/', $verified ) ) {
-						ewww_image_optimizer_set_option( 'ewww_image_optimizer_cloud_exceeded', time() + 300 );
-					}
-					$ewww_cloud_ip = $ip;
-					ewwwio_debug_message( "verification success via: $ewww_cloud_transport://$ewww_cloud_ip" );
-					break;
-				} else {
-					ewwwio_debug_message( "verification failed via: $ip" );
-					if ( ewww_image_optimizer_function_exists( 'print_r' ) ) {
-						ewwwio_debug_message( print_r( $result, true ) );
-					}
-				}
-			}
-		} else {
-			ewwwio_debug_message( 'unable to parse server list' );
+		if ( false !== strpos( $result['body'], 'expired' ) ) {
+			ewww_image_optimizer_set_option( 'ewww_image_optimizer_cloud_key', '' );
+		}
+		ewwwio_debug_message( "verification success via: $url" );
+		delete_option( 'ewww_image_optimizer_cloud_key_invalid' );
+	} else {
+		update_option( 'ewww_image_optimizer_cloud_key_invalid', true, false );
+		if ( ! empty( $result['body'] ) && false !== strpos( $result['body'], 'invalid' ) ) {
+			ewww_image_optimizer_set_option( 'ewww_image_optimizer_cloud_key', '' );
+		}
+		ewwwio_debug_message( "verification failed via: $url" );
+		if ( ewww_image_optimizer_function_exists( 'print_r' ) ) {
+			ewwwio_debug_message( print_r( $result, true ) );
 		}
 	}
 	if ( empty( $verified ) ) {
 		ewwwio_memory( __FUNCTION__ );
 		return false;
 	} else {
-		set_transient( 'ewww_image_optimizer_cloud_status', $verified, 3600 );
-		set_transient( 'ewww_image_optimizer_cloud_ip', $ewww_cloud_ip, 3600 );
-		set_transient( 'ewww_image_optimizer_cloud_transport', $ewww_cloud_transport, 3600 );
-		if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) < 20 && ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) < 20 && ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_level' ) < 20 && ewww_image_optimizer_get_option( 'ewww_image_optimizer_pdf_level' ) == 0 ) {
-			ewww_image_optimizer_cloud_enable();
-		}
+		set_transient( 'ewww_image_optimizer_cloud_status', $verified, HOUR_IN_SECONDS );
 		ewwwio_debug_message( "verification body contents: {$result['body']}" );
 		ewwwio_memory( __FUNCTION__ );
 		return $verified;
@@ -3234,50 +4602,57 @@ function ewww_image_optimizer_cloud_verify( $cache = true, $api_key = '' ) {
 /**
  * POSTs the API key to the API for verification.
  *
- * @param string $ip IP address of the server to use.
- * @param string $transport The transport to use: http or https.
+ * @param string $url The address of the server to use.
  * @param string $key The API key to submit via POST.
  * @return array The results of the http POST request.
  */
-function ewww_image_optimizer_cloud_post_key( $ip, $transport, $key ) {
-	$result = wp_remote_post( "$transport://$ip/verify/", array(
-		'timeout' => 5,
-		'sslverify' => false,
-		'body' => array(
-			'api_key' => $key,
-		),
-	) );
+function ewww_image_optimizer_cloud_post_key( $url, $key ) {
+	add_filter( 'http_headers_useragent', 'ewww_image_optimizer_cloud_useragent', PHP_INT_MAX );
+	$result = wp_remote_post(
+		$url,
+		array(
+			'timeout'   => 5,
+			'sslverify' => false,
+			'body'      => array(
+				'api_key' => $key,
+			),
+		)
+	);
 	return $result;
+}
+
+/**
+ * Let the user know their key is invalid.
+ */
+function ewww_image_optimizer_notice_invalid_key() {
+	echo "<div id='ewww-image-optimizer-invalid-key' class='notice notice-error'><p><strong>" . esc_html__( 'Could not validate EWWW Image Optimizer API key, please check your key to ensure it is correct.', 'ewww-image-optimizer' ) . '</strong></p></div>';
 }
 
 /**
  * Checks the configured API key for quota information.
  *
+ * @param bool $raw True to return the usage array as-is.
  * @return string A message with how many credits they have used/left and possibly a renwal date.
  */
-function ewww_image_optimizer_cloud_quota() {
+function ewww_image_optimizer_cloud_quota( $raw = false ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	// $ewww_cloud_ip = get_transient( 'ewww_image_optimizer_cloud_ip' );
-	$ewww_cloud_transport = get_transient( 'ewww_image_optimizer_cloud_transport' );
-	if ( empty( $ewww_cloud_transport ) ) {
-		if ( ! ewww_image_optimizer_cloud_verify() ) {
-			return '';
-		} else {
-			$ewww_cloud_transport = get_transient( 'ewww_image_optimizer_cloud_transport' );
-		}
-	}
-	if ( empty( $ewww_cloud_transport ) ) {
-		$ewww_cloud_transport = 'https';
-	}
 	$api_key = ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' );
-	$url = "$ewww_cloud_transport://optimize.exactlywww.com/quota/";
-	$result = wp_remote_post( $url, array(
-		'timeout' => 5,
-		'sslverify' => false,
-		'body' => array(
-			'api_key' => $api_key,
-		),
-	) );
+	$url     = 'http://optimize.exactlywww.com/quota/v2/';
+	$ssl     = wp_http_supports( array( 'ssl' ) );
+	if ( $ssl ) {
+		$url = set_url_scheme( $url, 'https' );
+	}
+	add_filter( 'http_headers_useragent', 'ewww_image_optimizer_cloud_useragent', PHP_INT_MAX );
+	$result = wp_remote_post(
+		$url,
+		array(
+			'timeout'   => 5,
+			'sslverify' => false,
+			'body'      => array(
+				'api_key' => $api_key,
+			),
+		)
+	);
 	if ( is_wp_error( $result ) ) {
 		$error_message = $result->get_error_message();
 		ewwwio_debug_message( "quota request failed: $error_message" );
@@ -3285,29 +4660,52 @@ function ewww_image_optimizer_cloud_quota() {
 		return '';
 	} elseif ( ! empty( $result['body'] ) ) {
 		ewwwio_debug_message( "quota data retrieved: {$result['body']}" );
-		$quota = explode( ' ', $result['body'] );
+		// $quota = explode( ' ', $result['body'] );.
+		$quota = json_decode( $result['body'], true );
+		if ( ! is_array( $quota ) ) {
+			return '';
+		}
 		ewwwio_memory( __FUNCTION__ );
-		if ( 0 == $quota[0] && $quota[1] > 0 ) {
-			return esc_html( sprintf(
+		if ( $raw ) {
+			return $quota;
+		}
+		if ( ! empty( $quota['unlimited'] ) ) {
+			$quota['consumed'] = max( $quota['consumed'], 0 );
+			return sprintf(
+				/* translators: %d: Number of images */
+				__( 'optimized %d images.', 'ewww-image-optimizer' ),
+				$quota['consumed']
+			);
+		} elseif ( ! $quota['licensed'] && $quota['consumed'] > 0 ) {
+			return sprintf(
 				/* translators: 1: Number of images 2: Number of days until renewal */
-				_n( 'optimized %1$d images, usage will reset in %2$d day.', 'optimized %1$d images, usage will reset in %2$d days.', $quota[2], 'ewww-image-optimizer' ), $quota[1], $quota[2]
-			) );
-		} elseif ( 0 == $quota[0] && $quota[1] < 0 ) {
-			return esc_html( sprintf(
-				/* translators: 1: Number of images */
-				_n( '%1$d image credit remaining.', '%1$d image credits remaining.', abs( $quota[1] ), 'ewww-image-optimizer' ), abs( $quota[1] )
-			) );
-		} elseif ( $quota[0] > 0 && $quota[1] < 0 ) {
-			$real_quota = $quota[0] - $quota[1];
-			return esc_html( sprintf(
-				/* translators: 1: Number of images */
-				_n( '%1$d image credit remaining.', '%1$d image credits remaining.', $real_quota, 'ewww-image-optimizer' ), $real_quota
-			) );
+				_n( 'optimized %1$d images, renewal is in %2$d day.', 'optimized %1$d images, renewal is in %2$d days.', $quota['days'], 'ewww-image-optimizer' ),
+				$quota['consumed'],
+				$quota['days']
+			);
+		} elseif ( ! $quota['licensed'] && $quota['consumed'] < 0 ) {
+			return sprintf(
+				/* translators: 1: Number of image credits for the compression API */
+				_n( '%1$d image credit remaining.', '%1$d image credits remaining.', abs( $quota['consumed'] ), 'ewww-image-optimizer' ),
+				abs( $quota['consumed'] )
+			);
+		} elseif ( $quota['licensed'] > 0 && $quota['consumed'] <= 0 ) {
+			$real_quota = (int) $quota['licensed'] - (int) $quota['consumed'];
+			return sprintf(
+				/* translators: 1: Number of image credits for the compression API */
+				_n( '%1$d image credit remaining.', '%1$d image credits remaining.', $real_quota, 'ewww-image-optimizer' ),
+				$real_quota
+			);
+		} elseif ( ! $quota['licensed'] && ! $quota['consumed'] && ! $quota['days'] && ! $quota['metered'] ) {
+			return __( 'no credits remaining, please purchase more.', 'ewww-image-optimizer' );
 		} else {
-			return esc_html( sprintf(
+			return sprintf(
 				/* translators: 1: Number of image credits used 2: Number of image credits available 3: days until subscription renewal */
-				_n( 'used %1$d of %2$d, usage will reset in %3$d day.', 'used %1$d of %2$d, usage will reset in %3$d days.', $quota[2], 'ewww-image-optimizer' ), $quota[1], $quota[0], $quota[2]
-			) );
+				_n( 'used %1$d of %2$d, usage will reset in %3$d day.', 'used %1$d of %2$d, usage will reset in %3$d days.', $quota['days'], 'ewww-image-optimizer' ),
+				$quota['consumed'],
+				$quota['licensed'],
+				$quota['days']
+			);
 		}
 	}
 }
@@ -3328,39 +4726,51 @@ function ewww_image_optimizer_cloud_quota() {
  * @param array  $jpg_fill Optional. Fill color for PNG to JPG conversion in hex format.
  * @param int    $jpg_quality Optional. JPG quality level. Default null. Accepts 1-100.
  * @return array {
- *	Information about the cloud optimization.
+ *     Information about the cloud optimization.
  *
- *	@type string Filename of the optimized version.
- *	@type bool True if the image was converted.
- *	@type string Set to 'exceeded' if the API key is out of credits.
- *	@type int File size of the (new) image.
+ *     @type string Filename of the optimized version.
+ *     @type bool True if the image was converted.
+ *     @type string Set to 'exceeded' if the API key is out of credits.
+ *     @type int File size of the (new) image.
  * }
  */
 function ewww_image_optimizer_cloud_optimizer( $file, $type, $convert = false, $newfile = null, $newtype = null, $fullsize = false, $jpg_fill = '', $jpg_quality = 82 ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	$ewww_cloud_ip = get_transient( 'ewww_image_optimizer_cloud_ip' );
-	$ewww_cloud_transport = get_transient( 'ewww_image_optimizer_cloud_transport' );
-	$ewww_status = get_transient( 'ewww_image_optimizer_cloud_status' );
-	$started = microtime( true );
-	if ( empty( $ewww_cloud_ip ) || empty( $ewww_cloud_transport ) || preg_match( '/exceeded/', $ewww_status ) ) {
-		if ( ! ewww_image_optimizer_cloud_verify() ) {
-			return array( $file, false, 'key verification failed', 0, '' );
-		} else {
-			$ewww_cloud_ip = get_transient( 'ewww_image_optimizer_cloud_ip' );
-			$ewww_cloud_transport = get_transient( 'ewww_image_optimizer_cloud_transport' );
-		}
+	if ( ! ewwwio_is_file( $file ) || ! is_writable( $file ) || false !== strpos( $file, '../' ) ) {
+		return array( $file, false, 'invalid file', 0, '' );
 	}
-	// Calculate how much time has elapsed since we started.
-	$elapsed = microtime( true ) - $started;
-	ewwwio_debug_message( "Cloud verify took $elapsed seconds" );
+	if ( ! ewwwio_check_memory_available( filesize( $file ) * 2.2 ) ) { // 2.2 = upload buffer + download buffer (2) multiplied by a factor of 1.1 for extra wiggle room.
+		$memory_required = filesize( $file ) * 2.2;
+		ewwwio_debug_message( "possibly insufficient memory for cloud (optimize) operation: $memory_required" );
+		if ( function_exists( 'wp_raise_memory_limit' ) ) {
+			add_filter( 'image_memory_limit', 'ewww_image_optimizer_raise_memory_limit' );
+			wp_raise_memory_limit( 'image' );
+		}
+		ewww_image_optimizer_debug_log();
+	}
+	$ewww_status = get_transient( 'ewww_image_optimizer_cloud_status' );
+	$api_key     = ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' );
+	if ( preg_match( '/exceeded/', $ewww_status ) ) {
+		$started = microtime( true );
+		if ( ! ewww_image_optimizer_cloud_verify( $api_key ) ) {
+			return array( $file, false, 'key verification failed', 0, '' );
+		}
+		// Calculate how much time has elapsed since we started.
+		$elapsed = microtime( true ) - $started;
+		ewwwio_debug_message( "cloud verify took $elapsed seconds" );
+	}
 	$ewww_status = get_transient( 'ewww_image_optimizer_cloud_status' );
 	if ( ( ! empty( $ewww_status ) && preg_match( '/exceeded/', $ewww_status ) ) || ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_exceeded' ) > time() ) {
 		ewwwio_debug_message( 'license exceeded, image not processed' );
 		return array( $file, false, 'exceeded', 0, '' );
 	}
+	global $ewww_force;
+	global $ewww_force_smart;
+	global $eio_filesystem;
+	ewwwio_get_filesystem();
 	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_metadata_skip_full' ) && $fullsize ) {
 		$metadata = 1;
-	} elseif ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpegtran_copy' ) ) {
+	} elseif ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_metadata_remove' ) ) {
 		// Don't copy metadata.
 		$metadata = 0;
 	} else {
@@ -3375,31 +4785,46 @@ function ewww_image_optimizer_cloud_optimizer( $file, $type, $convert = false, $
 	$lossy_fast = 0;
 	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_lossy_skip_full' ) && $fullsize ) {
 		$lossy = 0;
-	} elseif ( 'image/png' == $type && ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) >= 40 ) {
+	} elseif ( 'image/png' === $type && ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) >= 40 ) {
 		$lossy = 1;
-		if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) == 40 ) {
+		if ( 40 === (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) ) {
 			$lossy_fast = 1;
 		}
-	} elseif ( 'image/jpeg' == $type && ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) >= 30 ) {
+	} elseif ( 'image/jpeg' === $type && ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) >= 30 ) {
 		$lossy = 1;
-		if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) == 30 ) {
+		if ( 30 === (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) ) {
 			$lossy_fast = 1;
 		}
-	} elseif ( 'application/pdf' == $type && ewww_image_optimizer_get_option( 'ewww_image_optimizer_pdf_level' ) == 20 ) {
+	} elseif ( 'application/pdf' === $type && 20 === (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_pdf_level' ) ) {
 		$lossy = 1;
 	} else {
 		$lossy = 0;
 	}
-	if ( 'image/webp' == $newtype ) {
-		$webp = 1;
-		$jpg_quality = apply_filters( 'jpeg_quality', $jpg_quality, 'image/webp' );
+	if ( strpos( $file, '/wp-admin/' ) || strpos( $file, '/wp-includes/' ) || strpos( $file, '/wp-content/themes/' ) || strpos( $file, '/wp-content/plugins/' ) ) {
+		$lossy      = 0;
+		$lossy_fast = 0;
+	}
+	if ( 'image/webp' === $newtype ) {
+		$webp        = 1;
+		$jpg_quality = apply_filters( 'webp_quality', 75, 'image/webp' );
+		if ( ! defined( 'EWWW_IMAGE_OPTIMIZER_LOSSY_PNG2WEBP' ) || ! EWWW_IMAGE_OPTIMIZER_LOSSY_PNG2WEBP ) {
+			$lossy = 0;
+		}
+		if ( defined( 'EWWW_IMAGE_OPTIMIZER_LOSSY_GIF2WEBP' ) && ! EWWW_IMAGE_OPTIMIZER_LOSSY_GIF2WEBP ) {
+			$lossy = 1;
+		}
 	} else {
 		$webp = 0;
 	}
-	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) == 30 ) {
+	if ( $jpg_quality < 50 ) {
+		$jpg_quality = 75;
+	}
+	$png_compress = 0;
+	if ( 'image/svg+xml' === $type && 10 === (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_svg_level' ) ) {
 		$png_compress = 1;
-	} else {
-		$png_compress = 0;
+	}
+	if ( 'image/png' === $type && 30 === (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) ) {
+		$png_compress = 1;
 	}
 	if ( ! $webp && ewww_image_optimizer_get_option( 'ewww_image_optimizer_backup_files' )
 			&& strpos( $file, '/wp-admin/' ) === false
@@ -3410,10 +4835,10 @@ function ewww_image_optimizer_cloud_optimizer( $file, $type, $convert = false, $
 			&& strpos( $file, '/dynamic/' ) === false // Nextgen dynamic images.
 	) {
 		global $ewww_image;
-		if ( is_object( $ewww_image ) && $ewww_image->file == $file && ! empty( $ewww_image->backup ) ) {
+		if ( is_object( $ewww_image ) && $ewww_image->file === $file && ! empty( $ewww_image->backup ) ) {
 			$hash = $ewww_image->backup;
 		}
-		if ( empty( $hash ) && ! empty( $_REQUEST['ewww_force'] ) ) {
+		if ( empty( $hash ) && ( ! empty( $ewww_force ) || ! empty( $ewww_force_smart ) ) ) {
 			$image = ewww_image_optimizer_find_already_optimized( $file );
 			if ( ! empty( $image ) && is_array( $image ) && ! empty( $image['backup'] ) ) {
 				$hash = $image['backup'];
@@ -3424,7 +4849,7 @@ function ewww_image_optimizer_cloud_optimizer( $file, $type, $convert = false, $
 		}
 		$domain = parse_url( get_site_url(), PHP_URL_HOST );
 	} else {
-		$hash = '';
+		$hash   = '';
 		$domain = parse_url( get_site_url(), PHP_URL_HOST );
 	}
 	ewwwio_debug_message( "file: $file " );
@@ -3435,29 +4860,45 @@ function ewww_image_optimizer_cloud_optimizer( $file, $type, $convert = false, $
 	ewwwio_debug_message( "webp: $webp" );
 	ewwwio_debug_message( "jpg fill: $jpg_fill" );
 	ewwwio_debug_message( "jpg quality: $jpg_quality" );
-	$api_key = ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' );
-	$url = "$ewww_cloud_transport://$ewww_cloud_ip/v2/";
+	$free_exec = EWWW_IMAGE_OPTIMIZER_NOEXEC && 'image/jpeg' === $type;
+	if (
+		! $free_exec &&
+		defined( 'EWWW_IMAGE_OPTIMIZER_JPEGTRAN' ) && ! EWWW_IMAGE_OPTIMIZER_JPEGTRAN &&
+		'image/jpeg' === $type
+	) {
+		$free_exec = true;
+	}
+	if ( empty( $api_key ) && ! $free_exec ) {
+		ewwwio_debug_message( 'no API key and free_exec mode inactive' );
+		return array( $file, false, 'key verification failed', 0, '' );
+	}
+	$url = 'http://optimize.exactlywww.com/v2/';
+	$ssl = wp_http_supports( array( 'ssl' ) );
+	if ( $ssl ) {
+		$url = set_url_scheme( $url, 'https' );
+	}
 	$boundary = wp_generate_password( 24, false );
 
 	$headers = array(
 		'content-type' => 'multipart/form-data; boundary=' . $boundary,
-		'timeout' => 90,
-		'httpversion' => '1.0',
-		'blocking' => true,
+		'timeout'      => 300,
+		'httpversion'  => '1.0',
+		'blocking'     => true,
 	);
+
 	$post_fields = array(
-		'filename' => $file,
-		'convert' => $convert,
-		'metadata' => $metadata,
-		'api_key' => $api_key,
-		'jpg_fill' => $jpg_fill,
-		'quality' => $jpg_quality,
-		'compress' => $png_compress,
-		'lossy' => $lossy,
+		'filename'   => $file,
+		'convert'    => $convert,
+		'metadata'   => $metadata,
+		'api_key'    => $api_key,
+		'jpg_fill'   => $jpg_fill,
+		'quality'    => $jpg_quality,
+		'compress'   => $png_compress,
+		'lossy'      => $lossy,
 		'lossy_fast' => $lossy_fast,
-		'webp' => $webp,
-		'backup' => $hash,
-		'domain' => $domain,
+		'webp'       => $webp,
+		'backup'     => $hash,
+		'domain'     => $domain,
 	);
 
 	$payload = '';
@@ -3471,10 +4912,10 @@ function ewww_image_optimizer_cloud_optimizer( $file, $type, $convert = false, $
 
 	$payload .= '--' . $boundary;
 	$payload .= "\r\n";
-	$payload .= 'Content-Disposition: form-data; name="file"; filename="' . basename( $file ) . '"' . "\r\n";
+	$payload .= 'Content-Disposition: form-data; name="file"; filename="' . wp_basename( $file ) . '"' . "\r\n";
 	$payload .= 'Content-Type: ' . $type . "\r\n";
 	$payload .= "\r\n";
-	$payload .= file_get_contents( $file );
+	$payload .= $eio_filesystem->get_contents( $file );
 	$payload .= "\r\n";
 	$payload .= '--' . $boundary;
 	$payload .= 'Content-Disposition: form-data; name="submitHandler"' . "\r\n";
@@ -3482,45 +4923,56 @@ function ewww_image_optimizer_cloud_optimizer( $file, $type, $convert = false, $
 	$payload .= "Upload\r\n";
 	$payload .= '--' . $boundary . '--';
 
-	// Retrieve the time when the optimizer starts.
-	$response = wp_remote_post( $url, array(
-		'timeout' => 90,
-		'headers' => $headers,
-		'sslverify' => false,
-		'body' => $payload,
-	) );
+	add_filter( 'http_headers_useragent', 'ewww_image_optimizer_cloud_useragent', PHP_INT_MAX );
+	$response = wp_remote_post(
+		$url,
+		array(
+			'timeout'   => 300,
+			'headers'   => $headers,
+			'sslverify' => false,
+			'body'      => $payload,
+		)
+	);
 	if ( is_wp_error( $response ) ) {
 		$error_message = $response->get_error_message();
 		ewwwio_debug_message( "optimize failed: $error_message" );
 		return array( $file, false, 'cloud optimize failed', 0, '' );
+	} elseif ( empty( $response['body'] ) ) {
+		ewwwio_debug_message( 'cloud results: no savings' );
+		return array( $file, false, '', filesize( $file ), $hash );
 	} else {
 		$tempfile = $file . '.tmp';
 		file_put_contents( $tempfile, $response['body'] );
 		$orig_size = filesize( $file );
-		$newsize = $orig_size;
+		$newsize   = $orig_size;
 		$converted = false;
-		$msg = '';
-		if ( preg_match( '/exceeded/', $response['body'] ) ) {
+		$msg       = '';
+		if ( 100 > strlen( $response['body'] ) && strpos( $response['body'], 'invalid' ) ) {
+			ewwwio_debug_message( 'License Invalid' );
+			ewww_image_optimizer_remove_cloud_key( 'none' );
+		} elseif ( 100 > strlen( $response['body'] ) && strpos( $response['body'], 'exceeded' ) ) {
 			ewwwio_debug_message( 'License Exceeded' );
-			set_transient( 'ewww_image_optimizer_cloud_status', 'exceeded', 3600 );
+			set_transient( 'ewww_image_optimizer_cloud_status', 'exceeded', HOUR_IN_SECONDS );
 			$msg = 'exceeded';
-			unlink( $tempfile );
-		} elseif ( ewww_image_optimizer_mimetype( $tempfile, 'i' ) == $type ) {
+			ewwwio_delete_file( $tempfile );
+		} elseif ( ewww_image_optimizer_mimetype( $tempfile, 'i' ) === $type ) {
 			$newsize = filesize( $tempfile );
 			ewwwio_debug_message( "cloud results: $newsize (new) vs. $orig_size (original)" );
-			rename( $tempfile, $file );
-		} elseif ( ewww_image_optimizer_mimetype( $tempfile, 'i' ) == 'image/webp' ) {
+			ewwwio_rename( $tempfile, $file );
+		} elseif ( ewww_image_optimizer_mimetype( $tempfile, 'i' ) === 'image/webp' ) {
 			$newsize = filesize( $tempfile );
 			ewwwio_debug_message( "cloud results: $newsize (new) vs. $orig_size (original)" );
-			rename( $tempfile, $newfile );
-		} elseif ( ewww_image_optimizer_mimetype( $tempfile, 'i' ) == $newtype ) {
-			$converted = true;
-			$newsize = filesize( $tempfile );
-			ewwwio_debug_message( "cloud results: $newsize (new) vs. $orig_size (original)" );
-			rename( $tempfile, $newfile );
-			$file = $newfile;
+			ewwwio_rename( $tempfile, $newfile );
+		} elseif ( ! is_null( $newtype ) && ! is_null( $newfile ) && ewww_image_optimizer_mimetype( $tempfile, 'i' ) === $newtype ) {
+			ewwwio_debug_message( "renaming file from $tempfile to $newfile" );
+			if ( ewwwio_rename( $tempfile, $newfile ) ) {
+				$converted = true;
+				$newsize   = filesize( $newfile );
+				$file      = $newfile;
+				ewwwio_debug_message( "cloud results: $newsize (new) vs. $orig_size (original)" );
+			}
 		} else {
-			unlink( $tempfile );
+			ewwwio_delete_file( $tempfile );
 		}
 		ewwwio_memory( __FUNCTION__ );
 		return array( $file, $converted, $msg, $newsize, $hash );
@@ -3537,42 +4989,56 @@ function ewww_image_optimizer_cloud_optimizer( $file, $type, $convert = false, $
  */
 function ewww_image_optimizer_cloud_autorotate( $file, $type ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	$ewww_cloud_ip = get_transient( 'ewww_image_optimizer_cloud_ip' );
-	$ewww_cloud_transport = get_transient( 'ewww_image_optimizer_cloud_transport' );
+	if ( ! ewwwio_check_memory_available( filesize( $file ) * 2.2 ) ) { // 2.2 = upload buffer + download buffer (2) multiplied by a factor of 1.1 for extra wiggle room.
+		$memory_required = filesize( $file ) * 2.2;
+		ewwwio_debug_message( "possibly insufficient memory for cloud (rotate) operation: $memory_required" );
+		if ( function_exists( 'wp_raise_memory_limit' ) ) {
+			add_filter( 'image_memory_limit', 'ewww_image_optimizer_raise_memory_limit' );
+			wp_raise_memory_limit( 'image' );
+		}
+		ewww_image_optimizer_debug_log();
+	}
+	$api_key = ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' );
+	if ( empty( $api_key ) ) {
+		return false;
+	}
 	$ewww_status = get_transient( 'ewww_image_optimizer_cloud_status' );
-	$started = microtime( true );
-	if ( empty( $ewww_cloud_ip ) || empty( $ewww_cloud_transport ) || preg_match( '/exceeded/', $ewww_status ) ) {
-		if ( ! ewww_image_optimizer_cloud_verify() ) {
+	$started     = microtime( true );
+	if ( preg_match( '/exceeded/', $ewww_status ) ) {
+		if ( ! ewww_image_optimizer_cloud_verify( $api_key ) ) {
 			ewwwio_debug_message( 'cloud verify failed, image not rotated' );
 			return false;
-		} else {
-			$ewww_cloud_ip = get_transient( 'ewww_image_optimizer_cloud_ip' );
-			$ewww_cloud_transport = get_transient( 'ewww_image_optimizer_cloud_transport' );
 		}
 	}
 	// Calculate how much time has elapsed since we started.
 	$elapsed = microtime( true ) - $started;
-	ewwwio_debug_message( "Cloud verify took $elapsed seconds" );
+	ewwwio_debug_message( "cloud verify took $elapsed seconds" );
 	$ewww_status = get_transient( 'ewww_image_optimizer_cloud_status' );
 	if ( ( ! empty( $ewww_status ) && preg_match( '/exceeded/', $ewww_status ) ) || ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_exceeded' ) > time() ) {
 		ewwwio_debug_message( 'license exceeded, image not rotated' );
 		return false;
 	}
+	global $eio_filesystem;
+	ewwwio_get_filesystem();
 	ewwwio_debug_message( "file: $file " );
 	ewwwio_debug_message( "type: $type" );
-	$api_key = ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' );
-	$url = "$ewww_cloud_transport://$ewww_cloud_ip/rotate/";
+	$url = 'http://optimize.exactlywww.com/rotate/';
+	$ssl = wp_http_supports( array( 'ssl' ) );
+	if ( $ssl ) {
+		$url = set_url_scheme( $url, 'https' );
+	}
 	$boundary = wp_generate_password( 24, false );
 
 	$headers = array(
 		'content-type' => 'multipart/form-data; boundary=' . $boundary,
-		'timeout' => 60,
-		'httpversion' => '1.0',
-		'blocking' => true,
+		'timeout'      => 60,
+		'httpversion'  => '1.0',
+		'blocking'     => true,
 	);
+
 	$post_fields = array(
 		'filename' => $file,
-		'api_key' => $api_key,
+		'api_key'  => $api_key,
 	);
 
 	$payload = '';
@@ -3586,10 +5052,10 @@ function ewww_image_optimizer_cloud_autorotate( $file, $type ) {
 
 	$payload .= '--' . $boundary;
 	$payload .= "\r\n";
-	$payload .= 'Content-Disposition: form-data; name="file"; filename="' . basename( $file ) . '"' . "\r\n";
+	$payload .= 'Content-Disposition: form-data; name="file"; filename="' . wp_basename( $file ) . '"' . "\r\n";
 	$payload .= 'Content-Type: ' . $type . "\r\n";
 	$payload .= "\r\n";
-	$payload .= file_get_contents( $file );
+	$payload .= $eio_filesystem->get_contents( $file );
 	$payload .= "\r\n";
 	$payload .= '--' . $boundary;
 	$payload .= 'Content-Disposition: form-data; name="submitHandler"' . "\r\n";
@@ -3597,12 +5063,16 @@ function ewww_image_optimizer_cloud_autorotate( $file, $type ) {
 	$payload .= "Upload\r\n";
 	$payload .= '--' . $boundary . '--';
 
-	$response = wp_remote_post( $url, array(
-		'timeout' => 60,
-		'headers' => $headers,
-		'sslverify' => false,
-		'body' => $payload,
-	) );
+	add_filter( 'http_headers_useragent', 'ewww_image_optimizer_cloud_useragent', PHP_INT_MAX );
+	$response = wp_remote_post(
+		$url,
+		array(
+			'timeout'   => 60,
+			'headers'   => $headers,
+			'sslverify' => false,
+			'body'      => $payload,
+		)
+	);
 	if ( is_wp_error( $response ) ) {
 		$error_message = $response->get_error_message();
 		ewwwio_debug_message( "rotate failed: $error_message" );
@@ -3611,21 +5081,274 @@ function ewww_image_optimizer_cloud_autorotate( $file, $type ) {
 		$tempfile = $file . '.tmp';
 		file_put_contents( $tempfile, $response['body'] );
 		$orig_size = filesize( $file );
-		$newsize = $orig_size;
+		$newsize   = $orig_size;
 		if ( preg_match( '/exceeded/', $response['body'] ) ) {
 			ewwwio_debug_message( 'License Exceeded' );
-			set_transient( 'ewww_image_optimizer_cloud_status', 'exceeded', 3600 );
-			unlink( $tempfile );
-		} elseif ( ewww_image_optimizer_mimetype( $tempfile, 'i' ) == $type ) {
+			set_transient( 'ewww_image_optimizer_cloud_status', 'exceeded', HOUR_IN_SECONDS );
+			ewwwio_delete_file( $tempfile );
+		} elseif ( ewww_image_optimizer_mimetype( $tempfile, 'i' ) === $type ) {
 			$newsize = filesize( $tempfile );
 			ewwwio_debug_message( "cloud rotation success: $newsize (new) vs. $orig_size (original)" );
-			rename( $tempfile, $file );
+			ewwwio_rename( $tempfile, $file );
 			return true;
 		} else {
-			unlink( $tempfile );
+			ewwwio_delete_file( $tempfile );
 		}
 		ewwwio_memory( __FUNCTION__ );
 		return false;
+	}
+}
+
+/**
+ * Backup an image using API servers.
+ *
+ * @since 4.8.0
+ *
+ * @param string $file Name of the file to backup.
+ */
+function ewww_image_optimizer_cloud_backup( $file ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	$api_key = ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' );
+	if ( empty( $api_key ) ) {
+		return false;
+	}
+	if ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_backup_files' ) ) {
+		return false;
+	}
+	if ( ! ewwwio_is_file( $file ) || ! ewwwio_is_readable( $file ) ) {
+		return false;
+	}
+	if ( ! ewwwio_check_memory_available( filesize( $file ) * 1.1 ) ) { // 1.1 = upload buffer (filesize) multiplied by a factor of 1.1 for extra wiggle room.
+		$memory_required = filesize( $file ) * 1.1;
+		ewwwio_debug_message( "possibly insufficient memory for cloud (backup) operation: $memory_required" );
+		if ( function_exists( 'wp_raise_memory_limit' ) ) {
+			add_filter( 'image_memory_limit', 'ewww_image_optimizer_raise_memory_limit' );
+			wp_raise_memory_limit( 'image' );
+		}
+		ewww_image_optimizer_debug_log();
+	}
+	if ( ! ewww_image_optimizer_cloud_verify( $api_key ) ) {
+		ewwwio_debug_message( 'cloud verify failed, image not backed up' );
+		return false;
+	}
+	ewwwio_debug_message( "file: $file " );
+	$url = 'http://optimize.exactlywww.com/backup/store.php';
+	$ssl = wp_http_supports( array( 'ssl' ) );
+	if ( $ssl ) {
+		$url = set_url_scheme( $url, 'https' );
+	}
+	$boundary = wp_generate_password( 24, false );
+
+	$headers = array(
+		'content-type' => 'multipart/form-data; boundary=' . $boundary,
+		'timeout'      => 20,
+		'httpversion'  => '1.0',
+		'blocking'     => true,
+	);
+
+	$post_fields = array(
+		'filename' => $file,
+		'api_key'  => $api_key,
+	);
+
+	global $ewww_image;
+	global $eio_filesystem;
+	ewwwio_get_filesystem();
+	if ( is_object( $ewww_image ) && $ewww_image->file === $file && ! empty( $ewww_image->backup ) ) {
+		$post_fields['backup'] = $ewww_image->backup;
+	} elseif ( is_object( $ewww_image ) && $ewww_image->file === $file && empty( $ewww_image->backup ) ) {
+		$post_fields['backup'] = uniqid() . hash( 'sha256', $file );
+		$ewww_image->backup    = $post_fields['backup'];
+	} else {
+		ewwwio_debug_message( 'probably a new upload, not backing up yet' );
+		return false;
+	}
+	$payload = '';
+	foreach ( $post_fields as $name => $value ) {
+		$payload .= '--' . $boundary;
+		$payload .= "\r\n";
+		$payload .= 'Content-Disposition: form-data; name="' . $name . '"' . "\r\n\r\n";
+		$payload .= $value;
+		$payload .= "\r\n";
+	}
+
+	$payload .= '--' . $boundary;
+	$payload .= "\r\n";
+	$payload .= 'Content-Disposition: form-data; name="file"; filename="' . wp_basename( $file ) . '"' . "\r\n";
+	$payload .= 'Content-Type: ' . ewww_image_optimizer_mimetype( $file, 'i' ) . "\r\n";
+	$payload .= "\r\n";
+	$payload .= $eio_filesystem->get_contents( $file );
+	$payload .= "\r\n";
+	$payload .= '--' . $boundary;
+	$payload .= 'Content-Disposition: form-data; name="submitHandler"' . "\r\n";
+	$payload .= "\r\n";
+	$payload .= "Upload\r\n";
+	$payload .= '--' . $boundary . '--';
+
+	add_filter( 'http_headers_useragent', 'ewww_image_optimizer_cloud_useragent', PHP_INT_MAX );
+	$response = wp_remote_post(
+		$url,
+		array(
+			'timeout'   => 20,
+			'headers'   => $headers,
+			'sslverify' => false,
+			'body'      => $payload,
+		)
+	);
+	if ( is_wp_error( $response ) ) {
+		$error_message = $response->get_error_message();
+		ewwwio_debug_message( "backup failed: $error_message" );
+		return false;
+	} else {
+		if ( false !== strpos( $response['body'], 'error' ) ) {
+			return false;
+		} elseif ( false !== strpos( $response['body'], 'success' ) ) {
+			ewwwio_debug_message( 'cloud backup success' );
+			return true;
+		} else {
+			return false;
+		}
+	}
+	ewwwio_memory( __FUNCTION__ );
+	return false;
+}
+
+/**
+ * Uses the API to resize images.
+ *
+ * @since 4.4.0
+ *
+ * @param string $file The file to resize.
+ * @param string $type File type of the file.
+ * @param int    $dst_x X-coordinate of destination image (usually 0).
+ * @param int    $dst_y Y-coordinate of destination image (usually 0).
+ * @param int    $src_x X-coordinate of source image (usually 0 unless cropping).
+ * @param int    $src_y Y-coordinate of source image (usually 0 unless cropping).
+ * @param int    $dst_w Desired image width.
+ * @param int    $dst_h Desired image height.
+ * @param int    $src_w Source width.
+ * @param int    $src_h Source height.
+ * @return string|WP_Error The image contents or the error message.
+ */
+function ewww_image_optimizer_cloud_resize( $file, $type, $dst_x, $dst_y, $src_x, $src_y, $dst_w, $dst_h, $src_w, $src_h ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	if ( ! ewwwio_check_memory_available( filesize( $file ) * 2.2 ) ) { // 2.2 = upload buffer + download buffer (2) multiplied by a factor of 1.1 for extra wiggle room.
+		$memory_required = filesize( $file ) * 2.2;
+		ewwwio_debug_message( "possibly insufficient memory for cloud (resize) operation: $memory_required" );
+		if ( function_exists( 'wp_raise_memory_limit' ) ) {
+			add_filter( 'image_memory_limit', 'ewww_image_optimizer_raise_memory_limit' );
+			wp_raise_memory_limit( 'image' );
+		}
+		ewww_image_optimizer_debug_log();
+	}
+	$api_key = ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' );
+	if ( empty( $api_key ) ) {
+		return new WP_Error( 'invalid_key', __( 'Could not verify API key', 'ewww-image-optimizer' ) );
+	}
+	$ewww_status = get_transient( 'ewww_image_optimizer_cloud_status' );
+	$started     = microtime( true );
+	if ( false !== strpos( $ewww_status, 'exceeded' ) ) {
+		if ( ! ewww_image_optimizer_cloud_verify( $api_key ) ) {
+			ewwwio_debug_message( 'cloud verify failed, image not resized' );
+			return new WP_Error( 'invalid_key', __( 'Could not verify API key', 'ewww-image-optimizer' ) );
+		}
+	}
+	// Calculate how much time has elapsed since we started.
+	$elapsed = microtime( true ) - $started;
+	ewwwio_debug_message( "cloud verify took $elapsed seconds" );
+	$ewww_status = get_transient( 'ewww_image_optimizer_cloud_status' );
+	if ( ( ! empty( $ewww_status ) && preg_match( '/exceeded/', $ewww_status ) ) || ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_exceeded' ) > time() ) {
+		ewwwio_debug_message( 'license exceeded, image not rotated' );
+		return new WP_Error( 'invalid_key', __( 'License Exceeded', 'ewww-image-optimizer' ) );
+	}
+	global $eio_filesystem;
+	ewwwio_get_filesystem();
+	ewwwio_debug_message( "file: $file " );
+	ewwwio_debug_message( "width: $dst_w" );
+	ewwwio_debug_message( "height: $dst_h" );
+	$url = 'http://optimize.exactlywww.com/resize/';
+	$ssl = wp_http_supports( array( 'ssl' ) );
+	if ( $ssl ) {
+		$url = set_url_scheme( $url, 'https' );
+	}
+	$boundary = wp_generate_password( 24, false );
+
+	$headers = array(
+		'content-type' => 'multipart/form-data; boundary=' . $boundary,
+		'timeout'      => 60,
+		'httpversion'  => '1.0',
+		'blocking'     => true,
+	);
+
+	$post_fields = array(
+		'filename' => $file,
+		'api_key'  => $api_key,
+		'dst_x'    => (int) $dst_x,
+		'dst_y'    => (int) $dst_y,
+		'src_x'    => (int) $src_x,
+		'src_y'    => (int) $src_y,
+		'dst_w'    => (int) $dst_w,
+		'dst_h'    => (int) $dst_h,
+		'src_w'    => (int) $src_w,
+		'src_h'    => (int) $src_h,
+	);
+
+	$payload = '';
+	foreach ( $post_fields as $name => $value ) {
+		$payload .= '--' . $boundary;
+		$payload .= "\r\n";
+		$payload .= 'Content-Disposition: form-data; name="' . $name . '"' . "\r\n\r\n";
+		$payload .= $value;
+		$payload .= "\r\n";
+	}
+
+	$payload .= '--' . $boundary;
+	$payload .= "\r\n";
+	$payload .= 'Content-Disposition: form-data; name="file"; filename="' . wp_basename( $file ) . '"' . "\r\n";
+	$payload .= 'Content-Type: ' . $type . "\r\n";
+	$payload .= "\r\n";
+	$payload .= $eio_filesystem->get_contents( $file );
+	$payload .= "\r\n";
+	$payload .= '--' . $boundary;
+	$payload .= 'Content-Disposition: form-data; name="submitHandler"' . "\r\n";
+	$payload .= "\r\n";
+	$payload .= "Upload\r\n";
+	$payload .= '--' . $boundary . '--';
+
+	add_filter( 'http_headers_useragent', 'ewww_image_optimizer_cloud_useragent', PHP_INT_MAX );
+	$response = wp_remote_post(
+		$url,
+		array(
+			'timeout'   => 60,
+			'headers'   => $headers,
+			'sslverify' => false,
+			'body'      => $payload,
+		)
+	);
+	if ( is_wp_error( $response ) ) {
+		$error_message = $response->get_error_message();
+		ewwwio_debug_message( "resize failed: $error_message" );
+		return $response;
+	} else {
+		$tempfile = $file . '.tmp';
+		file_put_contents( $tempfile, $response['body'] );
+		$orig_size = filesize( $file );
+		$newsize   = $orig_size;
+		if ( false !== strpos( $response['body'], 'error' ) ) {
+			$response = json_decode( $response['body'], true );
+			ewwwio_debug_message( 'API resize error: ' . $response['error'] );
+			ewwwio_delete_file( $tempfile );
+			return new WP_Error( 'image_resize_error', $response['error'] );
+		} elseif ( false !== strpos( ewww_image_optimizer_mimetype( $tempfile, 'i' ), 'image' ) ) {
+			$newsize = filesize( $tempfile );
+			ewww_image_optimizer_is_animated( $tempfile );
+			ewwwio_debug_message( "API resize success: $newsize (new) vs. $orig_size (original)" );
+			ewwwio_delete_file( $tempfile );
+			return $response['body'];
+		}
+		ewwwio_delete_file( $tempfile );
+		ewwwio_debug_message( 'API resize error: unknown' );
+		return new WP_Error( 'image_resize_error', __( 'Unknown resize error', 'ewww-image-optimizer' ) );
 	}
 }
 
@@ -3639,7 +5362,11 @@ function ewww_image_optimizer_db_init() {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 	global $ewwwdb, $table_prefix;
 	require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'classes/class-ewwwdb.php' );
-	if ( ! isset( $ewwwdb ) ) {
+	if ( ! defined( 'DB_USER' ) || ! defined( 'DB_PASSWORD' ) || ! defined( 'DB_NAME' ) || ! defined( 'DB_HOST' ) ) {
+		global $wpdb;
+		$ewwwdb = $wpdb;
+		return;
+	} elseif ( ! isset( $ewwwdb ) ) {
 		$ewwwdb = new EwwwDB( DB_USER, DB_PASSWORD, DB_NAME, DB_HOST );
 	}
 
@@ -3648,78 +5375,197 @@ function ewww_image_optimizer_db_init() {
 	}
 
 	$ewwwdb->field_types = array(
-		'post_author' => '%d',
-		'post_parent' => '%d',
-		'menu_order' => '%d',
-		'term_id' => '%d',
-		'term_group' => '%d',
+		'post_author'      => '%d',
+		'post_parent'      => '%d',
+		'menu_order'       => '%d',
+		'term_id'          => '%d',
+		'term_group'       => '%d',
 		'term_taxonomy_id' => '%d',
-		'parent' => '%d',
-		'count' => '%d',
-		'object_id' => '%d',
-		'term_order' => '%d',
-		'ID' => '%d',
-		'comment_ID' => '%d',
-		'comment_post_ID' => '%d',
-		'comment_parent' => '%d',
-		'user_id' => '%d',
-		'link_id' => '%d',
-		'link_owner' => '%d',
-		'link_rating' => '%d',
-		'option_id' => '%d',
-		'blog_id' => '%d',
-		'meta_id' => '%d',
-		'post_id' => '%d',
-		'user_status' => '%d',
-		'umeta_id' => '%d',
-		'comment_karma' => '%d',
-		'comment_count' => '%d',
+		'parent'           => '%d',
+		'count'            => '%d',
+		'object_id'        => '%d',
+		'term_order'       => '%d',
+		'ID'               => '%d',
+		'comment_ID'       => '%d',
+		'comment_post_ID'  => '%d',
+		'comment_parent'   => '%d',
+		'user_id'          => '%d',
+		'link_id'          => '%d',
+		'link_owner'       => '%d',
+		'link_rating'      => '%d',
+		'option_id'        => '%d',
+		'blog_id'          => '%d',
+		'meta_id'          => '%d',
+		'post_id'          => '%d',
+		'user_status'      => '%d',
+		'umeta_id'         => '%d',
+		'comment_karma'    => '%d',
+		'comment_count'    => '%d',
 		// multisite.
-		'active' => '%d',
-		'cat_id' => '%d',
-		'deleted' => '%d',
-		'lang_id' => '%d',
-		'mature' => '%d',
-		'public' => '%d',
-		'site_id' => '%d',
-		'spam' => '%d',
+		'active'           => '%d',
+		'cat_id'           => '%d',
+		'deleted'          => '%d',
+		'lang_id'          => '%d',
+		'mature'           => '%d',
+		'public'           => '%d',
+		'site_id'          => '%d',
+		'spam'             => '%d',
 	);
 
 	$prefix = $ewwwdb->set_prefix( $table_prefix );
 
-	if ( is_wp_error( $prefix ) ) {
-		wp_load_translations_early();
-		wp_die(
-			/* translators: 1: $table_prefix 2: wp-config.php */
-			sprintf( __( '<strong>ERROR</strong>: %1$s in %2$s can only contain numbers, letters, and underscores.' ),
-				'<code>$table_prefix</code>',
-				'<code>wp-config.php</code>'
-			)
-		);
+	// Setup blog_id and prefix for multisite (and fallback).
+	if ( is_wp_error( $prefix ) || is_multisite() ) {
+		global $wpdb;
+		$ewwwdb->prefix = $wpdb->prefix;
+		$ewwwdb->blogid = $wpdb->blogid;
+		// and just in case we need it...
+		$ewwwdb->base_prefix = $wpdb->base_prefix;
 	}
+
 	if ( ! isset( $ewwwdb->ewwwio_images ) ) {
 		$ewwwdb->ewwwio_images = $ewwwdb->prefix . 'ewwwio_images';
 	}
+	if ( ! isset( $ewwwdb->ewwwio_queue ) ) {
+		$ewwwdb->ewwwio_queue = $ewwwdb->prefix . 'ewwwio_queue';
+	}
+}
+
+/**
+ * Inserts a single record into the table as pending, or marks it pending if it exists.
+ *
+ * @global object $ewwwdb A new database connection with super powers.
+ *
+ * @param string $path The filename of the image.
+ * @param string $gallery The type (origin) of the image.
+ * @param int    $attachment_id The attachment ID, if there is one.
+ * @param string $size The name of the resize for the image.
+ * @return int The row ID of the record updated/inserted.
+ */
+function ewww_image_optimizer_single_insert( $path, $gallery = '', $attachment_id = '', $size = '' ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	ewww_image_optimizer_db_init();
+	global $ewwwdb;
+
+	$already_optimized = ewww_image_optimizer_find_already_optimized( $path );
+	if ( is_array( $already_optimized ) && ! empty( $already_optimized ) ) {
+		if ( ! empty( $already_optimized['pending'] ) ) {
+			ewwwio_debug_message( "already pending record for $path - {$already_optimized['id']}" );
+			return $already_optimized['id'];
+		}
+		$ewwwdb->update(
+			$ewwwdb->ewwwio_images,
+			array(
+				'pending' => 1,
+			),
+			array(
+				'id' => $already_optimized['id'],
+			)
+		);
+		return $already_optimized['id'];
+	} else {
+		ewwwio_debug_message( "queuing $path" );
+		$orig_size = ewww_image_optimizer_filesize( $path );
+		$path      = ewww_image_optimizer_relativize_path( $path );
+		if ( seems_utf8( $path ) ) {
+			$utf8_file_path = $path;
+		} else {
+			$utf8_file_path = utf8_encode( $path );
+		}
+		$to_insert = array(
+			'path'      => $utf8_file_path,
+			'orig_size' => $orig_size,
+			'pending'   => 1,
+		);
+		if ( $gallery ) {
+			$to_insert['gallery'] = $gallery;
+		}
+		if ( $attachment_id ) {
+			$to_insert['attachment_id'] = $attachment_id;
+		}
+		if ( $size ) {
+			$to_insert['resize'] = $size;
+		}
+		$ewwwdb->insert( $ewwwdb->ewwwio_images, $to_insert );
+		ewwwio_debug_message( "inserted pending record for $path - {$ewwwdb->insert_id}" );
+		return $ewwwdb->insert_id;
+	}
+}
+
+
+/**
+ * Finds the path of a file from the ewwwio_images table.
+ *
+ * @param int $id The db record to retrieve for the file path.
+ * @return string The full file path from the db.
+ */
+function ewww_image_optimizer_find_file_by_id( $id ) {
+	if ( ! $id ) {
+		return false;
+	}
+	ewwwio_debug_message( '<b>' . __METHOD__ . '()</b>' );
+	global $wpdb;
+	if ( strpos( $wpdb->charset, 'utf8' ) === false ) {
+		ewww_image_optimizer_db_init();
+		global $ewwwdb;
+	} else {
+		$ewwwdb = $wpdb;
+	}
+	$id   = (int) $id;
+	$file = $ewwwdb->get_var( $ewwwdb->prepare( "SELECT path FROM $ewwwdb->ewwwio_images WHERE id = %d", $id ) );
+	if ( is_null( $file ) ) {
+		return false;
+	}
+	$file = ewww_image_optimizer_absolutize_path( $file );
+	ewwwio_debug_message( "found $file by id" );
+	if ( ewwwio_is_file( $file ) ) {
+		return $file;
+	}
+	return false;
 }
 
 /**
  * Inserts multiple records into the table at once.
  *
- * Each sub-array in $images should have the same number of items as $format.
+ * Each sub-array in $data should have the same number of items as $format.
  *
- * @global object $ewwwdb A new database connection with super powers.
+ * @global object $wpdb
+ * @global object $ewwwdb A clone of $wpdb unless it is lacking utf8 connectivity.
  *
  * @param string $table The table to insert records into.
- * @param array  $images Can be any multi-dimensional array with records to insert.
- * @param array  $format A list of formats for the values in each record of $images.
+ * @param array  $data Can be any multi-dimensional array with records to insert.
+ * @param array  $format A list of formats for the values in each record of $data.
  */
-function ewww_image_optimizer_mass_insert( $table, $images, $format ) {
-	if ( empty( $table ) || ! ewww_image_optimizer_iterable( $images ) || ! ewww_image_optimizer_iterable( $format ) ) {
+function ewww_image_optimizer_mass_insert( $table, $data, $format ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	if ( empty( $table ) || ! ewww_image_optimizer_iterable( $data ) || ! ewww_image_optimizer_iterable( $format ) ) {
 		return false;
 	}
-	ewww_image_optimizer_db_init();
-	global $ewwwdb;
-	$ewwwdb->insert_multiple( $table, $images, $format );
+	global $wpdb;
+	if ( strpos( $wpdb->charset, 'utf8' ) === false ) {
+		ewww_image_optimizer_db_init();
+		global $ewwwdb;
+	} else {
+		$ewwwdb = $wpdb;
+	}
+
+	$multi_formats = array();
+	$values        = array();
+	foreach ( $data as $record ) {
+		if ( ! ewww_image_optimizer_iterable( $record ) ) {
+			continue;
+		}
+
+		foreach ( $record as $value ) {
+			$values[] = $value;
+		}
+		$multi_formats[] = '(' . implode( ',', $format ) . ')';
+	}
+	$first         = reset( $data );
+	$fields        = '`' . implode( '`, `', array_keys( $first ) ) . '`';
+	$multi_formats = implode( ',', $multi_formats );
+
+	return $ewwwdb->query( $ewwwdb->prepare( "INSERT INTO `$table` ($fields) VALUES $multi_formats", $values ) );
 }
 
 /**
@@ -3729,25 +5575,36 @@ function ewww_image_optimizer_mass_insert( $table, $images, $format ) {
  *
  * @param string $file The filename of the image.
  * @param int    $orig_size The current filesize of the image.
- * @return array The image record from the table, if found.
+ * @return string The image results from the table, if found.
  */
 function ewww_image_optimizer_check_table( $file, $orig_size ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 	ewwwio_debug_message( "checking for $file with size: $orig_size" );
-	$image = ewww_image_optimizer_find_already_optimized( $file );
-	if ( is_array( $image ) && $image['image_size'] == $orig_size ) {
+	global $ewww_image;
+	global $ewww_force_smart;
+	$image = array();
+	if ( ! is_object( $ewww_image ) || ! $ewww_image instanceof EWWW_Image || $ewww_image->file !== $file ) {
+		$ewww_image = new EWWW_Image( 0, '', $file );
+	}
+	if ( ! empty( $ewww_image->record ) ) {
+		$image = $ewww_image->record;
+	} else {
+		$image = false;
+	}
+	if ( is_array( $image ) && (int) $image['image_size'] === (int) $orig_size ) {
 		$prev_string = ' - ' . __( 'Previously Optimized', 'ewww-image-optimizer' );
 		if ( preg_match( '/' . __( 'License exceeded', 'ewww-image-optimizer' ) . '/', $image['results'] ) ) {
-			return;
+			return '';
 		}
 		$already_optimized = preg_replace( "/$prev_string/", '', $image['results'] );
 		$already_optimized = $already_optimized . $prev_string;
 		ewwwio_debug_message( "already optimized: {$image['path']} - $already_optimized" );
 		ewwwio_memory( __FUNCTION__ );
 		// Make sure the image isn't pending.
-		if ( $image['pending'] ) {
+		if ( $image['pending'] && empty( $ewww_force_smart ) ) {
 			global $wpdb;
-			$wpdb->update( $wpdb->ewwwio_images,
+			$wpdb->update(
+				$wpdb->ewwwio_images,
 				array(
 					'pending' => 0,
 				),
@@ -3757,6 +5614,58 @@ function ewww_image_optimizer_check_table( $file, $orig_size ) {
 			);
 		}
 		return $already_optimized;
+	} elseif ( is_array( $image ) && ! empty( $image['updates'] ) && $image['updates'] > 5 ) {
+		ewwwio_debug_message( "prevented excessive re-opt: {$image['path']}" );
+		// Make sure the image isn't pending.
+		if ( $image['pending'] ) {
+			global $wpdb;
+			$wpdb->update(
+				$wpdb->ewwwio_images,
+				array(
+					'pending' => 0,
+				),
+				array(
+					'id' => $image['id'],
+				)
+			);
+		}
+		return __( 'Re-optimize prevented', 'ewww-image-optimizer' );
+	}
+	return '';
+}
+
+/**
+ * Updates the savings statistics cache.
+ *
+ * @param int $opt_size The new size of the image.
+ * @param int $orig_size The original size of the image.
+ */
+function ewww_image_optimizer_update_savings( $opt_size, $orig_size ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	if ( ! $opt_size || ! $orig_size ) {
+		return;
+	}
+	$cache_savings = get_transient( 'ewww_image_optimizer_savings' );
+	if ( ! empty( $cache_savings ) && is_array( $cache_savings ) && 2 === count( $cache_savings ) ) {
+		$total_opt  = (int) $cache_savings[0];
+		$total_orig = (int) $cache_savings[1];
+		ewwwio_debug_message( "increasing $total_opt by $opt_size" );
+		$total_opt += (int) $opt_size;
+		ewwwio_debug_message( "increasing $total_orig by $orig_size" );
+		$total_orig += (int) $orig_size;
+		set_transient( 'ewww_image_optimizer_savings', array( $total_opt, $total_orig ), DAY_IN_SECONDS );
+	}
+	if ( is_multisite() ) {
+		$cache_savings = get_site_transient( 'ewww_image_optimizer_savings' );
+		if ( ! empty( $cache_savings ) && is_array( $cache_savings ) && 2 === count( $cache_savings ) ) {
+			$total_opt  = (int) $cache_savings[0];
+			$total_orig = (int) $cache_savings[1];
+			ewwwio_debug_message( "increasing $total_opt by $opt_size" );
+			$total_opt += (int) $opt_size;
+			ewwwio_debug_message( "increasing $total_orig by $orig_size" );
+			$total_orig += (int) $orig_size;
+			set_site_transient( 'ewww_image_optimizer_savings', array( $total_opt, $total_orig ), DAY_IN_SECONDS );
+		}
 	}
 }
 
@@ -3784,9 +5693,9 @@ function ewww_image_optimizer_update_table( $attachment, $opt_size, $orig_size, 
 	}
 	global $ewww_image;
 	// First check if the image was converted, so we don't orphan records.
-	if ( $original && $original != $attachment ) {
+	if ( $original && $original !== $attachment ) {
 		$already_optimized = ewww_image_optimizer_find_already_optimized( $original );
-		$converted = $original;
+		$converted         = ewww_image_optimizer_relativize_path( $original );
 	} else {
 		$already_optimized = ewww_image_optimizer_find_already_optimized( $attachment );
 		if ( is_array( $already_optimized ) && ! empty( $already_optimized['converted'] ) ) {
@@ -3808,12 +5717,13 @@ function ewww_image_optimizer_update_table( $attachment, $opt_size, $orig_size, 
 	$results_msg = ewww_image_optimizer_image_results( $orig_size, $opt_size, $prev_string );
 
 	$updates = array(
-		'path' => ewww_image_optimizer_relative_path_remove( $attachment ),
-		'converted' => $converted,
+		'path'       => ewww_image_optimizer_relativize_path( $attachment ),
+		'converted'  => $converted,
+		'level'      => 0,
 		'image_size' => $opt_size,
-		'results' => $results_msg,
-		'updates' => 1,
-		'backup' => preg_replace( '/[^\w]/', '', $backup_hash ),
+		'results'    => $results_msg,
+		'updates'    => 1,
+		'backup'     => preg_replace( '/[^\w]/', '', $backup_hash ),
 	);
 	if ( ! seems_utf8( $updates['path'] ) ) {
 		$updates['path'] = utf8_encode( $updates['path'] );
@@ -3821,6 +5731,7 @@ function ewww_image_optimizer_update_table( $attachment, $opt_size, $orig_size, 
 	// Store info on the current image for future reference.
 	if ( empty( $already_optimized ) || ! is_array( $already_optimized ) ) {
 		ewwwio_debug_message( "creating new record, path: $attachment, size: $opt_size" );
+		ewww_image_optimizer_update_savings( $opt_size, $orig_size );
 		if ( is_object( $ewww_image ) && $ewww_image instanceof EWWW_Image && $ewww_image->gallery ) {
 			$updates['gallery'] = $ewww_image->gallery;
 		}
@@ -3830,16 +5741,21 @@ function ewww_image_optimizer_update_table( $attachment, $opt_size, $orig_size, 
 		if ( is_object( $ewww_image ) && $ewww_image instanceof EWWW_Image && $ewww_image->resize ) {
 			$updates['resize'] = $ewww_image->resize;
 		}
+		if ( is_object( $ewww_image ) && $ewww_image instanceof EWWW_Image && $ewww_image->level ) {
+			$updates['level'] = $ewww_image->level;
+		}
 		$updates['orig_size'] = $orig_size;
-		$updates['updated'] = date( 'Y-m-d H:i:s' );
+		$updates['updated']   = gmdate( 'Y-m-d H:i:s' );
 		$ewwwdb->insert( $ewwwdb->ewwwio_images, $updates );
 	} else {
 		if ( is_array( $already_optimized ) && empty( $already_optimized['orig_size'] ) ) {
 			$updates['orig_size'] = $orig_size;
 		}
 		ewwwio_debug_message( "updating existing record ({$already_optimized['id']}), path: $attachment, size: $opt_size" );
-		if ( $already_optimized['updates'] ) {
-			$updates['updates'] = $already_optimized['updates']++;
+		if ( $already_optimized['updates'] && apply_filters( 'ewww_image_optimizer_allowed_reopt', false ) ) {
+			$updates['updates'] = $already_optimized['updates'];
+		} elseif ( $already_optimized['updates'] ) {
+			$updates['updates'] = $already_optimized['updates'] + 1;
 		}
 		$updates['pending'] = 0;
 		if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_debug' ) && $already_optimized['updates'] > 1 ) {
@@ -3854,11 +5770,15 @@ function ewww_image_optimizer_update_table( $attachment, $opt_size, $orig_size, 
 		if ( empty( $already_optimized['resize'] ) && is_object( $ewww_image ) && $ewww_image instanceof EWWW_Image && $ewww_image->resize ) {
 			$updates['resize'] = $ewww_image->resize;
 		}
+		if ( is_object( $ewww_image ) && $ewww_image instanceof EWWW_Image && $ewww_image->level ) {
+			$updates['level'] = $ewww_image->level;
+		}
 		if ( ewww_image_optimizer_function_exists( 'print_r' ) ) {
 			ewwwio_debug_message( print_r( $updates, true ) );
 		}
 		// Update information for the image.
-		$record_updated = $ewwwdb->update( $ewwwdb->ewwwio_images,
+		$record_updated = $ewwwdb->update(
+			$ewwwdb->ewwwio_images,
 			$updates,
 			array(
 				'id' => $already_optimized['id'],
@@ -3892,7 +5812,7 @@ function ewww_image_optimizer_image_results( $orig_size, $opt_size, $prev_string
 		$results_msg = __( 'No savings', 'ewww-image-optimizer' );
 	} else {
 		// Calculate how much space was saved.
-		$savings = intval( $orig_size ) - intval( $opt_size );
+		$savings     = intval( $orig_size ) - intval( $opt_size );
 		$savings_str = ewww_image_optimizer_size_format( $savings );
 		// Determine the percentage savings.
 		$percent = number_format_i18n( 100 - ( 100 * ( $opt_size / $orig_size ) ), 1 ) . '%';
@@ -3928,13 +5848,14 @@ function ewww_image_optimizer_size_format( $size, $precision = 1 ) {
  * @global object $wpdb
  * @global object $ewwwdb A clone of $wpdb unless it is lacking utf8 connectivity.
  * @global bool   $ewww_defer Set to false to avoid deferring image optimization.
- * @global string $ewww_debug Contains in-memory debug log.
+ * @global string $eio_debug Contains in-memory debug log.
+ * @global object $ewww_image Contains more information about the image currently being processed.
  *
  * @param array $attachment {
- *	Optional. The file to optimize. Default null.
+ *     Optional. The file to optimize. Default null.
  *
- *	@type int $id The id number in the ewwwio_images table.
- *	@type string $path The filename of the image.
+ *     @type int $id The id number in the ewwwio_images table.
+ *     @type string $path The filename of the image.
  * }
  * @param bool  $auto Optional. True if scheduled optimization is running. Default false.
  * @param bool  $cli Optional. True if WP-CLI is running. Default false.
@@ -3951,18 +5872,17 @@ function ewww_image_optimizer_aux_images_loop( $attachment = null, $auto = false
 	}
 	global $ewww_defer;
 	$ewww_defer = false;
-	$output = array();
+	$output     = array();
 	// Verify that an authorized user has started the optimizer.
 	$permissions = apply_filters( 'ewww_image_optimizer_bulk_permissions', '' );
-	if ( ! $auto && ( empty( $_REQUEST['ewww_wpnonce'] ) || ! wp_verify_nonce( $_REQUEST['ewww_wpnonce'], 'ewww-image-optimizer-bulk' ) || ! current_user_can( $permissions ) ) ) {
+	if ( ! $auto && ( empty( $_REQUEST['ewww_wpnonce'] ) || ! wp_verify_nonce( sanitize_key( $_REQUEST['ewww_wpnonce'] ), 'ewww-image-optimizer-bulk' ) || ! current_user_can( $permissions ) ) ) {
 		$output['error'] = esc_html__( 'Access token has expired, please reload the page.', 'ewww-image-optimizer' );
-		echo json_encode( $output );
-		die();
+		wp_die( wp_json_encode( $output ) );
 	}
 	session_write_close();
 	if ( ! empty( $_REQUEST['ewww_wpnonce'] ) ) {
 		// Find out if our nonce is on it's last leg/tick.
-		$tick = wp_verify_nonce( $_REQUEST['ewww_wpnonce'], 'ewww-image-optimizer-bulk' );
+		$tick = wp_verify_nonce( sanitize_key( $_REQUEST['ewww_wpnonce'] ), 'ewww-image-optimizer-bulk' );
 		if ( 2 === $tick ) {
 			ewwwio_debug_message( 'nonce on its last leg' );
 			$output['new_nonce'] = wp_create_nonce( 'ewww-image-optimizer-bulk' );
@@ -3973,19 +5893,26 @@ function ewww_image_optimizer_aux_images_loop( $attachment = null, $auto = false
 	}
 	// Retrieve the time when the optimizer starts.
 	$started = microtime( true );
-	if ( ewww_image_optimizer_stl_check() && ini_get( 'max_execution_time' ) < 60 ) {
+	if ( ewww_image_optimizer_stl_check() && ewww_image_optimizer_function_exists( 'ini_get' ) && ini_get( 'max_execution_time' ) < 60 ) {
 		set_time_limit( 0 );
 	}
 	// Get the next image in the queue.
 	if ( empty( $attachment ) ) {
 		list( $id, $attachment ) = $ewwwdb->get_row( "SELECT id,path FROM $ewwwdb->ewwwio_images WHERE pending=1 LIMIT 1", ARRAY_N );
 	} else {
-		$id = $attachment['id'];
+		$id         = $attachment['id'];
 		$attachment = $attachment['path'];
 	}
 	if ( $attachment ) {
-		$attachment = ewww_image_optimizer_relative_path_replace( $attachment );
+		$attachment = ewww_image_optimizer_absolutize_path( $attachment );
 	}
+	global $ewww_image;
+	$ewww_image = new EWWW_Image( 0, '', $attachment );
+	// Resize the image, if possible.
+	if ( empty( $ewww_image->resize ) && ewww_image_optimizer_should_resize_other_image( $ewww_image->file ) ) {
+		$new_dimensions = ewww_image_optimizer_resize_upload( $attachment );
+	}
+
 	// Do the optimization for the current image.
 	$results = ewww_image_optimizer( $attachment );
 	if ( ! $results[0] && is_numeric( $id ) ) {
@@ -3995,15 +5922,15 @@ function ewww_image_optimizer_aux_images_loop( $attachment = null, $auto = false
 				'id' => $id,
 			),
 			array(
-				'%d'
+				'%d',
 			)
 		);
 	}
 	$ewww_status = get_transient( 'ewww_image_optimizer_cloud_status' );
 	if ( ! empty( $ewww_status ) && preg_match( '/exceeded/', $ewww_status ) ) {
 		if ( ! $auto ) {
-			$output['error'] = esc_html__( 'License Exceeded', 'ewww-image-optimizer' );
-			echo json_encode( $output );
+			$output['error'] = '<a href="https://ewww.io/buy-credits/" target="_blank">' . esc_html__( 'License Exceeded', 'ewww-image-optimizer' ) . '</a>';
+			echo wp_json_encode( $output );
 		}
 		if ( $cli ) {
 			WP_CLI::error( __( 'License Exceeded', 'ewww-image-optimizer' ) );
@@ -4018,27 +5945,50 @@ function ewww_image_optimizer_aux_images_loop( $attachment = null, $auto = false
 		// Calculate how much time has elapsed since we started.
 		$elapsed = microtime( true ) - $started;
 		// Output how much time has elapsed since we started.
-		$output['results'] .= sprintf( esc_html(
-			/* translators: %s: number of seconds */
-			_n( 'Elapsed: %s second', 'Elapsed: %s seconds', $elapsed, 'ewww-image-optimizer' )
-		) . '</p>', number_format_i18n( $elapsed ) );
+		$output['results'] .= sprintf(
+			esc_html(
+				/* translators: %s: number of seconds */
+				_n( 'Elapsed: %s second', 'Elapsed: %s seconds', $elapsed, 'ewww-image-optimizer' )
+			) . '</p>',
+			number_format_i18n( $elapsed, 2 )
+		);
 		if ( get_site_option( 'ewww_image_optimizer_debug' ) ) {
-			global $ewww_debug;
-			$output['results'] .= '<div style="background-color:#ffff99;">' . $ewww_debug . '</div>';
+			global $eio_debug;
+			$output['results'] .= '<div style="background-color:#f1f1f1;">' . $eio_debug . '</div>';
 		}
-		$next_file = ewww_image_optimizer_relative_path_replace( $wpdb->get_var( "SELECT path FROM $wpdb->ewwwio_images WHERE pending=1 LIMIT 1" ) );
+		$next_file = ewww_image_optimizer_absolutize_path( $wpdb->get_var( "SELECT path FROM $wpdb->ewwwio_images WHERE pending=1 LIMIT 1" ) );
 		if ( ! empty( $next_file ) ) {
-			$loading_image = plugins_url( '/images/wpspin.gif', __FILE__ );
-			$output['next_file'] = '<p>' . esc_html__( 'Optimizing', 'ewww-image-optimizer' ) . ' <b>' . esc_html( $next_file ) . "</b>&nbsp;<img src='$loading_image' alt='loading'/></p>";
+			$loading_image       = plugins_url( '/images/wpspin.gif', __FILE__ );
+			$output['next_file'] = '<p>' . esc_html__( 'Optimizing', 'ewww-image-optimizer' ) . ' <b>' . esc_html( $next_file ) . "</b>&nbsp;<img src='$loading_image' alt='loading' /></p>";
 		}
-		echo json_encode( $output );
-		ewwwio_memory( __FUNCTION__ );
-		die();
+		die( wp_json_encode( $output ) );
 	}
 	if ( $cli ) {
 		return $results[1];
 	}
+	ewww_image_optimizer_debug_log();
 	ewwwio_memory( __FUNCTION__ );
+}
+
+/**
+ * Look for the retina version of a file.
+ *
+ * @param string $orig_path Filename of the image.
+ * @param bool   $validate_file True verifies the file exists.
+ * @return string The retina/hidpi file, or nothing.
+ */
+function ewww_image_optimizer_get_hidpi_path( $orig_path, $validate_file = true ) {
+	$hidpi_suffix = apply_filters( 'ewww_image_optimizer_hidpi_suffix', '@2x' );
+	$pathinfo     = pathinfo( $orig_path );
+	if ( empty( $pathinfo['dirname'] ) || empty( $pathinfo['filename'] ) || empty( $pathinfo['extension'] ) ) {
+		return '';
+	}
+	$hidpi_path = $pathinfo['dirname'] . '/' . $pathinfo['filename'] . $hidpi_suffix . '.' . $pathinfo['extension'];
+	if ( $validate_file && ! ewwwio_is_file( $hidpi_path ) ) {
+		return '';
+	}
+	ewwwio_debug_message( "found retina at $hidpi_path" );
+	return $hidpi_path;
 }
 
 /**
@@ -4047,38 +5997,152 @@ function ewww_image_optimizer_aux_images_loop( $attachment = null, $auto = false
  * @global object $ewww_image Contains more information about the image currently being processed.
  *
  * @param string $orig_path Filename of the 'normal' image.
- * @param bool   $return_path True returns the path of the retina image and skips optimization.
- * @param bool   $validate_file True verifies the file exists.
  * @return string The filename of the retina image.
  */
-function ewww_image_optimizer_hidpi_optimize( $orig_path, $return_path = false, $validate_file = true ) {
+function ewww_image_optimizer_hidpi_optimize( $orig_path ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	$hidpi_suffix = apply_filters( 'ewww_image_optimizer_hidpi_suffix', '@2x' );
-	$pathinfo = pathinfo( $orig_path );
-	if ( empty( $pathinfo['dirname'] ) || empty( $pathinfo['filename'] ) || empty( $pathinfo['extension'] ) ) {
+	$hidpi_path = ewww_image_optimizer_get_hidpi_path( $orig_path );
+	if ( ! $hidpi_path ) {
 		return;
-	}
-	$hidpi_path = $pathinfo['dirname'] . '/' . $pathinfo['filename'] . $hidpi_suffix . '.' . $pathinfo['extension'];
-	if ( $validate_file && ! is_file( $hidpi_path ) ) {
-		return;
-	}
-	if ( $return_path ) {
-		ewwwio_debug_message( "found retina at $hidpi_path" );
-		return $hidpi_path;
 	}
 	global $ewww_image;
 	if ( is_object( $ewww_image ) && $ewww_image instanceof EWWW_Image ) {
-		$id = $ewww_image->attachment_id;
+		$id      = $ewww_image->attachment_id;
 		$gallery = 'media';
-		$size = $ewww_image->resize;
+		$size    = $ewww_image->resize;
 	} else {
-		$id = 0;
+		$id      = 0;
 		$gallery = '';
-		$size = null;
+		$size    = null;
 	}
-	$ewww_image = new EWWW_Image( $id, $gallery, $hidpi_path );
+	$ewww_image         = new EWWW_Image( $id, $gallery, $hidpi_path );
 	$ewww_image->resize = $size . '-retina';
 	ewww_image_optimizer( $hidpi_path );
+}
+
+/**
+ * Checks the existence of a cloud storage stream wrapper.
+ *
+ * @return bool True if a supported stream wrapper is found, false otherwise.
+ */
+function ewww_image_optimizer_stream_wrapper_exists() {
+	$wrappers = stream_get_wrappers();
+	if ( ! ewww_image_optimizer_iterable( $wrappers ) ) {
+		return false;
+	}
+	foreach ( $wrappers as $wrapper ) {
+		if ( strpos( $wrapper, 's3' ) === 0 ) {
+			return true;
+		}
+		if ( strpos( $wrapper, 'gs' ) === 0 ) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Checks the filename for an S3 or GCS stream wrapper.
+ *
+ * @param string $filename The filename to be searched.
+ * @return bool True if a stream wrapper is found, false otherwise.
+ */
+function ewww_image_optimizer_stream_wrapped( $filename ) {
+	if ( false !== strpos( $filename, '://' ) ) {
+		if ( strpos( $filename, 's3' ) === 0 ) {
+			return true;
+		}
+		if ( strpos( $filename, 'gs' ) === 0 ) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Pushes images from local storage back to S3 after optimization.
+ *
+ * @param array $meta The attachment metadata.
+ * @param int   $id The attachment ID number.
+ * @return array $meta Send the metadata back from whence it came.
+ */
+function ewww_image_optimizer_remote_push( $meta, $id ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	if ( class_exists( 'S3_Uploads' ) && ! empty( $meta['file'] ) ) {
+		$s3_upload_dir = wp_get_upload_dir();
+		$s3_upload_dir = trailingslashit( $s3_upload_dir['basedir'] );
+		$s3_path       = get_attached_file( $id );
+		if ( false === strpos( $s3_path, $s3_upload_dir ) ) {
+			ewwwio_debug_message( "$s3_path not in $s3_upload_dir" );
+			return $meta;
+		}
+		$upload_path = trailingslashit( WP_CONTENT_DIR ) . 'uploads/';
+		$filename    = realpath( str_replace( $s3_upload_dir, $upload_path, $s3_path ) );
+		ewwwio_debug_message( "S3 Uploads fullsize path: $s3_path" );
+		ewwwio_debug_message( "unfiltered fullsize path: $filename" );
+		if ( 0 === strpos( $s3_path, 's3://' ) && 0 === strpos( $filename, '/' ) && ewwwio_is_file( $filename ) ) {
+			copy( $filename, $s3_path );
+			unlink( $filename );
+			if ( ewwwio_is_file( $filename . '.webp' ) ) {
+				copy( $filename . '.webp', $s3_path . '.webp' );
+				unlink( $filename . '.webp' );
+			}
+		}
+		// Original image detected.
+		if ( isset( $meta['original_image'] ) && ewww_image_optimizer_get_option( 'ewww_image_optimizer_include_originals' ) ) {
+			// original_image doesn't contain a path, so we calculate one.
+			$base_dir = trailingslashit( dirname( $filename ) );
+			$base_s3  = trailingslashit( dirname( $s3_path ) );
+			// Build the paths for an original pre-scaled image.
+			$resize_path = $base_dir . wp_basename( $meta['original_image'] );
+			$s3_rpath    = $base_s3 . wp_basename( $meta['original_image'] );
+			ewwwio_debug_message( "pushing $resize_path to $s3_rpath" );
+			if ( 0 === strpos( $s3_rpath, 's3://' ) && 0 === strpos( $resize_path, '/' ) && ewwwio_is_file( $resize_path ) ) {
+				copy( $resize_path, $s3_rpath );
+				unlink( $resize_path );
+				if ( ewwwio_is_file( $resize_path . '.webp' ) ) {
+					copy( $resize_path . '.webp', $s3_rpath . '.webp' );
+					unlink( $resize_path . '.webp' );
+				}
+			}
+		}
+		// Resized versions, so we'll grab those too.
+		if ( isset( $meta['sizes'] ) && ewww_image_optimizer_iterable( $meta['sizes'] ) ) {
+			$disabled_sizes = ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_resizes_opt', false, true );
+			ewwwio_debug_message( 'retrieving resizes' );
+			// Meta sizes don't contain a path, so we calculate one.
+			$base_dir = trailingslashit( dirname( $filename ) );
+			$base_s3  = trailingslashit( dirname( $s3_path ) );
+			foreach ( $meta['sizes'] as $size => $data ) {
+				ewwwio_debug_message( "processing size: $size" );
+				if ( preg_match( '/webp/', $size ) ) {
+					continue;
+				}
+				if ( ! empty( $disabled_sizes[ $size ] ) ) {
+					continue;
+				}
+				if ( empty( $data['file'] ) ) {
+					continue;
+				}
+				$resize_path = $base_dir . wp_basename( $data['file'] );
+				$s3_rpath    = $base_s3 . wp_basename( $data['file'] );
+				if ( ! ewwwio_is_file( $resize_path ) ) {
+					ewwwio_debug_message( "$resize_path does not exist" );
+					continue;
+				}
+				ewwwio_debug_message( "pushing $resize_path to $s3_rpath" );
+				if ( 0 === strpos( $s3_rpath, 's3://' ) && 0 === strpos( $resize_path, '/' ) ) {
+					copy( $resize_path, $s3_rpath );
+					unlink( $resize_path );
+					if ( ewwwio_is_file( $resize_path . '.webp' ) ) {
+						copy( $resize_path . '.webp', $s3_rpath . '.webp' );
+						unlink( $resize_path . '.webp' );
+					}
+				}
+			}
+		} // End if().
+	} // End if().
+	return $meta;
 }
 
 /**
@@ -4095,25 +6159,95 @@ function ewww_image_optimizer_remote_fetch( $id, $meta ) {
 	if ( ! function_exists( 'download_url' ) ) {
 		require_once( ABSPATH . '/wp-admin/includes/file.php' );
 	}
-	if ( class_exists( 'Amazon_S3_And_CloudFront' ) ) {
-		global $as3cf;
-		$full_url = get_attached_file( $id );
-		if ( strpos( $full_url, 's3' ) === 0 ) {
-			$full_url = $as3cf->get_attachment_url( $id, null, null, $meta );
+	if ( class_exists( 'S3_Uploads' ) && ! empty( $meta['file'] ) ) {
+		$s3_upload_dir = wp_get_upload_dir();
+		$s3_upload_dir = trailingslashit( $s3_upload_dir['basedir'] );
+		$s3_path       = get_attached_file( $id );
+		if ( false === strpos( $s3_path, $s3_upload_dir ) ) {
+			ewwwio_debug_message( "$s3_path not in $s3_upload_dir" );
+			return false;
 		}
-		$filename = get_attached_file( $id, true );
-		ewwwio_debug_message( "amazon s3 fullsize url: $full_url" );
+		$upload_path = trailingslashit( WP_CONTENT_DIR ) . 'uploads/';
+		$filename    = str_replace( $s3_upload_dir, $upload_path, $s3_path );
+		if ( false === strpos( $filename, WP_CONTENT_DIR ) ) {
+			ewwwio_debug_message( "$filename not in WP_CONTENT_DIR" );
+			return false;
+		}
+		ewwwio_debug_message( "S3 Uploads fullsize path: $s3_path" );
 		ewwwio_debug_message( "unfiltered fullsize path: $filename" );
-		$temp_file = download_url( $full_url );
-		if ( ! is_wp_error( $temp_file ) ) {
-			rename( $temp_file, $filename );
+		if ( ! is_dir( dirname( $filename ) ) ) {
+			wp_mkdir_p( dirname( $filename ) );
+		}
+		if ( 0 === strpos( $s3_path, 's3://' ) && 0 === strpos( $filename, '/' ) && ! ewwwio_is_file( $filename ) ) {
+			copy( $s3_path, $filename );
+		}
+		// Original image detected.
+		if ( isset( $meta['original_image'] ) && ewww_image_optimizer_get_option( 'ewww_image_optimizer_include_originals' ) ) {
+			ewwwio_debug_message( 'processing original_image' );
+			// original_image doesn't contain a path, so we calculate one.
+			$base_dir = trailingslashit( dirname( $filename ) );
+			$base_s3  = trailingslashit( dirname( $s3_path ) );
+			// Build the paths for an original pre-scaled image.
+			$resize_path = $base_dir . wp_basename( $meta['original_image'] );
+			$s3_rpath    = $base_s3 . wp_basename( $meta['original_image'] );
+			ewwwio_debug_message( "fetching $s3_rpath to $resize_path" );
+			if ( 0 === strpos( $s3_rpath, 's3://' ) && 0 === strpos( $resize_path, '/' ) ) {
+				copy( $s3_rpath, $resize_path );
+			}
 		}
 		// Resized versions, so we'll grab those too.
 		if ( isset( $meta['sizes'] ) && ewww_image_optimizer_iterable( $meta['sizes'] ) ) {
-			$disabled_sizes = get_option( 'ewww_image_optimizer_disable_resizes_opt' );
+			$disabled_sizes = ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_resizes_opt', false, true );
 			ewwwio_debug_message( 'retrieving resizes' );
 			// Meta sizes don't contain a path, so we calculate one.
 			$base_dir = trailingslashit( dirname( $filename ) );
+			$base_s3  = trailingslashit( dirname( $s3_path ) );
+			foreach ( $meta['sizes'] as $size => $data ) {
+				ewwwio_debug_message( "processing size: $size" );
+				if ( preg_match( '/webp/', $size ) ) {
+					continue;
+				}
+				if ( ! empty( $disabled_sizes[ $size ] ) ) {
+					continue;
+				}
+				if ( empty( $data['file'] ) ) {
+					continue;
+				}
+				$resize_path = $base_dir . wp_basename( $data['file'] );
+				$s3_rpath    = $base_s3 . wp_basename( $data['file'] );
+				if ( ewwwio_is_file( $resize_path ) ) {
+					ewwwio_debug_message( "$resize_path already exists" );
+					continue;
+				}
+				ewwwio_debug_message( "fetching $s3_rpath to $resize_path" );
+				if ( 0 === strpos( $s3_rpath, 's3://' ) && 0 === strpos( $resize_path, '/' ) ) {
+					copy( $s3_rpath, $resize_path );
+				}
+			}
+		} // End if().
+	} // End if().
+	if ( class_exists( 'wpCloud\StatelessMedia\EWWW' ) && ! empty( $meta['gs_link'] ) ) {
+		$full_url = $meta['gs_link'];
+		$filename = get_attached_file( $id, true );
+		ewwwio_debug_message( "GSC (stateless) fullsize url: $full_url" );
+		ewwwio_debug_message( "unfiltered fullsize path: $filename" );
+		$temp_file = download_url( $full_url );
+		if ( ! is_wp_error( $temp_file ) ) {
+			if ( ! is_dir( dirname( $filename ) ) ) {
+				wp_mkdir_p( dirname( $filename ) );
+			}
+			if ( ! ewwwio_is_file( $filename ) ) {
+				ewwwio_rename( $temp_file, $filename );
+			} else {
+				unlink( $temp_file );
+			}
+		}
+		// Resized versions, so we'll grab those too.
+		if ( isset( $meta['sizes'] ) && ewww_image_optimizer_iterable( $meta['sizes'] ) ) {
+			$disabled_sizes = ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_resizes_opt', false, true );
+			ewwwio_debug_message( 'retrieving resizes' );
+			// Meta sizes don't contain a path, so we calculate one.
+			$base_dir  = trailingslashit( dirname( $filename ) );
 			$processed = array();
 			foreach ( $meta['sizes'] as $size => $data ) {
 				ewwwio_debug_message( "processing size: $size" );
@@ -4130,23 +6264,116 @@ function ewww_image_optimizer_remote_fetch( $id, $meta ) {
 				// Check through all the sizes we've processed so far.
 				foreach ( $processed as $proc => $scan ) {
 					// If a previous resize had identical dimensions.
-					if ( $scan['height'] == $data['height'] && $scan['width'] == $data['width'] ) {
+					if ( $scan['height'] === $data['height'] && $scan['width'] === $data['width'] ) {
 						// Found a duplicate resize.
 						$dup_size = true;
 					}
 				}
 				// If this is a unique size.
 				if ( ! $dup_size ) {
-					$resize_path = $base_dir . $data['file'];
-					$resize_url = $as3cf->get_attachment_url( $id, null, $size, $meta );
+					$resize_path = $base_dir . wp_basename( $data['file'] );
+					$resize_url  = $data['gs_link'];
+					if ( ewwwio_is_file( $resize_path ) ) {
+						continue;
+					}
 					ewwwio_debug_message( "fetching $resize_url to $resize_path" );
 					$temp_file = download_url( $resize_url );
 					if ( ! is_wp_error( $temp_file ) ) {
-						rename( $temp_file, $resize_path );
+						if ( ! is_dir( dirname( $resize_path ) ) ) {
+							wp_mkdir_p( dirname( $resize_path ) );
+						}
+						ewwwio_rename( $temp_file, $resize_path );
 					}
 				}
 				// Store info on the sizes we've processed, so we can check the list for duplicate sizes.
-				$processed[ $size ]['width'] = $data['width'];
+				$processed[ $size ]['width']  = $data['width'];
+				$processed[ $size ]['height'] = $data['height'];
+			}
+		} // End if().
+	} // End if().
+	if ( class_exists( 'Amazon_S3_And_CloudFront' ) ) {
+		global $as3cf;
+		$full_url = get_attached_file( $id );
+		if ( ewww_image_optimizer_stream_wrapped( $full_url ) ) {
+			$full_url = $as3cf->get_attachment_url( $id, null, null, $meta );
+		}
+		$filename = get_attached_file( $id, true );
+		ewwwio_debug_message( "amazon s3 fullsize url: $full_url" );
+		ewwwio_debug_message( "unfiltered fullsize path: $filename" );
+		$temp_file = download_url( $full_url );
+		if ( ! is_wp_error( $temp_file ) ) {
+			if ( ! is_dir( dirname( $filename ) ) ) {
+				wp_mkdir_p( dirname( $filename ) );
+			}
+			if ( ! ewwwio_is_file( $filename ) ) {
+				ewwwio_rename( $temp_file, $filename );
+			} else {
+				unlink( $temp_file );
+			}
+		}
+		$base_dir = trailingslashit( dirname( $filename ) );
+		// Original image detected.
+		if ( isset( $meta['original_image'] ) && ewww_image_optimizer_get_option( 'ewww_image_optimizer_include_originals' ) ) {
+			ewwwio_debug_message( 'processing original_image' );
+			$base_url = trailingslashit( dirname( $full_url ) );
+			// Build the paths for an original pre-scaled image.
+			$resize_path = $base_dir . wp_basename( $meta['original_image'] );
+			$resize_url  = $base_url . wp_basename( $meta['original_image'] );
+			if ( ! ewwwio_is_file( $resize_path ) ) {
+				ewwwio_debug_message( "fetching $resize_url to $resize_path" );
+				$temp_file = download_url( $resize_url );
+				if ( ! is_wp_error( $temp_file ) ) {
+					if ( ! is_dir( $base_dir ) ) {
+						wp_mkdir_p( $base_dir );
+					}
+					ewwwio_rename( $temp_file, $resize_path );
+				}
+			}
+		}
+		// Resized versions, so we'll grab those too.
+		if ( isset( $meta['sizes'] ) && ewww_image_optimizer_iterable( $meta['sizes'] ) ) {
+			$disabled_sizes = ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_resizes_opt', false, true );
+			ewwwio_debug_message( 'retrieving resizes' );
+			// Meta sizes don't contain a path, so we calculate one.
+			$processed = array();
+			foreach ( $meta['sizes'] as $size => $data ) {
+				ewwwio_debug_message( "processing size: $size" );
+				if ( preg_match( '/webp/', $size ) ) {
+					continue;
+				}
+				if ( ! empty( $disabled_sizes[ $size ] ) ) {
+					continue;
+				}
+				if ( empty( $data['file'] ) ) {
+					continue;
+				}
+				$dup_size = false;
+				// Check through all the sizes we've processed so far.
+				foreach ( $processed as $proc => $scan ) {
+					// If a previous resize had identical dimensions.
+					if ( $scan['height'] === $data['height'] && $scan['width'] === $data['width'] ) {
+						// Found a duplicate resize.
+						$dup_size = true;
+					}
+				}
+				// If this is a unique size.
+				if ( ! $dup_size ) {
+					$resize_path = $base_dir . wp_basename( $data['file'] );
+					$resize_url  = $as3cf->get_attachment_url( $id, null, $size, $meta );
+					if ( ewwwio_is_file( $resize_path ) ) {
+						continue;
+					}
+					ewwwio_debug_message( "fetching $resize_url to $resize_path" );
+					$temp_file = download_url( $resize_url );
+					if ( ! is_wp_error( $temp_file ) ) {
+						if ( ! is_dir( dirname( $resize_path ) ) ) {
+							wp_mkdir_p( dirname( $resize_path ) );
+						}
+						ewwwio_rename( $temp_file, $resize_path );
+					}
+				}
+				// Store info on the sizes we've processed, so we can check the list for duplicate sizes.
+				$processed[ $size ]['width']  = $data['width'];
 				$processed[ $size ]['height'] = $data['height'];
 			}
 		} // End if().
@@ -4154,19 +6381,43 @@ function ewww_image_optimizer_remote_fetch( $id, $meta ) {
 	if ( class_exists( 'WindowsAzureStorageUtil' ) && get_option( 'azure_storage_use_for_default_upload' ) ) {
 		$full_url = $meta['url'];
 		$filename = $meta['file'];
+		$filename = get_attached_file( $id, true );
 		ewwwio_debug_message( "azure fullsize url: $full_url" );
 		ewwwio_debug_message( "fullsize path: $filename" );
 		$temp_file = download_url( $full_url );
 		if ( ! is_wp_error( $temp_file ) ) {
-			rename( $temp_file, $filename );
+			if ( ! is_dir( dirname( $filename ) ) ) {
+				wp_mkdir_p( dirname( $filename ) );
+			}
+			if ( ! ewwwio_is_file( $filename ) ) {
+				ewwwio_rename( $temp_file, $filename );
+			} else {
+				unlink( $temp_file );
+			}
+		}
+		$base_dir = trailingslashit( dirname( $filename ) );
+		$base_url = trailingslashit( dirname( $full_url ) );
+		// Original image detected.
+		if ( isset( $meta['original_image'] ) && ewww_image_optimizer_get_option( 'ewww_image_optimizer_include_originals' ) ) {
+			ewwwio_debug_message( 'processing original_image' );
+			// Build the paths for an original pre-scaled image.
+			$resize_path = $base_dir . wp_basename( $meta['original_image'] );
+			$resize_url  = $base_url . wp_basename( $meta['original_image'] );
+			if ( ! ewwwio_is_file( $resize_path ) ) {
+				ewwwio_debug_message( "fetching $resize_url to $resize_path" );
+				$temp_file = download_url( $resize_url );
+				if ( ! is_wp_error( $temp_file ) ) {
+					if ( ! is_dir( $base_dir ) ) {
+						wp_mkdir_p( $base_dir );
+					}
+					ewwwio_rename( $temp_file, $resize_path );
+				}
+			}
 		}
 		// Resized versions, so we'll grab those too.
 		if ( isset( $meta['sizes'] ) && ewww_image_optimizer_iterable( $meta['sizes'] ) ) {
-			$disabled_sizes = get_option( 'ewww_image_optimizer_disable_resizes_opt' );
+			$disabled_sizes = ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_resizes_opt', false, true );
 			ewwwio_debug_message( 'retrieving resizes' );
-			// Meta sizes don't contain a path, so we calculate one.
-			$base_dir = trailingslashit( dirname( $filename ) );
-			$base_url = trailingslashit( dirname( $full_url ) );
 			// Process each resized version.
 			$processed = array();
 			foreach ( $meta['sizes'] as $size => $data ) {
@@ -4184,28 +6435,35 @@ function ewww_image_optimizer_remote_fetch( $id, $meta ) {
 				// Check through all the sizes we've processed so far.
 				foreach ( $processed as $proc => $scan ) {
 					// If a previous resize had identical dimensions.
-					if ( $scan['height'] == $data['height'] && $scan['width'] == $data['width'] ) {
+					if ( $scan['height'] === $data['height'] && $scan['width'] === $data['width'] ) {
 						// Found a duplicate resize.
 						$dup_size = true;
 					}
 				}
 				// If this is a unique size.
 				if ( ! $dup_size ) {
-					$resize_path = $base_dir . $data['file'];
-					$resize_url = $base_url . $data['file'];
+					$resize_path = $base_dir . wp_basename( $data['file'] );
+					$resize_url  = $base_url . wp_basename( $data['file'] );
+					if ( ewwwio_is_file( $resize_path ) ) {
+						continue;
+					}
 					ewwwio_debug_message( "fetching $resize_url to $resize_path" );
 					$temp_file = download_url( $resize_url );
 					if ( ! is_wp_error( $temp_file ) ) {
-						rename( $temp_file, $resize_path );
+						if ( ! is_dir( dirname( $resize_path ) ) ) {
+							wp_mkdir_p( dirname( $resize_path ) );
+						}
+						ewwwio_rename( $temp_file, $resize_path );
 					}
 				}
 				// Store info on the sizes we've processed, so we can check the list for duplicate sizes.
-				$processed[ $size ]['width'] = $data['width'];
+				$processed[ $size ]['width']  = $data['width'];
 				$processed[ $size ]['height'] = $data['height'];
 			}
 		} // End if().
 	} // End if().
-	if ( ! empty( $filename ) && is_file( $filename ) ) {
+	clearstatcache();
+	if ( ! empty( $filename ) && ewwwio_is_file( $filename ) ) {
 		return $filename;
 	} else {
 		return false;
@@ -4232,7 +6490,7 @@ function ewww_image_optimizer_check_table_as3cf( $meta, $id, $s3_path ) {
 		ewwwio_debug_message( 'updating s3 resizes' );
 		// Meta sizes don't contain a path, so we calculate one.
 		$local_dir = trailingslashit( dirname( $local_path ) );
-		$s3_dir = trailingslashit( dirname( $s3_path ) );
+		$s3_dir    = trailingslashit( dirname( $s3_path ) );
 		$processed = array();
 		foreach ( $meta['sizes'] as $size => $data ) {
 			if ( strpos( $size, 'webp' ) === 0 ) {
@@ -4248,12 +6506,12 @@ function ewww_image_optimizer_check_table_as3cf( $meta, $id, $s3_path ) {
 			}
 			// If this is a unique size.
 			$local_resize_path = $local_dir . $data['file'];
-			$s3_resize_path = $s3_dir . $data['file'];
+			$s3_resize_path    = $s3_dir . $data['file'];
 			if ( $local_resize_path !== $s3_resize_path ) {
 				ewww_image_optimizer_update_table_as3cf( $local_resize_path, $s3_resize_path );
 			}
 			// Store info on the sizes we've processed, so we can check the list for duplicate sizes.
-			$processed[ $size ]['width'] = $data['width'];
+			$processed[ $size ]['width']  = $data['width'];
 			$processed[ $size ]['height'] = $data['height'];
 		}
 	}
@@ -4290,19 +6548,21 @@ function ewww_image_optimizer_update_table_as3cf( $local_path, $s3_path ) {
 		// If we found records for both local and s3 paths, we delete the s3 record, but store the original size in the local record.
 		if ( ! empty( $found_local_image ) && is_array( $found_local_image ) ) {
 			ewwwio_debug_message( "found $local_path in db" );
-			$ewwwdb->delete( $ewwwdb->ewwwio_images,
+			$ewwwdb->delete(
+				$ewwwdb->ewwwio_images,
 				array(
 					'id' => $s3_image['id'],
 				),
 				array(
-					'%d'
+					'%d',
 				)
 			);
 			if ( $s3_image['orig_size'] > $found_local_image['orig_size'] ) {
-				$ewwwdb->update( $ewwwdb->ewwwio_images,
+				$ewwwdb->update(
+					$ewwwdb->ewwwio_images,
 					array(
 						'orig_size' => $s3_image['orig_size'],
-						'results' => $s3_image['results'],
+						'results'   => $s3_image['results'],
 					),
 					array(
 						'id' => $found_local_image['id'],
@@ -4312,9 +6572,10 @@ function ewww_image_optimizer_update_table_as3cf( $local_path, $s3_path ) {
 		} else {
 			// If we just found an s3 path and no local match, then we just update the path in the table to the local path.
 			ewwwio_debug_message( 'just updating s3 to local' );
-			$ewwwdb->update( $ewwwdb->ewwwio_images,
+			$ewwwdb->update(
+				$ewwwdb->ewwwio_images,
 				array(
-					'path' => ewww_image_optimizer_relative_path_remove( $local_path ),
+					'path' => ewww_image_optimizer_relativize_path( $local_path ),
 				),
 				array(
 					'id' => $s3_image['id'],
@@ -4325,34 +6586,103 @@ function ewww_image_optimizer_update_table_as3cf( $local_path, $s3_path ) {
 }
 
 /**
+ * Raise the memory limit even higher (to 512M) than WP default of 256M if necessary.
+ *
+ * @param int|string $memory_limit The amount of memory to allocate.
+ * @return int|string The new amount of memory to allocate, if it was only 256M or lower.
+ */
+function ewww_image_optimizer_raise_memory_limit( $memory_limit ) {
+	if ( '256M' === $memory_limit || ( is_int( $memory_limit ) && 270000000 > $memory_limit ) ) {
+		ewwwio_debug_message( 'raising the roof' );
+		return '512M';
+	} else {
+		return $memory_limit;
+	}
+}
+
+/**
+ * Uses gifsicle or the API to resize an image.
+ *
+ * @since 4.4.0
+ *
+ * @param string $file The file to resize.
+ * @param int    $dst_x X-coordinate of destination image (usually 0).
+ * @param int    $dst_y Y-coordinate of destination image (usually 0).
+ * @param int    $src_x X-coordinate of source image (usually 0 unless cropping).
+ * @param int    $src_y Y-coordinate of source image (usually 0 unless cropping).
+ * @param int    $dst_w Desired image width.
+ * @param int    $dst_h Desired image height.
+ * @param int    $src_w Source width.
+ * @param int    $src_h Source height.
+ * @return string|WP_Error The image contents or the error message.
+ */
+function ewww_image_optimizer_better_resize( $file, $dst_x, $dst_y, $src_x, $src_y, $dst_w, $dst_h, $src_w, $src_h ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	ewwwio_debug_message( "resizing to $dst_w and $dst_h" );
+	if ( $dst_x || $dst_y ) {
+		ewwwio_debug_message( 'cropping too' );
+		$crop = true;
+	}
+	$type = ewww_image_optimizer_mimetype( $file, 'i' );
+	if ( false === strpos( $type, 'image' ) ) {
+		ewwwio_debug_message( 'not an image, no resizing possible' );
+		return new WP_Error( 'invalid_image', __( 'File is not an image.' ), $file );
+	}
+	if ( 'image/gif' === $type && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) && function_exists( 'ewww_image_optimizer_gifsicle_resize' ) ) {
+		return ewww_image_optimizer_gifsicle_resize( $file, $dst_x, $dst_y, $src_x, $src_y, $dst_w, $dst_h, $src_w, $src_h );
+	}
+	return ewww_image_optimizer_cloud_resize( $file, $type, $dst_x, $dst_y, $src_x, $src_y, $dst_w, $dst_h, $src_w, $src_h );
+}
+
+/**
  * If a JPG image is using the EXIF orientiation, correct the rotation, and reset the Orientation.
  *
  * @param string $file The file to check for rotation.
  */
 function ewww_image_optimizer_autorotate( $file ) {
-	if ( defined( 'EWWW_IMAGE_OPTIMIZER_NO_ROTATE' ) && EWWW_IMAGE_OPTIMIZER_NO_ROTATE ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	if ( defined( 'EWWW_IMAGE_OPTIMIZER_DISABLE_AUTOROTATE' ) && EWWW_IMAGE_OPTIMIZER_DISABLE_AUTOROTATE ) {
 		return;
 	}
+	if ( function_exists( 'wp_raise_memory_limit' ) ) {
+		wp_raise_memory_limit( 'image' );
+	}
 	$type = ewww_image_optimizer_mimetype( $file, 'i' );
-	if ( 'image/jpeg' != $type ) {
+	if ( 'image/jpeg' !== $type ) {
 		ewwwio_debug_message( 'not a JPG, no rotation needed' );
 		return;
 	}
-	$orientation = ewww_image_optimizer_get_orientation( $file, $type );
-	if ( ! $orientation || 1 == $orientation ) {
+	$orientation = (int) ewww_image_optimizer_get_orientation( $file, $type );
+	if ( ! $orientation || 1 === $orientation ) {
 		return;
 	}
-	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) < 20 ) {
-		// Use jpegtran to rotate.
-		if ( ewww_image_optimizer_jpegtran_autorotate( $file, $type, $orientation ) ) {
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) < 20 && function_exists( 'ewww_image_optimizer_jpegtran_autorotate' ) ) {
+		// Read the exif, if it fails, we won't autorotate.
+		try {
+			$jpeg = new PelJpeg( $file );
+			$exif = $jpeg->getExif();
+		} catch ( PelDataWindowOffsetException $pelerror ) {
+			ewwwio_debug_message( 'pel exception: ' . $pelerror->getMessage() );
+			$exif = null;
+		} catch ( PelDataWindowOffsetException $pelerror ) {
+			ewwwio_debug_message( 'pel exception: ' . $pelerror->getMessage() );
+			$exif = null;
+		} catch ( Exception $pelerror ) {
+			ewwwio_debug_message( 'pel exception: ' . $pelerror->getMessage() );
+			$exif = null;
+		}
+		if ( is_null( $exif ) ) {
+			ewwwio_debug_message( 'could not work with PelJpeg object, no rotation happening here' );
+		} elseif ( ewww_image_optimizer_jpegtran_autorotate( $file, $type, $orientation ) ) {
 			// Use PEL to correct the orientation flag when metadata was preserved.
 			$jpeg = new PelJpeg( $file );
 			$exif = $jpeg->getExif();
-			if ( null != $exif ) {
-				$tiff = $exif->getTiff();
-				$ifd0 = $tiff->getIfd();
+			if ( ! is_null( $exif ) ) {
+				$tiff        = $exif->getTiff();
+				$ifd0        = $tiff->getIfd();
 				$orientation = $ifd0->getEntry( PelTag::ORIENTATION );
-				if ( null != $orientation ) {
+				if ( ! is_null( $orientation ) ) {
+					ewwwio_debug_message( 'orientation being adjusted' );
 					$orientation->setValue( 1 );
 				}
 				$jpeg->saveFile( $file );
@@ -4361,6 +6691,106 @@ function ewww_image_optimizer_autorotate( $file ) {
 		return;
 	}
 	ewww_image_optimizer_cloud_autorotate( $file, $type );
+}
+
+/**
+ * If a PNG image is over the threshold, see if we can make it smaller as a JPG.
+ *
+ * @param string $file The file to check for conversion.
+ */
+function ewww_image_optimizer_autoconvert( $file ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	if ( defined( 'EWWW_IMAGE_OPTIMIZER_DISABLE_AUTOCONVERT' ) && EWWW_IMAGE_OPTIMIZER_DISABLE_AUTOCONVERT ) {
+		return;
+	}
+	if ( function_exists( 'wp_raise_memory_limit' ) ) {
+		wp_raise_memory_limit( 'image' );
+	}
+	$type = ewww_image_optimizer_mimetype( $file, 'i' );
+	if ( 'image/png' !== $type && 'image/gif' !== $type ) {
+		ewwwio_debug_message( 'not a PNG, no conversion needed' );
+		return;
+	}
+	$orig_size = ewww_image_optimizer_filesize( $file );
+	if ( 'image/png' === $type && $orig_size < apply_filters( 'ewww_image_optimizer_autoconvert_threshold', 250000 ) ) {
+		ewwwio_debug_message( 'not a large PNG (size or dimensions), skipping' );
+		return;
+	}
+	if ( 'image/png' === $type && ewww_image_optimizer_png_alpha( $file ) && ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_to_jpg' ) || ! ewww_image_optimizer_jpg_background() ) ) {
+		ewwwio_debug_message( 'alpha detected, skipping' );
+		return;
+	}
+	if ( 'image/gif' === $type && ewww_image_optimizer_is_animated( $file ) ) {
+		ewwwio_debug_message( 'animation detected, skipping' );
+		return;
+	}
+	$ewww_image = new EWWW_Image( 0, '', $file );
+	// Pass the filename, false for db search/replace, and true for filesize comparison.
+	return $ewww_image->convert( $file, false, true );
+}
+
+/**
+ * Skips resizing for any image with 'noresize' in the filename.
+ *
+ * @param array  $dimensions The configured dimensions for resizing.
+ * @param string $filename The filename of the uploaded image.
+ * @return array The new dimensions for resizing.
+ */
+function ewww_image_optimizer_noresize( $dimensions, $filename ) {
+	if ( strpos( $filename, 'noresize' ) !== false ) {
+		add_filter( 'big_image_size_threshold', '__return_false' );
+		return array( 0, 0 );
+	}
+	$ignore_folders = ewww_image_optimizer_get_option( 'ewww_image_optimizer_exclude_paths' );
+	if ( ! ewww_image_optimizer_iterable( $ignore_folders ) ) {
+		return $dimensions;
+	}
+	foreach ( $ignore_folders as $ignore_folder ) {
+		if ( strpos( $filename, $ignore_folder ) !== false ) {
+			return array( 0, 0 );
+		}
+	}
+	return $dimensions;
+}
+
+/**
+ * Check non-Media Library filenames to see if the image is eligible for resizing.
+ *
+ * This function specifically checks to be sure the filename does not preclude an image.
+ * It does not check the dimensions, that is done by ewww_image_optimizer_should_resize().
+ *
+ * @param string $file The image filename.
+ * @return bool True to allow resizing, false otherwise.
+ */
+function ewww_image_optimizer_should_resize_other_image( $file ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	if ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_resize_other_existing' ) ) {
+		return false;
+	}
+	$extensions = array(
+		'gif',
+		'jpg',
+		'jpeg',
+		'jpe',
+		'png',
+	);
+	if ( preg_match( '#-(\d+)x(\d+)(@2x)?\.(?:' . implode( '|', $extensions ) . ')$#i', $file ) ) {
+		return false;
+	}
+	if ( strpos( $file, '/wp-includes/' ) ) {
+		return false;
+	}
+	if ( strpos( $file, '/wp-admin/' ) ) {
+		return false;
+	}
+	if ( false !== strpos( $file, get_theme_root() ) ) {
+		return false;
+	}
+	if ( false !== strpos( $file, WP_PLUGIN_DIR ) ) {
+		return false;
+	}
+	ewwwio_debug_message( "allowing resize for $file" );
+	return true;
 }
 
 /**
@@ -4375,38 +6805,69 @@ function ewww_image_optimizer_autorotate( $file ) {
 function ewww_image_optimizer_resize_upload( $file ) {
 	// Parts adapted from Imsanity (THANKS Jason!).
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	global $ewww_webp_only;
+	global $ewwwio_resize_status;
+	$ewwwio_resize_status = '';
 	if ( ! $file ) {
 		return false;
 	}
-	if ( ! empty( $_REQUEST['post_id'] ) || ( ! empty( $_REQUEST['action'] ) && 'upload-attachment' === $_REQUEST['action'] ) || ( ! empty( $_SERVER['HTTP_REFERER'] ) && strpos( $_SERVER['HTTP_REFERER'], 'media-new.php' ) ) ) {
-		$maxwidth = ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediawidth' );
-		$maxheight = ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediaheight' );
+	if ( ! empty( $ewww_webp_only ) ) {
+		return false;
+	}
+	if ( function_exists( 'wp_raise_memory_limit' ) ) {
+		wp_raise_memory_limit( 'image' );
+	}
+	if (
+		! empty( $_REQUEST['post_id'] ) || // phpcs:ignore WordPress.Security.NonceVerification
+		( ! empty( $_REQUEST['action'] ) && 'upload-attachment' === $_REQUEST['action'] ) || // phpcs:ignore WordPress.Security.NonceVerification
+		strpos( wp_get_referer(), 'media-new.php' )
+	) {
 		ewwwio_debug_message( 'resizing image from media library or attached to post' );
+		$maxwidth  = ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediawidth' );
+		$maxheight = ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediaheight' );
+	} elseif ( strpos( wp_get_referer(), '/post.php' ) ) {
+		ewwwio_debug_message( 'resizing image from the post/page editor' );
+		$maxwidth  = ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediawidth' );
+		$maxheight = ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediaheight' );
 	} else {
-		$maxwidth = ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxotherwidth' );
-		$maxheight = ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxotherheight' );
 		ewwwio_debug_message( 'resizing images from somewhere else' );
+		$maxwidth  = ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxotherwidth' );
+		$maxheight = ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxotherheight' );
+		if ( ! $maxwidth && ! $maxheight ) {
+			ewwwio_debug_message( 'other dimensions not set, overriding with media dimensions' );
+			$maxwidth  = ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediawidth' );
+			$maxheight = ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediaheight' );
+		}
+	}
+	if ( wp_get_referer() ) {
+		ewwwio_debug_message( 'uploaded from: ' . wp_get_referer() );
 	}
 
 	/**
 	 * Filters the dimensions to used for resizing uploaded images.
 	 *
 	 * @param array $args {
-	 *	The dimensions to be used in resizing.
+	 *     The dimensions to be used in resizing.
 	 *
-	 *	@type int $maxwidth The maximum width of the image.
-	 *	@type int $maxheight The maximum height of the image.
+	 *     @type int $maxwidth The maximum width of the image.
+	 *     @type int $maxheight The maximum height of the image.
 	 * }
 	 * @param string $file The name of the file being resized.
 	 */
 	list( $maxwidth, $maxheight ) = apply_filters( 'ewww_image_optimizer_resize_dimensions', array( $maxwidth, $maxheight ), $file );
 
+	$maxwidth  = (int) $maxwidth;
+	$maxheight = (int) $maxheight;
 	// Check that options are not both set to zero.
-	if ( 0 == $maxwidth && 0 == $maxheight ) {
+	if ( 0 === $maxwidth && 0 === $maxheight ) {
 		return false;
 	}
-	$maxwidth = $maxwidth ? $maxwidth : 999999;
+	$maxwidth  = $maxwidth ? $maxwidth : 999999;
 	$maxheight = $maxheight ? $maxheight : 999999;
+
+	if ( ! ewwwio_is_file( $file ) ) {
+		return false;
+	}
 	// Check the file type.
 	$type = ewww_image_optimizer_mimetype( $file, 'i' );
 	if ( strpos( $type, 'image' ) === false ) {
@@ -4417,29 +6878,51 @@ function ewww_image_optimizer_resize_upload( $file ) {
 	list( $oldwidth, $oldheight ) = getimagesize( $file );
 	if ( $oldwidth <= $maxwidth && $oldheight <= $maxheight ) {
 		ewwwio_debug_message( 'image too small for resizing' );
+		/* translators: 1: width in pixels 2: height in pixels */
+		$ewwwio_resize_status = sprintf( __( 'Resize not required, image smaller than %1$s x %2$s', 'ewww-image-optimizer' ), $maxwidth . 'w', $maxheight . 'h' );
+		if ( $oldwidth && $oldheight ) {
+			return array( $oldwidth, $oldheight );
+		}
 		return false;
 	}
 	$crop = false;
-	if ( $oldwidth > $maxwidth && $maxwidth && $oldheight > $maxheight && $maxheight && apply_filters( 'ewww_image_optimizer_crop_image', false ) ) {
-		$crop = true;
-		$newwidth = $maxwidth;
+	if ( $oldwidth >= $maxwidth && $maxwidth && $oldheight >= $maxheight && $maxheight && apply_filters( 'ewww_image_optimizer_crop_image', false ) ) {
+		$crop      = true;
+		$newwidth  = $maxwidth;
 		$newheight = $maxheight;
 	} else {
 		list( $newwidth, $newheight ) = wp_constrain_dimensions( $oldwidth, $oldheight, $maxwidth, $maxheight );
 	}
+	if ( ! ewwwio_check_memory_available( ( $oldwidth * $oldwidth + $newwidth * $newheight ) * 4.8 ) ) { // 4.8 = 24-bit or 3 bytes per pixel multiplied by a factor of 1.6 for extra wiggle room.
+		$memory_required = ( $oldwidth * $oldwidth + $newwidth * $newheight ) * 4.8;
+		ewwwio_debug_message( "possibly insufficient memory for resizing operation: $memory_required" );
+		if ( function_exists( 'wp_raise_memory_limit' ) ) {
+			add_filter( 'image_memory_limit', 'ewww_image_optimizer_raise_memory_limit' );
+			wp_raise_memory_limit( 'image' );
+		}
+		ewww_image_optimizer_debug_log();
+	}
 	if ( ! function_exists( 'wp_get_image_editor' ) ) {
 		ewwwio_debug_message( 'no image editor function' );
+		$ewwwio_resize_status = __( 'wp_get_image_editor function is missing', 'ewww-image-optimizer' );
 		return false;
 	}
-	remove_filter( 'wp_image_editors', 'ewww_image_optimizer_load_editor', 60 );
+
+	// From here...
+	global $ewww_preempt_editor;
+	$ewww_preempt_editor = true;
+
 	$editor = wp_get_image_editor( $file );
 	if ( is_wp_error( $editor ) ) {
-		ewwwio_debug_message( 'could not get image editor' );
+		$error_message = $editor->get_error_message();
+		ewwwio_debug_message( "could not get image editor: $error_message" );
+		/* translators: %s: a WP error message, translated elsewhere */
+		$ewwwio_resize_status = sprintf( __( 'Unable to load resize function: %s', 'ewww-image-optimizer' ), $error_message );
 		return false;
 	}
-	// Rotation should not happen here anymore, so don't worry about it breaking the dimensions.
+	// Rotation only happens on existing media here, so we need to swap dimension when we rotate by 90.
 	$orientation = ewww_image_optimizer_get_orientation( $file, $type );
-	$rotated = false;
+	$rotated     = false;
 	switch ( $orientation ) {
 		case 3:
 			$editor->rotate( 180 );
@@ -4448,48 +6931,68 @@ function ewww_image_optimizer_resize_upload( $file ) {
 		case 6:
 			$editor->rotate( -90 );
 			$new_newwidth = $newwidth;
-			$newwidth = $newheight;
-			$newheight = $new_newwidth;
-			$rotated = true;
+			$newwidth     = $newheight;
+			$newheight    = $new_newwidth;
+			$rotated      = true;
 			break;
 		case 8:
 			$editor->rotate( 90 );
 			$new_newwidth = $newwidth;
-			$newwidth = $newheight;
-			$newheight = $new_newwidth;
-			$rotated = true;
+			$newwidth     = $newheight;
+			$newheight    = $new_newwidth;
+			$rotated      = true;
 			break;
 	}
 	$resized_image = $editor->resize( $newwidth, $newheight, $crop );
 	if ( is_wp_error( $resized_image ) ) {
-		ewwwio_debug_message( 'error during resizing' );
+		$error_message = $resized_image->get_error_message();
+		ewwwio_debug_message( "error during resizing: $error_message" );
+		/* translators: %s: a WP error message, translated elsewhere */
+		$ewwwio_resize_status = sprintf( __( 'Resizing error: %s', 'ewww-image-optimizer' ), $error_message );
 		return false;
 	}
-	$new_file = $editor->generate_filename( 'tmp' );
+	$new_file  = $editor->generate_filename( 'tmp' );
 	$orig_size = filesize( $file );
 	ewwwio_debug_message( "before resizing: $orig_size" );
 	$saved = $editor->save( $new_file );
 	if ( is_wp_error( $saved ) ) {
-		ewwwio_debug_message( 'error saving resized image' );
+		$error_message = $saved->get_error_message();
+		ewwwio_debug_message( "error saving resized image: $error_message" );
+		/* translators: %s: a WP error message, translated elsewhere */
+		$ewwwio_resize_status = sprintf( __( 'Could not save resized image: %s', 'ewww-image-optimizer' ), $error_message );
 	}
-	add_filter( 'wp_image_editors', 'ewww_image_optimizer_load_editor', 60 );
+	if ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_noauto' ) && ( ! defined( 'EWWW_IMAGE_OPTIMIZER_DISABLE_EDITOR' ) || ! EWWW_IMAGE_OPTIMIZER_DISABLE_EDITOR ) ) {
+		$ewww_preempt_editor = false;
+	}
+	// to here is replaced by cloud/API function.
 	$new_size = ewww_image_optimizer_filesize( $new_file );
-	if ( $new_size && $new_size < $orig_size ) {
+	if ( ( $new_size && (int) $new_size !== (int) $orig_size && apply_filters( 'ewww_image_optimizer_resize_filesize_ignore', false ) ) || ( $new_size && $new_size < $orig_size ) ) {
 		// Use this action to perform any operations on the original file before it is overwritten with the new, smaller file.
 		do_action( 'ewww_image_optimizer_image_resized', $file, $new_file );
 		ewwwio_debug_message( "after resizing: $new_size" );
-		// TODO: see if there is a way to just check that meta exists on the new image.
 		// Use PEL to get the exif (if Remove Meta is unchecked) and GD is in use, so we can save it to the new image.
-		if ( 'image/jpeg' === $type && ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_metadata_skip_full' ) || ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpegtran_copy' ) ) && ! ewww_image_optimizer_imagick_support() ) {
-			$old_jpeg = new PelJpeg( $file );
-			$old_exif = $old_jpeg->getExif();
-			$new_jpeg = new PelJpeg( $new_file );
-			if ( null != $old_exif ) {
+		if ( 'image/jpeg' === $type && ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_metadata_skip_full' ) || ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_metadata_remove' ) ) && ! ewww_image_optimizer_imagick_support() ) {
+			ewwwio_debug_message( 'manually copying metadata for GD' );
+			try {
+				$old_jpeg = new PelJpeg( $file );
+				$old_exif = $old_jpeg->getExif();
+				$new_jpeg = new PelJpeg( $new_file );
+			} catch ( PelDataWindowOffsetException $pelerror ) {
+				ewwwio_debug_message( 'pel exception: ' . $pelerror->getMessage() );
+				$old_exif = null;
+			} catch ( PelDataWindowOffsetException $pelerror ) {
+				ewwwio_debug_message( 'pel exception: ' . $pelerror->getMessage() );
+				$old_exif = null;
+			} catch ( Exception $pelerror ) {
+				ewwwio_debug_message( 'pel exception: ' . $pelerror->getMessage() );
+				$old_exif = null;
+			}
+			if ( ! is_null( $old_exif ) ) {
 				if ( $rotated ) {
-					$tiff = $old_exif->getTiff();
-					$ifd0 = $tiff->getIfd();
+					$tiff        = $old_exif->getTiff();
+					$ifd0        = $tiff->getIfd();
 					$orientation = $ifd0->getEntry( PelTag::ORIENTATION );
-					if ( null != $orientation ) {
+					if ( ! is_null( $orientation ) ) {
 						$orientation->setValue( 1 );
 					}
 				}
@@ -4497,7 +7000,18 @@ function ewww_image_optimizer_resize_upload( $file ) {
 			}
 			$new_jpeg->saveFile( $new_file );
 		}
-		rename( $new_file, $file );
+		// backup the file to the API, right before we replace the original.
+		ewww_image_optimizer_cloud_backup( $file );
+		$new_type = (string) ewww_image_optimizer_mimetype( $new_file, 'i' );
+		if ( $type === $new_type ) {
+			ewwwio_rename( $new_file, $file );
+		} else {
+			ewwwio_debug_message( "resizing did not create a valid image: $new_type" );
+			/* translators: %s: the mime type of the new file */
+			$ewwwio_resize_status = sprintf( __( 'Resizing resulted in an invalid file type: %s', 'ewww-image-optimizer' ), $new_type );
+			unlink( $new_file );
+			return false;
+		}
 		// Store info on the current image for future reference.
 		global $wpdb;
 		if ( strpos( $wpdb->charset, 'utf8' ) === false ) {
@@ -4506,43 +7020,26 @@ function ewww_image_optimizer_resize_upload( $file ) {
 		} else {
 			$ewwwdb = $wpdb;
 		}
-		$already_optimized = ewww_image_optimizer_find_already_optimized( $file );
-		// If the original file has never been optimized, then just update the record that was created with the proper filename (because the resized file has usually been optimized).
-		if ( empty( $already_optimized ) ) {
-			$tmp_exists = $ewwwdb->update( $ewwwdb->ewwwio_images,
+		// Delete the record created from optimizing the resized file (if it exists, which it shouldn't).
+		$temp_optimized = ewww_image_optimizer_find_already_optimized( $new_file );
+		if ( is_array( $temp_optimized ) && ! empty( $temp_optimized['id'] ) ) {
+			$ewwwdb->delete(
+				$ewwwdb->ewwwio_images,
 				array(
-					'path' => ewww_image_optimizer_relative_path_remove( $file ),
-					'orig_size' => $orig_size,
+					'id' => $temp_optimized['id'],
 				),
 				array(
-					'path' => ewww_image_optimizer_relative_path_remove( $new_file ),
+					'%d',
 				)
 			);
-			// If the tmp file didn't get optimized (and it shouldn't), then just insert a dummy record to be updated shortly.
-			if ( ! $tmp_exists ) {
-				$ewwwdb->insert( $ewwwdb->ewwwio_images, array(
-					'path' => ewww_image_optimizer_relative_path_remove( $file ),
-					'orig_size' => $orig_size,
-				) );
-			}
-		} else {
-			// Otherwise, we delete the record created from optimizing the resized file.
-			$temp_optimized = ewww_image_optimizer_find_already_optimized( $new_file );
-			if ( is_array( $temp_optimized ) && ! empty( $temp_optimized['id'] ) ) {
-				$ewwwdb->delete( $ewwwdb->ewwwio_images,
-					array(
-						'id' => $temp_optimized['id'],
-					),
-					array(
-						'%d',
-					)
-				);
-			}
 		}
+		/* translators: 1: width in pixels 2: height in pixels */
+		$ewwwio_resize_status = sprintf( __( 'Resized to %1$s x %2$s', 'ewww-image-optimizer' ), $newwidth . 'w', $newheight . 'h' );
 		return array( $newwidth, $newheight );
 	} // End if().
-	if ( is_file( $new_file ) ) {
+	if ( ewwwio_is_file( $new_file ) ) {
 		ewwwio_debug_message( "resizing did not create a smaller image: $new_size" );
+		$ewwwio_resize_status = __( 'Resizing did not reduce the file size, result discarded', 'ewww-image-optimizer' );
 		unlink( $new_file );
 	}
 	return false;
@@ -4556,7 +7053,8 @@ function ewww_image_optimizer_resize_upload( $file ) {
  * @return int|bool The orientation value or false.
  */
 function ewww_image_optimizer_get_orientation( $file, $type ) {
-	if ( function_exists( 'exif_read_data' ) && 'image/jpeg' === $type ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	if ( function_exists( 'exif_read_data' ) && 'image/jpeg' === $type && ewwwio_is_readable( $file ) ) {
 		$exif = @exif_read_data( $file );
 		if ( ewww_image_optimizer_function_exists( 'print_r' ) ) {
 			ewwwio_debug_message( print_r( $exif, true ) );
@@ -4588,13 +7086,22 @@ function ewww_image_optimizer_find_already_optimized( $attachment ) {
 	} else {
 		$ewwwdb = $wpdb;
 	}
-	$maybe_return_image = false;
-	$query = $ewwwdb->prepare( "SELECT * FROM $ewwwdb->ewwwio_images WHERE path = %s", ewww_image_optimizer_relative_path_remove( $attachment ) );
-	$optimized_query = $ewwwdb->get_results( $query, ARRAY_A );
+	$maybe_return_image  = false;
+	$maybe_relative_path = ewww_image_optimizer_relativize_path( $attachment );
+	$query               = $ewwwdb->prepare( "SELECT * FROM $ewwwdb->ewwwio_images WHERE path = %s", $maybe_relative_path );
+	$optimized_query     = $ewwwdb->get_results( $query, ARRAY_A );
+	if ( empty( $optimized_query ) && $attachment !== $maybe_relative_path ) {
+		$query           = $ewwwdb->prepare( "SELECT * FROM $ewwwdb->ewwwio_images WHERE path = %s", $attachment );
+		$optimized_query = $ewwwdb->get_results( $query, ARRAY_A );
+	}
 	if ( ewww_image_optimizer_iterable( $optimized_query ) ) {
 		foreach ( $optimized_query as $image ) {
-			$image['path'] = ewww_image_optimizer_relative_path_replace( $image['path'] );
-			if ( $image['path'] != $attachment ) {
+			$image['path']          = ewww_image_optimizer_absolutize_path( $image['path'] );
+			$image['image_size']    = (int) $image['image_size'];
+			$image['orig_size']     = (int) $image['orig_size'];
+			$image['attachment_id'] = (int) $image['attachment_id'];
+			$image['level']         = (int) $image['level'];
+			if ( $image['path'] !== $attachment ) {
 				ewwwio_debug_message( "{$image['path']} does not match $attachment, continuing our search" );
 			} elseif ( ! $maybe_return_image ) {
 				ewwwio_debug_message( "found a match for $attachment" );
@@ -4616,6 +7123,49 @@ function ewww_image_optimizer_find_already_optimized( $attachment ) {
 		}
 	}
 	return $maybe_return_image;
+}
+
+/**
+ * Check if an attachment was previously optimized on a higher compression level and should be restored before continuing.
+ *
+ * @global object $wpdb
+ *
+ * @param int    $id The attachment to check for potential restoration.
+ * @param string $type The mime-type of the attachment.
+ * @param array  $meta The attachment metadata.
+ * @return array The attachment meta, potentially altered.
+ */
+function ewww_image_optimizer_attachment_check_variant_level( $id, $type, $meta ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	global $ewww_force;
+	if ( empty( $ewww_force ) ) {
+		return $meta;
+	}
+	if ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) || ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_backup_files' ) ) {
+		return $meta;
+	}
+	if ( 'image/jpeg' === $type && (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) > 20 ) {
+		return $meta;
+	}
+	if ( 'image/png' === $type && (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) > 20 ) {
+		return $meta;
+	}
+	if ( 'application/pdf' === $type && 10 !== (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_pdf_level' ) ) {
+		return $meta;
+	}
+	$compression_level = ewww_image_optimizer_get_level( $type );
+	// Retrieve any records for this image.
+	global $wpdb;
+	$optimized_images = $wpdb->get_results( $wpdb->prepare( "SELECT image_size,orig_size,resize,level,backup,updated FROM $wpdb->ewwwio_images WHERE attachment_id = %d AND gallery = 'media' AND image_size <> 0 ORDER BY orig_size DESC", $id ), ARRAY_A );
+	foreach ( $optimized_images as $optimized_image ) {
+		if ( 'full' === $optimized_image['resize'] && $compression_level < $optimized_image['level'] ) {
+			$updated_time = strtotime( $optimized_image['updated'] );
+			if ( DAY_IN_SECONDS * 30 + $updated_time > time() ) {
+				return ewww_image_optimizer_cloud_restore_from_meta_data( $id, 'media', $meta );
+			}
+		}
+	}
+	return $meta;
 }
 
 /**
@@ -4641,16 +7191,17 @@ function ewww_image_optimizer_remove_duplicate_records( $duplicates ) {
 	if ( ! is_array( $duplicates[0] ) ) {
 		// Retrieve records for the ID #s passed.
 		$duplicate_ids = implode( ',', array_map( 'intval', $duplicates ) );
-		$duplicates = $ewwwdb->get_results( "SELECT * FROM $ewwwdb->ewwwio_images WHERE id IN ($duplicate_ids)" ); // WPCS: unprepared SQL ok.
+		$duplicates    = $ewwwdb->get_results( "SELECT * FROM $ewwwdb->ewwwio_images WHERE id IN ($duplicate_ids)" );
 	}
 	if ( ! is_array( $duplicates ) || ! is_array( $duplicates[0] ) ) {
 		return false;
 	}
 	$image_size = ewww_image_optimizer_filesize( $duplicates[0]['path'] );
-	$discard = array();
+	$discard    = array();
+	ewwwio_debug_message( 'looking for duplicates of: ' . $duplicates[0]['path'] . " filesize = $image_size" );
 	// First look for an image size match.
 	foreach ( $duplicates as $duplicate ) {
-		if ( empty( $keeper ) && ! empty( $duplicate['image_size'] ) && $image_size == $duplicate['image_size'] ) {
+		if ( empty( $keeper ) && ! empty( $duplicate['image_size'] ) && $image_size === $duplicate['image_size'] ) {
 			$keeper = $duplicate;
 		} else {
 			$discard[] = $duplicate;
@@ -4669,7 +7220,7 @@ function ewww_image_optimizer_remove_duplicate_records( $duplicates ) {
 	}
 	// If we still have nothing, mark the 0 record as the primary and pull it off the stack.
 	if ( empty( $keeper ) ) {
-		$keeper = array_shift( $duplicates );
+		$keeper  = array_shift( $duplicates );
 		$discard = $duplicates;
 	}
 	if ( is_array( $keeper ) && is_array( $discard ) ) {
@@ -4683,11 +7234,33 @@ function ewww_image_optimizer_remove_duplicate_records( $duplicates ) {
 			$delete_ids[] = (int) $record['id'];
 		}
 		if ( ! empty( $delete_ids ) && is_array( $delete_ids ) ) {
-			$ewwwdb->query( "DELETE FROM $ewwwdb->ewwwio_images WHERE id IN (" . implode( ',', $delete_ids ) . ')' ); // WPCS: unprepared SQL ok.
+			$query_ids = implode( ',', $delete_ids );
+			$ewwwdb->query( "DELETE FROM $ewwwdb->ewwwio_images WHERE id IN ($query_ids)" );
 		}
 		return $keeper;
 	}
 	return false;
+}
+
+/**
+ * See if background mode is allowed/enabled.
+ *
+ * @return bool True if it is, false if it isn't.
+ */
+function ewww_image_optimizer_background_mode_enabled() {
+	if ( defined( 'EWWW_DISABLE_ASYNC' ) && EWWW_DISABLE_ASYNC ) {
+		ewwwio_debug_message( 'background disabled by admin' );
+		return false;
+	}
+	if ( ! ewww_image_optimizer_function_exists( 'sleep' ) ) {
+		ewwwio_debug_message( 'background disabled by lack of sleep' );
+		return false;
+	}
+	if ( ewww_image_optimizer_detect_wpsf_location_lock() ) {
+		ewwwio_debug_message( 'background disabled by shield location lock' );
+		return false;
+	}
+	return (bool) ewww_image_optimizer_get_option( 'ewww_image_optimizer_background_optimization' );
 }
 
 /**
@@ -4701,25 +7274,16 @@ function ewww_image_optimizer_remove_duplicate_records( $duplicates ) {
  * @return bool True if background mode should be used.
  */
 function ewww_image_optimizer_test_background_opt( $type = '' ) {
-	if ( defined( 'EWWW_DISABLE_ASYNC' ) && EWWW_DISABLE_ASYNC ) {
+	if ( ! ewww_image_optimizer_background_mode_enabled() ) {
 		return false;
 	}
-	if ( ! ewww_image_optimizer_function_exists( 'sleep' ) ) {
-		return false;
-	}
-	if ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_background_optimization' ) ) {
-		return false;
-	}
-	if ( ewww_image_optimizer_detect_wpsf_location_lock() ) {
-		return false;
-	}
-	if ( 'image/type' == $type && ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_to_png' ) ) {
+	if ( 'image/type' === $type && ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_to_png' ) ) {
 		return apply_filters( 'ewww_image_optimizer_defer_conversion', false );
 	}
-	if ( 'image/png' == $type && ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_to_jpg' ) ) {
+	if ( 'image/png' === $type && ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_to_jpg' ) ) {
 		return apply_filters( 'ewww_image_optimizer_defer_conversion', false );
 	}
-	if ( 'image/gif' == $type && ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_to_png' ) ) {
+	if ( 'image/gif' === $type && ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_to_png' ) ) {
 		return apply_filters( 'ewww_image_optimizer_defer_conversion', false );
 	}
 	global $ewww_defer;
@@ -4754,22 +7318,26 @@ function ewww_image_optimizer_test_parallel_opt( $type = '', $id = 0 ) {
 	if ( empty( $id ) ) {
 		return true;
 	}
-	if ( ! empty( $_REQUEST['ewww_convert'] ) ) {
+	global $ewww_convert;
+	if ( ! empty( $ewww_convert ) ) {
 		return false;
 	}
 	if ( empty( $type ) ) {
 		$type = get_post_mime_type( $id );
 	}
-	if ( 'image/jpeg' == $type && ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_to_png' ) ) {
+	if ( 'image/jpeg' === $type && ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_to_png' ) ) {
 		return false;
 	}
-	if ( 'image/png' == $type && ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_to_jpg' ) ) {
+	if ( 'image/png' === $type && ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_to_jpg' ) ) {
 		return false;
 	}
-	if ( 'image/gif' == $type && ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_to_png' ) ) {
+	if ( 'image/gif' === $type && ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_to_png' ) ) {
 		return false;
 	}
-	if ( 'application/pdf' == $type ) {
+	if ( 'application/pdf' === $type ) {
+		return false;
+	}
+	if ( 'image/svg+xml' === $type ) {
 		return false;
 	}
 	return true;
@@ -4783,8 +7351,9 @@ function ewww_image_optimizer_test_parallel_opt( $type = '', $id = 0 ) {
  */
 function ewww_image_optimizer_rebuild_meta( $attachment_id ) {
 	$file = get_attached_file( $attachment_id );
-	if ( is_file( $file ) ) {
-		remove_filter( 'wp_image_editors', 'ewww_image_optimizer_load_editor', 60 );
+	if ( ewwwio_is_file( $file ) ) {
+		global $ewww_preempt_editor;
+		$ewww_preempt_editor = true;
 		remove_all_filters( 'wp_generate_attachment_metadata' );
 		ewwwio_debug_message( "generating new meta for $attachment_id" );
 		$meta = wp_generate_attachment_metadata( $attachment_id, $file );
@@ -4800,6 +7369,82 @@ function ewww_image_optimizer_rebuild_meta( $attachment_id ) {
 }
 
 /**
+ * Find the path to a backed-up original (not the full-size version like the core WP function).
+ *
+ * @param int    $id The attachment ID number.
+ * @param string $image_file The path to a scaled image file.
+ * @param array  $meta The attachment metadata. Optional, default to null.
+ * @return bool True on success, false on failure.
+ */
+function ewwwio_get_original_image_path( $id, $image_file = '', $meta = null ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	$id = (int) $id;
+	if ( empty( $id ) ) {
+		return false;
+	}
+	if ( ! wp_attachment_is_image( $id ) ) {
+		return false;
+	}
+	if ( is_null( $meta ) ) {
+		$meta = wp_get_attachment_metadata( $id );
+	}
+	if ( empty( $image_file ) ) {
+		$image_file = get_attached_file( $id, true );
+	}
+	if ( ! $image_file || ! ewww_image_optimizer_iterable( $meta ) || empty( $meta['original_image'] ) ) {
+		if ( $image_file && apply_filters( 'ewwwio_find_original_image_no_meta', false, $image_file ) && strpos( $image_file, '-scaled.' ) ) {
+			ewwwio_debug_message( "constructing path with $image_file alone" );
+			$original_image = trailingslashit( dirname( $image_file ) ) . wp_basename( str_replace( '-scaled.', '.', $original_image ) );
+			if ( $original_image !== $image_file ) {
+				ewwwio_debug_message( "found $original_image" );
+				return $original_image;
+			}
+		}
+		return false;
+	}
+	ewwwio_debug_message( "constructing path with $image_file and " . $meta['original_image'] );
+
+	return trailingslashit( dirname( $image_file ) ) . wp_basename( $meta['original_image'] );
+}
+
+/**
+ * Remove the backed-up original_image stored by WP 5.3+.
+ *
+ * @param int   $id The attachment ID number.
+ * @param array $meta The attachment metadata. Optional, default to null.
+ * @return bool|array Returns meta if modified, false otherwise (even if an "unlinked" original is removed).
+ */
+function ewwwio_remove_original_image( $id, $meta = null ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	$id = (int) $id;
+	if ( empty( $id ) ) {
+		return false;
+	}
+	if ( is_null( $meta ) ) {
+		ewwwio_debug_message( "getting meta for $id" );
+		$meta = wp_get_attachment_metadata( $id );
+	}
+
+	if (
+		$meta && is_array( $meta ) &&
+		! empty( $meta['original_image'] ) && function_exists( 'wp_get_original_image_path' )
+	) {
+		$original_image = ewwwio_get_original_image_path( $id, '', $meta );
+		if ( $original_image && is_file( $original_image ) && is_writable( $original_image ) ) {
+			ewwwio_debug_message( "removing $original_image" );
+			unlink( $original_image );
+		}
+		clearstatcache();
+		if ( empty( $original_image ) || ! is_file( $original_image ) ) {
+			ewwwio_debug_message( 'cleaning meta' );
+			unset( $meta['original_image'] );
+			return $meta;
+		}
+	}
+	return false;
+}
+
+/**
  * Find image paths from an attachment's meta data and process each image.
  *
  * Called after `wp_generate_attachment_metadata` is completed, it also searches for retina images,
@@ -4809,16 +7454,15 @@ function ewww_image_optimizer_rebuild_meta( $attachment_id ) {
  *
  * @global object $wpdb
  * @global object $ewwwdb A clone of $wpdb unless it is lacking utf8 connectivity.
- * @global bool $ewww_defer True if optimization should be deferred until later.
  * @global bool $ewww_new_image True if this is a newly uploaded image.
  * @global object $ewww_image Contains more information about the image currently being processed.
  * @global object $ewwwio_media_background;
  * @global object $ewwwio_async_optimize_media;
  * @global array $ewww_attachment {
- *	Stores the ID and meta for later use with W3TC.
+ *     Stores the ID and meta for later use with W3TC.
  *
- *	@int int $id The attachment ID number.
- *	@array array $meta The attachment metadata from the postmeta table.
+ *     @type int $id The attachment ID number.
+ *     @type array $meta The attachment metadata from the postmeta table.
  * }
  * @global object $as3cf For working with the WP Offload S3 plugin.
  * @global object $dreamspeed For working with the Dreamspeed CDN plugin.
@@ -4834,28 +7478,8 @@ function ewww_image_optimizer_resize_from_meta_data( $meta, $id = null, $log = t
 	if ( ! is_array( $meta ) && empty( $meta ) ) {
 		$meta = array();
 	} elseif ( ! is_array( $meta ) ) {
-		if ( is_string( $meta )  && is_numeric( $id ) && 'processing' == $meta ) {
-			ewwwio_debug_message( "attempting to rebuild attachment meta for $id" );
-			$new_meta = ewww_image_optimizer_rebuild_meta( $id );
-			if ( ! is_array( $new_meta ) ) {
-				ewwwio_debug_message( 'attempt to rebuild attachment meta failed' );
-				return $meta;
-			} else {
-				$meta = $new_meta;
-			}
-		} else {
-			ewwwio_debug_message( 'attachment meta is not a usable array' );
-			return $meta;
-		}
-	} elseif ( is_array( $meta ) && ! empty( $meta[0] ) && 'processing' == $meta[0] ) {
-		ewwwio_debug_message( "attempting to rebuild attachment meta for $id" );
-		$new_meta = ewww_image_optimizer_rebuild_meta( $id );
-		if ( ! is_array( $new_meta ) ) {
-			ewwwio_debug_message( 'attempt to rebuild attachment meta failed' );
-			return $meta;
-		} else {
-			$meta = $new_meta;
-		}
+		ewwwio_debug_message( 'attachment meta is not a usable array' );
+		return $meta;
 	}
 	global $wpdb;
 	if ( strpos( $wpdb->charset, 'utf8' ) === false ) {
@@ -4864,9 +7488,11 @@ function ewww_image_optimizer_resize_from_meta_data( $meta, $id = null, $log = t
 	} else {
 		$ewwwdb = $wpdb;
 	}
-	global $ewww_defer;
 	global $ewww_new_image;
 	global $ewww_image;
+	global $ewww_force;
+	global $eio_filesystem;
+	ewwwio_get_filesystem();
 	$gallery_type = 1;
 	ewwwio_debug_message( "attachment id: $id" );
 
@@ -4874,20 +7500,37 @@ function ewww_image_optimizer_resize_from_meta_data( $meta, $id = null, $log = t
 	if ( ! empty( $ewww_new_image ) ) {
 		ewwwio_debug_message( 'this is a newly uploaded image with no metadata yet' );
 		$new_image = true;
+	} elseif ( $background_new ) {
+		ewwwio_debug_message( 'this is a newly uploaded image from the async queue' );
+		$new_image = true;
 	} else {
 		ewwwio_debug_message( 'this image already has metadata, so it is not new' );
 		$new_image = false;
 	}
+
 	list( $file_path, $upload_path ) = ewww_image_optimizer_attachment_path( $meta, $id );
+
+	/**
+	 * Allow altering the metadata or performing other actions before the plugin processes an attachement.
+	 *
+	 * @param array  $meta The attachment metadata.
+	 * @param string $file_path The file path to the image.
+	 * @param bool   $new_image True if this is a newly uploaded image, false otherwise.
+	 */
+	$meta = apply_filters( 'ewww_image_optimizer_resize_from_meta_data', $meta, $file_path, $new_image );
+
 	// If the attachment has been uploaded via the image store plugin.
-	if ( 'ims_image' == get_post_type( $id ) ) {
+	if ( 'ims_image' === get_post_type( $id ) ) {
 		$gallery_type = 6;
 	}
-	if ( ! $new_image && class_exists( 'Amazon_S3_And_CloudFront' ) && strpos( $file_path, 's3' ) === 0 ) {
+	if ( ! $new_image && class_exists( 'Amazon_S3_And_CloudFront' ) && ewww_image_optimizer_stream_wrapped( $file_path ) ) {
 		ewww_image_optimizer_check_table_as3cf( $meta, $id, $file_path );
 	}
+	if ( ! ewwwio_is_file( $file_path ) && class_exists( 'wpCloud\StatelessMedia\EWWW' ) && ! empty( $meta['gs_link'] ) ) {
+		$file_path = ewww_image_optimizer_remote_fetch( $id, $meta );
+	}
 	// If the local file is missing and we have valid metadata, see if we can fetch via CDN.
-	if ( ! is_file( $file_path ) || strpos( $file_path, 's3' ) === 0 ) {
+	if ( ! ewwwio_is_file( $file_path ) || ewww_image_optimizer_stream_wrapped( $file_path ) ) {
 		$file_path = ewww_image_optimizer_remote_fetch( $id, $meta );
 		if ( ! $file_path ) {
 			ewwwio_debug_message( 'could not retrieve path' );
@@ -4895,54 +7538,42 @@ function ewww_image_optimizer_resize_from_meta_data( $meta, $id = null, $log = t
 		}
 	}
 	ewwwio_debug_message( "retrieved file path: $file_path" );
-	$type = ewww_image_optimizer_mimetype( $file_path, 'i' );
+	$type            = ewww_image_optimizer_mimetype( $file_path, 'i' );
 	$supported_types = array(
 		'image/jpeg',
 		'image/png',
 		'image/gif',
 		'application/pdf',
+		'image/svg+xml',
 	);
-	if ( ! in_array( $type, $supported_types ) ) {
+	if ( ! in_array( $type, $supported_types, true ) ) {
 		ewwwio_debug_message( "mimetype not supported: $id" );
 		return $meta;
 	}
+
+	$meta = ewww_image_optimizer_attachment_check_variant_level( $id, $type, $meta );
+
 	$fullsize_size = ewww_image_optimizer_filesize( $file_path );
-	// See if this is a new image and Imsanity resized it (which means it could be already optimized).
-	if ( ! empty( $new_image ) && function_exists( 'imsanity_get_max_width_height' ) && strpos( $type, 'image' ) !== false ) {
-		list( $maxw, $maxh ) = imsanity_get_max_width_height( IMSANITY_SOURCE_LIBRARY );
-		list( $oldw, $oldh ) = getimagesize( $file_path );
-		list( $neww, $newh ) = wp_constrain_dimensions( $oldw, $oldh, $maxw, $maxh );
-		$path_parts = pathinfo( $file_path );
-		$imsanity_path = trailingslashit( $path_parts['dirname'] ) . $path_parts['filename'] . '-' . $neww . 'x' . $newh . '.' . $path_parts['extension'];
-		ewwwio_debug_message( "imsanity path: $imsanity_path" );
-		$image_size = ewww_image_optimizer_filesize( $file_path );
-		$already_optimized = ewww_image_optimizer_find_already_optimized( $imsanity_path );
-		if ( is_array( $already_optimized ) ) {
-			ewwwio_debug_message( "updating existing record, path: $file_path, size: " . $image_size );
-			// Store info on the current image for future reference.
-			$ewwwdb->update( $ewwwdb->ewwwio_images,
-				array(
-					'path' => ewww_image_optimizer_relative_path_remove( $file_path ),
-					'attachment_id' => $id,
-					'resize' => 'full',
-					'gallery' => 'media',
-				),
-				array(
-					'id' => $already_optimized['id'],
-			));
-		}
-	}
+
+	// Initialize an EWWW_Image object for the full-size image so that the original size will be tracked before any potential resizing operations.
+	$ewww_image         = new EWWW_Image( $id, 'media', $file_path );
+	$ewww_image->resize = 'full';
+
 	// Resize here so long as this is not a new image AND resize existing is enabled, and imsanity isn't enabled with a max size.
 	if ( ( empty( $new_image ) && ewww_image_optimizer_get_option( 'ewww_image_optimizer_resize_existing' ) ) && ! function_exists( 'imsanity_get_max_width_height' ) ) {
+		ewwwio_debug_message( 'not a new image, resize existing enabled, and Imsanity not detected' );
 		$new_dimensions = ewww_image_optimizer_resize_upload( $file_path );
 		if ( is_array( $new_dimensions ) ) {
-			$meta['width'] = $new_dimensions[0];
+			$meta['width']  = $new_dimensions[0];
 			$meta['height'] = $new_dimensions[1];
 		}
 	}
 	if ( ewww_image_optimizer_test_background_opt( $type ) ) {
 		add_filter( 'http_headers_useragent', 'ewww_image_optimizer_cloud_useragent', PHP_INT_MAX );
-		add_filter( 'as3cf_pre_update_attachment_metadata', '__return_true' );
+		if ( defined( 'EWWW_IMAGE_OPTIMIZER_DEFER_S3' ) && EWWW_IMAGE_OPTIMIZER_DEFER_S3 ) {
+			ewwwio_debug_message( 's3 upload deferred' );
+			add_filter( 'as3cf_pre_update_attachment_metadata', '__return_true' );
+		}
 		global $ewwwio_media_background;
 		if ( ! class_exists( 'WP_Background_Process' ) ) {
 			require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'background.php' );
@@ -4951,32 +7582,37 @@ function ewww_image_optimizer_resize_from_meta_data( $meta, $id = null, $log = t
 			$ewwwio_media_background = new EWWWIO_Media_Background_Process();
 		}
 		ewwwio_debug_message( "backgrounding optimization for $id" );
-		$ewwwio_media_background->push_to_queue( array(
-			'id' => $id,
-			'new' => $new_image,
-			'type' => $type,
-		) );
-		$ewwwio_media_background->save()->dispatch();
-		set_transient( 'ewwwio-background-in-progress-' . $id, true, 24 * HOUR_IN_SECONDS );
+		$ewwwio_media_background->push_to_queue(
+			array(
+				'id'  => $id,
+				'new' => $new_image,
+			)
+		);
+		if ( 5 > $ewwwio_media_background->count_queue() ) {
+			$ewwwio_media_background->dispatch();
+			ewwwio_debug_message( 'small queue, dispatching post-haste' );
+		}
 		if ( $log ) {
 			ewww_image_optimizer_debug_log();
 		}
 		return $meta;
 	}
-	if ( $background_new ) {
-		$new_image = true;
-	}
+
 	// Resize here if the user has used the filter to defer resizing, we have a new image OR resize existing is enabled, and imsanity isn't enabled with a max size.
 	if ( apply_filters( 'ewww_image_optimizer_defer_resizing', false ) && ( ! empty( $new_image ) || ewww_image_optimizer_get_option( 'ewww_image_optimizer_resize_existing' ) ) && ! function_exists( 'imsanity_get_max_width_height' ) ) {
+		ewwwio_debug_message( 'resizing defered and ( new image or resize existing enabled ) and Imsanity not detected' );
 		$new_dimensions = ewww_image_optimizer_resize_upload( $file_path );
 		if ( is_array( $new_dimensions ) ) {
-			$meta['width'] = $new_dimensions[0];
+			$meta['width']  = $new_dimensions[0];
 			$meta['height'] = $new_dimensions[1];
 		}
 	}
-	// This gets a bit long, so here goes:
-	// we run in parallel if we didn't detect breakage (test_parallel_opt), and there are enough resizes to make it worthwhile (or if the API is enabled).
-	if ( ewww_image_optimizer_test_parallel_opt( $type, $id ) && isset( $meta['sizes'] ) && ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) || count( $meta['sizes'] ) > 5 ) ) {
+	// Run in parallel if it's enabled+safe (test_parallel_opt), and there are enough resizes to make it worthwhile or if the API is enabled.
+	if (
+		ewww_image_optimizer_test_parallel_opt( $type, $id ) &&
+		isset( $meta['sizes'] ) &&
+		( ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) || count( $meta['sizes'] ) > 5 )
+	) {
 		ewwwio_debug_message( 'running in parallel' );
 		$parallel_opt = true;
 	} else {
@@ -4995,8 +7631,7 @@ function ewww_image_optimizer_resize_from_meta_data( $meta, $id = null, $log = t
 			$ewwwio_async_optimize_media = new EWWWIO_Async_Request();
 		}
 	} else {
-		$ewww_image = new EWWW_Image( $id, 'media', $file_path );
-		$ewww_image->resize = 'full';
+		// Run the optimization and store the results.
 		list( $file, $msg, $conv, $original ) = ewww_image_optimizer( $file_path, $gallery_type, false, $new_image, true );
 
 		if ( false === $file ) {
@@ -5007,9 +7642,9 @@ function ewww_image_optimizer_resize_from_meta_data( $meta, $id = null, $log = t
 			if ( $conv ) {
 				$ewww_image->increment = $conv;
 			}
-			$ewww_image->file = $file;
+			$ewww_image->file      = $file;
 			$ewww_image->converted = $original;
-			$meta['file'] = trailingslashit( dirname( $meta['file'] ) ) . basename( $file );
+			$meta['file']          = _wp_relative_upload_path( $file );
 			$ewww_image->update_converted_attachment( $meta );
 			$meta = $ewww_image->convert_sizes( $meta );
 			ewwwio_debug_message( 'image was converted' );
@@ -5018,15 +7653,23 @@ function ewww_image_optimizer_resize_from_meta_data( $meta, $id = null, $log = t
 		}
 		ewww_image_optimizer_hidpi_optimize( $file );
 	}
+
+	// See if we are forcing re-optimization per the user's request.
+	if ( ! empty( $ewww_force ) ) {
+		$force = true;
+	} else {
+		$force = false;
+	}
+
+	$base_dir = trailingslashit( dirname( $file_path ) );
 	// Resized versions, so we can continue.
 	if ( isset( $meta['sizes'] ) && ewww_image_optimizer_iterable( $meta['sizes'] ) ) {
-		$disabled_sizes = get_option( 'ewww_image_optimizer_disable_resizes_opt' );
+		$disabled_sizes = ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_resizes_opt', false, true );
 		ewwwio_debug_message( 'processing resizes' );
 		// Meta sizes don't contain a path, so we calculate one.
 		if ( 6 === $gallery_type ) {
 			$base_ims_dir = trailingslashit( dirname( $file_path ) ) . '_resized/';
 		}
-		$base_dir = trailingslashit( dirname( $file_path ) );
 		// Process each resized version.
 		$processed = array();
 		foreach ( $meta['sizes'] as $size => $data ) {
@@ -5037,7 +7680,7 @@ function ewww_image_optimizer_resize_from_meta_data( $meta, $id = null, $log = t
 			if ( ! empty( $disabled_sizes[ $size ] ) ) {
 				continue;
 			}
-			if ( ! empty( $disabled_sizes['pdf-full'] ) && 'full' == $size ) {
+			if ( ! empty( $disabled_sizes['pdf-full'] ) && 'full' === $size ) {
 				continue;
 			}
 			if ( empty( $data['file'] ) ) {
@@ -5045,24 +7688,26 @@ function ewww_image_optimizer_resize_from_meta_data( $meta, $id = null, $log = t
 			}
 			if ( 6 === $gallery_type ) {
 				// We reset base_dir, because base_dir potentially gets overwritten with base_ims_dir.
-				$base_dir = trailingslashit( dirname( $file_path ) );
+				$base_dir   = trailingslashit( dirname( $file_path ) );
 				$image_path = $base_dir . $data['file'];
-				$ims_path = $base_ims_dir . $data['file'];
-				if ( is_file( $ims_path ) ) {
+				$ims_path   = $base_ims_dir . $data['file'];
+				if ( ewwwio_is_file( $ims_path ) ) {
 					ewwwio_debug_message( 'ims resize already exists, wahoo' );
 					ewwwio_debug_message( "ims path: $ims_path" );
-					$image_size = ewww_image_optimizer_filesize( $ims_path );
+					$image_size        = ewww_image_optimizer_filesize( $ims_path );
 					$already_optimized = ewww_image_optimizer_find_already_optimized( $image_path );
 					if ( is_array( $already_optimized ) ) {
 						ewwwio_debug_message( "updating existing record, path: $ims_path, size: " . $image_size );
 						// Store info on the current image for future reference.
-						$ewwwdb->update( $ewwwdb->ewwwio_images,
+						$ewwwdb->update(
+							$ewwwdb->ewwwio_images,
 							array(
-								'path' => ewww_image_optimizer_relative_path_remove( $ims_path ),
+								'path' => ewww_image_optimizer_relativize_path( $ims_path ),
 							),
 							array(
 								'id' => $already_optimized['id'],
-						));
+							)
+						);
 					}
 					$base_dir = $base_ims_dir;
 				}
@@ -5070,26 +7715,37 @@ function ewww_image_optimizer_resize_from_meta_data( $meta, $id = null, $log = t
 			// Check through all the sizes we've processed so far.
 			foreach ( $processed as $proc => $scan ) {
 				// If a previous resize had identical dimensions.
-				if ( $scan['height'] == $data['height'] && $scan['width'] == $data['width'] ) {
+				if ( $scan['height'] === $data['height'] && $scan['width'] === $data['width'] ) {
 					// We found a duplicate resize, so...
 					// Point this resize at the same image as the previous one.
-					$meta['sizes'][ $size ]['file'] = $meta['sizes'][ $proc ]['file'];
+					$meta['sizes'][ $size ]['file']      = $meta['sizes'][ $proc ]['file'];
+					$meta['sizes'][ $size ]['mime-type'] = $meta['sizes'][ $proc ]['mime-type'];
 					continue( 2 );
 				}
 			}
 			// If this is a unique size.
-			$resize_path = $base_dir . $data['file'];
-			if ( 'application/pdf' == $type && 'full' == $size ) {
+			$resize_path = str_replace( wp_basename( $file_path ), $data['file'], $file_path );
+			if ( empty( $resize_path ) ) {
+				ewwwio_debug_message( 'strange... $resize_path was empty' );
+				continue;
+			}
+			$resize_path = path_join( $upload_path, $resize_path );
+			if ( 'application/pdf' === $type && 'full' === $size ) {
 				$size = 'pdf-full';
 				ewwwio_debug_message( 'processing full size pdf preview' );
 			}
-			// Run the optimization and store the results.
-			if ( $parallel_opt && is_file( $resize_path ) ) {
+			// Because some SVG plugins populate the resizes with the original path (since SVG is "scalable", of course).
+			// Though it could happen for other types perhaps...
+			if ( $resize_path === $file_path ) {
+				continue;
+			}
+			if ( $parallel_opt && ewwwio_is_file( $resize_path ) ) {
 				$parallel_sizes[ $size ] = $resize_path;
 			} else {
-				$ewww_image = new EWWW_Image( $id, 'media', $resize_path );
+				$ewww_image         = new EWWW_Image( $id, 'media', $resize_path );
 				$ewww_image->resize = $size;
-				list( $optimized_file, $results, $resize_conv, $original ) = ewww_image_optimizer( $resize_path );
+				// Run the optimization and store the results.
+				ewww_image_optimizer( $resize_path );
 			}
 			// Optimize retina images, if they exist.
 			if ( function_exists( 'wr2x_get_retina' ) ) {
@@ -5097,19 +7753,17 @@ function ewww_image_optimizer_resize_from_meta_data( $meta, $id = null, $log = t
 			} else {
 				$retina_path = false;
 			}
-			if ( $retina_path && is_file( $retina_path ) ) {
+			if ( $retina_path && ewwwio_is_file( $retina_path ) ) {
 				if ( $parallel_opt ) {
-					$async_path = str_replace( $upload_path, '', $retina_path );
 					$ewwwio_async_optimize_media->data(
 						array(
-							'ewwwio_id' => $id,
-							'ewwwio_path' => $async_path,
-							'ewwwio_size' => '',
-							'ewww_force' => $force,
+							'ewwwio_id'            => ewww_image_optimizer_single_insert( $retina_path, 'media', $id ),
+							'ewwwio_attachment_id' => $id,
+							'ewww_force'           => $force,
 						)
 					)->dispatch();
 				} else {
-					$ewww_image = new EWWW_Image( $id, 'media', $retina_path );
+					$ewww_image         = new EWWW_Image( $id, 'media', $retina_path );
 					$ewww_image->resize = $size . '-retina';
 					ewww_image_optimizer( $retina_path );
 				}
@@ -5117,25 +7771,38 @@ function ewww_image_optimizer_resize_from_meta_data( $meta, $id = null, $log = t
 				ewww_image_optimizer_hidpi_optimize( $resize_path );
 			}
 			// Store info on the sizes we've processed, so we can check the list for duplicate sizes.
-			$processed[ $size ]['width'] = $data['width'];
+			$processed[ $size ]['width']  = $data['width'];
 			$processed[ $size ]['height'] = $data['height'];
 		} // End foreach().
+	} // End if().
+
+	// Original image detected.
+	if ( isset( $meta['original_image'] ) && ewww_image_optimizer_get_option( 'ewww_image_optimizer_include_originals' ) ) {
+		ewwwio_debug_message( 'processing original_image' );
+		// Meta sizes don't contain a path, so we calculate one.
+		$resize_path = trailingslashit( dirname( $file_path ) ) . $meta['original_image'];
+		if ( $parallel_opt && ewwwio_is_file( $resize_path ) ) {
+			$parallel_sizes['original_image'] = $resize_path;
+		} else {
+			$ewww_image         = new EWWW_Image( $id, 'media', $resize_path );
+			$ewww_image->resize = 'original_image';
+			// Run the optimization and store the results (gallery type 5 and fullsize=true to obey lossy/metadata exclusions).
+			ewww_image_optimizer( $resize_path, 5, false, false, true );
+		}
 	} // End if().
 
 	// Process size from a custom theme.
 	if ( isset( $meta['image_meta']['resized_images'] ) && ewww_image_optimizer_iterable( $meta['image_meta']['resized_images'] ) ) {
 		$imagemeta_resize_pathinfo = pathinfo( $file_path );
-		$imagemeta_resize_path = '';
+		$imagemeta_resize_path     = '';
 		foreach ( $meta['image_meta']['resized_images'] as $imagemeta_resize ) {
 			$imagemeta_resize_path = $imagemeta_resize_pathinfo['dirname'] . '/' . $imagemeta_resize_pathinfo['filename'] . '-' . $imagemeta_resize . '.' . $imagemeta_resize_pathinfo['extension'];
-			if ( $parallel_opt && is_file( $imagemeta_resize_path ) ) {
-				$async_path = str_replace( $upload_path, '', $imagemeta_resize_path );
+			if ( $parallel_opt && ewwwio_is_file( $imagemeta_resize_path ) ) {
 				$ewwwio_async_optimize_media->data(
 					array(
-						'ewwwio_id' => $id,
-						'ewwwio_path' => $async_path,
-						'ewwwio_size' => '',
-						'ewww_force' => $force,
+						'ewwwio_id'            => ewww_image_optimizer_single_insert( $imagemeta_resize_path, 'media', $id ),
+						'ewwwio_attachment_id' => $id,
+						'ewww_force'           => $force,
 					)
 				)->dispatch();
 			} else {
@@ -5148,17 +7815,15 @@ function ewww_image_optimizer_resize_from_meta_data( $meta, $id = null, $log = t
 	// And another custom theme.
 	if ( isset( $meta['custom_sizes'] ) && ewww_image_optimizer_iterable( $meta['custom_sizes'] ) ) {
 		$custom_sizes_pathinfo = pathinfo( $file_path );
-		$custom_size_path = '';
+		$custom_size_path      = '';
 		foreach ( $meta['custom_sizes'] as $custom_size ) {
 			$custom_size_path = $custom_sizes_pathinfo['dirname'] . '/' . $custom_size['file'];
 			if ( $parallel_opt && file_exists( $custom_size_path ) ) {
-				$async_path = str_replace( $upload_path, '', $custom_size_path );
 				$ewwwio_async_optimize_media->data(
 					array(
-						'ewwwio_id' => $id,
-						'ewwwio_path' => $async_path,
-						'ewwwio_size' => '',
-						'ewww_force' => $force,
+						'ewwwio_id'            => ewww_image_optimizer_single_insert( $custom_size_path, 'media', $id ),
+						'ewwwio_attachment_id' => $id,
+						'ewww_force'           => $force,
 					)
 				)->dispatch();
 			} else {
@@ -5169,17 +7834,12 @@ function ewww_image_optimizer_resize_from_meta_data( $meta, $id = null, $log = t
 	}
 
 	if ( $parallel_opt && count( $parallel_sizes ) > 0 ) {
-		$max_threads = (int) apply_filters( 'ewww_image_optimizer_max_parallel_threads', 5 );
-		$processing = true;
-		$timer = (int) apply_filters( 'ewww_image_optimizer_background_timer_init', 1 );
-		$increment = (int) apply_filters( 'ewww_image_optimizer_background_timer_increment', 1 );
-		$timer_max = (int) apply_filters( 'ewww_image_optimizer_background_timer_max', 20 );
+		$max_threads      = (int) apply_filters( 'ewww_image_optimizer_max_parallel_threads', 5 );
+		$processing       = true;
+		$timer            = (int) apply_filters( 'ewww_image_optimizer_background_timer_init', 1 );
+		$increment        = (int) apply_filters( 'ewww_image_optimizer_background_timer_increment', 1 );
+		$timer_max        = (int) apply_filters( 'ewww_image_optimizer_background_timer_max', 20 );
 		$processing_sizes = array();
-		if ( ! empty( $_REQUEST['ewww_force'] ) ) {
-			$force = true;
-		} else {
-			$force = false;
-		}
 		global $ewwwio_async_optimize_media;
 		if ( ! class_exists( 'WP_Background_Process' ) ) {
 			require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'background.php' );
@@ -5202,15 +7862,14 @@ function ewww_image_optimizer_resize_from_meta_data( $meta, $id = null, $log = t
 				ewwwio_debug_message( "queueing size $size - $filename" );
 				$processing_sizes[ $size ] = $filename;
 				unset( $parallel_sizes[ $size ] );
-				touch( $filename . '.processing' );
-				$async_path = str_replace( $upload_path, '', $filename );
-				ewwwio_debug_message( "sending off $async_path in folder $upload_path" );
+				$eio_filesystem->touch( $filename . '.processing' );
+				ewwwio_debug_message( "sending off $filename via parallel/async" );
 				$ewwwio_async_optimize_media->data(
 					array(
-						'ewwwio_id' => $id,
-						'ewwwio_path' => $async_path,
-						'ewwwio_size' => $size,
-						'ewww_force' => $force,
+						'ewwwio_id'            => ewww_image_optimizer_single_insert( $filename, 'media', $id, $size ),
+						'ewwwio_attachment_id' => $id,
+						'ewwwio_size'          => $size,
+						'ewww_force'           => $force,
 					)
 				)->dispatch();
 				$threads--;
@@ -5221,7 +7880,7 @@ function ewww_image_optimizer_resize_from_meta_data( $meta, $id = null, $log = t
 			while ( $parallel_opt && $processing ) {
 				$processing = false;
 				foreach ( $processing_sizes as $size => $filename ) {
-					if ( is_file( $filename . '.processing' ) ) {
+					if ( ewwwio_is_file( $filename . '.processing' ) ) {
 						ewwwio_debug_message( "still processing $size" );
 						$processing = true;
 						continue;
@@ -5245,8 +7904,8 @@ function ewww_image_optimizer_resize_from_meta_data( $meta, $id = null, $log = t
 			}
 			if ( $timer > $timer_max ) {
 				foreach ( $processing_sizes as $filename ) {
-					if ( is_file( $filename . '.processing' ) ) {
-						unlink( $filename . '.processing' );
+					if ( ewwwio_is_file( $filename . '.processing' ) ) {
+						ewwwio_delete_file( $filename . '.processing' );
 					}
 				}
 				$meta['processing'] = 1;
@@ -5263,7 +7922,7 @@ function ewww_image_optimizer_resize_from_meta_data( $meta, $id = null, $log = t
 	unset( $meta['processing'] );
 
 	global $ewww_attachment;
-	$ewww_attachment['id'] = $id;
+	$ewww_attachment['id']   = $id;
 	$ewww_attachment['meta'] = $meta;
 	add_filter( 'w3tc_cdn_update_attachment_metadata', 'ewww_image_optimizer_w3tc_update_files' );
 
@@ -5272,6 +7931,10 @@ function ewww_image_optimizer_resize_from_meta_data( $meta, $id = null, $log = t
 		$file = $file_path;
 	}
 	$fullsize_opt_size = ewww_image_optimizer_filesize( $file );
+
+	// Done optimizing, do whatever you need with the attachment from here.
+	do_action( 'ewww_image_optimizer_after_optimize_attachment', $id, $meta );
+
 	if ( $fullsize_opt_size && $fullsize_opt_size < $fullsize_size && class_exists( 'Amazon_S3_And_CloudFront' ) ) {
 		global $as3cf;
 		if ( method_exists( $as3cf, 'wp_update_attachment_metadata' ) ) {
@@ -5281,16 +7944,22 @@ function ewww_image_optimizer_resize_from_meta_data( $meta, $id = null, $log = t
 			ewwwio_debug_message( 'uploading to Amazon S3' );
 		}
 	}
-	if ( $fullsize_opt_size && $fullsize_opt_size < $fullsize_size && class_exists( 'DreamSpeed_Services' ) ) {
-		global $dreamspeed;
-		$dreamspeed->wp_generate_attachment_metadata( $meta, $id );
-		ewwwio_debug_message( 'uploading to Dreamspeed' );
+	if ( class_exists( 'S3_Uploads' ) ) {
+		ewww_image_optimizer_remote_push( $meta, $id );
+		ewwwio_debug_message( 're-uploading to S3(_Uploads)' );
+	}
+	if ( class_exists( 'Windows_Azure_Helper' ) && function_exists( 'windows_azure_storage_wp_generate_attachment_metadata' ) ) {
+		$meta = windows_azure_storage_wp_generate_attachment_metadata( $meta, $id );
+		if ( Windows_Azure_Helper::delete_local_file() && function_exists( 'windows_azure_storage_delete_local_files' ) ) {
+			windows_azure_storage_delete_local_files( $meta, $id );
+		}
 	}
 	if ( class_exists( 'Cloudinary' ) && Cloudinary::config_get( 'api_secret' ) && ewww_image_optimizer_get_option( 'ewww_image_optimizer_enable_cloudinary' ) && ! empty( $new_image ) ) {
 		try {
-			$result = CloudinaryUploader::upload( $file, array(
-				'use_filename' => true,
-			) );
+			$result = CloudinaryUploader::upload(
+				$file,
+				array( 'use_filename' => true )
+			);
 		} catch ( Exception $e ) {
 			$error = $e->getMessage();
 		}
@@ -5300,13 +7969,15 @@ function ewww_image_optimizer_resize_from_meta_data( $meta, $id = null, $log = t
 			ewwwio_debug_message( 'successfully uploaded to Cloudinary' );
 			// Register the attachment in the database as a cloudinary attachment.
 			$old_url = wp_get_attachment_url( $id );
-			wp_update_post( array(
-				'ID' => $id,
-				'guid' => $result['url'],
-			) );
+			wp_update_post(
+				array(
+					'ID'   => $id,
+					'guid' => $result['url'],
+				)
+			);
 			update_attached_file( $id, $result['url'] );
 			$meta['cloudinary'] = true;
-			$errors = array();
+			$errors             = array();
 			// Update the image location for the attachment.
 			CloudinaryPlugin::update_image_src_all( $id, $result, $old_url, $result['url'], true, $errors );
 			if ( count( $errors ) > 0 ) {
@@ -5326,21 +7997,145 @@ function ewww_image_optimizer_resize_from_meta_data( $meta, $id = null, $log = t
 }
 
 /**
+ * Only runs during WP/LR Sync to check if an attachment has been updated.
+ *
+ * @param array $meta The attachment metadata generated by WordPress.
+ * @param int   $id Optional. The attachment ID number. Default null. Accepts any non-negative integer.
+ * @return array $meta Send the metadata back from whence it came.
+ */
+function ewww_image_optimizer_lr_sync_update( $meta, $id = null ) {
+	update_option( 'ewww_image_optimizer_lr_sync', true, false );
+	list( $file_path, $upload_path ) = ewww_image_optimizer_attachment_path( $meta, $id );
+	if ( ewww_image_optimizer_stream_wrapped( $file_path ) || ! ewwwio_is_file( $file_path ) ) {
+		return $meta;
+	}
+	ewwwio_debug_message( "retrieved file path: $file_path" );
+	$type            = ewww_image_optimizer_mimetype( $file_path, 'i' );
+	$supported_types = array(
+		'image/jpeg',
+		'image/png',
+		'image/gif',
+		'application/pdf',
+		'image/svg+xml',
+	);
+	if ( ! in_array( $type, $supported_types, true ) ) {
+		ewwwio_debug_message( "mimetype not supported: $id" );
+		return $meta;
+	}
+
+	// Get a list of all the image files optimized for this attachment.
+	global $wpdb;
+	$optimized_images = $wpdb->get_results( $wpdb->prepare( "SELECT id,path,image_size FROM $wpdb->ewwwio_images WHERE attachment_id = %d AND gallery = 'media' AND image_size <> 0 ORDER BY orig_size DESC", $id ), ARRAY_A );
+	if ( ! ewww_image_optimizer_iterable( $optimized_images ) ) {
+		return $meta;
+	}
+	foreach ( $optimized_images as $optimized_image ) {
+		$file_size = ewww_image_optimizer_filesize( ewww_image_optimizer_absolutize_path( $optimized_image['path'] ) );
+		if ( $file_size === (int) $optimized_image['image_size'] ) {
+			continue;
+		}
+		$wpdb->update(
+			$wpdb->ewwwio_images,
+			array(
+				'image_size' => 0,
+			),
+			array(
+				'id' => $optimized_image['id'],
+			)
+		);
+	}
+	return $meta;
+}
+
+/**
  * Check to see if Shield's location lock option is enabled.
  *
  * @return bool True if the IP location lock is enabled.
  */
 function ewww_image_optimizer_detect_wpsf_location_lock() {
-	if ( class_exists( 'ICWP_Wordpress_Simple_Firewall' ) ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	if ( function_exists( 'icwp_wpsf_init' ) ) {
+		ewwwio_debug_message( 'Shield Security detected' );
 		$shield_user_man = ewww_image_optimizer_get_option( 'icwp_wpsf_user_management_options' );
 		if ( ewww_image_optimizer_function_exists( 'print_r' ) ) {
 			ewwwio_debug_message( print_r( $shield_user_man, true ) );
 		}
-		if ( 'Y' == $shield_user_man['session_lock_location'] ) {
+		if ( ! empty( $shield_user_man['session_lock_location'] ) && 'Y' === $shield_user_man['session_lock_location'] ) {
 			return true;
 		}
 	}
 	return false;
+}
+
+/**
+ * Parse image paths for WP Offload S3.
+ *
+ * Adds WebP derivatives so that they can be uploaded.
+ *
+ * @param array $paths The image paths currently queued for upload.
+ * @param int   $id The ID number of the image in the database.
+ * @return array Attachment meta field.
+ */
+function ewww_image_optimizer_as3cf_attachment_file_paths( $paths, $id ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	foreach ( $paths as $size => $path ) {
+		ewwwio_debug_message( "checking $path for WebP in as3cf queue" );
+		if ( is_string( $path ) && ewwwio_is_file( $path . '.webp' ) ) {
+			$paths[ $size . '-webp' ] = $path . '.webp';
+			ewwwio_debug_message( "added $path.webp to as3cf queue" );
+		} elseif (
+			// WOM(pro) is downloading from bucket to server, WebP is enabled, and the local/server file does not exist.
+			! empty( $_REQUEST['action'] ) && // phpcs:ignore WordPress.Security.NonceVerification
+			'download' === $_REQUEST['action'] && // phpcs:ignore WordPress.Security.NonceVerification
+			ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp' ) &&
+			is_string( $path ) &&
+			! ewwwio_is_file( $path )
+		) {
+			if ( ! isset( $optimized ) ) {
+				global $wpdb;
+				$optimized = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $wpdb->ewwwio_images WHERE attachment_id = %d AND gallery = 'media' AND image_size <> 0 LIMIT 1", $id ) );
+			}
+			if ( $optimized ) {
+				$paths[ $size . '-webp' ] = $path . '.webp';
+				ewwwio_debug_message( "added $path.webp to as3cf queue (for potential local copy)" );
+			}
+		}
+	}
+	return $paths;
+}
+
+/**
+ * Cleanup remote storage for WP Offload S3.
+ *
+ * Checks for WebP derivatives so that they can be removed.
+ *
+ * @param array $paths The image paths currently queued for deletion.
+ * @param int   $id The ID number of the image in the database.
+ * @return array A list of paths to remove.
+ */
+function ewww_image_optimizer_as3cf_remove_attachment_file_paths( $paths, $id ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	foreach ( $paths as $path ) {
+		if ( is_string( $path ) ) {
+			$paths[] = $path . '.webp';
+			ewwwio_debug_message( "added $path.webp to as3cf deletion queue" );
+		}
+	}
+	return $paths;
+}
+
+/**
+ * Fixes the ContentType for WebP images because WP mimetype detection stinks.
+ *
+ * @param array $args The parameters to be used for the S3 upload.
+ * @return array The same parameters with ContentType corrected.
+ */
+function ewww_image_optimizer_as3cf_object_meta( $args ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	if ( ! empty( $args['SourceFile'] ) && ewwwio_is_file( $args['SourceFile'] ) && empty( $args['ContentType'] ) && false !== strpos( $args['SourceFile'], '.webp' ) ) {
+		$args['ContentType'] = ewww_image_optimizer_quick_mimetype( $args['SourceFile'] );
+	}
+	return $args;
 }
 
 /**
@@ -5366,15 +8161,15 @@ function ewww_image_optimizer_update_attachment( $meta, $id ) {
 	// Construct the new guid based on the filename from the attachment metadata.
 	ewwwio_debug_message( "old guid: $old_guid" );
 	ewwwio_debug_message( "new guid: $guid" );
-	if ( substr( $old_guid, -1 ) == '/' || substr( $guid, -1 ) == '/' ) {
+	if ( substr( $old_guid, -1 ) === '/' || substr( $guid, -1 ) === '/' ) {
 		ewwwio_debug_message( 'could not obtain full url for current and previous image, bailing' );
 		return $meta;
 	}
 	// Retrieve any posts that link the image.
-	$esql = $wpdb->prepare( "SELECT ID, post_content FROM $wpdb->posts WHERE post_content LIKE '%%%s%%'", $old_guid );
+	$esql = $wpdb->prepare( "SELECT ID, post_content FROM $wpdb->posts WHERE post_content LIKE %s", '%' . $wpdb->esc_like( $old_guid ) . '%' );
 	ewwwio_debug_message( "using query: $esql" );
 	// While there are posts to process.
-	$rows = $wpdb->get_results( $esql, ARRAY_A ); // WPCS: unprepared SQL ok.
+	$rows = $wpdb->get_results( $esql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 	if ( ewww_image_optimizer_iterable( $rows ) ) {
 		foreach ( $rows as $row ) {
 			// Replace all occurences of the old guid with the new guid.
@@ -5409,12 +8204,12 @@ function ewww_image_optimizer_update_attachment( $meta, $id ) {
 				// Generate the url for the new image.
 				$sguid = dirname( $old_guid ) . '/' . basename( $data['file'] );
 				ewwwio_debug_message( "new sguid: $sguid" );
-				if ( substr( $old_sguid, -1 ) == '/' || substr( $sguid, -1 ) == '/' ) {
+				if ( substr( $old_sguid, -1 ) === '/' || substr( $sguid, -1 ) === '/' ) {
 					ewwwio_debug_message( 'could not obtain full url for current and previous resized image, bailing' );
 					continue;
 				}
 				// Retrieve any posts that link the resize.
-				$rows = $wpdb->get_results( $wpdb->prepare( "SELECT ID, post_content FROM $wpdb->posts WHERE post_content LIKE '%%%s%%'", $old_sguid ), ARRAY_A );
+				$rows = $wpdb->get_results( $wpdb->prepare( "SELECT ID, post_content FROM $wpdb->posts WHERE post_content LIKE %s", '%' . $wpdb->esc_like( $old_sguid ) . '%' ), ARRAY_A );
 				// While there are posts to process.
 				if ( ewww_image_optimizer_iterable( $rows ) ) {
 					foreach ( $rows as $row ) {
@@ -5436,19 +8231,23 @@ function ewww_image_optimizer_update_attachment( $meta, $id ) {
 			} // End if().
 		} // End foreach().
 	} // End if().
-	if ( preg_match( '/.jpg$/i', basename( $meta['file'] ) ) ) {
+	if ( preg_match( '/\.jpg$/i', basename( $meta['file'] ) ) ) {
 		$mime = 'image/jpeg';
 	}
-	if ( preg_match( '/.png$/i', basename( $meta['file'] ) ) ) {
+	if ( preg_match( '/\.png$/i', basename( $meta['file'] ) ) ) {
 		$mime = 'image/png';
 	}
-	if ( preg_match( '/.gif$/i', basename( $meta['file'] ) ) ) {
+	if ( preg_match( '/\.gif$/i', basename( $meta['file'] ) ) ) {
 		$mime = 'image/gif';
 	}
+	if ( preg_match( '/\.svg$/i', basename( $meta['file'] ) ) ) {
+		$mime = 'image/svg+xml';
+	}
 	// Update the attachment post with the new mimetype and id.
-	wp_update_post( array(
-		'ID' => $id,
-		'post_mime_type' => $mime,
+	wp_update_post(
+		array(
+			'ID'             => $id,
+			'post_mime_type' => $mime,
 		)
 	);
 	ewww_image_optimizer_debug_log();
@@ -5464,47 +8263,59 @@ function ewww_image_optimizer_update_attachment( $meta, $id ) {
  * @param string $file Optional. Path relative to the uploads folder. Default ''.
  * @param bool   $refresh_cache Optional. True to flush cache prior to fetching path. Default true.
  * @return array {
- *	Information about the file.
+ *     Information about the file.
  *
- *	@type string The full path to the image.
- *	@type string The path to the uploads folder.
+ *     @type string The full path to the image.
+ *     @type string The path to the uploads folder.
  * }
  */
 function ewww_image_optimizer_attachment_path( $meta, $id, $file = '', $refresh_cache = true ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 
-	// Retrieve the location of the wordpress upload folder.
-	$upload_dir = wp_upload_dir( null, false, $refresh_cache );
+	// Retrieve the location of the WordPress upload folder.
+	$upload_dir  = wp_upload_dir( null, false, $refresh_cache );
 	$upload_path = trailingslashit( $upload_dir['basedir'] );
 	if ( ! $file ) {
 		$file = get_post_meta( $id, '_wp_attached_file', true );
 	} else {
 		ewwwio_debug_message( 'using prefetched _wp_attached_file' );
 	}
-	$file_path = ( 0 !== strpos( $file, '/' ) && ! preg_match( '|^.:\\\|', $file ) ? $upload_path . $file : $file );
+	$file_path          = ( 0 !== strpos( $file, '/' ) && ! preg_match( '|^.:\\\|', $file ) ? $upload_path . $file : $file );
 	$filtered_file_path = apply_filters( 'get_attached_file', $file_path, $id );
 	ewwwio_debug_message( "WP (filtered) thinks the file is at: $filtered_file_path" );
-	if ( ( strpos( $filtered_file_path, 's3' ) === false || in_array( 's3', stream_get_wrappers() ) ) && is_file( $filtered_file_path ) ) {
+	if (
+		(
+			! ewww_image_optimizer_stream_wrapped( $filtered_file_path ) ||
+			ewww_image_optimizer_stream_wrapper_exists()
+		)
+		&& ewwwio_is_file( $filtered_file_path )
+	) {
 		return array( str_replace( '//_imsgalleries/', '/_imsgalleries/', $filtered_file_path ), $upload_path );
 	}
 	ewwwio_debug_message( "WP (unfiltered) thinks the file is at: $file_path" );
-	if ( ( strpos( $file_path, 's3' ) === false || in_array( 's3', stream_get_wrappers() ) ) && is_file( $file_path ) ) {
+	if (
+		(
+			! ewww_image_optimizer_stream_wrapped( $file_path ) ||
+			ewww_image_optimizer_stream_wrapper_exists()
+		)
+		&& ewwwio_is_file( $file_path )
+	) {
 		return array( str_replace( '//_imsgalleries/', '/_imsgalleries/', $file_path ), $upload_path );
 	}
-	if ( 'ims_image' == get_post_type( $id ) && is_array( $meta ) && ! empty( $meta['file'] ) ) {
+	if ( 'ims_image' === get_post_type( $id ) && is_array( $meta ) && ! empty( $meta['file'] ) ) {
 		ewwwio_debug_message( "finding path for IMS image: $id " );
-		if ( is_dir( $file_path ) && is_file( $file_path . $meta['file'] ) ) {
+		if ( is_dir( $file_path ) && ewwwio_is_file( $file_path . $meta['file'] ) ) {
 			// Generate the absolute path.
-			$file_path = $file_path . $meta['file'];
+			$file_path   = $file_path . $meta['file'];
 			$upload_path = ewww_image_optimizer_upload_path( $file_path, $upload_path );
 			ewwwio_debug_message( "found path for IMS image: $file_path" );
-		} elseif ( is_file( $meta['file'] ) ) {
-			$file_path = $meta['file'];
+		} elseif ( ewwwio_is_file( $meta['file'] ) ) {
+			$file_path   = $meta['file'];
 			$upload_path = ewww_image_optimizer_upload_path( $file_path, $upload_path );
 			ewwwio_debug_message( "found path for IMS image: $file_path" );
 		} else {
 			$upload_path = trailingslashit( WP_CONTENT_DIR );
-			$file_path = $upload_path . ltrim( $meta['file'], '/' );
+			$file_path   = $upload_path . ltrim( $meta['file'], '/' );
 			ewwwio_debug_message( "checking path for IMS image: $file_path" );
 			if ( ! file_exists( $file_path ) ) {
 				$file_path = '';
@@ -5514,22 +8325,22 @@ function ewww_image_optimizer_attachment_path( $meta, $id, $file = '', $refresh_
 	}
 	if ( is_array( $meta ) && ! empty( $meta['file'] ) ) {
 		$file_path = $meta['file'];
-		if ( strpos( $file_path, 's3' ) === 0 && ! in_array( 's3', stream_get_wrappers() ) ) {
+		if ( ewww_image_optimizer_stream_wrapped( $file_path ) && ! ewww_image_optimizer_stream_wrapper_exists() ) {
 			return array( '', $upload_path );
 		}
 		ewwwio_debug_message( "looking for file at $file_path" );
-		if ( is_file( $file_path ) ) {
+		if ( ewwwio_is_file( $file_path ) ) {
 			return array( $file_path, $upload_path );
 		}
 		$file_path = trailingslashit( $upload_path ) . $file_path;
 		ewwwio_debug_message( "that did not work, try it with the upload_dir: $file_path" );
-		if ( is_file( $file_path ) ) {
+		if ( ewwwio_is_file( $file_path ) ) {
 			return array( $file_path, $upload_path );
 		}
 		$upload_path = trailingslashit( WP_CONTENT_DIR ) . 'uploads/';
-		$file_path = $upload_path . $meta['file'];
+		$file_path   = $upload_path . $meta['file'];
 		ewwwio_debug_message( "one last shot, using the wp-content/ constant: $file_path" );
-		if ( is_file( $file_path ) ) {
+		if ( ewwwio_is_file( $file_path ) ) {
 			return array( $file_path, $upload_path );
 		}
 	}
@@ -5547,21 +8358,17 @@ function ewww_image_optimizer_attachment_path( $meta, $id, $file = '', $refresh_
  * @param string $file The filename to mangle.
  * @return string The filename with parent folders replaced by a constant name.
  */
-function ewww_image_optimizer_relative_path_remove( $file ) {
+function ewww_image_optimizer_relativize_path( $file ) {
 	if ( ! defined( 'EWWW_IMAGE_OPTIMIZER_RELATIVE' ) || ! EWWW_IMAGE_OPTIMIZER_RELATIVE ) {
 		return $file;
 	}
-	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 	if ( defined( 'EWWW_IMAGE_OPTIMIZER_RELATIVE_FOLDER' ) && EWWW_IMAGE_OPTIMIZER_RELATIVE_FOLDER && strpos( $file, EWWW_IMAGE_OPTIMIZER_RELATIVE_FOLDER ) === 0 ) {
-		ewwwio_debug_message( "removing custom relative folder from $file" );
 		return str_replace( EWWW_IMAGE_OPTIMIZER_RELATIVE_FOLDER, 'EWWW_IMAGE_OPTIMIZER_RELATIVE_FOLDER', $file );
 	}
 	if ( strpos( $file, ABSPATH ) === 0 ) {
-		ewwwio_debug_message( "removing ABSPATH from $file" );
 		return str_replace( ABSPATH, 'ABSPATH', $file );
 	}
 	if ( defined( 'WP_CONTENT_DIR' ) && WP_CONTENT_DIR && strpos( $file, WP_CONTENT_DIR ) === 0 ) {
-		ewwwio_debug_message( "removing WP_CONTENT_DIR from $file" );
 		return str_replace( WP_CONTENT_DIR, 'WP_CONTENT_DIR', $file );
 	}
 	return $file;
@@ -5572,26 +8379,22 @@ function ewww_image_optimizer_relative_path_remove( $file ) {
  *
  * Replaces the literal strings 'ABSPATH', 'WP_CONTENT_DIR', or
  * 'EWWW_IMAGE_OPTIMIZER_RELATIVE_FOLDER' with the actual value of the constant contained within
- * the file path.string name of the applicable constant.
+ * the file path.
  *
  * @param string $file The filename to parse.
  * @return string The full filename with parent folders reinserted.
  */
-function ewww_image_optimizer_relative_path_replace( $file ) {
+function ewww_image_optimizer_absolutize_path( $file ) {
 	if ( ! defined( 'EWWW_IMAGE_OPTIMIZER_RELATIVE' ) ) {
 		return $file;
 	}
-	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 	if ( defined( 'EWWW_IMAGE_OPTIMIZER_RELATIVE_FOLDER' ) && EWWW_IMAGE_OPTIMIZER_RELATIVE_FOLDER && strpos( $file, 'EWWW_IMAGE_OPTIMIZER_RELATIVE_FOLDER' ) === 0 ) {
-		ewwwio_debug_message( "replacing custom relative folder in $file" );
 		return str_replace( 'EWWW_IMAGE_OPTIMIZER_RELATIVE_FOLDER', EWWW_IMAGE_OPTIMIZER_RELATIVE_FOLDER, $file );
 	}
 	if ( strpos( $file, 'ABSPATH' ) === 0 ) {
-		ewwwio_debug_message( "replacing ABSPATH in $file" );
 		return str_replace( 'ABSPATH', ABSPATH, $file );
 	}
 	if ( defined( 'WP_CONTENT_DIR' ) && WP_CONTENT_DIR && strpos( $file, 'WP_CONTENT_DIR' ) === 0 ) {
-		ewwwio_debug_message( "replacing WP_CONTENT_DIR in $file" );
 		return str_replace( 'WP_CONTENT_DIR', WP_CONTENT_DIR, $file );
 	}
 	return $file;
@@ -5645,23 +8448,23 @@ function ewww_image_optimizer_size_unformat( $formatted ) {
  * @param string $file The filename to test for uniqueness.
  * @param string $fileext An iterator to append to the base filename, starts empty usually.
  * @return array {
- *	Filename information.
+ *     Filename information.
  *
- *	@type string A unique filename for converting an image.
- *	@type int|string The iterator used for uniqueness.
+ *     @type string A unique filename for converting an image.
+ *     @type int|string The iterator used for uniqueness.
  * }
  */
 function ewww_image_optimizer_unique_filename( $file, $fileext ) {
 	// Strip the file extension.
 	$filename = preg_replace( '/\.\w+$/', '', $file );
-	if ( ! is_file( $filename . $fileext ) ) {
+	if ( ! ewwwio_is_file( $filename . $fileext ) ) {
 		return array( $filename . $fileext, '' );
 	}
 	// Set the increment to 1 (but allow the user to override it).
 	$filenum = apply_filters( 'ewww_image_optimizer_converted_filename_suffix', 1 );
 	// But it must be only letters, numbers, or underscores.
-	$filenum = ( preg_match( '/^[\w\d]*$/', $filenum ) ? $filenum : 1 );
-	$suffix = ( ! empty( $filenum ) ? '-' . $filenum : '' );
+	$filenum = ( preg_match( '/^[\w\d]+$/', $filenum ) ? $filenum : 1 );
+	$suffix  = ( ! empty( $filenum ) ? '-' . $filenum : '' );
 	// While a file exists with the current increment.
 	while ( file_exists( $filename . $suffix . $fileext ) ) {
 		// Increment the increment...
@@ -5690,9 +8493,16 @@ function ewww_image_optimizer_quick_mimetype( $path ) {
 			return 'image/png';
 		case 'gif':
 			return 'image/gif';
+		case 'webp':
+			return 'image/webp';
 		case 'pdf':
 			return 'application/pdf';
+		case 'svg':
+			return 'image/svg+xml';
 		default:
+			if ( empty( $pathextension ) && ! ewww_image_optimizer_stream_wrapped( $path ) && ewwwio_is_file( $path ) ) {
+				return ewww_image_optimizer_mimetype( $path, 'i' );
+			}
 			return false;
 	}
 }
@@ -5705,17 +8515,23 @@ function ewww_image_optimizer_quick_mimetype( $path ) {
  */
 function ewww_image_optimizer_png_alpha( $filename ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	if ( ! is_file( $filename ) ) {
+	if ( ! ewwwio_is_file( $filename ) ) {
 		return false;
 	}
+	if ( false !== strpos( $filename, '../' ) ) {
+		return false;
+	}
+	global $eio_filesystem;
+	ewwwio_get_filesystem();
+	$file_contents = $eio_filesystem->get_contents( $filename );
 	// Determine what color type is stored in the file.
-	$color_type = ord( file_get_contents( $filename, null, null, 25, 1 ) );
+	$color_type = ord( substr( $file_contents, 25, 1 ) );
 	ewwwio_debug_message( "color type: $color_type" );
-	// If it is set to RGB alpha or Grayscale alpha.
-	if ( 4 == $color_type || 6 == $color_type ) {
+	// If we do not have GD and the PNG color type is RGB alpha or Grayscale alpha.
+	if ( ! ewww_image_optimizer_gd_support() && ( 4 === $color_type || 6 === $color_type ) ) {
 		ewwwio_debug_message( 'transparency found' );
 		return true;
-	} elseif ( 3 == $color_type && ewww_image_optimizer_gd_support() ) {
+	} elseif ( ewww_image_optimizer_gd_support() ) {
 		$image = imagecreatefrompng( $filename );
 		if ( imagecolortransparent( $image ) >= 0 ) {
 			ewwwio_debug_message( 'transparency found' );
@@ -5727,7 +8543,7 @@ function ewww_image_optimizer_png_alpha( $filename ) {
 		for ( $y = 0; $y < $height; $y++ ) {
 			for ( $x = 0; $x < $width; $x++ ) {
 				$color = imagecolorat( $image, $x, $y );
-				$rgb = imagecolorsforindex( $image, $color );
+				$rgb   = imagecolorsforindex( $image, $color );
 				if ( $rgb['alpha'] > 0 ) {
 					ewwwio_debug_message( 'transparency found' );
 					return true;
@@ -5741,14 +8557,14 @@ function ewww_image_optimizer_png_alpha( $filename ) {
 }
 
 /**
- * Check the submitted GIF to see if it is animated
+ * Check the submitted GIF to see if it is animated.
  *
  * @param string $filename Name of the GIF to test for animation.
  * @return bool True if animation found.
  */
 function ewww_image_optimizer_is_animated( $filename ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	if ( ! is_file( $filename ) ) {
+	if ( ! ewwwio_is_file( $filename ) ) {
 		return false;
 	}
 	// If we can't open the file in read-only buffered mode.
@@ -5759,13 +8575,55 @@ function ewww_image_optimizer_is_animated( $filename ) {
 	$count = 0;
 	// We read through the file til we reach the end of the file, or we've found at least 2 frame headers.
 	while ( ! feof( $fh ) && $count < 2 ) {
-		$chunk = fread( $fh, 1024 * 100 ); // Read 100kb at a time.
+		$chunk  = fread( $fh, 1024 * 100 ); // Read 100kb at a time.
 		$count += preg_match_all( '#\x00\x21\xF9\x04.{4}\x00(\x2C|\x21)#s', $chunk, $matches );
 	}
 	fclose( $fh );
 	ewwwio_debug_message( "scanned GIF and found $count frames" );
 	ewwwio_memory( __FUNCTION__ );
 	return $count > 1;
+}
+
+/**
+ * Check the submitted PNG to see if it is animated. Thanks @GregOriol!
+ *
+ * @param string $filename Name of the PNG to test for animation.
+ * @return bool True if animation found.
+ */
+function ewww_image_optimizer_is_animated_png( $filename ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	$apng = false;
+	if ( ! ewwwio_is_file( $filename ) ) {
+		return false;
+	}
+	// If we can't open the file in read-only buffered mode.
+	$fh = fopen( $filename, 'rb' );
+	if ( ! $fh ) {
+		return false;
+	}
+	$previousdata = '';
+	// We read through the file til we reach the end of the file, or we've found an acTL or IDAT chunk.
+	while ( ! feof( $fh ) ) {
+		$data = fread( $fh, 1024 ); // Read 1kb at a time.
+		if ( false !== strpos( $data, 'acTL' ) ) {
+			ewwwio_debug_message( 'found acTL chunk (animated) in PNG' );
+			$apng = true;
+			break;
+		} elseif ( false !== strpos( $previousdata . $data, 'acTL' ) ) {
+			ewwwio_debug_message( 'found acTL chunk (animated) in PNG' );
+			$apng = true;
+			break;
+		} elseif ( false !== strpos( $data, 'IDAT' ) ) {
+			ewwwio_debug_message( 'found IDAT, but no acTL (animated) chunk in PNG' );
+			break;
+		} elseif ( false !== strpos( $previousdata . $data, 'IDAT' ) ) {
+			ewwwio_debug_message( 'found IDAT, but no acTL (animated) chunk in PNG' );
+			break;
+		}
+		$previousdata = $data;
+	}
+	fclose( $fh );
+	return $apng;
 }
 
 /**
@@ -5779,7 +8637,7 @@ function ewww_image_optimizer_resize_count( $sizes ) {
 		return 0;
 	}
 	$size_count = 0;
-	$processed = array();
+	$processed  = array();
 	foreach ( $sizes as $size => $data ) {
 		if ( strpos( $size, 'webp' ) === 0 ) {
 			continue;
@@ -5790,14 +8648,14 @@ function ewww_image_optimizer_resize_count( $sizes ) {
 		// Check through all the sizes we've processed so far.
 		foreach ( $processed as $proc => $scan ) {
 			// If a previous resize had identical dimensions.
-			if ( $scan['height'] == $data['height'] && $scan['width'] == $data['width'] ) {
+			if ( $scan['height'] === $data['height'] && $scan['width'] === $data['width'] ) {
 				continue( 2 );
 			}
 		}
 		// If this is a unique size.
 		$size_count++;
 		// Sore info on the sizes we've processed, so we can check the list for duplicate sizes.
-		$processed[ $size ]['width'] = $data['width'];
+		$processed[ $size ]['width']  = $data['width'];
 		$processed[ $size ]['height'] = $data['height'];
 	}
 	return $size_count;
@@ -5806,14 +8664,14 @@ function ewww_image_optimizer_resize_count( $sizes ) {
 /**
  * Add column header for optimizer results in the media library listing.
  *
- * @param array $defaults A list of columns in the media library.
+ * @param array $columns A list of columns in the media library.
  * @return array The new list of columns.
  */
-function ewww_image_optimizer_columns( $defaults ) {
+function ewww_image_optimizer_columns( $columns ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	$defaults['ewww-image-optimizer'] = esc_html__( 'Image Optimizer', 'ewww-image-optimizer' );
+	$columns['ewww-image-optimizer'] = esc_html__( 'Image Optimizer', 'ewww-image-optimizer' );
 	ewwwio_memory( __FUNCTION__ );
-	return $defaults;
+	return $columns;
 }
 
 /**
@@ -5824,56 +8682,78 @@ function ewww_image_optimizer_columns( $defaults ) {
  * @param string $column_name The name of the column being displayed.
  * @param int    $id The attachment ID number.
  * @param array  $meta Optional. The attachment metadata. Default null.
- * @param bool   $return_output Optional. True if output should be returned instead of output.
- * @return string If $return_output, the data that would normally be output directly.
+ * @return string The data that would normally be output directly by the custom_column function.
  */
-function ewww_image_optimizer_custom_column( $column_name, $id, $meta = null, $return_output = false ) {
+function ewww_image_optimizer_custom_column_capture( $column_name, $id, $meta = null ) {
+	ob_start();
+	ewww_image_optimizer_custom_column( $column_name, $id, $meta );
+	return ob_get_clean();
+}
+
+/**
+ * Print column data for optimizer results in the media library.
+ *
+ * @global object $wpdb
+ *
+ * @param string $column_name The name of the column being displayed.
+ * @param int    $id The attachment ID number.
+ * @param array  $meta Optional. The attachment metadata. Default null.
+ */
+function ewww_image_optimizer_custom_column( $column_name, $id, $meta = null ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 	// Once we get to the EWWW IO custom column.
-	if ( 'ewww-image-optimizer' == $column_name ) {
-		$output = '';
-		if ( null == $meta ) {
+	if ( 'ewww-image-optimizer' === $column_name ) {
+		$id = (int) $id;
+		if ( is_null( $meta ) ) {
 			// Retrieve the metadata.
 			$meta = wp_get_attachment_metadata( $id );
 		}
-		if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_debug' ) && ! $return_output && ewww_image_optimizer_function_exists( 'print_r' ) ) {
-			$print_meta = print_r( $meta, true );
-			$print_meta = preg_replace( array( '/ /', '/\n+/' ), array( '&nbsp;', '<br />' ), $print_meta );
-			$output .= '<div style="background-color:#ffff99;font-size: 10px;padding: 10px;margin:-10px -10px 10px;line-height: 1.1em">' . $print_meta . '</div>';
+		echo '<div id="ewww-media-status-' . (int) $id . '" class="ewww-media-status" data-id="' . (int) $id . '">';
+		if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_debug' ) && ewww_image_optimizer_function_exists( 'print_r' ) ) {
+			$print_meta   = print_r( $meta, true );
+			$print_meta   = preg_replace( array( '/ /', '/\n+/' ), array( '&nbsp;', '<br />' ), $print_meta );
+			$debug_button = __( 'Show Metadata', 'ewww-image-optimizer' );
+			echo "<button type='button' class='ewww-show-debug-meta button button-secondary' data-id='" . (int) $id . "'>" . esc_html( $debug_button ) . "</button><div id='ewww-debug-meta-" . (int) $id . "' style='font-size: 10px;padding: 10px;margin:3px -10px 10px;line-height: 1.1em;display: none;'>" . wp_kses_post( $print_meta ) . '</div>';
 		}
-		$output .= "<div id='ewww-media-status-$id'>";
 		$ewww_cdn = false;
+		if ( is_array( $meta ) && ! empty( $meta['file'] ) && false !== strpos( $meta['file'], 'https://images-na.ssl-images-amazon.com' ) ) {
+			echo esc_html__( 'Amazon-hosted image', 'ewww-image-optimizer' ) . '</div>';
+			return;
+		}
 		if ( is_array( $meta ) && ! empty( $meta['cloudinary'] ) ) {
-			$output .= esc_html__( 'Cloudinary image', 'ewww-image-optimizer' ) . '</div>';
-			if ( $return_output ) {
-				return $output;
-			}
-			echo $output;
+			echo esc_html__( 'Cloudinary image', 'ewww-image-optimizer' ) . '</div>';
 			return;
 		}
 		if ( is_array( $meta ) & class_exists( 'WindowsAzureStorageUtil' ) && ! empty( $meta['url'] ) ) {
-			$output .= '<div>' . esc_html__( 'Azure Storage image', 'ewww-image-optimizer' ) . '</div>';
+			echo '<div>' . esc_html__( 'Azure Storage image', 'ewww-image-optimizer' ) . '</div>';
 			$ewww_cdn = true;
 		}
-		if ( is_array( $meta ) && class_exists( 'Amazon_S3_And_CloudFront' ) && preg_match( '/^(http|s3)\w*:/', get_attached_file( $id ) ) ) {
-			$output .= '<div>' . esc_html__( 'Amazon S3 image', 'ewww-image-optimizer' ) . '</div>';
+		if ( is_array( $meta ) && class_exists( 'Amazon_S3_And_CloudFront' ) && preg_match( '/^(http|s3|gs)\w*:/', get_attached_file( $id ) ) ) {
+			echo '<div>' . esc_html__( 'Offloaded Media', 'ewww-image-optimizer' ) . '</div>';
+			$ewww_cdn = true;
+		}
+		if ( is_array( $meta ) && class_exists( 'S3_Uploads' ) && preg_match( '/^(http|s3|gs)\w*:/', get_attached_file( $id ) ) ) {
+			echo '<div>' . esc_html__( 'Amazon S3 image', 'ewww-image-optimizer' ) . '</div>';
+			$ewww_cdn = true;
+		}
+		if ( is_array( $meta ) & class_exists( 'wpCloud\StatelessMedia\EWWW' ) && ! empty( $meta['gs_link'] ) ) {
+			echo '<div>' . esc_html__( 'WP Stateless image', 'ewww-image-optimizer' ) . '</div>';
 			$ewww_cdn = true;
 		}
 		list( $file_path, $upload_path ) = ewww_image_optimizer_attachment_path( $meta, $id );
+		if ( is_array( $meta ) & function_exists( 'ilab_get_image_sizes' ) && ! empty( $meta['s3'] ) && empty( $file_path ) ) {
+			echo esc_html__( 'Media Cloud image', 'ewww-image-optimizer' ) . '</div>';
+			return;
+		}
 		// If the file does not exist.
 		if ( empty( $file_path ) && ! $ewww_cdn ) {
-			$output .= esc_html__( 'Could not retrieve file path.', 'ewww-image-optimizer' ) . '</div>';
-			ewww_image_optimizer_debug_log();
-			if ( $return_output ) {
-				return $output;
-			}
-			echo $output;
+			echo esc_html__( 'Could not retrieve file path.', 'ewww-image-optimizer' ) . '</div>';
 			return;
 		}
 		if ( is_array( $meta ) && ( ! empty( $meta['ewww_image_optimizer'] ) || ! empty( $meta['converted'] ) ) ) {
 			$meta = ewww_image_optimizer_migrate_meta_to_db( $id, $meta );
 		}
-		$msg = '';
+		$msg          = '';
 		$convert_desc = '';
 		$convert_link = '';
 		if ( $ewww_cdn ) {
@@ -5893,51 +8773,69 @@ function ewww_image_optimizer_custom_column( $column_name, $id, $meta = null, $r
 		switch ( $type ) {
 			case 'image/jpeg':
 				// If jpegtran is missing and should not be skipped.
-				if ( ! EWWW_IMAGE_OPTIMIZER_JPEGTRAN && ! $skip['jpegtran'] ) {
+				if ( ! $skip['jpegtran'] && defined( 'EWWW_IMAGE_OPTIMIZER_JPEGTRAN' ) && ! EWWW_IMAGE_OPTIMIZER_JPEGTRAN && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_dismiss_exec_notice' ) ) {
 					$msg = '<div>' . sprintf(
 						/* translators: %s: name of a tool like jpegtran */
-						esc_html__( '%s is missing', 'ewww-image-optimizer' ),
+						__( '%s is missing', 'ewww-image-optimizer' ),
 						'<em>jpegtran</em>'
 					) . '</div>';
-				} elseif ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) == 0 ) {
+				} elseif ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) ) {
 					$msg = '<div>' . sprintf(
 						/* translators: %s: JPG, PNG, GIF, or PDF */
-						esc_html__( '%s compression disabled', 'ewww-image-optimizer' ),
+						__( '%s compression disabled', 'ewww-image-optimizer' ),
 						'JPG'
 					) . '</div>';
 				} else {
-					$convert_link = esc_html__( 'JPG to PNG', 'ewww-image-optimizer' );
-					$convert_desc = esc_attr__( 'WARNING: Removes metadata. Requires GD or ImageMagick. PNG is generally much better than JPG for logos and other images with a limited range of colors.', 'ewww-image-optimizer' );
+					$convert_link = __( 'JPG to PNG', 'ewww-image-optimizer' );
+					$convert_desc = __( 'WARNING: Removes metadata. Requires GD or ImageMagick. PNG is generally much better than JPG for logos and other images with a limited range of colors.', 'ewww-image-optimizer' );
 				}
 				break;
 			case 'image/png':
 				// If pngout and optipng are missing and should not be skipped.
-				if ( ! EWWW_IMAGE_OPTIMIZER_PNGOUT && ! EWWW_IMAGE_OPTIMIZER_OPTIPNG && ! $skip['optipng'] && ! $skip['pngout'] ) {
+				if ( ! $skip['optipng'] && ! EWWW_IMAGE_OPTIMIZER_OPTIPNG ) {
 					$msg = '<div>' . sprintf(
 						/* translators: %s: name of a tool like jpegtran */
-						esc_html__( '%s is missing', 'ewww-image-optimizer' ),
-						'<em>optipng/pngout</em>'
+						__( '%s is missing', 'ewww-image-optimizer' ),
+						'<em>optipng</em>'
+					) . '</div>';
+				} elseif ( ! $skip['pngout'] && ! EWWW_IMAGE_OPTIMIZER_PNGOUT ) {
+					$msg = '<div>' . sprintf(
+						/* translators: %s: name of a tool like jpegtran */
+						__( '%s is missing', 'ewww-image-optimizer' ),
+						'<em>pngout</em>'
+					) . '</div>';
+				} elseif ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) ) {
+					$msg = '<div>' . sprintf(
+						/* translators: %s: JPG, PNG, GIF, or PDF */
+						__( '%s compression disabled', 'ewww-image-optimizer' ),
+						'PNG'
 					) . '</div>';
 				} else {
-					$convert_link = esc_html__( 'PNG to JPG', 'ewww-image-optimizer' );
-					$convert_desc = esc_attr__( 'WARNING: This is not a lossless conversion and requires GD or ImageMagick. JPG is much better than PNG for photographic use because it compresses the image and discards data. Transparent images will only be converted if a background color has been set.', 'ewww-image-optimizer' );
+					$convert_link = __( 'PNG to JPG', 'ewww-image-optimizer' );
+					$convert_desc = __( 'WARNING: This is not a lossless conversion and requires GD or ImageMagick. JPG is much better than PNG for photographic use because it compresses the image and discards data. Transparent images will only be converted if a background color has been set.', 'ewww-image-optimizer' );
 				}
 				break;
 			case 'image/gif':
 				// If gifsicle is missing and should not be skipped.
-				if ( ! EWWW_IMAGE_OPTIMIZER_GIFSICLE && ! $skip['gifsicle'] ) {
+				if ( ! $skip['gifsicle'] && ! EWWW_IMAGE_OPTIMIZER_GIFSICLE ) {
 					$msg = '<div>' . sprintf(
 						/* translators: %s: name of a tool like jpegtran */
-						esc_html__( '%s is missing', 'ewww-image-optimizer' ),
+						__( '%s is missing', 'ewww-image-optimizer' ),
 						'<em>gifsicle</em>'
 					) . '</div>';
+				} elseif ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_level' ) ) {
+					$msg = '<div>' . sprintf(
+						/* translators: %s: JPG, PNG, GIF, or PDF */
+						__( '%s compression disabled', 'ewww-image-optimizer' ),
+						'GIF'
+					) . '</div>';
 				} else {
-					$convert_link = esc_html__( 'GIF to PNG', 'ewww-image-optimizer' );
-					$convert_desc = esc_attr__( 'PNG is generally better than GIF, but does not support animation. Animated images will not be converted.', 'ewww-image-optimizer' );
+					$convert_link = __( 'GIF to PNG', 'ewww-image-optimizer' );
+					$convert_desc = __( 'PNG is generally better than GIF, but does not support animation. Animated images will not be converted.', 'ewww-image-optimizer' );
 				}
 				break;
 			case 'application/pdf':
-				if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_pdf_level' ) == 0 ) {
+				if ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_pdf_level' ) ) {
 					$msg = '<div>' . sprintf(
 						/* translators: %s: JPG, PNG, GIF, or PDF */
 						esc_html__( '%s compression disabled', 'ewww-image-optimizer' ),
@@ -5947,180 +8845,320 @@ function ewww_image_optimizer_custom_column( $column_name, $id, $meta = null, $r
 					$convert_desc = '';
 				}
 				break;
+			case 'image/svg+xml':
+				if ( ! $skip['svgcleaner'] && ! EWWW_IMAGE_OPTIMIZER_SVGCLEANER ) {
+					$msg = '<div>' . sprintf(
+						/* translators: %s: name of a tool like jpegtran */
+						__( '%s is missing', 'ewww-image-optimizer' ),
+						'<em>svgcleaner</em>'
+					) . '</div>';
+				} elseif ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_svg_level' ) ) {
+					$msg = '<div>' . sprintf(
+						/* translators: %s: JPG, PNG, GIF, PDF or SVG */
+						__( '%s compression disabled', 'ewww-image-optimizer' ),
+						'SVG'
+					) . '</div>';
+				}
+				break;
 			default:
 				// Not a supported mimetype.
 				$msg = '<div>' . esc_html__( 'Unsupported file type', 'ewww-image-optimizer' ) . '</div>';
-				ewww_image_optimizer_debug_log();
 		} // End switch().
+		$compression_level = ewww_image_optimizer_get_level( $type );
 		if ( ! empty( $msg ) ) {
-			if ( $return_output ) {
-				return $msg;
+			if ( ewww_image_optimizer_easy_active() ) {
+				echo '<div>' . esc_html__( 'Easy IO enabled', 'ewww-image-optimizer' );
+				ewwwio_help_link( 'https://docs.ewww.io/article/96-easy-io-is-it-working', '5f871dd2c9e77c0016217c4e' );
+				echo '</div>';
+				return;
 			}
-			echo $msg;
+			echo wp_kses_post( $msg ) . '</div>';
 			return;
 		}
 		$ewww_manual_nonce = wp_create_nonce( 'ewww-manual' );
 		global $wpdb;
-		$in_progress = false;
-		$migrated = false;
+		$in_progress      = false;
+		$migrated         = false;
 		$optimized_images = false;
 		$backup_available = false;
-		$file_parts = pathinfo( $file_path );
-		$basename = $file_parts['filename'];
+		$file_parts       = pathinfo( $file_path );
+		$basename         = $file_parts['filename'];
+		$action_id        = ewww_image_optimizer_get_primary_wpml_id( $id );
 		// If necessary, use get_post_meta( $post_id, '_wp_attachment_backup_sizes', true ); to only use basename for edited attachments, but that requires extra queries, so kiss for now.
 		if ( $ewww_cdn ) {
-			if ( get_transient( 'ewwwio-background-in-progress-' . $id ) ) {
-				$output .= '<div>' . esc_html__( 'In Progress', 'ewww-image-optimizer' ) . '</div>';
+			if ( ewww_image_optimizer_image_is_pending( $action_id, 'media-async' ) ) {
+				echo '<div>' . esc_html__( 'In Progress', 'ewww-image-optimizer' ) . '</div>';
 				$in_progress = true;
 			}
 			if ( ! $in_progress ) {
-				$optimized_images = $wpdb->get_results( $wpdb->prepare( "SELECT image_size,orig_size,resize,converted,level,backup,updated FROM $wpdb->ewwwio_images WHERE attachment_id = %d AND gallery = 'media' AND image_size <> 0 AND path LIKE '%%%s%%' ORDER BY orig_size DESC", $id, $basename ), ARRAY_A );
+				$optimized_images = $wpdb->get_results( $wpdb->prepare( "SELECT image_size,orig_size,resize,converted,level,backup,updated FROM $wpdb->ewwwio_images WHERE attachment_id = %d AND gallery = 'media' AND image_size <> 0 ORDER BY orig_size DESC", $id ), ARRAY_A );
 				if ( ! $optimized_images ) {
 					// Attempt migration, but only if the original image is in the db, $migrated will be metadata on success, false on failure.
 					$migrated = ewww_image_optimizer_migrate_meta_to_db( $id, $meta, true );
 				}
 				if ( $migrated ) {
-					$optimized_images = $wpdb->get_results( $wpdb->prepare( "SELECT image_size,orig_size,resize,converted,level,backup,updated FROM $wpdb->ewwwio_images WHERE attachment_id = %d AND gallery = 'media' AND image_size <> 0 AND path LIKE '%%%s%%' ORDER BY orig_size DESC", $id, $basename ), ARRAY_A );
+					$optimized_images = $wpdb->get_results( $wpdb->prepare( "SELECT image_size,orig_size,resize,converted,level,backup,updated FROM $wpdb->ewwwio_images WHERE attachment_id = %d AND gallery = 'media' AND image_size <> 0 ORDER BY orig_size DESC", $id ), ARRAY_A );
+				}
+				if ( ! $optimized_images ) {
+					list( $possible_action_id, $optimized_images ) = ewww_image_optimizer_get_wpml_results( $id );
+					if ( $optimized_images ) {
+						$action_id = $possible_action_id;
+					}
 				}
 			}
 			// If optimizer data exists in the db.
 			if ( ! empty( $optimized_images ) ) {
-				list( $detail_output, $converted, $backup_available ) = ewww_image_optimizer_custom_column_results( $id, $optimized_images );
-				$output .= $detail_output;
+				list( $detail_output, $converted, $backup_available ) = ewww_image_optimizer_custom_column_results( $action_id, $optimized_images );
+				echo wp_kses_post( $detail_output );
 				// Output the optimizer actions.
 				if ( current_user_can( apply_filters( 'ewww_image_optimizer_manual_permissions', '' ) ) ) {
 					// Display a link to re-optimize manually.
-					$output .= '<div>' . sprintf( "<a class='ewww-manual-optimize' data-id='$id' data-nonce='$ewww_manual_nonce' href=\"admin.php?action=ewww_image_optimizer_manual_optimize&amp;ewww_manual_nonce=$ewww_manual_nonce&amp;ewww_force=1&amp;ewww_attachment_ID=%d\">%s</a>",
-						$id,
-						esc_html__( 'Re-optimize', 'ewww-image-optimizer' )
-					) . '</div>';
+					echo '<div>' . sprintf(
+						'<a class="ewww-manual-optimize" data-id="%1$d" data-nonce="%2$s" href="%3$s">%4$s</a>',
+						(int) $action_id,
+						esc_attr( $ewww_manual_nonce ),
+						esc_url( admin_url( "admin.php?action=ewww_image_optimizer_manual_optimize&ewww_manual_nonce=$ewww_manual_nonce&ewww_force=1&ewww_attachment_ID=$action_id" ) ),
+						( ewww_image_optimizer_restore_possible( $optimized_images, $compression_level ) ? esc_html__( 'Restore & Re-optimize', 'ewww-image-optimizer' ) : esc_html__( 'Re-optimize', 'ewww-image-optimizer' ) )
+					) .
+					wp_kses_post( ewww_image_optimizer_variant_level_notice( $optimized_images, $compression_level ) ) .
+					'</div>';
 				}
 				if ( $backup_available && current_user_can( apply_filters( 'ewww_image_optimizer_manual_permissions', '' ) ) ) {
-					$output .= '<div>' . sprintf( "<a class='ewww-manual-cloud-restore' data-id='$id' data-nonce='$ewww_manual_nonce' href=\"admin.php?action=ewww_image_optimizer_manual_cloud_restore&amp;ewww_manual_nonce=$ewww_manual_nonce&amp;ewww_attachment_ID=%d\">%s</a>",
-						$id,
+					echo '<div>' . sprintf(
+						'<a class="ewww-manual-cloud-restore" data-id="%1$d" data-nonce="%2$s" href="%3$s">%4$s</a>',
+						(int) $action_id,
+						esc_attr( $ewww_manual_nonce ),
+						esc_url( admin_url( "admin.php?action=ewww_image_optimizer_manual_cloud_restore&ewww_manual_nonce=$ewww_manual_nonce&ewww_attachment_ID=$action_id" ) ),
 						esc_html__( 'Restore original', 'ewww-image-optimizer' )
 					) . '</div>';
 				}
 			} elseif ( ! $in_progress && current_user_can( apply_filters( 'ewww_image_optimizer_manual_permissions', '' ) ) ) {
-				ewww_image_optimizer_migrate_meta_to_db( $id, $meta );
 				// Give the user the option to optimize the image right now.
-				if ( isset( $meta['sizes'] ) && ewww_image_optimizer_iterable( $meta['sizes'] ) ) {
+				if ( ewww_image_optimizer_easy_active() ) {
+					echo '<div>' . esc_html__( 'Easy IO enabled', 'ewww-image-optimizer' );
+					ewwwio_help_link( 'https://docs.ewww.io/article/96-easy-io-is-it-working', '5f871dd2c9e77c0016217c4e' );
+					echo '</div>';
+				} elseif ( isset( $meta['sizes'] ) && ewww_image_optimizer_iterable( $meta['sizes'] ) ) {
 					$sizes_to_opt = ewww_image_optimizer_count_unoptimized_sizes( $meta['sizes'] ) + 1;
-					$output .= '<div>' . sprintf( esc_html(
-						/* translators: %d: The number of resize/thumbnail images */
-						_n( '%d size to compress', '%d sizes to compress', $sizes_to_opt, 'ewww-image-optimizer' )
-					), $sizes_to_opt ) . '</div>';
+					if ( isset( $meta['original_image'] ) && ewww_image_optimizer_get_option( 'ewww_image_optimizer_include_originals' ) ) {
+						$sizes_to_opt++;
+					}
+					echo '<div>' . sprintf(
+						esc_html(
+							/* translators: %d: The number of resize/thumbnail images */
+							_n( '%d size to compress', '%d sizes to compress', $sizes_to_opt, 'ewww-image-optimizer' )
+						),
+						(int) $sizes_to_opt
+					) . '</div>';
 				}
-				$output .= '<div>' . sprintf( "<a class='ewww-manual-optimize' data-id='$id' data-nonce='$ewww_manual_nonce' href=\"admin.php?action=ewww_image_optimizer_manual_optimize&amp;ewww_manual_nonce=$ewww_manual_nonce&amp;ewww_attachment_ID=%d\">%s</a>", $id, esc_html__( 'Optimize now!', 'ewww-image-optimizer' ) ) . '</div>';
+				echo '<div>' . sprintf(
+					'<a class="ewww-manual-optimize" data-id="%1$d" data-nonce="%2$s" href="%3$s">%4$s</a>',
+					(int) $action_id,
+					esc_attr( $ewww_manual_nonce ),
+					esc_url( admin_url( "admin.php?action=ewww_image_optimizer_manual_optimize&ewww_manual_nonce=$ewww_manual_nonce&ewww_attachment_ID=$action_id" ) ),
+					esc_html__( 'Optimize now!', 'ewww-image-optimizer' )
+				) .
+				'</div>';
 			}
-			$output .= '</div>';
-			if ( $return_output ) {
-				return $output;
-			}
-			echo $output;
+			echo '</div>';
 			return;
 		} // End if().
 		// End of output for CDN images.
-		if ( get_transient( 'ewwwio-background-in-progress-' . $id ) ) {
-			$output .= esc_html__( 'In Progress', 'ewww-image-optimizer' );
+		if ( ewww_image_optimizer_image_is_pending( $action_id, 'media-async' ) ) {
+			echo '<div>' . esc_html__( 'In Progress', 'ewww-image-optimizer' ) . '</div>';
 			$in_progress = true;
 		}
 		if ( ! $in_progress ) {
-			$optimized_images = $wpdb->get_results( $wpdb->prepare( "SELECT image_size,orig_size,resize,converted,level,backup,updated FROM $wpdb->ewwwio_images WHERE attachment_id = %d AND gallery = 'media' AND image_size <> 0 AND path LIKE '%%%s%%' ORDER BY orig_size DESC", $id, $basename ), ARRAY_A );
+			$optimized_images = $wpdb->get_results( $wpdb->prepare( "SELECT image_size,orig_size,resize,converted,level,backup,updated FROM $wpdb->ewwwio_images WHERE attachment_id = %d AND gallery = 'media' AND image_size <> 0 ORDER BY orig_size DESC", $id ), ARRAY_A );
 			if ( ! $optimized_images ) {
 				// Attempt migration, but only if the original image is in the db, $migrated will be metadata on success, false on failure.
 				$migrated = ewww_image_optimizer_migrate_meta_to_db( $id, $meta, true );
 			}
 			if ( $migrated ) {
-				$optimized_images = $wpdb->get_results( $wpdb->prepare( "SELECT image_size,orig_size,resize,converted,level,backup,updated FROM $wpdb->ewwwio_images WHERE attachment_id = %d AND gallery = 'media' AND image_size <> 0 AND path LIKE '%%%s%%' ORDER BY orig_size DESC", $id, $basename ), ARRAY_A );
+				$optimized_images = $wpdb->get_results( $wpdb->prepare( "SELECT image_size,orig_size,resize,converted,level,backup,updated FROM $wpdb->ewwwio_images WHERE attachment_id = %d AND gallery = 'media' AND image_size <> 0 ORDER BY orig_size DESC", $id ), ARRAY_A );
+			}
+			if ( ! $optimized_images ) {
+				list( $possible_action_id, $optimized_images ) = ewww_image_optimizer_get_wpml_results( $id );
+				if ( $optimized_images ) {
+					$action_id = $possible_action_id;
+				}
 			}
 		}
 		// If optimizer data exists.
 		if ( ! empty( $optimized_images ) ) {
-			list( $detail_output, $converted, $backup_available ) = ewww_image_optimizer_custom_column_results( $id, $optimized_images );
-			$output .= $detail_output;
+			list( $detail_output, $converted, $backup_available ) = ewww_image_optimizer_custom_column_results( $action_id, $optimized_images );
+			echo wp_kses_post( $detail_output );
 
 			// Link to webp upgrade script.
 			$oldwebpfile = preg_replace( '/\.\w+$/', '.webp', $file_path );
 			if ( file_exists( $oldwebpfile ) && current_user_can( apply_filters( 'ewww_image_optimizer_admin_permissions', '' ) ) ) {
-				$output .= "<div><a href='options.php?page=ewww-image-optimizer-webp-migrate'>" . esc_html__( 'Run WebP upgrade', 'ewww-image-optimizer' ) . '</a></div>';
+				echo "<div><a href='" . esc_url( admin_url( 'options.php?page=ewww-image-optimizer-webp-migrate' ) ) . "'>" . esc_html__( 'Run WebP upgrade', 'ewww-image-optimizer' ) . '</a></div>';
 			}
 
 			// Determine filepath for webp.
-			$webpfile = $file_path . '.webp';
+			$webpfile  = $file_path . '.webp';
 			$webp_size = ewww_image_optimizer_filesize( $webpfile );
 			if ( $webp_size ) {
 				// Get a human readable filesize.
 				$webp_size = ewww_image_optimizer_size_format( $webp_size );
-				$webpurl = esc_url( wp_get_attachment_url( $id ) . '.webp' );
-				$output .= "<div>WebP: <a href='$webpurl'>$webp_size</a></div>";
+				$webpurl   = esc_url( wp_get_attachment_url( $id ) . '.webp' );
+				echo '<div>WebP: <a href="' . esc_url( $webpurl ) . '">' . esc_html( $webp_size ) . '</a></div>';
 			}
 
-			if ( empty( $msg ) && current_user_can( apply_filters( 'ewww_image_optimizer_manual_permissions', '' ) ) ) {
+			if ( current_user_can( apply_filters( 'ewww_image_optimizer_manual_permissions', '' ) ) ) {
 				// Output a link to re-optimize manually.
-				$output .= '<div>' . sprintf("<a class='ewww-manual-optimize' data-id='$id' data-nonce='$ewww_manual_nonce' href=\"admin.php?action=ewww_image_optimizer_manual_optimize&amp;ewww_manual_nonce=$ewww_manual_nonce&amp;ewww_force=1&amp;ewww_attachment_ID=%d\">%s</a>",
-					$id,
-					esc_html__( 'Re-optimize', 'ewww-image-optimizer' )
+				echo '<div>' . sprintf(
+					'<a class="ewww-manual-optimize" data-id="%1$d" data-nonce="%2$s" href="%3$s">%4$s</a>',
+					(int) $action_id,
+					esc_attr( $ewww_manual_nonce ),
+					esc_url( admin_url( "admin.php?action=ewww_image_optimizer_manual_optimize&ewww_manual_nonce=$ewww_manual_nonce&ewww_force=1&ewww_attachment_ID=$action_id" ) ),
+					( ewww_image_optimizer_restore_possible( $optimized_images, $compression_level ) ? esc_html__( 'Restore & Re-optimize', 'ewww-image-optimizer' ) : esc_html__( 'Re-optimize', 'ewww-image-optimizer' ) )
 				);
-				if ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_convert_links' ) && 'ims_image' != get_post_type( $id ) && ! empty( $convert_desc ) ) {
-					$output .= " | <a class='ewww-manual-convert' data-id='$id' data-nonce='$ewww_manual_nonce' title='$convert_desc' href='admin.php?action=ewww_image_optimizer_manual_optimize&amp;ewww_manual_nonce=$ewww_manual_nonce&amp;ewww_attachment_ID=$id&amp;ewww_convert=1&amp;ewww_force=1'>$convert_link</a>";
+				echo wp_kses_post( ewww_image_optimizer_variant_level_notice( $optimized_images, $compression_level ) );
+				if ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_convert_links' ) && 'ims_image' !== get_post_type( $id ) && ! empty( $convert_desc ) ) {
+					printf(
+						' | <a class="ewww-manual-convert" data-id="%1$d" data-nonce="%2$s" title="%3$s" href="%4$s">%5$s</a>',
+						(int) $action_id,
+						esc_attr( $ewww_manual_nonce ),
+						esc_attr( $convert_desc ),
+						esc_url( admin_url( "admin.php?action=ewww_image_optimizer_manual_optimize&ewww_manual_nonce=$ewww_manual_nonce&ewww_attachment_ID=$action_id&ewww_convert=1&ewww_force=1" ) ),
+						esc_html( $convert_link )
+					);
 				}
-				$output .= '</div>';
-			} else {
-				$output .= $msg;
+				echo '</div>';
 			}
 			$restorable = false;
-			if ( $converted && is_file( $converted ) ) {
+			if ( $converted && ewwwio_is_file( $converted ) ) {
 				$restorable = true;
 			}
 			if ( $restorable && current_user_can( apply_filters( 'ewww_image_optimizer_manual_permissions', '' ) ) ) {
-				$output .= '<div>' . sprintf( "<a class='ewww-manual-restore' data-id='$id' data-nonce='$ewww_manual_nonce' href=\"admin.php?action=ewww_image_optimizer_manual_restore&amp;ewww_manual_nonce=$ewww_manual_nonce&amp;ewww_attachment_ID=%d\">%s</a>",
-					$id,
+				echo '<div>' . sprintf(
+					'<a class="ewww-manual-restore" data-id="%1$d" data-nonce="%2$s" href="%3$s">%4$s</a>',
+					(int) $action_id,
+					esc_attr( $ewww_manual_nonce ),
+					esc_url( admin_url( "admin.php?action=ewww_image_optimizer_manual_restore&ewww_manual_nonce=$ewww_manual_nonce&ewww_attachment_ID=$action_id" ) ),
 					esc_html__( 'Restore original', 'ewww-image-optimizer' )
 				) . '</div>';
 			} elseif ( $backup_available && current_user_can( apply_filters( 'ewww_image_optimizer_manual_permissions', '' ) ) ) {
-				$output .= '<div>' . sprintf( "<a class='ewww-manual-cloud-restore' data-id='$id' data-nonce='$ewww_manual_nonce' href=\"admin.php?action=ewww_image_optimizer_manual_cloud_restore&amp;ewww_manual_nonce=$ewww_manual_nonce&amp;ewww_attachment_ID=%d\">%s</a>",
-					$id,
+				echo '<div>' . sprintf(
+					'<a class="ewww-manual-cloud-restore" data-id="%1$d" data-nonce="%2$s" href="%3$s">%4$s</a>',
+					(int) $action_id,
+					esc_attr( $ewww_manual_nonce ),
+					esc_url( admin_url( "admin.php?action=ewww_image_optimizer_manual_cloud_restore&ewww_manual_nonce=$ewww_manual_nonce&ewww_attachment_ID=$action_id" ) ),
 					esc_html__( 'Restore original', 'ewww-image-optimizer' )
 				) . '</div>';
 			}
 		} elseif ( ! $in_progress ) {
 			// Otherwise, this must be an image we haven't processed.
-			if ( isset( $meta['sizes'] ) && ewww_image_optimizer_iterable( $meta['sizes'] ) ) {
+			if ( ewww_image_optimizer_easy_active() ) {
+				echo '<div>' . esc_html__( 'Easy IO enabled', 'ewww-image-optimizer' );
+				ewwwio_help_link( 'https://docs.ewww.io/article/96-easy-io-is-it-working', '5f871dd2c9e77c0016217c4e' );
+				echo '</div>';
+			} elseif ( isset( $meta['sizes'] ) && ewww_image_optimizer_iterable( $meta['sizes'] ) ) {
 				$sizes_to_opt = ewww_image_optimizer_count_unoptimized_sizes( $meta['sizes'] ) + 1;
-				$output .= '<div>' . sprintf( esc_html(
-					/* translators: %d: The number of resize/thumbnail images */
-					_n( '%d size to compress', '%d sizes to compress', $sizes_to_opt, 'ewww-image-optimizer' )
-				), $sizes_to_opt ) . '</div>';
+				if ( isset( $meta['original_image'] ) && ewww_image_optimizer_get_option( 'ewww_image_optimizer_include_originals' ) ) {
+					$sizes_to_opt++;
+				}
+				echo '<div>' . sprintf(
+					esc_html(
+						/* translators: %d: The number of resize/thumbnail images */
+						_n( '%d size to compress', '%d sizes to compress', $sizes_to_opt, 'ewww-image-optimizer' )
+					),
+					(int) $sizes_to_opt
+				) . '</div>';
 			} else {
-				$output .= '<div>' . esc_html__( 'Not processed', 'ewww-image-optimizer' ) . '</div>';
+				echo '<div>' . esc_html__( 'Not optimized', 'ewww-image-optimizer' ) . '</div>';
 			}
 			// Tell them the filesize.
-			$output .= '<div>' . sprintf(
+			echo '<div>' . sprintf(
 				/* translators: %s: size of the image */
 				esc_html__( 'Image Size: %s', 'ewww-image-optimizer' ),
-				$file_size
+				esc_html( $file_size )
 			) . '</div>';
-			if ( empty( $msg ) && current_user_can( apply_filters( 'ewww_image_optimizer_manual_permissions', '' ) ) ) {
+			// Determine filepath for webp.
+			$webpfile  = $file_path . '.webp';
+			$webp_size = ewww_image_optimizer_filesize( $webpfile );
+			if ( $webp_size ) {
+				// Get a human readable filesize.
+				$webp_size = ewww_image_optimizer_size_format( $webp_size );
+				$webpurl   = esc_url( wp_get_attachment_url( $id ) . '.webp' );
+				echo '<div>WebP: <a href="' . esc_url( $webpurl ) . '">' . esc_html( $webp_size ) . '</a></div>';
+			}
+			if ( current_user_can( apply_filters( 'ewww_image_optimizer_manual_permissions', '' ) ) ) {
 				// Give the user the option to optimize the image right now.
-				$output .= sprintf( "<div><a class='ewww-manual-optimize' data-id='$id' data-nonce='$ewww_manual_nonce' href=\"admin.php?action=ewww_image_optimizer_manual_optimize&amp;ewww_manual_nonce=$ewww_manual_nonce&amp;ewww_attachment_ID=%d\">%s</a>", $id, esc_html__( 'Optimize now!', 'ewww-image-optimizer' ) );
-				if ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_convert_links' ) && 'ims_image' != get_post_type( $id ) && ! empty( $convert_desc ) ) {
-					$output .= " | <a class='ewww-manual-convert' data-id='$id' data-nonce='$ewww_manual_nonce' title='$convert_desc' href='admin.php?action=ewww_image_optimizer_manual_optimize&amp;ewww_manual_nonce=$ewww_manual_nonce&amp;ewww_attachment_ID=$id&amp;ewww_convert=1&amp;ewww_force=1'>$convert_link</a>";
+				printf(
+					'<div><a class="ewww-manual-optimize" data-id="%1$d" data-nonce="%2$s" href="%3$s">%4$s</a>',
+					(int) $action_id,
+					esc_attr( $ewww_manual_nonce ),
+					esc_url( admin_url( "admin.php?action=ewww_image_optimizer_manual_optimize&ewww_manual_nonce=$ewww_manual_nonce&ewww_attachment_ID=$action_id" ) ),
+					esc_html__( 'Optimize now!', 'ewww-image-optimizer' )
+				);
+				if ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_convert_links' ) && 'ims_image' !== get_post_type( $id ) && ! empty( $convert_desc ) ) {
+					printf(
+						' | <a class="ewww-manual-convert" data-id="%1$d" data-nonce="%2$s" title="%3$s" href="%4$s">%5$s</a>',
+						(int) $action_id,
+						esc_attr( $ewww_manual_nonce ),
+						esc_attr( $convert_desc ),
+						esc_url( admin_url( "admin.php?action=ewww_image_optimizer_manual_optimize&ewww_manual_nonce=$ewww_manual_nonce&ewww_attachment_ID=$action_id&ewww_convert=1&ewww_force=1" ) ),
+						esc_html( $convert_link )
+					);
 				}
-				$output .= '</div>';
-			} else {
-				$output .= $msg;
+				echo '</div>';
 			}
 		} // End if().
-		$output .= '</div>';
-		if ( $return_output ) {
-			ewww_image_optimizer_debug_log();
-			return $output;
-		}
-		echo $output;
+		echo '</div>';
 	} // End if().
 	ewwwio_memory( __FUNCTION__ );
 	ewww_image_optimizer_debug_log();
+}
+
+/**
+ * Check the stored results to see if 'restore & re-optimize' is possible and applicable.
+ *
+ * @param array $optimized_images The list of image records from the database.
+ * @param int   $compression_level The currently active compression level.
+ */
+function ewww_image_optimizer_restore_possible( $optimized_images, $compression_level ) {
+	if ( empty( $compression_level ) ) {
+		return '';
+	}
+	if ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ) {
+		return '';
+	}
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	foreach ( $optimized_images as $optimized_image ) {
+		if ( 'full' === $optimized_image['resize'] ) {
+			ewwwio_debug_message( "comparing $compression_level (current) vs. {$optimized_image['level']} (previous)" );
+			if ( $compression_level < 30 && $compression_level < $optimized_image['level'] && $optimized_image['level'] > 20 ) {
+				$updated_time = strtotime( $optimized_image['updated'] );
+				if ( DAY_IN_SECONDS * 30 + $updated_time > time() ) {
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+/**
+ * Check the stored results to detect deviation from the current settings.
+ *
+ * @param array $optimized_images The list of image records from the database.
+ * @param int   $compression_level The currently active compression level.
+ */
+function ewww_image_optimizer_variant_level_notice( $optimized_images, $compression_level ) {
+	if ( empty( $compression_level ) ) {
+		return '';
+	}
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	foreach ( $optimized_images as $optimized_image ) {
+		if ( 'full' === $optimized_image['resize'] ) {
+			if ( is_numeric( $optimized_image['level'] ) && (int) $compression_level > (int) $optimized_image['level'] ) {
+				return ' <span title="' . esc_attr__( 'Compressed at a lower level than current setting.' ) . '" class="ewww-variant-icon"><sup>!</sup></span>';
+			}
+		}
+	}
+	return '';
 }
 
 /**
@@ -6134,8 +9172,9 @@ function ewww_image_optimizer_count_unoptimized_sizes( $sizes ) {
 		ewwwio_debug_message( 'unoptimized sizes cannot be counted' );
 		return 0;
 	}
-	$sizes_to_opt = 0;
-	$disabled_sizes = get_option( 'ewww_image_optimizer_disable_resizes_opt' );
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	$sizes_to_opt   = 0;
+	$disabled_sizes = ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_resizes_opt', false, true );
 
 	// To keep track of the ones we have already processed.
 	$processed = array();
@@ -6148,7 +9187,7 @@ function ewww_image_optimizer_count_unoptimized_sizes( $sizes ) {
 		if ( ! empty( $disabled_sizes[ $size ] ) ) {
 			continue;
 		}
-		if ( ! empty( $disabled_sizes['pdf-full'] ) && 'full' == $size ) {
+		if ( ! empty( $disabled_sizes['pdf-full'] ) && 'full' === $size ) {
 			continue;
 		}
 		if ( empty( $data['file'] ) ) {
@@ -6158,14 +9197,14 @@ function ewww_image_optimizer_count_unoptimized_sizes( $sizes ) {
 		// Check through all the sizes we've processed so far.
 		foreach ( $processed as $proc => $scan ) {
 			// If a previous resize had identical dimensions...
-			if ( $scan['height'] == $data['height'] && $scan['width'] == $data['width'] ) {
+			if ( $scan['height'] === $data['height'] && $scan['width'] === $data['width'] ) {
 				// Found a duplicate size, get outta here!
 				continue( 2 );
 			}
 		}
 		$sizes_to_opt++;
 		// Store info on the sizes we've processed, so we can check the list for duplicate sizes.
-		$processed[ $size ]['width'] = $data['width'];
+		$processed[ $size ]['width']  = $data['width'];
 		$processed[ $size ]['height'] = $data['height'];
 	} // End foreach().
 	return $sizes_to_opt;
@@ -6177,33 +9216,33 @@ function ewww_image_optimizer_count_unoptimized_sizes( $sizes ) {
  * @param int   $id The ID number of the attachment.
  * @param array $optimized_images A list of image records related to $id.
  * @return array {
- *	Information compiled from the database records.
+ *     Information compiled from the database records.
  *
- *	@type string $output The image results plus a table of individual image results in a modal.
- *	@type string|bool $converted The original image if the attachment was converted or false.
- *	@type string|bool $backup_available The backup hash if available or false.
+ *     @type string $output The image results plus a table of individual image results in a modal.
+ *     @type string|bool $converted The original image if the attachment was converted or false.
+ *     @type string|bool $backup_available The backup hash if available or false.
  * }
  */
 function ewww_image_optimizer_custom_column_results( $id, $optimized_images ) {
 	if ( empty( $id ) || empty( $optimized_images ) || ! is_array( $optimized_images ) ) {
 		return array( '', false, false );
 	}
-	$orig_size = 0;
-	$opt_size = 0;
-	$level = 0;
-	$converted = false;
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	global $ewwwio_resize_status;
+	$orig_size        = 0;
+	$opt_size         = 0;
+	$converted        = false;
 	$backup_available = false;
-	$sizes_to_opt = 0;
-	$output = '';
-	$detail_output = '<table class="striped"><tr><th>&nbsp;</th><th>' . esc_html__( 'Image Size', 'ewww-image-optimizer' ) . '</th><th>' . esc_html__( 'Savings', 'ewww-image-optimizer' ) . '</th></tr>';
+	$sizes_to_opt     = 0;
+	$output           = '';
+	$detail_output    = '<table class="striped"><tr><th>&nbsp;</th><th>' . esc_html__( 'Image Size', 'ewww-image-optimizer' ) . '</th><th>' . esc_html__( 'Savings', 'ewww-image-optimizer' ) . '</th></tr>';
 	foreach ( $optimized_images as $optimized_image ) {
 		if ( ! empty( $optimized_image['attachment_id'] ) ) {
 			$id = $optimized_image['attachment_id'];
 		}
 		$orig_size += $optimized_image['orig_size'];
-		$opt_size += $optimized_image['image_size'];
-		if ( 'full' == $optimized_image['resize'] ) {
-			$level = $optimized_image['level'];
+		$opt_size  += $optimized_image['image_size'];
+		if ( 'full' === $optimized_image['resize'] ) {
 			$updated_time = strtotime( $optimized_image['updated'] );
 			if ( DAY_IN_SECONDS * 30 + $updated_time > time() ) {
 				$backup_available = $optimized_image['backup'];
@@ -6212,24 +9251,30 @@ function ewww_image_optimizer_custom_column_results( $id, $optimized_images ) {
 			}
 		}
 		if ( ! empty( $optimized_image['converted'] ) ) {
-			$converted = $optimized_image['converted'];
+			$converted = ewww_image_optimizer_absolutize_path( $optimized_image['converted'] );
 		}
 		$sizes_to_opt++;
 		if ( ! empty( $optimized_image['resize'] ) ) {
-			$display_size = ewww_image_optimizer_size_format( $optimized_image['image_size'] );
+			$display_size   = ewww_image_optimizer_size_format( $optimized_image['image_size'] );
 			$detail_output .= '<tr><td><strong>' . ucfirst( $optimized_image['resize'] ) . "</strong></td><td>$display_size</td><td>" . esc_html( ewww_image_optimizer_image_results( $optimized_image['orig_size'], $optimized_image['image_size'] ) ) . '</td></tr>';
 		}
 	}
 	$detail_output .= '</table>';
 
-	$output .= '<div>' . sprintf( esc_html(
-		/* translators: %d: number of resizes/thumbnails compressed */
-		_n( '%d size compressed', '%d sizes compressed', $sizes_to_opt, 'ewww-image-optimizer' )
-	), $sizes_to_opt );
-	$output .= " <a href='#TB_inline?width=550&height=450&inlineId=ewww-attachment-detail-$id' class='thickbox'>(+)</a></div>";
+	if ( ! empty( $ewwwio_resize_status ) ) {
+		$output .= '<div>' . esc_html( $ewwwio_resize_status ) . '</div>';
+	}
+	$output .= '<div>' . sprintf(
+		esc_html(
+			/* translators: %d: number of resizes/thumbnails compressed */
+			_n( '%d size compressed', '%d sizes compressed', $sizes_to_opt, 'ewww-image-optimizer' )
+		),
+		$sizes_to_opt
+	);
+	$output     .= " <a href='#TB_inline?width=550&height=450&inlineId=ewww-attachment-detail-$id' class='thickbox'>(+)</a></div>";
 	$results_msg = ewww_image_optimizer_image_results( $orig_size, $opt_size );
 	// Output the optimizer results.
-	$output .= '<div>' . esc_html( $results_msg ) . '</div>';
+	$output      .= '<div>' . esc_html( $results_msg ) . '</div>';
 	$display_size = ewww_image_optimizer_size_format( $opt_size );
 	// Output the total filesize.
 	$detail_output .= '<div><strong>' . sprintf(
@@ -6242,6 +9287,68 @@ function ewww_image_optimizer_custom_column_results( $id, $optimized_images ) {
 }
 
 /**
+ * If attachment is translated by WPML, get the primary ID number.
+ *
+ * @param int $id The attachment ID number to search for in the WPML tables.
+ * @return int The primary/original ID number.
+ */
+function ewww_image_optimizer_get_primary_wpml_id( $id ) {
+	if ( ! defined( 'ICL_SITEPRESS_VERSION' ) ) {
+		return $id;
+	}
+	if ( get_post_meta( $id, 'wpml_media_processed', true ) ) {
+		$trid = apply_filters( 'wpml_element_trid', null, $id, 'post_attachment' );
+		if ( ! empty( $trid ) ) {
+			$translations = apply_filters( 'wpml_get_element_translations', null, $trid, 'post_attachment' );
+			if ( ewww_image_optimizer_iterable( $translations ) ) {
+				$possible_ids = array();
+				foreach ( $translations as $translation ) {
+					if ( ! empty( $translation->element_id ) ) {
+						$possible_ids[] = (int) $translation->element_id;
+					}
+				}
+				if ( ewww_image_optimizer_iterable( $possible_ids ) ) {
+					sort( $possible_ids );
+					return $possible_ids[0];
+				}
+			}
+		}
+	}
+	return $id;
+}
+/**
+ * Gets results for WPML replicates.
+ *
+ * @param int $id The attachment ID number to search for in the WPML tables.
+ * @return array The resultant attachment ID, and a list of image optimization results.
+ */
+function ewww_image_optimizer_get_wpml_results( $id ) {
+	if ( ! defined( 'ICL_SITEPRESS_VERSION' ) ) {
+		return array( $id, array() );
+	}
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	$trid = apply_filters( 'wpml_element_trid', null, $id, 'post_attachment' );
+	if ( empty( $trid ) ) {
+		return array( $id, array() );
+	}
+	$translations = apply_filters( 'wpml_get_element_translations', null, $trid, 'post_attachment' );
+	if ( empty( $translations ) ) {
+		return array( $id, array() );
+	}
+	global $wpdb;
+	foreach ( $translations as $translation ) {
+		if ( empty( $translation->element_id ) ) {
+			continue;
+		}
+		ewwwio_debug_message( "checking {$translation->element_id} for results with WPML" );
+		$optimized_images = $wpdb->get_results( $wpdb->prepare( "SELECT image_size,orig_size,resize,converted,level,backup,updated FROM $wpdb->ewwwio_images WHERE attachment_id = %d AND gallery = 'media' AND image_size <> 0 ORDER BY orig_size DESC", $translation->element_id ), ARRAY_A );
+		if ( ! empty( $optimized_images ) ) {
+			return array( (int) $translation->element_id, $optimized_images );
+		}
+	}
+	return array( $id, array() );
+}
+/**
  * Removes optimization from metadata, because we store it all in the images table now.
  *
  * @param array $meta The attachment metadata.
@@ -6249,27 +9356,37 @@ function ewww_image_optimizer_custom_column_results( $id, $optimized_images ) {
  */
 function ewww_image_optimizer_clean_meta( $meta ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	$changed = false;
 	if ( is_array( $meta ) && ! empty( $meta['ewww_image_optimizer'] ) ) {
 		unset( $meta['ewww_image_optimizer'] );
+		$changed = true;
 	}
 	if ( is_array( $meta ) && ! empty( $meta['converted'] ) ) {
 		unset( $meta['converted'] );
+		$changed = true;
 	}
 	if ( is_array( $meta ) && ! empty( $meta['orig_file'] ) ) {
 		unset( $meta['orig_file'] );
+		$changed = true;
 	}
 	if ( isset( $meta['sizes'] ) && ewww_image_optimizer_iterable( $meta['sizes'] ) ) {
 		foreach ( $meta['sizes'] as $size => $data ) {
 			if ( is_array( $data ) && ! empty( $data['ewww_image_optimizer'] ) ) {
 				unset( $meta['sizes'][ $size ]['ewww_image_optimizer'] );
+				$changed = true;
 			}
 			if ( is_array( $data ) && ! empty( $data['converted'] ) ) {
 				unset( $meta['sizes'][ $size ]['converted'] );
+				$changed = true;
 			}
 			if ( is_array( $data ) && ! empty( $data['orig_file'] ) ) {
 				unset( $meta['sizes'][ $size ]['orig_file'] );
+				$changed = true;
 			}
 		}
+	}
+	if ( $changed ) {
+		update_post_meta( $id, '_wp_attachment_metadata', $meta );
 	}
 	return $meta;
 }
@@ -6341,28 +9458,24 @@ function ewww_image_optimizer_migrate_meta_to_db( $id, $meta, $bail_early = fals
 		return $meta;
 	}
 	list( $file_path, $upload_path ) = ewww_image_optimizer_attachment_path( $meta, $id );
-	if ( ! is_file( $file_path ) && ( class_exists( 'WindowsAzureStorageUtil' ) || class_exists( 'Amazon_S3_And_CloudFront' ) ) ) {
+	if ( ! ewwwio_is_file( $file_path ) && ( class_exists( 'WindowsAzureStorageUtil' ) || class_exists( 'Amazon_S3_And_CloudFront' ) ) ) {
 		// Construct a $file_path and proceed IF a supported CDN plugin is installed.
-		$file_path = get_attached_file( $selected_id );
+		$file_path = get_attached_file( $id );
 		if ( ! $file_path ) {
 			ewwwio_debug_message( 'no file found for remote attachment' );
-			// $meta = ewww_image_optimizer_clean_meta( $meta );
-			// TODO: once we've kicked the tires about a million times, and we're convinced this can't happen in error, then let's clean the meta
-			return $meta;
+			return ewww_image_optimizer_clean_meta( $meta );
 		}
 	} elseif ( ! $file_path ) {
 		ewwwio_debug_message( 'no file found for attachment' );
-		// $meta = ewww_image_optimizer_clean_meta( $meta );
-		// TODO: ditto.
-		return $meta;
+		return ewww_image_optimizer_clean_meta( $meta );
 	}
-	$converted = ( is_array( $meta ) && ! empty( $meta['converted'] ) && ! empty( $meta['orig_file'] ) ? trailingslashit( dirname( $file_path ) ) . basename( $meta['orig_file'] ) : false );
+	$converted        = ( is_array( $meta ) && ! empty( $meta['converted'] ) && ! empty( $meta['orig_file'] ) ? trailingslashit( dirname( $file_path ) ) . basename( $meta['orig_file'] ) : false );
 	$full_size_update = ewww_image_optimizer_update_file_from_meta( $file_path, 'media', $id, 'full', $converted );
 	if ( ! $full_size_update && $bail_early ) {
 		ewwwio_debug_message( "bailing early for migration of $id" );
 		return false;
 	}
-	$retina_path = ewww_image_optimizer_hidpi_optimize( $file_path, true, false );
+	$retina_path = ewww_image_optimizer_get_hidpi_path( $file_path, false );
 	if ( $retina_path ) {
 		ewww_image_optimizer_update_file_from_meta( $retina_path, 'media', $id, 'full-retina' );
 	}
@@ -6370,7 +9483,7 @@ function ewww_image_optimizer_migrate_meta_to_db( $id, $meta, $bail_early = fals
 	// Resized versions, so we can continue.
 	if ( isset( $meta['sizes'] ) && ewww_image_optimizer_iterable( $meta['sizes'] ) ) {
 		// Meta sizes don't contain a path, so we calculate one.
-		if ( 'ims_image' == get_post_type( $id ) ) {
+		if ( 'ims_image' === get_post_type( $id ) ) {
 			$base_dir = trailingslashit( dirname( $file_path ) ) . '_resized/';
 		} else {
 			$base_dir = trailingslashit( dirname( $file_path ) );
@@ -6383,20 +9496,20 @@ function ewww_image_optimizer_migrate_meta_to_db( $id, $meta, $bail_early = fals
 			if ( empty( $data ) || ! is_array( $data ) || empty( $data['file'] ) ) {
 				continue;
 			}
-			if ( 'full' == $size && 'application/pdf' == $type ) {
+			if ( 'full' === $size && 'application/pdf' === $type ) {
 				$size = 'pdf-full';
-			} elseif ( 'full' == $size ) {
+			} elseif ( 'full' === $size ) {
 				continue;
 			}
 
-			$resize_path = $base_dir . $data['file'];
-			$converted = ( is_array( $data ) && ! empty( $data['converted'] ) && ! empty( $data['orig_file'] ) ? trailingslashit( dirname( $resize_path ) ) . basename( $data['orig_file'] ) : false );
+			$resize_path = $base_dir . wp_basename( $data['file'] );
+			$converted   = ( is_array( $data ) && ! empty( $data['converted'] ) && ! empty( $data['orig_file'] ) ? trailingslashit( dirname( $resize_path ) ) . basename( $data['orig_file'] ) : false );
 			ewww_image_optimizer_update_file_from_meta( $resize_path, 'media', $id, $size, $converted );
 			// Search for retina images.
 			if ( function_exists( 'wr2x_get_retina' ) ) {
 				$retina_path = wr2x_get_retina( $resize_path );
 			} else {
-				$retina_path = ewww_image_optimizer_hidpi_optimize( $resize_path, true, false );
+				$retina_path = ewww_image_optimizer_get_hidpi_path( $resize_path, false );
 			}
 			if ( $retina_path ) {
 				ewww_image_optimizer_update_file_from_meta( $retina_path, 'media', $id, $size . '-retina' );
@@ -6407,7 +9520,7 @@ function ewww_image_optimizer_migrate_meta_to_db( $id, $meta, $bail_early = fals
 	// Search sizes from a custom theme...
 	if ( isset( $meta['image_meta']['resized_images'] ) && ewww_image_optimizer_iterable( $meta['image_meta']['resized_images'] ) ) {
 		$imagemeta_resize_pathinfo = pathinfo( $file_path );
-		$imagemeta_resize_path = '';
+		$imagemeta_resize_path     = '';
 		foreach ( $meta['image_meta']['resized_images'] as $index => $imagemeta_resize ) {
 			$imagemeta_resize_path = $imagemeta_resize_pathinfo['dirname'] . '/' . $imagemeta_resize_pathinfo['filename'] . '-' . $imagemeta_resize . '.' . $imagemeta_resize_pathinfo['extension'];
 			ewww_image_optimizer_update_file_from_meta( $imagemeta_resize_path, 'media', $id, 'resized-images-' . $index );
@@ -6417,9 +9530,9 @@ function ewww_image_optimizer_migrate_meta_to_db( $id, $meta, $bail_early = fals
 	// and another custom theme.
 	if ( isset( $meta['custom_sizes'] ) && ewww_image_optimizer_iterable( $meta['custom_sizes'] ) ) {
 		$custom_sizes_pathinfo = pathinfo( $file_path );
-		$custom_size_path = '';
+		$custom_size_path      = '';
 		foreach ( $meta['custom_sizes'] as $dimensions => $custom_size ) {
-			$custom_size_path = $custom_sizes_pathinfo['dirname'] . '/' . $custom_size['file'];
+			$custom_size_path = $custom_sizes_pathinfo['dirname'] . '/' . wp_basename( $custom_size['file'] );
 			ewww_image_optimizer_update_file_from_meta( $custom_size_path, 'media', $id, 'custom-size-' . $dimensions );
 		}
 	}
@@ -6427,79 +9540,215 @@ function ewww_image_optimizer_migrate_meta_to_db( $id, $meta, $bail_early = fals
 	if ( ewww_image_optimizer_function_exists( 'print_r' ) ) {
 		ewwwio_debug_message( print_r( $meta, true ) );
 	}
-	update_post_meta( $id, '_wp_attachment_metadata', $meta );
 	return $meta;
 }
 
 /**
- * Load JS in media library footer for bulk actions.
+ * Dismisses the WC regen notice.
  */
-function ewww_image_optimizer_load_admin_js() {
-	add_action( 'admin_print_footer_scripts', 'ewww_image_optimizer_add_bulk_actions_via_javascript' );
+function ewww_image_optimizer_dismiss_wc_regen() {
+	ewwwio_ob_clean();
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	// Verify that the user is properly authorized.
+	if ( ! current_user_can( apply_filters( 'ewww_image_optimizer_admin_permissions', '' ) ) ) {
+		wp_die( esc_html__( 'Access denied.', 'ewww-image-optimizer' ) );
+	}
+	delete_option( 'ewww_image_optimizer_wc_regen' );
+	die();
 }
 
 /**
- * Adds a bulk optimize action to the drop-down on the media library page.
+ * Dismisses the LR sync notice.
  */
-function ewww_image_optimizer_add_bulk_actions_via_javascript() {
-	// Borrowed from http://www.viper007bond.com/wordpress-plugins/regenerate-thumbnails/ .
+function ewww_image_optimizer_dismiss_lr_sync() {
+	ewwwio_ob_clean();
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	if ( ! current_user_can( apply_filters( 'ewww_image_optimizer_bulk_permissions', '' ) ) ) {
-		return;
+	// Verify that the user is properly authorized.
+	if ( ! current_user_can( apply_filters( 'ewww_image_optimizer_admin_permissions', '' ) ) ) {
+		wp_die( esc_html__( 'Access denied.', 'ewww-image-optimizer' ) );
 	}
-?>
-	<script type="text/javascript">
-		jQuery(document).ready(function($){
-			$('select[name^="action"] option:last-child').before('<option value="bulk_optimize"><?php esc_html_e( 'Bulk Optimize', 'ewww-image-optimizer' ); ?></option>');
-			$('.ewww-manual-convert').tooltip();
-		});
-	</script>
-<?php
+	delete_option( 'ewww_image_optimizer_lr_sync' );
+	die();
+}
+
+/**
+ * Disables the Media Library notice about List Mode.
+ */
+function ewww_image_optimizer_dismiss_media_notice() {
+	ewwwio_ob_clean();
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	// Verify that the user is properly authorized.
+	if ( ! current_user_can( apply_filters( 'ewww_image_optimizer_admin_permissions', '' ) ) ) {
+		wp_die( esc_html__( 'Access denied.', 'ewww-image-optimizer' ) );
+	}
+	update_option( 'ewww_image_optimizer_dismiss_media_notice', true, false );
+	update_site_option( 'ewww_image_optimizer_dismiss_media_notice', true );
+	die();
+}
+
+/**
+ * Disables the notice about leaving a review.
+ */
+function ewww_image_optimizer_dismiss_review_notice() {
+	ewwwio_ob_clean();
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	// Verify that the user is properly authorized.
+	if ( ! current_user_can( apply_filters( 'ewww_image_optimizer_admin_permissions', '' ) ) ) {
+		wp_die( esc_html__( 'Access denied.', 'ewww-image-optimizer' ) );
+	}
+	update_option( 'ewww_image_optimizer_dismiss_review_notice', true, false );
+	update_site_option( 'ewww_image_optimizer_dismiss_review_notice', true );
+	die();
+}
+
+/**
+ * Add our bulk optimize action to the bulk actions drop-down menu.
+ *
+ * @param array $bulk_actions A list of actions available already.
+ * @return array The list of actions, with our bulk action included.
+ */
+function ewww_image_optimizer_add_bulk_media_actions( $bulk_actions ) {
+	if ( is_array( $bulk_actions ) ) {
+		$bulk_actions['bulk_optimze'] = __( 'Bulk Optimize', 'ewww-image-optimizer' );
+	}
+	return $bulk_actions;
 }
 
 /**
  * Handles the bulk actions POST.
+ *
+ * @param string $redirect_to The URL from whence we came.
+ * @param string $doaction The action requested.
+ * @param array  $post_ids An array of attachment ID numbers.
+ * @return string The URL to go back to when we are done handling the action.
  */
-function ewww_image_optimizer_bulk_action_handler() {
-	// Borrowed from http://www.viper007bond.com/wordpress-plugins/regenerate-thumbnails/ .
+function ewww_image_optimizer_bulk_action_handler( $redirect_to, $doaction, $post_ids ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	// If the requested action is blank, or not a bulk_optimize, do nothing.
-	if ( ( empty( $_REQUEST['action'] ) || 'bulk_optimize' != $_REQUEST['action'] ) && ( empty( $_REQUEST['action2'] ) || 'bulk_optimize' != $_REQUEST['action2'] ) ) {
-		return;
+	if ( empty( $doaction || 'bulk_optimize' !== $doaction ) ) {
+		return $redirect_to;
 	}
 	// If there is no media to optimize, do nothing.
-	if ( empty( $_REQUEST['media'] ) || ! is_array( $_REQUEST['media'] ) ) {
-		return;
+	if ( ! ewww_image_optimizer_iterable( $post_ids ) ) {
+		return $redirect_to;
 	}
-	// Check the referring page.
 	check_admin_referer( 'bulk-media' );
 	// Prep the attachment IDs for optimization.
-	$ids = implode( ',', array_map( 'intval', $_REQUEST['media'] ) );
-	wp_redirect( add_query_arg(
-		array(
-			'page' => 'ewww-image-optimizer-bulk',
-			'_wpnonce' => wp_create_nonce( 'ewww-image-optimizer-bulk' ),
-			'goback' => 1,
-			'ids' => $ids,
-		),
-		admin_url( 'upload.php' )
-	) );
+	$ids = implode( ',', array_map( 'intval', $post_ids ) );
+	wp_safe_redirect(
+		add_query_arg(
+			array(
+				'page' => 'ewww-image-optimizer-bulk',
+				'ids'  => $ids,
+			),
+			admin_url( 'upload.php' )
+		)
+	);
 	ewwwio_memory( __FUNCTION__ );
-	exit();
+}
+
+/**
+ * Get the current compression level based on the mime type.
+ *
+ * @param string $type The mime-type of the file/image.
+ * @return int The compression level to be used for that image type by default.
+ */
+function ewww_image_optimizer_get_level( $type ) {
+	if ( 'image/jpeg' === $type ) {
+		return (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' );
+	}
+	if ( 'image/png' === $type ) {
+		return (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' );
+	}
+	if ( 'image/gif' === $type ) {
+		return (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_level' );
+	}
+	if ( 'application/pdf' === $type ) {
+		return (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_pdf_level' );
+	}
+	if ( 'image/svg+xml' === $type ) {
+		return (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_svg_level' );
+	}
+	return 0;
+}
+
+/**
+ * Check old and new compression levels for an image to see if it ought to be re-optimized in smart mode.
+ *
+ * @param int $old The previous compression level used on an image.
+ * @param int $new The current compression level for the image mime-type.
+ * @return bool True if they are not matched/equivalent, false otherwise.
+ */
+function ewww_image_optimizer_level_mismatch( $old, $new ) {
+	$old = (int) $old;
+	$new = (int) $new;
+	if ( empty( $old ) || empty( $new ) ) {
+		return false;
+	}
+	if ( 20 === $old && 10 === $new ) {
+		return false;
+	}
+	if ( $new === $old ) {
+		return false;
+	}
+	return true;
 }
 
 /**
  * Retrieve option: use 'site' setting if plugin is network activated, otherwise use 'blog' setting.
  *
+ * Retrieves multi-site and single-site options as appropriate as well as allowing overrides with
+ * same-named constant. Overrides are only available for integer and boolean options.
+ *
  * @param string $option_name The name of the option to retrieve.
+ * @param mixed  $default The default to use if not found/set, defaults to false, but not currently used.
+ * @param bool   $single Use single-site setting regardless of multisite activation. Default is off/false.
  * @return mixed The value of the option.
  */
-function ewww_image_optimizer_get_option( $option_name ) {
+function ewww_image_optimizer_get_option( $option_name, $default = false, $single = false ) {
+	$constant_name = strtoupper( $option_name );
+	if ( defined( $constant_name ) && ( is_int( constant( $constant_name ) ) || is_bool( constant( $constant_name ) ) ) ) {
+		return constant( $constant_name );
+	}
+	if ( 'ewww_image_optimizer_cloud_key' === $option_name && defined( $constant_name ) ) {
+		$option_value = constant( $constant_name );
+		if ( is_string( $option_value ) && ! empty( $option_value ) ) {
+			return trim( $option_value );
+		}
+	}
+	if ( 'ewww_image_optimizer_ll_all_things' === $option_name && defined( $constant_name ) ) {
+		return sanitize_text_field( constant( $constant_name ) );
+	}
+	if (
+		(
+			'ewww_image_optimizer_exclude_paths' === $option_name ||
+			'exactdn_exclude' === $option_name ||
+			'ewww_image_optimizer_ll_exclude' === $option_name ||
+			'ewww_image_optimizer_webp_rewrite_exclude' === $option_name
+		)
+		&& defined( $constant_name )
+	) {
+		return ewww_image_optimizer_exclude_paths_sanitize( constant( $constant_name ) );
+	}
+	if ( 'ewww_image_optimizer_aux_paths' === $option_name && defined( $constant_name ) ) {
+		return ewww_image_optimizer_aux_paths_sanitize( constant( $constant_name ) );
+	}
+	if ( 'ewww_image_optimizer_webp_paths' === $option_name && defined( $constant_name ) ) {
+		return ewww_image_optimizer_webp_paths_sanitize( constant( $constant_name ) );
+	}
+	if ( 'ewww_image_optimizer_disable_resizes' === $option_name && defined( $constant_name ) ) {
+		return ewww_image_optimizer_disable_resizes_sanitize( constant( $constant_name ) );
+	}
+	if ( 'ewww_image_optimizer_disable_resizes_opt' === $option_name && defined( $constant_name ) ) {
+		return ewww_image_optimizer_disable_resizes_sanitize( constant( $constant_name ) );
+	}
+	if ( 'ewww_image_optimizer_jpg_background' === $option_name && defined( $constant_name ) ) {
+		return ewww_image_optimizer_jpg_background( constant( $constant_name ) );
+	}
 	if ( ! function_exists( 'is_plugin_active_for_network' ) && is_multisite() ) {
 		// Need to include the plugin library for the is_plugin_active function.
 		require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 	}
-	if ( is_multisite() && is_plugin_active_for_network( EWWW_IMAGE_OPTIMIZER_PLUGIN_FILE_REL ) && ! get_site_option( 'ewww_image_optimizer_allow_multisite_override' ) ) {
+	if ( ! $single && is_multisite() && is_plugin_active_for_network( EWWW_IMAGE_OPTIMIZER_PLUGIN_FILE_REL ) && ! get_site_option( 'ewww_image_optimizer_allow_multisite_override' ) ) {
 		$option_value = get_site_option( $option_name );
 	} else {
 		$option_value = get_option( $option_name );
@@ -6531,21 +9780,22 @@ function ewww_image_optimizer_set_option( $option_name, $option_value ) {
  * Check for a list of attachments for which we do not rebuild meta.
  *
  * @return array {
- *	Information regarding attachments with broken metadata that could not be rebuilt.
+ *     Information regarding attachments with broken metadata that could not be rebuilt.
  *
- *	@type array A list of all know 'bad' attachments.
- *	@type string The most recent 'bad' attachment.
+ *     @type array A list of all know 'bad' attachments.
+ *     @type string The most recent 'bad' attachment.
  * }
  */
 function ewww_image_optimizer_get_bad_attachments() {
-	$bad_attachment = get_transient( 'ewww_image_optimizer_rebuilding_attachment' );
+	$bad_attachment = (int) get_transient( 'ewww_image_optimizer_rebuilding_attachment' );
 	if ( $bad_attachment ) {
-		$bad_attachments = (array) ewww_image_optimizer_get_option( 'ewww_image_optimizer_bad_attachments' );
+		$bad_attachments   = (array) ewww_image_optimizer_get_option( 'ewww_image_optimizer_bad_attachments' );
 		$bad_attachments[] = $bad_attachment;
 		ewww_image_optimizer_set_option( 'ewww_image_optimizer_bad_attachments', $bad_attachments, false );
 	} else {
 		$bad_attachments = (array) ewww_image_optimizer_get_option( 'ewww_image_optimizer_bad_attachments' );
 	}
+	array_walk( $bad_attachments, 'intval' );
 	delete_transient( 'ewww_image_optimizer_rebuilding_attachment' );
 	return array( $bad_attachments, $bad_attachment );
 }
@@ -6558,56 +9808,91 @@ function ewww_image_optimizer_get_bad_attachments() {
 function ewww_image_optimizer_settings_script( $hook ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 	// Make sure we are being called from the settings page.
-	if ( strpos( $hook,'settings_page_ewww-image-optimizer' ) !== 0 ) {
+	if ( 'settings_page_ewww-image-optimizer-options' !== $hook ) {
 		return;
 	}
-	wp_enqueue_script( 'ewwwbulkscript', plugins_url( '/includes/eio.js', __FILE__ ), array( 'jquery' ), EWWW_IMAGE_OPTIMIZER_VERSION );
+	if (
+		! ewww_image_optimizer_get_option( 'ewww_image_optimizer_wizard_complete' ) &&
+		! is_network_admin() &&
+		( ! is_multisite() || get_site_option( 'ewww_image_optimizer_allow_multisite_override' ) || ! is_plugin_active_for_network( EWWW_IMAGE_OPTIMIZER_PLUGIN_FILE_REL ) )
+	) {
+		remove_all_actions( 'admin_notices' );
+	}
+	if ( ! empty( $_GET['rescue_mode'] ) && ! empty( $_REQUEST['_wpnonce'] ) && wp_verify_nonce( sanitize_key( $_REQUEST['_wpnonce'] ), 'ewww_image_optimizer_options-options' ) ) {
+		remove_all_actions( 'admin_notices' );
+	}
+	delete_option( 'ewww_image_optimizer_exactdn_checkin' );
+	global $exactdn;
+	if ( has_action( 'admin_notices', 'ewww_image_optimizer_notice_exactdn_domain_mismatch' ) ) {
+		delete_option( 'ewww_image_optimizer_exactdn_domain' );
+		delete_option( 'ewww_image_optimizer_exactdn_local_domain' );
+		delete_option( 'ewww_image_optimizer_exactdn_plan_id' );
+		delete_option( 'ewww_image_optimizer_exactdn_failures' );
+		delete_option( 'ewww_image_optimizer_exactdn_verified' );
+		remove_action( 'admin_notices', 'ewww_image_optimizer_notice_exactdn_domain_mismatch' );
+		$exactdn->setup();
+	}
+	add_thickbox();
+	wp_enqueue_script( 'ewww-beacon-script', plugins_url( '/includes/eio-beacon.js', __FILE__ ), array( 'jquery' ), EWWW_IMAGE_OPTIMIZER_VERSION );
+	wp_enqueue_script( 'ewww-settings-script', plugins_url( '/includes/eio-settings.js', __FILE__ ), array( 'jquery' ), EWWW_IMAGE_OPTIMIZER_VERSION, true );
+	wp_enqueue_style( 'jquery-ui-tooltip-custom', plugins_url( '/includes/jquery-ui-1.10.1.custom.css', __FILE__ ), array(), EWWW_IMAGE_OPTIMIZER_VERSION );
 	wp_enqueue_script( 'postbox' );
 	wp_enqueue_script( 'dashboard' );
-	wp_localize_script( 'ewwwbulkscript', 'ewww_vars', array(
-			'_wpnonce' => wp_create_nonce( 'ewww-image-optimizer-settings' ),
+	wp_localize_script(
+		'ewww-settings-script',
+		'ewww_vars',
+		array(
+			'_wpnonce'           => wp_create_nonce( 'ewww-image-optimizer-settings' ),
+			'invalid_response'   => esc_html__( 'Received an invalid response from your website, please check for errors in the Developer Tools console of your browser.', 'ewww-image-optimizer' ),
+			'loading_image_url'  => plugins_url( '/images/spinner.gif', __FILE__ ),
+			'webp_cloud_warning' => esc_html__( 'If you have not run the Bulk Optimizer on existing images, you will likely encounter broken image URLs. Are you ready to continue?', 'ewww-image-optimizer' ),
 		)
 	);
+	wp_add_inline_script(
+		'ewww-settings-script',
+		'ewww_vars.cloud_media = ' . ( ewww_image_optimizer_cloud_based_media() ? 1 : 0 ) . ";\n" .
+		'ewww_vars.save_space = ' . ( get_option( 'ewww_image_optimizer_goal_save_space' ) ? 1 : 0 ) . ";\n" .
+		'ewww_vars.site_speed = ' . ( get_option( 'ewww_image_optimizer_goal_site_speed' ) ? 1 : 0 ) . ";\n"
+	);
 	ewwwio_memory( __FUNCTION__ );
-	return;
 }
 
 /**
  * Get a total of how much space we have saved so far.
  *
+ * @param bool $network_admin True if this is called from the network admin dashboard, false otherwise.
  * @global object $wpdb
  *
  * @return int The total savings found, in bytes.
  */
-function ewww_image_optimizer_savings() {
+function ewww_image_optimizer_savings( $network_admin = false ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 	global $wpdb;
-	if ( ! function_exists( 'is_plugin_active_for_network' ) && is_multisite() ) {
-		// Need to include the plugin library for the is_plugin_active function.
-		require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
-	}
-	if ( is_multisite() && is_plugin_active_for_network( EWWW_IMAGE_OPTIMIZER_PLUGIN_FILE_REL ) ) {
+	$total_orig    = 0;
+	$total_opt     = 0;
+	$total_savings = 0;
+	$started       = microtime( true );
+	if ( is_multisite() && $network_admin ) {
+		$cache_savings = get_site_transient( 'ewww_image_optimizer_savings' );
+		if ( ! empty( $cache_savings ) && is_array( $cache_savings ) && 2 === count( $cache_savings ) ) {
+			ewwwio_debug_message( 'savings query avoided via (multi-site) cache' );
+			return $cache_savings;
+		}
 		ewwwio_debug_message( 'querying savings for multi-site' );
 
 		if ( get_blog_count() > 1000 ) {
-			// TODO: someday do something more clever than this, maybe.
 			return 0;
 		}
 		if ( function_exists( 'get_sites' ) ) {
-			ewwwio_debug_message( 'retrieving list of sites the easy way (4.6+)' );
-			$blogs = get_sites( array(
-				'fields' => 'ids',
-				'number' => 1000,
-			) );
-
-		} elseif ( function_exists( 'wp_get_sites' ) ) {
-			ewwwio_debug_message( 'retrieving list of sites the easy way (pre 4.6)' );
-			$blogs = wp_get_sites( array(
-				'network_id' => $wpdb->siteid,
-				'limit' => 1000,
-			) );
+			$blogs = get_sites(
+				array(
+					'fields' => 'ids',
+					'number' => 1000,
+				)
+			);
+		} else {
+			return 0;
 		}
-		$total_savings = 0;
 		if ( ewww_image_optimizer_iterable( $blogs ) ) {
 			foreach ( $blogs as $blog ) {
 				if ( is_array( $blog ) ) {
@@ -6618,30 +9903,123 @@ function ewww_image_optimizer_savings() {
 				switch_to_blog( $blog_id );
 				ewwwio_debug_message( "getting savings for site: $blog_id" );
 				$table_name = $wpdb->prefix . 'ewwwio_images';
-				if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) != $table_name ) {
+				ewwwio_debug_message( "table name is $table_name" );
+				if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
 					ewww_image_optimizer_install_table();
 				}
 				if ( $wpdb->ewwwio_images ) {
-					$wpdb->query( "DELETE FROM $wpdb->ewwwio_images WHERE image_size > orig_size" );
-					$savings = $wpdb->get_var( "SELECT SUM(orig_size-image_size) FROM $wpdb->ewwwio_images" );
-					ewwwio_debug_message( "savings found: $savings" );
+					$orig_size   = $wpdb->get_var( "SELECT SUM(orig_size) FROM $wpdb->ewwwio_images WHERE image_size > 0" );
+					$opt_size    = $wpdb->get_var( "SELECT SUM(image_size) FROM $wpdb->ewwwio_images WHERE image_size > 0" );
+					$total_orig += $orig_size;
+					$total_opt  += $opt_size;
+					$savings     = $orig_size - $opt_size;
+					ewwwio_debug_message( "savings found for site $blog_id: $savings" );
 					$total_savings += $savings;
 				}
 				restore_current_blog();
 			}
 		}
+		set_site_transient( 'ewww_image_optimizer_savings', array( $total_opt, $total_orig ), DAY_IN_SECONDS );
 	} else {
+		$cache_savings = get_transient( 'ewww_image_optimizer_savings' );
+		if ( ! empty( $cache_savings ) && is_array( $cache_savings ) && 2 === count( $cache_savings ) ) {
+			ewwwio_debug_message( 'savings query avoided via (single-site) cache' );
+			return $cache_savings;
+		}
 		ewwwio_debug_message( 'querying savings for single site' );
-		$total_savings = 0;
 		$table_name = $wpdb->ewwwio_images;
-		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) != $table_name ) {
+		ewwwio_debug_message( "table name is $table_name" );
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
 			ewww_image_optimizer_install_table();
 		}
-		$wpdb->query( 'DELETE FROM ' . $wpdb->prefix . 'ewwwio_images WHERE image_size > orig_size' );
-		$total_savings = $wpdb->get_var( "SELECT SUM(orig_size-image_size) FROM $wpdb->ewwwio_images" );
-		ewwwio_debug_message( "savings found: $total_savings" );
+		$orig_size   = $wpdb->get_var( "SELECT SUM(orig_size) FROM $wpdb->ewwwio_images WHERE image_size > 0" );
+		$opt_size    = $wpdb->get_var( "SELECT SUM(image_size) FROM $wpdb->ewwwio_images WHERE image_size > 0" );
+		$total_orig += $orig_size;
+		$total_opt  += $opt_size;
+
+		$total_savings = $orig_size - $opt_size;
+		set_transient( 'ewww_image_optimizer_savings', array( $total_opt, $total_orig ), DAY_IN_SECONDS );
 	} // End if().
-	return $total_savings;
+	$elapsed = microtime( true ) - $started;
+	ewwwio_debug_message( "savings query took $elapsed seconds" );
+	ewwwio_debug_message( "total original size: $total_orig" );
+	ewwwio_debug_message( "total current(opt) size: $total_opt" );
+	ewwwio_debug_message( "savings found: $total_savings" );
+	return array( $total_opt, $total_orig );
+}
+
+/**
+ * Manually verify if WebP rewriting is working.
+ *
+ * Requests the test.png and checks to see if it is actually of type image/webp.
+ *
+ * @return string Empty if the test image is WebP, error message otherwise.
+ */
+function ewww_image_optimizer_test_webp_mime_error() {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	$positive_test = false;
+	$negative_test = false;
+	$test_url      = plugins_url( '/images/test.png', __FILE__ ) . '?m=' . time();
+	add_filter( 'http_headers_useragent', 'ewww_image_optimizer_cloud_useragent', PHP_INT_MAX );
+
+	// Run the "positive" test, which should receive a WebP in a .png wrapper.
+	$test_result = wp_remote_get( $test_url, array( 'headers' => 'Accept: image/webp' ) );
+	if ( is_wp_error( $test_result ) ) {
+		$error_message = $test_result->get_error_message();
+		ewwwio_debug_message( "webp verification request failed: $error_message" );
+		return $error_message;
+	} elseif ( empty( $test_result['body'] ) ) {
+		ewwwio_debug_message( 'webp verification response empty' );
+		return __( 'WebP response was empty', 'ewww-image-optimizer' );
+	} elseif ( strlen( $test_result['body'] ) < 300 ) {
+		ewwwio_debug_message( 'webp verification response too small: ' . strlen( $test_result['body'] ) );
+		return __( 'WebP response was too small', 'ewww-image-optimizer' );
+	} elseif ( empty( $test_result['response']['code'] ) ) {
+		ewwwio_debug_message( 'webp test received unknown response code' );
+		return __( 'WebP response status code missing', 'ewww-image-optimizer' );
+	} elseif ( 200 !== (int) $test_result['response']['code'] ) {
+		ewwwio_debug_message( 'webp test received response code: ' . $test_result['response']['code'] );
+		/* translators: %d: the HTTP status code */
+		return sprintf( __( 'WebP response received status %d', 'ewww-image-optimizer' ), $test_result['response']['code'] );
+	} elseif ( '52494646' === bin2hex( substr( $test_result['body'], 0, 4 ) ) ) {
+		ewwwio_debug_message( 'webp (real-world) verification succeeded' );
+		$positive_test = true;
+	} else {
+		ewwwio_debug_message( 'webp mime check failed: ' . bin2hex( substr( $test_result['body'], 0, 3 ) ) );
+		return __( 'WebP response failed mime-type test', 'ewww-image-optimizer' );
+	}
+
+	// Run the "negative" test, which should receive the original PNG image.
+	$test_result = wp_remote_get( $test_url );
+	if ( is_wp_error( $test_result ) ) {
+		$error_message = $test_result->get_error_message();
+		ewwwio_debug_message( "png verification request failed: $error_message" );
+		return $error_message;
+	} elseif ( empty( $test_result['body'] ) ) {
+		ewwwio_debug_message( 'png verification response empty' );
+		return __( 'PNG response was empty', 'ewww-image-optimizer' );
+	} elseif ( strlen( $test_result['body'] ) < 300 ) {
+		ewwwio_debug_message( 'png verification response too small: ' . strlen( $test_result['body'] ) );
+		return __( 'PNG response was too small', 'ewww-image-optimizer' );
+	} elseif ( empty( $test_result['response']['code'] ) ) {
+		ewwwio_debug_message( 'png test received unknown response code' );
+		return __( 'PNG response status code missing', 'ewww-image-optimizer' );
+	} elseif ( 200 !== (int) $test_result['response']['code'] ) {
+		ewwwio_debug_message( 'png test received response code: ' . $test_result['response']['code'] );
+		/* translators: %d: the HTTP status code */
+		return sprintf( __( 'PNG response received status %d', 'ewww-image-optimizer' ), $test_result['response']['code'] );
+	} elseif ( '89504e470d0a1a0a' === bin2hex( substr( $test_result['body'], 0, 8 ) ) ) {
+		ewwwio_debug_message( 'png (real-world) verification succeeded' );
+		$negative_test = true;
+	} else {
+		ewwwio_debug_message( 'png mime check failed: ' . bin2hex( substr( $test_result['body'], 0, 3 ) ) );
+		return __( 'PNG response failed mime-type test', 'ewww-image-optimizer' );
+	}
+	if ( ! $positive_test || ! $negative_test ) {
+		ewwwio_debug_message( 'no idea what happened' );
+		return __( 'WebP validation failed for an unknown reason', 'ewww-image-optimizer' );
+	}
+	return '';
 }
 
 /**
@@ -6655,12 +10033,14 @@ function ewww_image_optimizer_htaccess_path() {
 	if ( get_option( 'siteurl' ) !== get_option( 'home' ) ) {
 		ewwwio_debug_message( 'WordPress Address and Site Address are different, possible subdir install' );
 		$path_diff = str_replace( get_option( 'home' ), '', get_option( 'siteurl' ) );
-		$newhtpath = trailingslashit( $htpath . $path_diff ) . '.htaccess';
-		if ( is_file( $newhtpath ) ) {
+		$newhtpath = trailingslashit( rtrim( $htpath, '/' ) . '/' . ltrim( $path_diff, '/' ) ) . '.htaccess';
+		if ( ewwwio_is_file( $newhtpath ) ) {
 			ewwwio_debug_message( 'subdir install confirmed' );
+			ewwwio_debug_message( "using $newhtpath" );
 			return $newhtpath;
 		}
 	}
+	ewwwio_debug_message( "using $htpath.htaccess" );
 	return $htpath . '.htaccess';
 }
 
@@ -6668,45 +10048,173 @@ function ewww_image_optimizer_htaccess_path() {
  * Called via AJAX, adds WebP rewrite rules to the .htaccess file.
  */
 function ewww_image_optimizer_webp_rewrite() {
+	ewwwio_ob_clean();
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 	// Verify that the user is properly authorized.
-	if ( ! wp_verify_nonce( $_REQUEST['ewww_wpnonce'], 'ewww-image-optimizer-settings' ) ) {
-		wp_die( esc_html__( 'Access denied.', 'ewww-image-optimizer' ) );
+	if ( empty( $_REQUEST['ewww_wpnonce'] ) || ! wp_verify_nonce( sanitize_key( $_REQUEST['ewww_wpnonce'] ), 'ewww-image-optimizer-settings' ) ) {
+		die( esc_html__( 'Access denied.', 'ewww-image-optimizer' ) );
+	}
+	if ( ! current_user_can( apply_filters( 'ewww_image_optimizer_admin_permissions', '' ) ) ) {
+		die( esc_html__( 'Access denied.', 'ewww-image-optimizer' ) );
 	}
 	$ewww_rules = ewww_image_optimizer_webp_rewrite_verify();
 	if ( $ewww_rules ) {
 		if ( insert_with_markers( ewww_image_optimizer_htaccess_path(), 'EWWWIO', $ewww_rules ) && ! ewww_image_optimizer_webp_rewrite_verify() ) {
-			esc_html_e( 'Insertion successful', 'ewww-image-optimizer' );
-		} else {
-			esc_html_e( 'Insertion failed', 'ewww-image-optimizer' );
+			$webp_mime_error = ewww_image_optimizer_test_webp_mime_error();
+			if ( empty( $webp_mime_error ) ) {
+				die( esc_html__( 'Insertion successful', 'ewww-image-optimizer' ) );
+			}
+			die(
+				sprintf(
+					/* translators: %s: an error message from the WebP self-test */
+					esc_html__( 'Insertion successful, but self-test failed: %s', 'ewww-image-optimizer' ),
+					esc_html( $webp_mime_error )
+				)
+			);
 		}
+		die( esc_html__( 'Insertion failed', 'ewww-image-optimizer' ) );
+	}
+	die( esc_html__( 'Insertion aborted', 'ewww-image-optimizer' ) );
+}
+
+/**
+ * Called via AJAX, removes WebP rewrite rules from the .htaccess file.
+ */
+function ewww_image_optimizer_webp_unwrite() {
+	ewwwio_ob_clean();
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	// Verify that the user is properly authorized.
+	if ( empty( $_REQUEST['ewww_wpnonce'] ) || ! wp_verify_nonce( sanitize_key( $_REQUEST['ewww_wpnonce'] ), 'ewww-image-optimizer-settings' ) ) {
+		wp_die( esc_html__( 'Access denied.', 'ewww-image-optimizer' ) );
+	}
+	if ( ! current_user_can( apply_filters( 'ewww_image_optimizer_admin_permissions', '' ) ) ) {
+		wp_die( esc_html__( 'Access denied.', 'ewww-image-optimizer' ) );
+	}
+	if ( insert_with_markers( ewww_image_optimizer_htaccess_path(), 'EWWWIO', '' ) ) {
+		esc_html_e( 'Removal successful', 'ewww-image-optimizer' );
+	} else {
+		esc_html_e( 'Removal failed', 'ewww-image-optimizer' );
 	}
 	die();
 }
 
 /**
  * If rules are present, stay silent, otherwise, gives us some rules to insert!
+ *
+ * @return array Rules to be inserted.
  */
 function ewww_image_optimizer_webp_rewrite_verify() {
-	$current_rules = extract_from_markers( ewww_image_optimizer_htaccess_path(), 'EWWWIO' );
-	$ewww_rules = array(
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	if ( ewww_image_optimizer_easy_active() ) {
+		if ( ewwwio_extract_from_markers( ewww_image_optimizer_htaccess_path(), 'EWWWIO' ) ) {
+			ewwwio_debug_message( 'removing htaccess webp to prevent ExactDN problems' );
+			insert_with_markers( ewww_image_optimizer_htaccess_path(), 'EWWWIO', '' );
+		}
+	}
+	if ( ewww_image_optimizer_wpfc_webp_enabled() ) {
+		return;
+	}
+	$current_rules = ewwwio_extract_from_markers( ewww_image_optimizer_htaccess_path(), 'EWWWIO' );
+	$ewww_rules    = array(
 		'<IfModule mod_rewrite.c>',
 		'RewriteEngine On',
 		'RewriteCond %{HTTP_ACCEPT} image/webp',
-		'RewriteCond %{REQUEST_FILENAME} (.*)\.(jpe?g|png)$',
+		'RewriteCond %{REQUEST_FILENAME} (.*)\.(jpe?g|png|gif)$',
 		'RewriteCond %{REQUEST_FILENAME}.webp -f',
-		'RewriteRule (.+)\.(jpe?g|png)$ %{REQUEST_FILENAME}.webp [T=image/webp,E=accept:1]',
+		'RewriteCond %{QUERY_STRING} !type=original',
+		'RewriteRule (.+)\.(jpe?g|png|gif)$ %{REQUEST_URI}.webp [T=image/webp,L]',
 		'</IfModule>',
 		'<IfModule mod_headers.c>',
-		'Header append Vary Accept env=REDIRECT_accept',
+		'<FilesMatch "\.(jpe?g|png|gif)$">',
+		'Header append Vary Accept',
+		'</FilesMatch>',
 		'</IfModule>',
 		'AddType image/webp .webp',
 	);
-	if ( array_diff( $ewww_rules, $current_rules ) ) {
-		ewwwio_memory( __FUNCTION__ );
+	if ( is_array( $current_rules ) ) {
+		ewwwio_debug_message( 'current rules: ' . implode( '<br>', $current_rules ) );
+	}
+	if ( empty( $current_rules ) ||
+		! ewww_image_optimizer_array_search( '{HTTP_ACCEPT} image/webp', $current_rules ) ||
+		! ewww_image_optimizer_array_search( '{REQUEST_FILENAME}.webp', $current_rules ) ||
+		! ewww_image_optimizer_array_search( 'Header append Vary Accept', $current_rules ) ||
+		ewww_image_optimizer_array_search( 'Header append Vary Accept env=REDIRECT', $current_rules ) ||
+		! ewww_image_optimizer_array_search( 'AddType image/webp', $current_rules )
+	) {
+		ewwwio_debug_message( 'missing or invalid rules' );
 		return $ewww_rules;
 	} else {
-		ewwwio_memory( __FUNCTION__ );
+		ewwwio_debug_message( 'all good' );
 		return;
+	}
+}
+
+/**
+ * Extracts strings from between the BEGIN and END markers in the .htaccess file.
+ *
+ * @global int $wp_version
+ *
+ * @param string $filename The file within which to search.
+ * @param string $marker The bounary marker of the desired content.
+ * @return array An array of strings from a file (.htaccess ) from between BEGIN and END markers.
+ */
+function ewwwio_extract_from_markers( $filename, $marker ) {
+	// All because someone didn't test changes in core...
+	global $wp_version;
+	if ( '4.9' !== $wp_version ) {
+		return extract_from_markers( $filename, $marker );
+	}
+	$result = array();
+
+	if ( ! file_exists( $filename ) ) {
+		return $result;
+	}
+
+	$markerdata = explode( "\n", implode( '', file( $filename ) ) );
+
+	$state = false;
+	foreach ( $markerdata as $markerline ) {
+		if ( false !== strpos( $markerline, '# END ' . $marker ) ) {
+			$state = false;
+		}
+		if ( $state ) {
+			$result[] = $markerline;
+		}
+		if ( false !== strpos( $markerline, '# BEGIN ' . $marker ) ) {
+			$state = true;
+		}
+	}
+	return $result;
+}
+
+/**
+ * Looks for a certain string within all array elements.
+ *
+ * @param string $needle The searched value.
+ * @param array  $haystack The array to search.
+ * @return bool True if the needle is found, false otherwise.
+ */
+function ewww_image_optimizer_array_search( $needle, $haystack ) {
+	if ( ! is_array( $haystack ) ) {
+		return false;
+	}
+	foreach ( $haystack as $straw ) {
+		if ( ! is_string( $straw ) ) {
+			continue;
+		}
+		if ( strpos( $straw, $needle ) !== false ) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Clear output buffers without throwing a fit.
+ */
+function ewwwio_ob_clean() {
+	if ( ob_get_length() ) {
+		ob_end_clean();
 	}
 }
 
@@ -6720,36 +10228,36 @@ function ewww_image_optimizer_webp_rewrite_verify() {
 function ewww_image_optimizer_get_image_sizes() {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 	global $_wp_additional_image_sizes;
-	$sizes = array();
+	$sizes       = array();
 	$image_sizes = get_intermediate_image_sizes();
-	if ( ewww_image_optimizer_function_exists( 'print_r' ) ) {
-		ewwwio_debug_message( print_r( $image_sizes, true ) );
-	}
-	if ( false ) { // set to true to enable more debugging.
-		ewwwio_debug_message( print_r( $_wp_additional_image_sizes, true ) );
+	if ( is_array( $image_sizes ) ) {
+		ewwwio_debug_message( 'sizes: ' . implode( '<br>', $image_sizes ) );
 	}
 	if ( ewww_image_optimizer_iterable( $image_sizes ) ) {
 		foreach ( $image_sizes as $_size ) {
-			if ( in_array( $_size, array( 'thumbnail', 'medium', 'medium_large', 'large' ) ) ) {
-				$sizes[ $_size ]['width'] = get_option( $_size . '_size_w' );
+			if ( in_array( $_size, array( 'thumbnail', 'medium', 'medium_large', 'large' ), true ) ) {
+				$sizes[ $_size ]['width']  = get_option( $_size . '_size_w' );
 				$sizes[ $_size ]['height'] = get_option( $_size . '_size_h' );
-				if ( 'medium_large' === $_size && 0 == $sizes[ $_size ]['width'] ) {
+				$sizes[ $_size ]['crop']   = get_option( $_size . '_crop' );
+				if ( 'medium_large' === $_size && 0 === intval( $sizes[ $_size ]['width'] ) ) {
 					$sizes[ $_size ]['width'] = '768';
 				}
-				if ( 'medium_large' === $_size && 0 == $sizes[ $_size ]['height'] ) {
+				if ( 'medium_large' === $_size && 0 === intval( $sizes[ $_size ]['height'] ) ) {
 					$sizes[ $_size ]['height'] = '9999';
 				}
 			} elseif ( isset( $_wp_additional_image_sizes[ $_size ] ) ) {
 				$sizes[ $_size ] = array(
-					'width' => $_wp_additional_image_sizes[ $_size ]['width'],
+					'width'  => $_wp_additional_image_sizes[ $_size ]['width'],
 					'height' => $_wp_additional_image_sizes[ $_size ]['height'],
+					'crop'   => $_wp_additional_image_sizes[ $_size ]['crop'],
 				);
 			}
 		}
 	}
 	$sizes['pdf-full'] = array(
-		'width' => 99999,
+		'width'  => 99999,
 		'height' => 99999,
+		'crop'   => false,
 	);
 
 	if ( ewww_image_optimizer_function_exists( 'print_r' ) ) {
@@ -6759,12 +10267,823 @@ function ewww_image_optimizer_get_image_sizes() {
 }
 
 /**
- * Wrapper that displays the EWWW IO options in the multisite network admin.
+ * Check if a given ip is in a network. https://gist.github.com/tott/7684443
  *
- * @global string $ewww_debug In memory debug log.
+ * @param  string $ip    IP to check in IPV4 format.
+ * @param  string $range IP/CIDR netmask.
+ * @return boolean True if the IP is in this range, false if not.
+ */
+function ewwwio_ip_in_range( $ip, $range ) {
+	if ( false === strpos( $range, '/' ) ) {
+		$range .= '/32';
+	}
+
+	list( $range, $netmask ) = explode( '/', $range, 2 );
+
+	$range_decimal    = ip2long( $range );
+	$ip_decimal       = ip2long( $ip );
+	$wildcard_decimal = pow( 2, ( 32 - $netmask ) ) - 1;
+	$netmask_decimal  = ~ $wildcard_decimal;
+	return ( ( $ip_decimal & $netmask_decimal ) === ( $range_decimal & $netmask_decimal ) );
+}
+
+/**
+ * Test if the site is hosted by Cloudflare.
+ *
+ * @return bool True if it is, false if it ain't.
+ */
+function ewwwio_is_cf_host() {
+	$cf_ips = array(
+		'173.245.48.0/20',
+		'103.21.244.0/22',
+		'103.22.200.0/22',
+		'103.31.4.0/22',
+		'141.101.64.0/18',
+		'108.162.192.0/18',
+		'190.93.240.0/20',
+		'188.114.96.0/20',
+		'197.234.240.0/22',
+		'198.41.128.0/17',
+		'162.158.0.0/15',
+		'172.64.0.0/13',
+		'131.0.72.0/22',
+		'104.16.0.0/13',
+		'104.24.0.0/14',
+	);
+	if ( ! empty( $_SERVER['HTTP_CF_IPCOUNTRY'] ) ) {
+		ewwwio_debug_message( 'found Cloudflare host via HTTP_CF_IPCOUNTRY' );
+		return true;
+	}
+	if ( ! empty( $_SERVER['HTTP_CF_RAY'] ) ) {
+		ewwwio_debug_message( 'found Cloudflare host via HTTP_CF_RAY' );
+		return true;
+	}
+	if ( ! empty( $_SERVER['HTTP_CF_VISITOR'] ) ) {
+		ewwwio_debug_message( 'found Cloudflare host via HTTP_CF_VISITOR' );
+		return true;
+	}
+	if ( ! empty( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ) {
+		ewwwio_debug_message( 'found Cloudflare host via HTTP_CF_CONNECTING_IP' );
+		return true;
+	}
+	if ( ! empty( $_SERVER['HTTP_CF_REQUEST_ID'] ) ) {
+		ewwwio_debug_message( 'found Cloudflare host via HTTP_CF_REQUEST_ID' );
+		return true;
+	}
+	if ( ! empty( $_SERVER['HTTP_CDN_LOOP'] ) && 'cloudflare' === $_SERVER['HTTP_CDN_LOOP'] ) {
+		ewwwio_debug_message( 'found Cloudflare host via HTTP_CDN_LOOP' );
+		return true;
+	}
+	$eio_base = new EIO_Base();
+	$hostname = $eio_base->parse_url( get_site_url(), PHP_URL_HOST );
+	$home_ip  = gethostbyname( $hostname );
+	ewwwio_debug_message( "checking $home_ip from gethostbyname" );
+	foreach ( $cf_ips as $cf_range ) {
+		if ( ewwwio_ip_in_range( $home_ip, $cf_range ) ) {
+			ewwwio_debug_message( "found Cloudflare host: $home_ip" );
+			return true;
+		}
+	}
+	ewwwio_debug_message( "not a Cloudflare host: $home_ip" );
+	return false;
+	// Double-check via Cloudflare DNS. Disabled for now, we'll see if we need to cross that bridge later.
+	$home_ip_lookup = wp_remote_get( 'https://cloudflare-dns.com/dns-query?name=' . urlencode( $hostname ) . '&type=A&ct=' . urlencode( 'application/dns-json' ) );
+	if ( ! is_wp_error( $home_ip_lookup ) && ! empty( $home_ip_lookup['body'] ) && is_string( $home_ip_lookup['body'] ) ) {
+		$home_ip_data = json_decode( $home_ip_lookup['body'], true );
+		if ( is_array( $home_ip_data ) && ! empty( $home_ip_data['Answer'][0]['data'] ) && filter_var( $home_ip_data['Answer'][0]['data'], FILTER_VALIDATE_IP ) ) {
+			$home_ip = $home_ip_data['Answer'][0]['data'];
+			ewwwio_debug_message( "checking $home_ip from CF DoH" );
+			foreach ( $cf_ips as $cf_range ) {
+				if ( ewwwio_ip_in_range( $home_ip, $cf_range ) ) {
+					ewwwio_debug_message( "found Cloudflare host: $home_ip" );
+					return true;
+				}
+			}
+		}
+	}
+}
+
+/**
+ * Send our debug information to the log/buffer for the options page (and friends).
+ */
+function ewwwio_debug_info() {
+	global $ewwwio_upgrading;
+	global $content_width;
+	ewwwio_debug_version_info();
+	ewwwio_debug_message( 'ABSPATH: ' . ABSPATH );
+	ewwwio_debug_message( 'WP_CONTENT_DIR: ' . WP_CONTENT_DIR );
+	ewwwio_debug_message( 'home url (Site URL): ' . get_home_url() );
+	ewwwio_debug_message( 'site url (WordPress URL): ' . get_site_url() );
+	$upload_info = wp_get_upload_dir();
+	ewwwio_debug_message( 'wp_upload_dir (baseurl): ' . $upload_info['baseurl'] );
+	ewwwio_debug_message( 'wp_upload_dir (basedir): ' . $upload_info['basedir'] );
+	ewwwio_debug_message( "content_width: $content_width" );
+	ewwwio_debug_message( 'registered stream wrappers: ' . implode( ',', stream_get_wrappers() ) );
+	if ( is_multisite() ) {
+		ewwwio_debug_message( 'allowing multisite override: ' . ( get_site_option( 'ewww_image_optimizer_allow_multisite_override' ) ? 'yes' : 'no' ) );
+	}
+	if ( ! defined( 'EWWW_IMAGE_OPTIMIZER_NOEXEC' ) ) {
+		if ( defined( 'EWWW_IMAGE_OPTIMIZER_CLOUD' ) && EWWW_IMAGE_OPTIMIZER_CLOUD ) {
+			ewww_image_optimizer_disable_tools();
+		} else {
+			ewww_image_optimizer_tool_init();
+			ewww_image_optimizer_notice_utils( 'quiet' );
+		}
+	}
+	if ( wp_using_ext_object_cache() ) {
+		ewwwio_debug_message( 'using external object cache' );
+	} else {
+		ewwwio_debug_message( 'not external cache' );
+	}
+	ewww_image_optimizer_gd_support();
+	ewww_image_optimizer_gmagick_support();
+	ewww_image_optimizer_imagick_support();
+	if ( PHP_OS !== 'WINNT' && ! ewww_image_optimizer_full_cloud() && ! EWWW_IMAGE_OPTIMIZER_NOEXEC ) {
+		ewww_image_optimizer_find_nix_binary( 'nice', 'n' );
+	}
+	ewwwio_debug_message( ewww_image_optimizer_aux_images_table_count() . ' images have been optimized' );
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_noauto' ) ) {
+		ewwwio_debug_message( 'automatic compression disabled' );
+	} else {
+		ewwwio_debug_message( 'automatic compression enabled' );
+	}
+	ewwwio_debug_message( 'remove metadata: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_metadata_remove' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'jpg level: ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) );
+	ewwwio_debug_message( 'png level: ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) );
+	ewwwio_debug_message( 'gif level: ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_level' ) );
+	ewwwio_debug_message( 'pdf level: ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_pdf_level' ) );
+	ewwwio_debug_message( 'svg level: ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_svg_level' ) );
+	ewwwio_debug_message( 'bulk delay: ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_delay' ) );
+	ewwwio_debug_message( 'backup mode: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_backup_files' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'cloudinary upload: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_enable_cloudinary' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'ExactDN enabled: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'ExactDN all the things: ' . ( ewww_image_optimizer_get_option( 'exactdn_all_the_things' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'ExactDN lossy: ' . intval( ewww_image_optimizer_get_option( 'exactdn_lossy' ) ) );
+	ewwwio_debug_message( 'ExactDN resize existing: ' . ( ewww_image_optimizer_get_option( 'exactdn_resize_existing' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'ExactDN attachment queries: ' . ( ewww_image_optimizer_get_option( 'exactdn_prevent_db_queries' ) ? 'off' : 'on' ) );
+	ewwwio_debug_message( 'Easy IO exclusions:' );
+	$eio_exclude_paths = ewww_image_optimizer_get_option( 'exactdn_exclude' ) ? esc_html( implode( "\n", ewww_image_optimizer_get_option( 'exactdn_exclude' ) ) ) : '';
+	ewwwio_debug_message( $eio_exclude_paths );
+	ewwwio_debug_message( 'add missing dimensions: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_add_missing_dims' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'lazy load: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_lazy_load' ) ? 'on' : 'off' ) );
+	ewwwio_other_lazy_detected();
+	ewwwio_debug_message( 'LL autoscale: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_ll_autoscale' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'LQIP: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_use_lqip' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'S(VG)IIP: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_use_siip' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'external CSS background (all things): ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_ll_all_things' ) );
+	ewwwio_debug_message( 'LL exclusions:' );
+	$ll_exclude_paths = ewww_image_optimizer_get_option( 'ewww_image_optimizer_ll_exclude' ) ? esc_html( implode( "\n", ewww_image_optimizer_get_option( 'ewww_image_optimizer_ll_exclude' ) ) ) : '';
+	ewwwio_debug_message( $ll_exclude_paths );
+	if ( ! ewww_image_optimizer_full_cloud() ) {
+		ewwwio_debug_message( 'optipng level: ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_optipng_level' ) );
+		ewwwio_debug_message( 'pngout disabled: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_pngout' ) ? 'yes' : 'no' ) );
+		ewwwio_debug_message( 'pngout level: ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_pngout_level' ) );
+		ewwwio_debug_message( 'svgcleaner disabled: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_svgcleaner' ) ? 'yes' : 'no' ) );
+	}
+	ewwwio_debug_message( 'configured quality: ' . ewww_image_optimizer_set_jpg_quality( 82 ) );
+	ewwwio_debug_message( 'effective quality: ' . apply_filters( 'jpeg_quality', 82, 'image_resize' ) );
+	ewwwio_debug_message( 'effective WebP quality: ' . ewww_image_optimizer_set_webp_quality( 75 ) );
+	ewwwio_debug_message( 'parallel optimization: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_parallel_optimization' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'background optimization: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_background_optimization' ) ? 'on' : 'off' ) );
+	if ( ! $ewwwio_upgrading && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_background_optimization' ) ) {
+		$admin_ajax_url = admin_url( 'admin-ajax.php' );
+		if ( strpos( $admin_ajax_url, 'admin-ajax.php' ) ) {
+			ewwwio_debug_message( "admin ajax url: $admin_ajax_url" );
+			$admin_ajax_host = parse_url( $admin_ajax_url, PHP_URL_HOST );
+			ewwwio_debug_message( "admin ajax hostname: $admin_ajax_host" );
+			$resolved = gethostbyname( $admin_ajax_host . '.' );
+			ewwwio_debug_message( "resolved to $resolved" );
+			if ( $resolved === $admin_ajax_host . '.' ) {
+				ewwwio_debug_message( 'DNS lookup failed' );
+			} else {
+				$admin_ajax_url = add_query_arg(
+					array(
+						'action' => 'wp_ewwwio_test_optimize',
+						'nonce'  => wp_create_nonce( 'wp_ewwwio_test_optimize' ),
+					),
+					$admin_ajax_url
+				);
+				ewwwio_debug_message( "admin ajax POST url: $admin_ajax_url" );
+				$async_post_args = array(
+					'body'      => array(
+						'ewwwio_test_verify' => '949c34123cf2a4e4ce2f985135830df4a1b2adc24905f53d2fd3f5df5b16293245',
+					),
+					'cookies'   => $_COOKIE,
+					'sslverify' => false,
+				);
+				// Don't lock up other requests while processing.
+				session_write_close();
+				$async_response = wp_remote_post( esc_url_raw( $admin_ajax_url ), $async_post_args );
+				if ( is_wp_error( $async_response ) ) {
+					$error_message = $async_response->get_error_message();
+					ewwwio_debug_message( "async test failed: $error_message" );
+				} elseif ( is_array( $async_response ) && isset( $async_response['body'] ) ) {
+					ewwwio_debug_message( 'async success, possibly (response should be empty): ' . esc_html( substr( $async_response['body'], 0, 100 ) ) );
+					if ( ! empty( $async_response['response']['code'] ) ) {
+						ewwwio_debug_message( 'async response code: ' . $async_response['response']['code'] );
+					}
+				} else {
+					ewwwio_debug_message( 'no async error, but no body either' );
+				}
+			}
+		} else {
+			ewwwio_debug_message( "invalid admin ajax url: $admin_ajax_url" );
+		}
+	}
+	ewwwio_debug_message( 'scheduled optimization: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_auto' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'include media library: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_include_media_paths' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'include originals: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_include_originals' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'folders to optimize:' );
+	$aux_paths = ewww_image_optimizer_get_option( 'ewww_image_optimizer_aux_paths' ) ? esc_html( implode( "\n", ewww_image_optimizer_get_option( 'ewww_image_optimizer_aux_paths' ) ) ) : '';
+	ewwwio_debug_message( $aux_paths );
+	ewwwio_debug_message( 'folders to ignore:' );
+	$exclude_paths = ewww_image_optimizer_get_option( 'ewww_image_optimizer_exclude_paths' ) ? esc_html( implode( "\n", ewww_image_optimizer_get_option( 'ewww_image_optimizer_exclude_paths' ) ) ) : '';
+	ewwwio_debug_message( $exclude_paths );
+	ewwwio_debug_message( 'skip images smaller than: ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_skip_size' ) . ' bytes' );
+	ewwwio_debug_message( 'skip PNG images larger than: ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_skip_png_size' ) . ' bytes' );
+	ewwwio_debug_message( 'exclude originals from lossy: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_lossy_skip_full' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'exclude originals from metadata removal: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_metadata_skip_full' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'use system binaries: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_skip_bundle' ) ? 'yes' : 'no' ) );
+	ewwwio_debug_message( 'resize detection: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_resize_detection' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'max media dimensions: ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediawidth' ) . ' x ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediaheight' ) );
+	ewwwio_debug_message( 'max other dimensions: ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxotherwidth' ) . ' x ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxotherheight' ) );
+	ewwwio_debug_message( 'resize existing images: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_resize_existing' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'resize existing (non-media) images: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_resize_other_existing' ) ? 'on' : 'off' ) );
+	$image_sizes = ewww_image_optimizer_get_image_sizes();
+	ewwwio_debug_message( 'disabled resizes:' );
+	$disabled_sizes     = ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_resizes', false, true );
+	$disabled_sizes_opt = ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_resizes_opt', false, true );
+	foreach ( $image_sizes as $size => $dimensions ) {
+		if ( empty( $dimensions['width'] ) && empty( $dimensions['height'] ) ) {
+			continue;
+		}
+		ewwwio_debug_message( $size . ': ' . ( ! empty( $disabled_sizes_opt[ $size ] ) ? 'optimization=X ' : 'optimization=+ ' ) . ( ! empty( $disabled_sizes[ $size ] ) ? 'creation=X' : 'creation=+' ) );
+	}
+	ewwwio_debug_message( 'delete originals: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_delete_originals' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'jpg2png: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_to_png' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'png2jpg: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_to_jpg' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'gif2png: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_to_png' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'png2jpg fill:' );
+	ewww_image_optimizer_jpg_background();
+	ewwwio_debug_message( 'webp conversion: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'alt webp rewriting: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_for_cdn' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'picture webp rewriting: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_picture_webp' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'WebP Rewrite exclusions:' );
+	$webp_exclude_paths = ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_rewrite_exclude' ) ? esc_html( implode( "\n", ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_rewrite_exclude' ) ) ) : '';
+	ewwwio_debug_message( $webp_exclude_paths );
+	ewwwio_debug_message( 'webp paths:' );
+	$webp_paths = ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_paths' ) ? esc_html( implode( "\n", ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_paths' ) ) ) : '';
+	ewwwio_debug_message( $webp_paths );
+	ewwwio_debug_message( 'forced webp: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_force' ) ? 'on' : 'off' ) );
+	if ( ewww_image_optimizer_cloud_based_media() ) {
+		ewwwio_debug_message( 'forced webp auto-enabled' );
+	}
+	ewwwio_debug_message( 'forced gif2webp: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_force_gif2webp' ) ? 'on' : 'off' ) );
+	ewwwio_debug_message( 'enable help beacon: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_enable_help' ) ? 'yes' : 'no' ) );
+	if ( ! empty( $_SERVER['SERVER_ADDR'] ) ) {
+		ewwwio_debug_message( 'origin (SERVER_ADDR): ' . sanitize_text_field( wp_unslash( $_SERVER['SERVER_ADDR'] ) ) );
+	}
+	if (
+		! ewwwio_is_cf_host() &&
+		ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp' ) &&
+		! ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_for_cdn' ) &&
+		! ewww_image_optimizer_get_option( 'ewww_image_optimizer_picture_webp' ) &&
+		! ewww_image_optimizer_ce_webp_enabled() &&
+		! ewww_image_optimizer_easy_active()
+	) {
+		if ( defined( 'PHP_SAPI' ) ) {
+			ewwwio_debug_message( 'PHP module: ' . PHP_SAPI );
+		}
+		if ( ! apache_mod_loaded( 'mod_rewrite' ) ) {
+			ewwwio_debug_message( 'possibly missing mod_rewrite' );
+		}
+		if ( ! apache_mod_loaded( 'mod_headers' ) ) {
+			ewwwio_debug_message( 'possibly missing mod_headers' );
+		}
+		if ( ! ewww_image_optimizer_test_webp_mime_error() || ! ewww_image_optimizer_webp_rewrite_verify() ) {
+			ewwwio_debug_message( 'webp .htaccess rewriting enabled' );
+		} else {
+			ewwwio_debug_message( 'webp .htaccess rules not detected' );
+		}
+	}
+	if ( ewww_image_optimizer_function_exists( 'ini_get' ) ) {
+		ewwwio_debug_message( 'max_execution_time: ' . ini_get( 'max_execution_time' ) );
+	}
+	ewww_image_optimizer_stl_check();
+	ewww_image_optimizer_function_exists( 'sleep', true );
+	ewwwio_check_memory_available();
+}
+
+/**
+ * Displays the EWWW IO wizard/intro to assist the user in setting up the plugin initially.
+ */
+function ewww_image_optimizer_intro_wizard() {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	global $exactdn;
+	$display_exec_notice  = false;
+	$tools_missing_notice = false;
+	$current_jpeg_quality = apply_filters( 'jpeg_quality', 82, 'image_resize' );
+	$wizard_complete_url  = wp_nonce_url( add_query_arg( 'complete_wizard', 1, ewww_image_optimizer_get_settings_link() ), 'ewww_image_optimizer_options-options' );
+	$settings_page_url    = ewww_image_optimizer_get_settings_link();
+	$loading_image_url    = plugins_url( '/images/spinner.gif', __FILE__ );
+	$wizard_step          = 1;
+	$show_premium         = false;
+	$eio_base             = new EIO_Base();
+	$easyio_site_url      = $eio_base->content_url();
+	$no_tracking          = false;
+	$webp_available       = true;
+	$bulk_available       = false;
+	$tools_available      = true;
+	if ( ! defined( 'EWWW_IMAGE_OPTIMIZER_NOEXEC' ) ) {
+		if ( defined( 'EWWW_IMAGE_OPTIMIZER_CLOUD' ) && EWWW_IMAGE_OPTIMIZER_CLOUD ) {
+			ewww_image_optimizer_disable_tools();
+		} else {
+			ewww_image_optimizer_tool_init();
+			ewww_image_optimizer_notice_utils( 'quiet' );
+		}
+	}
+	if (
+		ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ||
+		ewww_image_optimizer_easy_active() ||
+		! empty( $_GET['show-premium'] )
+	) {
+		$show_premium = true;
+	} elseif (
+		ewww_image_optimizer_exec_check() &&
+		! ewww_image_optimizer_get_option( 'ewww_image_optimizer_dismiss_exec_notice' ) &&
+		! ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) &&
+		! ewww_image_optimizer_easy_active()
+	) {
+		$display_exec_notice = true;
+	} elseif (
+		( defined( 'EWWW_IMAGE_OPTIMIZER_JPEGTRAN' ) && ! EWWW_IMAGE_OPTIMIZER_JPEGTRAN ) ||
+		( defined( 'EWWW_IMAGE_OPTIMIZER_OPTIPNG' ) && ! EWWW_IMAGE_OPTIMIZER_OPTIPNG ) ||
+		( defined( 'EWWW_IMAGE_OPTIMIZER_GIFSICLE' ) && ! EWWW_IMAGE_OPTIMIZER_GIFSICLE )
+	) {
+		$tools_missing   = array();
+		$tools_available = false;
+		if ( defined( 'EWWW_IMAGE_OPTIMIZER_JPEGTRAN' ) && ! EWWW_IMAGE_OPTIMIZER_JPEGTRAN ) {
+			$tools_missing[] = 'jpegtran';
+		} elseif ( defined( 'EWWW_IMAGE_OPTIMIZER_JPEGTRAN' ) ) {
+			$tools_available = true;
+		}
+		if ( defined( 'EWWW_IMAGE_OPTIMIZER_OPTIPNG' ) && ! EWWW_IMAGE_OPTIMIZER_OPTIPNG ) {
+			$tools_missing[] = 'optipng';
+		} elseif ( defined( 'EWWW_IMAGE_OPTIMIZER_OPTIPNG' ) ) {
+			$tools_available = true;
+		}
+		if ( defined( 'EWWW_IMAGE_OPTIMIZER_GIFSICLE' ) && ! EWWW_IMAGE_OPTIMIZER_GIFSICLE ) {
+			$tools_missing[] = 'gifsicle';
+		} elseif ( defined( 'EWWW_IMAGE_OPTIMIZER_GIFSICLE' ) ) {
+			$tools_available = true;
+		}
+		$tools_missing_notice = true;
+		// Expand the missing utilities list for use in the error message.
+		$tools_missing_message = implode( ', ', $tools_missing );
+	}
+	if (
+		defined( 'EWWW_IMAGE_OPTIMIZER_NOEXEC' ) && EWWW_IMAGE_OPTIMIZER_NOEXEC &&
+		! ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' )
+	) {
+		$webp_available = false;
+	}
+	if (
+		! ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn' ) ||
+		ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ||
+		! ewww_image_optimizer_exec_check()
+	) {
+		$bulk_available = true;
+	}
+	if (
+		stristr( network_site_url( '/' ), '.local' ) !== false ||
+		stristr( network_site_url( '/' ), 'dev' ) !== false ||
+		stristr( network_site_url( '/' ), 'localhost' ) !== false ||
+		stristr( network_site_url( '/' ), ':8888' ) !== false // This is common with MAMP on OS X.
+	) {
+		$no_tracking = true;
+	}
+	if ( ! empty( $_REQUEST['_wpnonce'] ) && wp_verify_nonce( sanitize_key( $_REQUEST['_wpnonce'] ), 'ewww_image_optimizer_wizard' ) ) {
+		if ( ! empty( $_POST['ewwwio_wizard_step'] ) ) {
+			$wizard_step = (int) $_POST['ewwwio_wizard_step'];
+		}
+		if ( ! empty( $_POST['ewww_image_optimizer_goal_save_space'] ) ) {
+			update_option( 'ewww_image_optimizer_goal_save_space', true, false );
+		} else {
+			update_option( 'ewww_image_optimizer_goal_save_space', false, false );
+		}
+		if ( ! empty( $_POST['ewww_image_optimizer_goal_site_speed'] ) ) {
+			update_option( 'ewww_image_optimizer_goal_site_speed', true, false );
+		} else {
+			update_option( 'ewww_image_optimizer_goal_site_speed', false, false );
+		}
+		if ( ! empty( $_POST['ewww_image_optimizer_budget'] ) && 'free' === $_POST['ewww_image_optimizer_budget'] ) {
+			if ( $display_exec_notice ) {
+				ewww_image_optimizer_enable_free_exec();
+			}
+			if ( defined( 'EWWW_IMAGE_OPTIMIZER_OPTIPNG' ) && ! EWWW_IMAGE_OPTIMIZER_OPTIPNG ) {
+				ewww_image_optimizer_set_option( 'ewww_image_optimizer_png_level', 0 );
+			}
+			if ( defined( 'EWWW_IMAGE_OPTIMIZER_GIFSICLE' ) && ! EWWW_IMAGE_OPTIMIZER_GIFSICLE ) {
+				ewww_image_optimizer_set_option( 'ewww_image_optimizer_gif_level', 0 );
+			}
+			if ( $tools_missing_notice && ! $tools_available ) {
+				ewww_image_optimizer_enable_free_exec();
+				$webp_available = false;
+			}
+		}
+		if ( 3 === $wizard_step ) {
+			ewww_image_optimizer_set_option( 'ewww_image_optimizer_metadata_remove', ! empty( $_POST['ewww_image_optimizer_metadata_remove'] ) );
+			if ( ! empty( $_POST['ewww_image_optimizer_jpg_quality'] ) ) {
+				ewww_image_optimizer_set_option( 'ewww_image_optimizer_jpg_quality', (int) $_POST['ewww_image_optimizer_jpg_quality'] );
+			}
+			ewww_image_optimizer_set_option( 'ewww_image_optimizer_lazy_load', ! empty( $_POST['ewww_image_optimizer_lazy_load'] ) );
+			ewww_image_optimizer_set_option( 'ewww_image_optimizer_webp', ! empty( $_POST['ewww_image_optimizer_webp'] ) );
+			if ( ! empty( $_POST['ewww_image_optimizer_maxmediawidth'] ) ) {
+				ewww_image_optimizer_set_option( 'ewww_image_optimizer_maxmediawidth', (int) $_POST['ewww_image_optimizer_maxmediawidth'] );
+			}
+			if ( ! empty( $_POST['ewww_image_optimizer_maxmediaheight'] ) ) {
+				ewww_image_optimizer_set_option( 'ewww_image_optimizer_maxmediaheight', (int) $_POST['ewww_image_optimizer_maxmediaheight'] );
+			}
+			ewww_image_optimizer_set_option( 'ewww_image_optimizer_enable_help', ! empty( $_POST['ewww_image_optimizer_enable_help'] ) );
+			ewww_image_optimizer_set_option( 'ewww_image_optimizer_allow_tracking', ! empty( $_POST['ewww_image_optimizer_allow_tracking'] ) );
+			update_option( 'ewww_image_optimizer_wizard_complete', true, false );
+			global $eio_debug;
+			$debug_info = '';
+			if ( ! empty( $eio_debug ) ) {
+				$debug_info = $eio_debug;
+			}
+		}
+		wp_add_inline_script(
+			'ewww-settings-script',
+			'ewww_vars.save_space = ' . ( ! empty( $_POST['ewww_image_optimizer_goal_save_space'] ) ? 1 : 0 ) . ";\n" .
+			'ewww_vars.site_speed = ' . ( ! empty( $_POST['ewww_image_optimizer_goal_site_speed'] ) ? 1 : 0 ) . ";\n"
+		);
+	}
+	?>
+<div id='ewww-settings-wrap' class='wrap'>
+	<div id='ewwwio-wizard'>
+		<div id="ewwwio-wizard-header">
+			<img height="95" width="167" src="<?php echo esc_url( plugins_url( '/images/ewwwio-logo.png', __FILE__ ) ); ?>">
+		</div>
+		<div id='ewwwio-wizard-body'>
+	<?php if ( 1 === $wizard_step ) : ?>
+		<?php if ( $display_exec_notice ) : ?>
+			<div id='ewww-image-optimizer-warning-exec' class='ewwwio-notice notice-warning'>
+				<?php esc_html_e( 'Sites where the exec() function is disabled require cloud-based optimization, because free server-based optimization will not work.', 'ewww-image-optimizer' ); ?>
+				<br>
+				<strong>
+					<?php esc_html_e( 'You may ask your system administrator to enable exec() for free server-based optimization. Otherwise, choose between free cloud-based JPG-only compression and premium optimization below.', 'ewww-image-optimizer' ); ?>
+					<?php ewwwio_help_link( 'https://docs.ewww.io/article/29-what-is-exec-and-why-do-i-need-it', '592dd12d0428634b4a338c39' ); ?>
+				</strong>
+			</div>
+		<?php elseif ( $tools_missing_notice && $tools_available ) : ?>
+			<div id='ewww-image-optimizer-warning-opt-missing' class='ewwwio-notice notice-warning'>
+				<?php
+				printf(
+					/* translators: %s: comma-separated list of missing tools */
+					esc_html__( 'EWWW Image Optimizer uses open-source tools to enable free mode, but your server is missing these: %s.', 'ewww-image-optimizer' ),
+					esc_html( $tools_missing_message )
+				);
+				echo '<br><br>';
+				printf(
+					/* translators: %s: Installation Instructions (link) */
+					esc_html__( 'You may install missing tools via the %s or continue with reduced functionality.', 'ewww-image-optimizer' ),
+					"<a href='https://docs.ewww.io/article/6-the-plugin-says-i-m-missing-something' data-beacon-article='585371e3c697912ffd6c0ba1' target='_blank'>" . esc_html__( 'Installation Instructions', 'ewww-image-optimizer' ) . '</a>'
+				);
+				?>
+			</div>
+		<?php elseif ( $tools_missing_notice ) : ?>
+			<div id='ewww-image-optimizer-warning-opt-missing' class='ewwwio-notice notice-warning'>
+				<?php
+				printf(
+					/* translators: %s: comma-separated list of missing tools */
+					esc_html__( 'EWWW Image Optimizer uses open-source tools to enable free mode, but your server is missing these: %s.', 'ewww-image-optimizer' ),
+					esc_html( $tools_missing_message )
+				);
+				echo '<br><br>';
+				printf(
+					/* translators: %s: Installation Instructions (link) */
+					esc_html__( 'You may install missing tools via the %s. Otherwise, choose between free cloud-based JPG-only compression and premium optimization below.', 'ewww-image-optimizer' ),
+					"<a href='https://docs.ewww.io/article/6-the-plugin-says-i-m-missing-something' data-beacon-article='585371e3c697912ffd6c0ba1' target='_blank'>" . esc_html__( 'Installation Instructions', 'ewww-image-optimizer' ) . '</a>'
+				);
+				?>
+			</div>
+		<?php endif; ?>
+			<form id='ewwwio-wizard-step-1' class='ewwwio-wizard-form' method='post' action=''>
+				<input type='hidden' name='ewwwio_wizard_step' value='2' />
+				<?php wp_nonce_field( 'ewww_image_optimizer_wizard' ); ?>
+				<div class='ewwwio-intro-text'><?php esc_html_e( 'In order to recommend the best settings for your site, please select which goal(s) are most important:', 'ewww-image-optimizer' ); ?></div>
+				<div class='ewwwio-wizard-form-group'>
+					<input type='checkbox' id='ewww_image_optimizer_goal_site_speed' name='ewww_image_optimizer_goal_site_speed' value='true' required />
+					<label for='ewww_image_optimizer_goal_site_speed'><?php esc_html_e( 'Speed up your site', 'ewww-image-optimizer' ); ?></label><br>
+					<input type='checkbox' id='ewww_image_optimizer_goal_save_space' name='ewww_image_optimizer_goal_save_space' value='true' required />
+					<label for='ewww_image_optimizer_goal_save_space'><?php esc_html_e( 'Save storage space', 'ewww-image-optimizer' ); ?></label>
+				</div>
+				<div class='ewwwio-wizard-form-group'>
+					<input type='radio' id='ewww_image_optimizer_budget_pay' name='ewww_image_optimizer_budget' value='pay' required <?php checked( $show_premium ); ?>/>
+					<label for='ewww_image_optimizer_budget_pay'><?php esc_html_e( 'Get 5x more optimization and priority support', 'ewww-image-optimizer' ); ?></label><br>
+					<div class="ewwwio-wizard-form-group ewwwio-premium-setup" <?php echo ( $show_premium ? "style='display:block'" : '' ); ?>>
+						<p><strong><a href='https://ewww.io/plans/' target='_blank'>&gt;&gt;<?php esc_html_e( 'Start your free trial', 'ewww-image-optimizer' ); ?></a></strong></p>
+						<div id='ewwwio-api-activation-result'></div>
+						<p id='ewww_image_optimizer_cloud_key_container'>
+							<label for='ewww_image_optimizer_cloud_key'><?php esc_html_e( 'Compress API Key', 'ewww-image-optimizer' ); ?></label><br>
+							<input type='text' id='ewww_image_optimizer_cloud_key' name='ewww_image_optimizer_cloud_key' value='<?php echo esc_attr( ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ); ?>' />
+		<?php if ( empty( ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ) ) : ?>
+							<span id='ewwwio-api-activate'><a href='#' class='button-secondary'><?php esc_html_e( 'Activate', 'ewww-image-optimizer' ); ?></a></span>
+							<span id='ewwwio-api-activation-processing'><img src='<?php echo esc_url( $loading_image_url ); ?>' alt='loading'/></span>
+		<?php else : ?>
+							<span class="dashicons dashicons-yes"></span>
+		<?php endif; ?>
+							<br>
+							<span class="description"><?php esc_html_e( 'Premium compression for your local images.', 'ewww-image-optimizer' ); ?></span>
+						</p>
+						<div id='ewwwio-easy-activation-result'></div>
+						<p>
+							<label><?php esc_html_e( 'Easy IO', 'ewww-image-optimizer' ); ?></label><br>
+							<span class="description">
+								<?php
+								printf(
+									/* translators: %s: the string 'and more' with a link to the docs */
+									esc_html__( 'An image-optimizing CDN that does not modify your local images. Includes automatic compression, scaling, WebP %s.', 'ewww-image-optimizer' ),
+									'<a href="https://docs.ewww.io/article/44-introduction-to-exactdn" target="_blank" data-beacon-article="59bc5ad6042863033a1ce370">' . esc_html__( 'and more', 'ewww-image-optimizer' ) . '</a>'
+								);
+								?>
+							</span>
+		<?php if ( empty( ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn' ) ) ) : ?>
+							<br>
+							<a href="<?php echo esc_url( add_query_arg( 'site_url', trim( $easyio_site_url ), 'https://ewww.io/manage-sites/' ) ); ?>" target="_blank">
+								<?php esc_html_e( 'Add your Site URL to your account:', 'easy-image-optimizer' ); ?>
+							</a>
+							<input type='text' id='exactdn_site_url' name='exactdn_site_url' value='<?php echo esc_url( trim( $easyio_site_url ) ); ?>' readonly />
+							<span id='exactdn-site-url-copy'><?php esc_html_e( 'Click to Copy', 'ewww-image-optimizer' ); ?></span>
+							<span id='exactdn-site-url-copied'><?php esc_html_e( 'Copied', 'ewww-image-optimizer' ); ?></span><br>
+							<a id='ewwwio-easy-activate' href='#' class='button-secondary'><?php esc_html_e( 'Activate', 'ewww-image-optimizer' ); ?></a>
+							<span id='ewwwio-easy-activation-processing'><img src='<?php echo esc_url( $loading_image_url ); ?>' alt='loading'/></span>
+		<?php elseif ( class_exists( 'ExactDN' ) && ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn' ) && $exactdn->get_exactdn_domain() && $exactdn->verify_domain( $exactdn->get_exactdn_domain() ) ) : ?>
+							<span style="color: #3eadc9; font-weight: bolder"><?php esc_html_e( 'Verified', 'ewww-image-optimizer' ); ?></span>
+							<span class="dashicons dashicons-yes"></span>
+		<?php endif; ?>
+						</p>
+					</div>
+					<input type='radio' id='ewww_image_optimizer_budget_free' name='ewww_image_optimizer_budget' value='free' required />
+					<label for='ewww_image_optimizer_budget_free'><?php esc_html_e( 'Stick with free mode for now', 'ewww-image-optimizer' ); ?></label>
+				</div>
+				<div class='ewwwio-flex-space-between'>
+					<p><input type='submit' class='button-primary' value='<?php esc_attr_e( 'Next', 'ewww-image-optimizer' ); ?>' /></p>
+					<p><a href='<?php echo esc_url( $wizard_complete_url ); ?>'><?php esc_html_e( "I know what I'm doing, leave me alone!", 'ewww-image-optimizer' ); ?></a></p>
+				</div>
+			</form>
+	<?php elseif ( 2 === $wizard_step ) : ?>
+			<form id='ewwwio-wizard-step-2' class='ewwwio-wizard-form' method='post' action=''>
+				<input type='hidden' name='ewwwio_wizard_step' value='3' />
+				<?php wp_nonce_field( 'ewww_image_optimizer_wizard' ); ?>
+				<div class='ewwwio-intro-text'><?php esc_html_e( 'Here are the recommended settings for your site. Please review and then save the settings.', 'ewww-image-optimizer' ); ?></div>
+				<p>
+					<input type='checkbox' id='ewww_image_optimizer_metadata_remove' name='ewww_image_optimizer_metadata_remove' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_metadata_remove' ) ); ?> />
+					<label for='ewww_image_optimizer_metadata_remove'><?php esc_html_e( 'Remove Metadata', 'ewww-image-optimizer' ); ?></label>
+				</p>
+		<?php if ( $current_jpeg_quality > 90 || $current_jpeg_quality < 50 || ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_quality' ) ) : ?>
+				<p>
+					<input type='text' id='ewww_image_optimizer_jpg_quality' name='ewww_image_optimizer_jpg_quality' class='small-text' value='82' />
+					<label for='ewww_image_optimizer_jpg_quality'><?php esc_html_e( 'JPG Quality Level', 'ewww-image-optimizer' ); ?></label>
+				</p>
+		<?php endif; ?>
+		<?php if ( function_exists( 'easyio_get_option' ) && easyio_get_option( 'easyio_lazy_load' ) ) : ?>
+				<p>
+					<input type='checkbox' id='ewww_image_optimizer_easy_lazy' name='ewww_image_optimizer_easy_lazy' value='true' checked disabled />
+					<label for='ewww_image_optimizer_easy_lazy'><?php esc_html_e( 'Lazy Load (enabled in Easy IO)', 'ewww-image-optimizer' ); ?></label><br>
+				</p>
+		<?php elseif ( ! ewwwio_other_lazy_detected() ) : ?>
+				<p>
+					<input type='checkbox' id='ewww_image_optimizer_lazy_load' name='ewww_image_optimizer_lazy_load' value='true' checked />
+					<label for='ewww_image_optimizer_lazy_load'><?php esc_html_e( 'Lazy Load', 'ewww-image-optimizer' ); ?></label>
+				</p>
+		<?php else : ?>
+				<p><strong><?php esc_html_e( 'Though you have a lazy loader already, our lazy loader includes CSS background images and auto-scaling.', 'ewww-image-optimizer' ); ?></strong></p>
+				<p>
+					<input type='checkbox' id='ewww_image_optimizer_lazy_load' name='ewww_image_optimizer_lazy_load' value='true' />
+					<label for='ewww_image_optimizer_lazy_load'><?php esc_html_e( 'Lazy Load', 'ewww-image-optimizer' ); ?></label>
+				</p>
+		<?php endif; ?>
+		<?php if ( ! $webp_available ) : ?>
+				<p>
+					<input type='checkbox' id='ewww_image_optimizer_easy_webp' name='ewww_image_optimizer_easy_webp' value='true' disabled />
+					<label for='ewww_image_optimizer_easy_webp'><?php esc_html_e( 'WebP Conversion', 'ewww-image-optimizer' ); ?></label><br>
+				</p>
+				<p>*<?php esc_html_e( 'WebP conversion requires an API key or Easy IO subscription.', 'ewww-image-optimizer' ); ?></p>
+		<?php elseif ( ewww_image_optimizer_easy_active() ) : ?>
+				<p>
+					<input type='checkbox' id='ewww_image_optimizer_easy_webp' name='ewww_image_optimizer_easy_webp' value='true' checked disabled />
+					<label for='ewww_image_optimizer_easy_webp'><?php esc_html_e( 'WebP Conversion (included with Easy IO)', 'ewww-image-optimizer' ); ?></label><br>
+				</p>
+		<?php else : ?>
+				<p>
+					<input type='checkbox' id='ewww_image_optimizer_webp' name='ewww_image_optimizer_webp' value='true' <?php checked( ! get_option( 'ewww_image_optimizer_goal_save_space' ) ); ?>/>
+					<label for='ewww_image_optimizer_webp'><?php esc_html_e( 'WebP Conversion', 'ewww-image-optimizer' ); ?></label>
+				</p>
+				<p id='ewwwio-webp-storage-warning'>
+					<i><?php esc_html_e( 'Enabling WebP Conversion without Easy IO will increase your storage requirements. Do you want to continue?', 'ewww-image-optimizer' ); ?></i><br>
+					<a id='ewwwio-cancel-webp' href='#'><?php esc_html_e( 'Nevermind', 'ewww-image-optimizer' ); ?></a><br>
+					<a id='ewwwio-easyio-webp-info' href='<?php echo esc_url( $settings_page_url ) . '&show-premium=1'; ?>'><?php esc_html_e( 'Tell me more about Easy IO', 'ewww-image-optimizer' ); ?></a><br>
+					<span id='ewwwio-confirm-webp' class='button-primary'><?php esc_html_e( 'Continue', 'ewww-image-optimizer' ); ?></span>
+				</p>
+		<?php endif; ?>
+		<?php if ( ! function_exists( 'imsanity_get_max_width_height' ) ) : ?>
+				<p>
+					<input type='number' step='10' min='0' class='small-text' id='ewww_image_optimizer_maxmediawidth' name='ewww_image_optimizer_maxmediawidth' value='<?php echo ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediawidth' ) ? (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediawidth' ) : 1920; ?>' <?php disabled( function_exists( 'imsanity_get_max_width_height' ) ); ?> />
+					<label for='ewww_image_optimizer_maxmediawidth'><?php esc_html_e( 'Max Width', 'ewww-image-optimizer' ); ?></label>
+					<input type='number' step='10' min='0' class='small-text' id='ewww_image_optimizer_maxmediaheight' name='ewww_image_optimizer_maxmediaheight' value='<?php echo ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediaheight' ) ? (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediaheight' ) : 1920; ?>' <?php disabled( function_exists( 'imsanity_get_max_width_height' ) ); ?> />
+					<label for='ewww_image_optimizer_maxmediaheight'><?php esc_html_e( 'Max Height', 'ewww-image-optimizer' ); ?></label><br>
+					<span class='description'><?php esc_html_e( 'Resize uploaded images to these dimensions (in pixels).', 'ewww-image-optimizer' ); ?></span>
+				</p>
+		<?php endif; ?>
+				<p>
+					<input type='checkbox' id='ewww_image_optimizer_enable_help' name='ewww_image_optimizer_enable_help' value='true' checked />
+					<label for='ewww_image_optimizer_enable_help'><?php esc_html_e( 'Embedded Help', 'ewww-image-optimizer' ); ?></label><br>
+					<span class='description'><?php esc_html_e( 'Access documentation and support from your WordPress dashboard. Uses resources from external servers.', 'ewww-image-optimizer' ); ?></span>
+				</p>
+		<?php if ( ! $no_tracking ) : ?>
+				<p>
+					<input type='checkbox' id='ewww_image_optimizer_allow_tracking' name='ewww_image_optimizer_allow_tracking' value='true' checked />
+					<label for='ewww_image_optimizer_allow_tracking'><?php esc_html_e( 'Anonymous Reporting', 'ewww-image-optimizer' ); ?></label>
+					<span><?php ewwwio_help_link( 'https://docs.ewww.io/article/23-usage-tracking', '591f3a8e2c7d3a057f893d91' ); ?></span><br>
+					<span class='description'><?php esc_html_e( 'Send anonymized usage data to help make the plugin better. Opt-in and get a 10% discount code.', 'ewww-image-optimizer' ); ?></span>
+				</p>
+		<?php endif; ?>
+				<div class='ewwwio-flex-space-between'>
+					<p><input type='submit' class='button-primary' value='<?php esc_attr_e( 'Save Settings', 'ewww-image-optimizer' ); ?>' /></p>
+					<p class='ewwwio-wizard-back'><a href='<?php echo esc_url( $settings_page_url ); ?>' class='button-secondary'><?php esc_html_e( 'Go Back', 'ewww-image-optimizer' ); ?></a></p>
+				</div>
+			</form>
+	<?php elseif ( 3 === $wizard_step ) : ?>
+			<p>
+				<?php
+				printf(
+					/* translators: %s: Bulk Optimize (link) */
+					esc_html__( 'New uploads will be optimized automatically. Optimize existing images with the %s.', 'ewww-image-optimizer' ),
+					'<a href="' . esc_url( admin_url( 'upload.php?page=ewww-image-optimizer-bulk' ) ) . '">' . esc_html__( 'Bulk Optimizer', 'ewww-image-optimizer' ) . '</a>'
+				);
+				ewwwio_help_link( 'https://docs.ewww.io/article/4-getting-started', '5853713bc697912ffd6c0b98' );
+				?>
+			</p>
+			<p>
+				<?php
+				printf(
+					/* translators: 1: List View in the Media Library 2: the WP-CLI command */
+					esc_html__( 'You may also use %1$s to selectively optimize images or WP-CLI to optimize your images in bulk: %2$s', 'ewww-image-optimizer' ),
+					'<a href="' . esc_url( admin_url( 'upload.php?mode=list' ) ) . '">' . esc_html__( 'List View in the Media Library', 'ewww-image-optimizer' ) . '</a>',
+					'<br><code>wp help ewwwio optimize</code>'
+				);
+				ewwwio_help_link( 'https://docs.ewww.io/article/25-optimizing-with-wp-cli', '592da1482c7d3a074e8aeb6b' );
+				?>
+			</p>
+			<p>
+				<?php
+				if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_allow_tracking' ) ) {
+					printf(
+						/* translators: 1: link to https://ewww.io/plans/ 2: discount code (yes, you may use it) */
+						esc_html__( 'Use this code at %1$s: %2$s', 'ewww-image-optimizer' ),
+						'<a href="https://ewww.io/plans/" target="_blank">https://ewww.io/</a>',
+						'<code>SPEEDER1012</code>'
+					);
+				}
+				?>
+			</p>
+			<p><a type='submit' class='button-primary' href='<?php echo esc_url( $settings_page_url ); ?>'><?php esc_attr_e( 'Done', 'ewww-image-optimizer' ); ?></a></p>
+			<?php
+			if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_enable_help' ) ) {
+				$current_user = wp_get_current_user();
+				$help_email   = $current_user->user_email;
+				$hs_debug     = '';
+				if ( ! empty( $debug_info ) ) {
+					$hs_debug = str_replace( array( "'", '<br>', '<b>', '</b>', '=>' ), array( "\'", '\n', '**', '**', '=' ), $debug_info );
+				}
+				?>
+<script type="text/javascript">!function(e,t,n){function a(){var e=t.getElementsByTagName("script")[0],n=t.createElement("script");n.type="text/javascript",n.async=!0,n.src="https://beacon-v2.helpscout.net",e.parentNode.insertBefore(n,e)}if(e.Beacon=n=function(t,n,a){e.Beacon.readyQueue.push({method:t,options:n,data:a})},n.readyQueue=[],"complete"===t.readyState)return a();e.attachEvent?e.attachEvent("onload",a):e.addEventListener("load",a,!1)}(window,document,window.Beacon||function(){});</script>
+<script type="text/javascript">
+	window.Beacon('init', 'aa9c3d3b-d4bc-4e9b-b6cb-f11c9f69da87');
+	Beacon( 'prefill', {
+		email: '<?php echo esc_js( utf8_encode( $help_email ) ); ?>',
+		text: '\n\n----------------------------------------\n<?php echo wp_kses_post( $hs_debug ); ?>',
+	});
+</script>
+				<?php
+			}
+			?>
+	<?php endif; ?>
+		</div>
+	</div>
+</div>
+	<?php
+}
+
+/**
+ * De-activates front-end parsing functions and displays troubleshooting instructions.
+ */
+function ewww_image_optimizer_rescue_mode() {
+	$settings_page_url  = ewww_image_optimizer_get_settings_link();
+	$frontend_functions = array();
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn' ) ) {
+		ewww_image_optimizer_set_option( 'ewww_image_optimizer_exactdn', '' );
+		$frontend_functions[] = 'easyio';
+	}
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_lazy_load' ) ) {
+		ewww_image_optimizer_set_option( 'ewww_image_optimizer_lazy_load', false );
+		$frontend_functions[] = 'lazyload';
+	}
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_for_cdn' ) ) {
+		ewww_image_optimizer_set_option( 'ewww_image_optimizer_webp_for_cdn', false );
+		$frontend_functions[] = 'jswebp';
+	}
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_picture_webp' ) ) {
+		ewww_image_optimizer_set_option( 'ewww_image_optimizer_picture_webp', false );
+		$frontend_functions[] = 'picturewebp';
+	}
+	global $eio_debug;
+	$debug_info = '';
+	if ( ! empty( $eio_debug ) ) {
+		$debug_info = $eio_debug;
+	}
+	?>
+<div id='ewww-settings-wrap' class='wrap'>
+	<div id='ewwwio-rescue'>
+		<div id="ewwwio-rescue-header">
+			<img height="95" width="167" src="<?php echo esc_url( plugins_url( '/images/ewwwio-logo.png', __FILE__ ) ); ?>">
+		</div>
+		<div id='ewwwio-rescue-body'>
+			<div id='ewww-image-optimizer-warning-exec' class='ewwwio-notice notice-warning'>
+				<?php esc_html_e( 'All front-end functions have been disabled. Please clear all caches, and check your site to ensure it is functioning normally.', 'ewww-image-optimizer' ); ?>
+				<br>
+				<a class='ewww-contact-root' href='https://ewww.io/contact-us/'>
+					<?php esc_html_e( 'If you continue to have problems, let us know right away!', 'ewww-image-optimizer' ); ?>
+				</a>
+			</div>
+			<div class='ewwwio-intro-text'>
+				<?php esc_html_e( 'We don\'t want you to settle for reduced functionality, so here are some troubleshooting tips:', 'ewww-image-optimizer' ); ?>
+			</div>
+			<ul>
+	<?php if ( in_array( 'easyio', $frontend_functions, true ) ) : ?>
+				<li>
+					<?php esc_html_e( 'Without Easy IO, several key optimizations are no longer working. First, re-enable Easy IO, and if your site is encounters problems again, try disabling the option to Include All Resources.', 'ewww-image-optimizer' ); ?>
+				</li>
+	<?php endif; ?>
+	<?php if ( in_array( 'lazyload', $frontend_functions, true ) || in_array( 'easyio', $frontend_functions, true ) ) : ?>
+				<li>
+					<?php esc_html_e( 'Third-party lazy loaders prevent Easy IO from auto-scaling some images, and may cause conflicts. We recommend disabling them and using the EWWW IO lazy loader.', 'ewww-image-optimizer' ); ?>
+				</li>
+	<?php endif; ?>
+	<?php if ( in_array( 'lazyload', $frontend_functions, true ) ) : ?>
+				<li>
+					<?php /* translators: %s: Documentation (link) */ ?>
+					<?php printf( esc_html__( 'The lazy loader has browser-native and auto-scaling components that may not be compatible with some themes/plugins. Instructions for disabling these can be found in the %s.', 'ewww-image-optimizer' ), "<a class='ewww-help-beacon-single' href='https://docs.ewww.io/article/74-lazy-load' data-beacon-article='5c6c36ed042863543ccd2d9b'>" . esc_html__( 'Documentation', 'ewww-image-optimizer' ) . '</a>' ); ?>
+				</li>
+	<?php endif; ?>
+	<?php if ( in_array( 'jswebp', $frontend_functions, true ) ) : ?>
+				<li>
+					<?php esc_html_e( 'Enabling Lazy Load alongside JS WebP enables better compatibility with some themes/plugins. Alternatively, you may try <picture> WebP Rewriting for a JavaScript-free delivery method.', 'ewww-image-optimizer' ); ?>
+				</li>
+	<?php endif; ?>
+	<?php if ( in_array( 'picturewebp', $frontend_functions, true ) ) : ?>
+				<li>
+					<?php esc_html_e( 'Some themes may not display <picture> elements properly, so try JS WebP Rewriting for WebP delivery.', 'ewww-image-optimizer' ); ?>
+				</li>
+	<?php endif; ?>
+			</ul>
+			<p>
+				<a class='ewww-contact-root' href='https://ewww.io/contact-us/'>
+					<?php esc_html_e( 'If you have not found a solution that works for your site, let us know! We would love to help you find a solution.', 'ewww-image-optimizer' ); ?>
+				</a>
+			</p>
+			<p><a href='<?php echo esc_url( $settings_page_url ); ?>' class='button-secondary'><?php esc_html_e( 'Return to Settings', 'ewww-image-optimizer' ); ?></a></p>
+		</div>
+	</div>
+</div>
+	<?php
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_enable_help' ) ) {
+		$current_user = wp_get_current_user();
+		$help_email   = $current_user->user_email;
+		$hs_debug     = '';
+		if ( ! empty( $debug_info ) ) {
+			$hs_debug = str_replace( array( "'", '<br>', '<b>', '</b>', '=>' ), array( "\'", '\n', '**', '**', '=' ), $debug_info );
+		}
+		?>
+<script type="text/javascript">!function(e,t,n){function a(){var e=t.getElementsByTagName("script")[0],n=t.createElement("script");n.type="text/javascript",n.async=!0,n.src="https://beacon-v2.helpscout.net",e.parentNode.insertBefore(n,e)}if(e.Beacon=n=function(t,n,a){e.Beacon.readyQueue.push({method:t,options:n,data:a})},n.readyQueue=[],"complete"===t.readyState)return a();e.attachEvent?e.attachEvent("onload",a):e.addEventListener("load",a,!1)}(window,document,window.Beacon||function(){});</script>
+<script type="text/javascript">
+	window.Beacon('init', 'aa9c3d3b-d4bc-4e9b-b6cb-f11c9f69da87');
+	Beacon( 'prefill', {
+		email: '<?php echo esc_js( utf8_encode( $help_email ) ); ?>',
+		text: '\n\n----------------------------------------\n<?php echo wp_kses_post( $hs_debug ); ?>',
+	});
+</script>
+		<?php
+	}
+}
+
+/**
+ * Wrapper that displays the EWWW IO options in the multisite network admin.
  */
 function ewww_image_optimizer_network_options() {
-	add_filter( 'ewww_image_optimizer_settings', 'ewww_image_optimizer_filter_network_settings_page', 9 );
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 	ewww_image_optimizer_options( 'network-multisite' );
 }
 
@@ -6773,131 +11092,198 @@ function ewww_image_optimizer_network_options() {
  *
  * By default, the only options displayed are the per-site resizes list, but a network admin can
  * permit site admins to configure their own blog settings.
- *
- * @global string $ewww_debug In memory debug log.
  */
 function ewww_image_optimizer_network_singlesite_options() {
-	add_filter( 'ewww_image_optimizer_settings', 'ewww_image_optimizer_filter_network_singlesite_settings_page', 9 );
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 	ewww_image_optimizer_options( 'network-singlesite' );
 }
 
 /**
  * Displays the EWWW IO options along with status information, and debugging information.
  *
- * @global string $ewww_debug In memory debug log.
+ * @global string $eio_debug In memory debug log.
+ * @global int $wp_version
  *
  * @param string $network Indicates which options should be shown in multisite installations.
  */
 function ewww_image_optimizer_options( $network = 'singlesite' ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	ewwwio_debug_message( 'ABSPATH: ' . ABSPATH );
-	ewwwio_debug_message( 'WP_CONTENT_DIR: ' . WP_CONTENT_DIR );
-	ewwwio_debug_message( 'home url: ' . get_home_url() );
-	ewwwio_debug_message( 'site url: ' . get_site_url() );
-	$network_class = $network;
+	global $ewwwio_temp_debug;
+	global $ewwwio_upgrading;
+	global $eio_debug;
+	global $eio_hs_beacon;
+	global $exactdn;
+	global $eio_alt_webp;
+	$total_savings = 0;
+	if ( 'network-multisite' === $network ) {
+		$total_sizes   = ewww_image_optimizer_savings( true );
+		$total_savings = $total_sizes[1] - $total_sizes[0];
+	} else {
+		$total_sizes   = ewww_image_optimizer_savings();
+		$total_savings = $total_sizes[1] - $total_sizes[0];
+	}
+
+	ewwwio_debug_info();
+	$debug_info = $eio_debug;
+	ewww_image_optimizer_temp_debug_clear();
+
 	if ( empty( $network ) ) {
-		$network_class = 'singlesite';
+		$network = 'singlesite';
 	}
-	if ( ! function_exists( 'is_plugin_active_for_network' ) && is_multisite() ) {
-		// Need to include the plugin library for the is_plugin_active function.
-		require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+	if ( 'network-multisite' === $network && get_site_option( 'ewww_image_optimizer_allow_multisite_override' ) ) {
+		$network = 'network-multisite-over';
+	} elseif ( 'network-singlesite' === $network && get_site_option( 'ewww_image_optimizer_allow_multisite_override' ) ) {
+		$network = 'singlesite';
 	}
-	if ( is_multisite() && is_plugin_active_for_network( EWWW_IMAGE_OPTIMIZER_PLUGIN_FILE_REL ) && ! get_site_option( 'ewww_image_optimizer_allow_multisite_override' ) ) {
-		$network_class = 'network-multisite';
+	if ( 'singlesite' === $network && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_wizard_complete' ) ) {
+		ewww_image_optimizer_intro_wizard();
+		return;
 	}
-	$output = array();
-	if ( isset( $_REQUEST['ewww_pngout'] ) ) {
-		if ( 'success' == $_REQUEST['ewww_pngout'] ) {
-			$output[] = "<div id='ewww-image-optimizer-pngout-success' class='updated fade'>\n";
-			$output[] = '<p>' . esc_html__( 'Pngout was successfully installed, check the Plugin Status area for version information.', 'ewww-image-optimizer' ) . "</p>\n";
-			$output[] = "</div>\n";
-		}
-		if ( 'failed' == $_REQUEST['ewww_pngout'] ) {
-			$output[] = "<div id='ewww-image-optimizer-pngout-failure' class='error'>\n";
-			$output[] = '<p>' . sprintf(
-				/* translators: 1: An error message 2: The folder where pngout should be installed */
-				esc_html__( 'Pngout was not installed: %1$s. Make sure this folder is writable: %2$s', 'ewww-image-optimizer' ),
-				sanitize_text_field( $_REQUEST['ewww_error'] ), EWWW_IMAGE_OPTIMIZER_TOOL_PATH
-			) . "</p>\n";
-			$output[] = "</div>\n";
-		}
+	if ( ! empty( $_GET['rescue_mode'] ) && ! empty( $_REQUEST['_wpnonce'] ) && wp_verify_nonce( sanitize_key( $_REQUEST['_wpnonce'] ), 'ewww_image_optimizer_options-options' ) ) {
+		ewww_image_optimizer_rescue_mode();
+		return;
 	}
-	$output[] = "<script type='text/javascript'>\n" .
-		'jQuery(document).ready(function($) {$(".fade").fadeTo(5000,1).fadeOut(3000);});' . "\n" .
-		"</script>\n";
-	$output[] = "<style>\n" .
-		".ewww-tab span { font-size: 15px; font-weight: 700; color: #555; text-decoration: none; line-height: 36px; padding: 0 10px; }\n" .
-		".ewww-tab span:hover { color: #464646; }\n" .
-		".ewww-tab { margin: 0 0 0 5px; padding: 0px; border-width: 1px 1px 1px; border-style: solid solid none; border-image: none; border-color: #ccc; display: inline-block; background-color: #e4e4e4; cursor: pointer }\n" .
-		".ewww-tab:hover { background-color: #fff }\n" .
-		".ewww-selected { background-color: #f1f1f1; margin-bottom: -1px; border-bottom: 1px solid #f1f1f1 }\n" .
-		".ewww-selected span { color: #000; }\n" .
-		".ewww-selected:hover { background-color: #f1f1f1; }\n" .
-		".ewww-tab-nav { list-style: none; margin: 10px 0 0; padding-left: 5px; border-bottom: 1px solid #ccc; }\n" .
-	"</style>\n";
-	$output[] = "<div class='wrap'>\n";
-	$output[] = "<h1>EWWW Image Optimizer</h1>\n";
-	$output[] = "<div id='ewww-container-left' style='float: left; margin-right: 225px;'>\n";
-	$output[] = "<p><a href='https://ewww.io/'>" . esc_html__( 'Plugin Home Page', 'ewww-image-optimizer' ) . '</a> | ' .
-		"<a href='http://docs.ewww.io/'>" . esc_html__( 'Documentation', 'ewww-image-optimizer' ) . '</a> | ' .
-		"<a href='https://ewww.io/contact-us/'>" . esc_html__( 'Plugin Support', 'ewww-image-optimizer' ) . '</a> | ' .
-		"<a href='https://ewww.io/status/'>" . esc_html__( 'Cloud Status', 'ewww-image-optimizer' ) . '</a> | ' .
-		"<a href='https://ewww.io/downloads/s3-image-optimizer/'>" . esc_html__( 'S3 Image Optimizer', 'ewww-image-optimizer' ) . "</a></p>\n";
-	if ( 'network-multisite' == $network ) {
-		$bulk_link = esc_html__( 'Media Library', 'ewww-image-optimizer' ) . ' -> ' . esc_html__( 'Bulk Optimize', 'ewww-image-optimizer' );
-	} else {
-		$bulk_link = '<a href="upload.php?page=ewww-image-optimizer-bulk">' . esc_html__( 'Bulk Optimize', 'ewww-image-optimizer' ) . '</a>';
+	$eio_hs_beacon->admin_notice( $network );
+	?>
+
+<div id='ewww-settings-wrap' class='wrap'>
+	<h1 style="display:none;">EWWW Image Optimizer</h1>
+	<?php
+	$speed_score = 0;
+
+	$speed_recommendations = array();
+
+	$free_exec = false;
+	if (
+		defined( 'EWWW_IMAGE_OPTIMIZER_NOEXEC' ) && EWWW_IMAGE_OPTIMIZER_NOEXEC &&
+		10 === (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) &&
+		! ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) &&
+		! ewww_image_optimizer_easy_active()
+	) {
+		$free_exec    = true;
+		$speed_score += 5;
 	}
-	$s3_link = '<a href="https://ewww.io/downloads/s3-image-optimizer/">' . esc_html__( 'S3 Image Optimizer', 'ewww-image-optimizer' ) . '</a>';
-	$output[] = '<p>' .
-		sprintf(
-			/* translators: %s: Bulk Optimize (link) */
-			esc_html__( 'New images uploaded to the Media Library will be optimized automatically. If you have existing images you would like to optimize, you can use the %s tool.', 'ewww-image-optimizer' ),
-			$bulk_link
-		) . ' ' .
-		sprintf(
-			/* translators: %s: S3 Image Optimizer (link) */
-			esc_html__( 'Images stored in an Amazon S3 bucket can be optimized using our %s.' ),
-			$s3_link
-		) .
-		"</p>\n";
-	$status_output = "<div id='ewww-widgets' class='metabox-holder'><div class='meta-box-sortables'><div id='ewww-status' class='postbox'>\n" .
-		"<h2 class='hndle'>" . esc_html__( 'Plugin Status', 'ewww-image-optimizer' ) . "&emsp;STATUS_PLACEHOLDER</h2>\n<div class='inside'>";
-	$total_savings = ewww_image_optimizer_savings();
-	if ( $total_savings ) {
-		$status_output .= '<b>' . esc_html__( 'Total Savings:', 'ewww-image-optimizer' ) . "</b> <span id='ewww-total-savings'>" . ewww_image_optimizer_size_format( $total_savings, 2 ) . '</span><br>';
+	if (
+		! $free_exec &&
+		defined( 'EWWW_IMAGE_OPTIMIZER_JPEGTRAN' ) && ! EWWW_IMAGE_OPTIMIZER_JPEGTRAN &&
+		10 === (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) &&
+		! ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) &&
+		! ewww_image_optimizer_easy_active()
+	) {
+		$free_exec    = true;
+		$speed_score += 5;
 	}
-	ewwwio_debug_message( ewww_image_optimizer_aux_images_table_count() . ' images have been optimized' );
-	// If this remains true, then we display an all clear, otherwise something needs fixing. TODO: rename this someday.
-	$collapsible = true;
+	$verify_cloud = '';
 	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ) {
-		$status_output .= '<p><b>' . esc_html__( 'Cloud optimization API Key', 'ewww-image-optimizer' ) . ':</b> ';
 		ewww_image_optimizer_set_option( 'ewww_image_optimizer_cloud_exceeded', 0 );
-		$verify_cloud = ewww_image_optimizer_cloud_verify( false );
-		if ( preg_match( '/great/', $verify_cloud ) ) {
-			$status_output .= '<span style="color: green">' . esc_html__( 'Verified,', 'ewww-image-optimizer' ) . ' </span>' . ewww_image_optimizer_cloud_quota();
-		} elseif ( preg_match( '/exceeded/', $verify_cloud ) ) {
-			$status_output .= '<span style="color: orange">' . esc_html__( 'Verified,', 'ewww-image-optimizer' ) . ' </span>' . ewww_image_optimizer_cloud_quota();
-			$collapsible = false;
-		} else {
-			$status_output .= '<span style="color: red">' . esc_html__( 'Not Verified', 'ewww-image-optimizer' ) . '</span>';
-			$collapsible = false;
+		$verify_cloud = ewww_image_optimizer_cloud_verify( ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ), false );
+		if ( false !== strpos( $verify_cloud, 'great' ) && ! ewww_image_optimizer_easy_active() ) {
+			$speed_score += 35;
+			if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) > 20 ) {
+				$speed_score += 15;
+			} else {
+				$speed_recommendations[] = __( 'Enable premium compression for JPG images.', 'ewww-image-optimizer' );
+			}
+			if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) > 20 ) {
+				$speed_score += 5;
+			} else {
+				$speed_recommendations[] = __( 'Enable premium compression for PNG images.', 'ewww-image-optimizer' );
+			}
 		}
-		$status_output .= "</p>\n";
-		$disable_level = '';
+		$disable_level = false;
 	} else {
-		$disable_level = "disabled='disabled'";
+		delete_option( 'ewww_image_optimizer_cloud_key_invalid' );
+		if ( ! class_exists( 'ExactDN' ) && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn' ) ) {
+			$speed_recommendations[] = __( 'Enable premium compression with an API key or Easy IO.', 'ewww-image-optimizer' );
+		}
+		$disable_level = true;
 	}
-	if ( ewww_image_optimizer_detect_wpsf_location_lock() ) {
-		$status_output .= '<p><span style="color: orange">' . esc_html__( 'WARNING:', 'ewww-image-optimizer' ) . '</span> ' . esc_html__( "You are using Shield's Lock to Location feature, which prevents the use of Background & Parallel Optimization for faster processing time.", 'ewww-image-optimizer' ) . '</p>';
+	$exactdn_enabled = false;
+	if ( get_option( 'easyio_exactdn' ) ) {
+		ewww_image_optimizer_webp_rewrite_verify();
+		update_option( 'ewww_image_optimizer_exactdn', false );
+		update_option( 'ewww_image_optimizer_lazy_load', false );
+		update_option( 'ewww_image_optimizer_webp_for_cdn', false );
+		update_option( 'ewww_image_optimizer_picture_webp', false );
+		$speed_score += 55;
+		if ( get_option( 'exactdn_lossy' ) ) {
+			$speed_score += 20;
+		} elseif ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) < 30 ) {
+			$speed_recommendations[] = __( 'Enable premium compression.', 'ewww-image-optimizer' ) . ewwwio_get_help_link( 'https://docs.ewww.io/article/47-getting-more-from-exactdn', '59de6631042863379ddc953c' );
+		} elseif ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) > 20 ) {
+				$speed_score += 20;
+		}
+	} elseif (
+		( ! class_exists( 'Jetpack' ) || ! Jetpack::is_module_active( 'photon' ) ) &&
+		class_exists( 'ExactDN' ) &&
+		ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn' )
+	) {
+		if ( $exactdn->get_exactdn_domain() && $exactdn->verify_domain( $exactdn->get_exactdn_domain() ) ) {
+			$speed_score += 55;
+			if ( ewww_image_optimizer_get_option( 'exactdn_lossy' ) ) {
+				$speed_score += 20;
+			} elseif ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) < 30 ) {
+				$speed_recommendations[] = __( 'Enable premium compression.', 'ewww-image-optimizer' ) . ewwwio_get_help_link( 'https://docs.ewww.io/article/47-getting-more-from-exactdn', '59de6631042863379ddc953c' );
+			} elseif ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) > 20 ) {
+				$speed_score += 20;
+			}
+			$exactdn_enabled = true;
+			$exactdn_savings = $exactdn->savings();
+		}
+	} elseif ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn' ) ) {
+		if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ) {
+			$speed_recommendations[] = __( 'Enable Easy IO for automatic resizing.', 'ewww-image-optimizer' ) . ewwwio_get_help_link( 'https://docs.ewww.io/article/44-introduction-to-exactdn', '59bc5ad6042863033a1ce370,5c0042892c7d3a31944e88a4' );
+		}
+		delete_option( 'ewww_image_optimizer_exactdn_domain' );
+		delete_option( 'ewww_image_optimizer_exactdn_plan_id' );
+		delete_option( 'ewww_image_optimizer_exactdn_failures' );
+		delete_option( 'ewww_image_optimizer_exactdn_checkin' );
+		delete_option( 'ewww_image_optimizer_exactdn_verified' );
+		delete_option( 'ewww_image_optimizer_exactdn_validation' );
+		delete_option( 'ewww_image_optimizer_exactdn_suspended' );
+		delete_site_option( 'ewww_image_optimizer_exactdn_domain' );
+		delete_site_option( 'ewww_image_optimizer_exactdn_plan_id' );
+		delete_site_option( 'ewww_image_optimizer_exactdn_failures' );
+		delete_site_option( 'ewww_image_optimizer_exactdn_checkin' );
+		delete_site_option( 'ewww_image_optimizer_exactdn_verified' );
+		delete_site_option( 'ewww_image_optimizer_exactdn_validation' );
+		delete_site_option( 'ewww_image_optimizer_exactdn_suspended' );
 	}
-	if ( ! ewww_image_optimizer_full_cloud() && ! EWWW_IMAGE_OPTIMIZER_NOEXEC ) {
-		list ( $jpegtran_src, $optipng_src, $gifsicle_src, $jpegtran_dst, $optipng_dst, $gifsicle_dst ) = ewww_image_optimizer_install_paths();
+	$easymode = false;
+	if (
+		! ewww_image_optimizer_get_option( 'ewww_image_optimizer_local_mode' )
+	) {
+		$easymode = true;
+	}
+	if (
+		ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediawidth' ) ||
+		ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediaheight' ) ||
+		ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxotherwidth' ) ||
+		ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxotherheight' )
+	) {
+		$speed_score += 5;
+	} elseif ( defined( 'IMSANITY_VERSION' ) ) {
+		$speed_score += 5;
+	} else {
+		$speed_recommendations[] = __( 'Configure maximum image dimensions in Resize settings.', 'ewww-image-optimizer' ) . ewwwio_get_help_link( 'https://docs.ewww.io/article/41-resize-settings', '59849911042863033a1ba5f9' );
+	}
+	$jpg_quality = apply_filters( 'jpeg_quality', 82, 'image_resize' );
+	if ( $jpg_quality < 91 && $jpg_quality > 49 ) {
+		$speed_score += 5;
+	} else {
+		$speed_recommendations[] = __( 'JPG quality level should be between 50 and 90 for optimal resizing.', 'ewww-image-optimizer' ) . ewwwio_get_help_link( 'https://docs.ewww.io/article/11-advanced-configuration', '58542afac697912ffd6c18c0,58543c69c697912ffd6c19a7' );
 	}
 	$skip = ewww_image_optimizer_skip_tools();
-	$status_output .= "<p>\n";
-	if ( ! $skip['jpegtran']  && ! EWWW_IMAGE_OPTIMIZER_NOEXEC ) {
-		$status_output .= '<b>jpegtran:</b> ';
+	if ( ewww_image_optimizer_easy_active() ) {
+		$skip['jpegtran']   = true;
+		$skip['optipng']    = true;
+		$skip['gifsicle']   = true;
+		$skip['pngout']     = true;
+		$skip['pngquant']   = true;
+		$skip['webp']       = true;
+		$skip['svgcleaner'] = true;
+	}
+	if ( ! $skip['jpegtran'] && ! EWWW_IMAGE_OPTIMIZER_NOEXEC ) {
 		if ( EWWW_IMAGE_OPTIMIZER_JPEGTRAN ) {
 			$jpegtran_installed = ewww_image_optimizer_tool_found( EWWW_IMAGE_OPTIMIZER_JPEGTRAN, 'j' );
 			if ( ! $jpegtran_installed ) {
@@ -6905,14 +11291,12 @@ function ewww_image_optimizer_options( $network = 'singlesite' ) {
 			}
 		}
 		if ( ! empty( $jpegtran_installed ) ) {
-			$status_output .= '<span style="color: green; font-weight: bolder">' . esc_html__( 'Installed', 'ewww-image-optimizer' ) . '</span>&emsp;' . esc_html__( 'version', 'ewww-image-optimizer' ) . ': ' . $jpegtran_installed . "<br />\n";
+			$speed_score += 5;
 		} else {
-			$status_output .= '<span style="color: red; font-weight: bolder">' . esc_html__( 'Missing', 'ewww-image-optimizer' ) . '</span><br />' . "\n";
-			$collapsible = false;
+			$speed_recommendations[] = __( 'Install jpegtran.', 'ewww-image-optimizer' ) . ewwwio_get_help_link( 'https://docs.ewww.io/article/6-the-plugin-says-i-m-missing-something', '585371e3c697912ffd6c0ba1' );
 		}
 	}
 	if ( ! $skip['optipng'] && ! EWWW_IMAGE_OPTIMIZER_NOEXEC ) {
-		$status_output .= '<b>optipng:</b> ';
 		if ( EWWW_IMAGE_OPTIMIZER_OPTIPNG ) {
 			$optipng_version = ewww_image_optimizer_tool_found( EWWW_IMAGE_OPTIMIZER_OPTIPNG, 'o' );
 			if ( ! $optipng_version ) {
@@ -6920,14 +11304,12 @@ function ewww_image_optimizer_options( $network = 'singlesite' ) {
 			}
 		}
 		if ( ! empty( $optipng_version ) ) {
-			$status_output .= '<span style="color: green; font-weight: bolder">' . esc_html__( 'Installed', 'ewww-image-optimizer' ) . '</span>&emsp;' . esc_html__( 'version', 'ewww-image-optimizer' ) . ': ' . $optipng_version . "<br />\n";
+			$speed_score += 5;
 		} else {
-			$status_output .= '<span style="color: red; font-weight: bolder">' . esc_html__( 'Missing', 'ewww-image-optimizer' ) . '</span><br />' . "\n";
-			$collapsible = false;
+			$speed_recommendations[] = __( 'Install optipng.', 'ewww-image-optimizer' ) . ewwwio_get_help_link( 'https://docs.ewww.io/article/6-the-plugin-says-i-m-missing-something', '585371e3c697912ffd6c0ba1' );
 		}
 	}
 	if ( ! $skip['pngout'] && ! EWWW_IMAGE_OPTIMIZER_NOEXEC ) {
-		$status_output .= '<b>pngout:</b> ';
 		if ( EWWW_IMAGE_OPTIMIZER_PNGOUT ) {
 			$pngout_version = ewww_image_optimizer_tool_found( EWWW_IMAGE_OPTIMIZER_PNGOUT, 'p' );
 			if ( ! $pngout_version ) {
@@ -6935,32 +11317,12 @@ function ewww_image_optimizer_options( $network = 'singlesite' ) {
 			}
 		}
 		if ( ! empty( $pngout_version ) ) {
-			$status_output .= '<span style="color: green; font-weight: bolder">' . esc_html__( 'Installed', 'ewww-image-optimizer' ) . '</span>&emsp;' . esc_html__( 'version', 'ewww-image-optimizer' ) . ': ' . preg_replace( '/PNGOUT \[.*\)\s*?/', '', $pngout_version ) . "<br />\n";
+			$speed_score += 1;
 		} else {
-			$status_output .= '<span style="color: red; font-weight: bolder">' . esc_html__( 'Missing', 'ewww-image-optimizer' ) . '</span>&emsp;' . esc_html__( 'Install', 'ewww-image-optimizer' ) . ' <a href="admin.php?action=ewww_image_optimizer_install_pngout">' . esc_html__( 'automatically', 'ewww-image-optimizer' ) . '</a> | <a href="http://advsys.net/ken/utils.htm">' . esc_html__( 'manually', 'ewww-image-optimizer' ) . '</a> - ' . esc_html__( 'Pngout is free closed-source software that can produce drastically reduced filesizes for PNGs, but can be very time consuming to process images', 'ewww-image-optimizer' ) . "<br />\n";
-			$collapsible = false;
-		}
-	}
-	if ( $skip['pngout'] && ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) == 10 ) {
-		$status_output .= '<b>pngout:</b> ' . esc_html__( 'Not installed, enable in Advanced Settings', 'ewww-image-optimizer' ) . "<br />\n";
-	}
-	if ( ! $skip['gifsicle'] && ! EWWW_IMAGE_OPTIMIZER_NOEXEC ) {
-		$status_output .= '<b>gifsicle:</b> ';
-		if ( EWWW_IMAGE_OPTIMIZER_GIFSICLE ) {
-			$gifsicle_version = ewww_image_optimizer_tool_found( EWWW_IMAGE_OPTIMIZER_GIFSICLE, 'g' );
-			if ( ! $gifsicle_version ) {
-				$gifsicle_version = ewww_image_optimizer_tool_found( EWWW_IMAGE_OPTIMIZER_GIFSICLE, 'gb' );
-			}
-		}
-		if ( ! empty( $gifsicle_version ) ) {
-			$status_output .= '<span style="color: green; font-weight: bolder">' . esc_html__( 'Installed', 'ewww-image-optimizer' ) . '</span>&emsp;' . esc_html__( 'version', 'ewww-image-optimizer' ) . ': ' . $gifsicle_version . "<br />\n";
-		} else {
-			$status_output .= '<span style="color: red; font-weight: bolder">' . esc_html__( 'Missing', 'ewww-image-optimizer' ) . '</span><br />' . "\n";
-			$collapsible = false;
+			$speed_recommendations[] = __( 'Install pngout', 'ewww-image-optimizer' ) . ': <a href="' . admin_url( 'admin.php?action=ewww_image_optimizer_install_pngout' ) . '">' . esc_html__( 'automatically', 'ewww-image-optimizer' ) . '</a> | <a href="https://docs.ewww.io/article/13-installing-pngout" data-beacon-article="5854531bc697912ffd6c1afa">' . esc_html__( 'manually', 'ewww-image-optimizer' ) . '</a>';
 		}
 	}
 	if ( ! $skip['pngquant'] && ! EWWW_IMAGE_OPTIMIZER_NOEXEC ) {
-		$status_output .= '<b>pngquant:</b> ';
 		if ( EWWW_IMAGE_OPTIMIZER_PNGQUANT ) {
 			$pngquant_version = ewww_image_optimizer_tool_found( EWWW_IMAGE_OPTIMIZER_PNGQUANT, 'q' );
 			if ( ! $pngquant_version ) {
@@ -6968,599 +11330,1823 @@ function ewww_image_optimizer_options( $network = 'singlesite' ) {
 			}
 		}
 		if ( ! empty( $pngquant_version ) ) {
-			$status_output .= '<span style="color: green; font-weight: bolder">' . esc_html__( 'Installed', 'ewww-image-optimizer' ) . '</span>&emsp;' . esc_html__( 'version', 'ewww-image-optimizer' ) . ': ' . $pngquant_version . "<br />\n";
+			$speed_score += 5;
 		} else {
-			$status_output .= '<span style="color: red; font-weight: bolder">' . esc_html__( 'Missing', 'ewww-image-optimizer' ) . '</span><br />' . "\n";
-			$collapsible = false;
+			$speed_recommendations[] = __( 'Install pngquant.', 'ewww-image-optimizer' ) . ewwwio_get_help_link( 'https://docs.ewww.io/article/6-the-plugin-says-i-m-missing-something', '585371e3c697912ffd6c0ba1' );
 		}
 	}
-	if ( EWWW_IMAGE_OPTIMIZER_WEBP && ! $skip['webp'] && ! EWWW_IMAGE_OPTIMIZER_NOEXEC ) {
-		$status_output .= '<b>webp:</b> ';
-		if ( EWWW_IMAGE_OPTIMIZER_WEBP ) {
-			$webp_version = ewww_image_optimizer_tool_found( EWWW_IMAGE_OPTIMIZER_WEBP, 'w' );
+	if ( ! $skip['gifsicle'] && ! EWWW_IMAGE_OPTIMIZER_NOEXEC ) {
+		if ( EWWW_IMAGE_OPTIMIZER_GIFSICLE ) {
+			$gifsicle_version = ewww_image_optimizer_tool_found( EWWW_IMAGE_OPTIMIZER_GIFSICLE, 'g' );
+			if ( ! $gifsicle_version ) {
+				$gifsicle_version = ewww_image_optimizer_tool_found( EWWW_IMAGE_OPTIMIZER_GIFSICLE, 'gb' );
+			}
+		}
+		if ( ! empty( $gifsicle_version ) ) {
+			$speed_score += 5;
+		} else {
+			$speed_recommendations[] = __( 'Install gifsicle.', 'ewww-image-optimizer' ) . ewwwio_get_help_link( 'https://docs.ewww.io/article/6-the-plugin-says-i-m-missing-something', '585371e3c697912ffd6c0ba1' );
+		}
+	}
+	if ( EWWW_IMAGE_OPTIMIZER_CWEBP && ! $skip['webp'] && ! EWWW_IMAGE_OPTIMIZER_NOEXEC ) {
+		if ( EWWW_IMAGE_OPTIMIZER_CWEBP ) {
+			$webp_version = ewww_image_optimizer_tool_found( EWWW_IMAGE_OPTIMIZER_CWEBP, 'w' );
 			if ( ! $webp_version ) {
-				$webp_version = ewww_image_optimizer_tool_found( EWWW_IMAGE_OPTIMIZER_WEBP, 'wb' );
+				$webp_version = ewww_image_optimizer_tool_found( EWWW_IMAGE_OPTIMIZER_CWEBP, 'wb' );
 			}
 		}
 		if ( ! empty( $webp_version ) ) {
-			$status_output .= '<span style="color: green; font-weight: bolder">' . esc_html__( 'Installed', 'ewww-image-optimizer' ) . '</span>&emsp;' . esc_html__( 'version', 'ewww-image-optimizer' ) . ': ' . $webp_version . "<br />\n";
+			$speed_score += 10;
 		} else {
-			$status_output .= '<span style="color: red; font-weight: bolder">' . esc_html__( 'Missing', 'ewww-image-optimizer' ) . '</span><br />' . "\n";
-			$collapsible = false;
+			$speed_recommendations[] = __( 'Install WebP.', 'ewww-image-optimizer' ) . ewwwio_get_help_link( 'https://docs.ewww.io/article/6-the-plugin-says-i-m-missing-something', '585371e3c697912ffd6c0ba1' );
 		}
 	}
-	if ( ! ewww_image_optimizer_full_cloud() ) {
-		if ( ewww_image_optimizer_safemode_check() ) {
-			$status_output .= 'safe mode: <span style="color: red; font-weight: bolder">' . esc_html__( 'On', 'ewww-image-optimizer' ) . '</span>&emsp;&emsp;';
-			$collapsible = false;
-		} else {
-			$status_output .= 'safe mode: <span style="color: green; font-weight: bolder">' . esc_html__( 'Off', 'ewww-image-optimizer' ) . '</span>&emsp;&emsp;';
-		}
-		if ( ewww_image_optimizer_exec_check() ) {
-			$status_output .= 'exec(): <span style="color: red; font-weight: bolder">' . esc_html__( 'Disabled', 'ewww-image-optimizer' ) . '</span>&emsp;&emsp;';
-			$collapsible = false;
-		} else {
-			$status_output .= 'exec(): <span style="color: green; font-weight: bolder">' . esc_html__( 'Enabled', 'ewww-image-optimizer' ) . '</span>&emsp;&emsp;';
-		}
-		$status_output .= "<br />\n";
-	}
-	if ( ! ewww_image_optimizer_full_cloud() && ! EWWW_IMAGE_OPTIMIZER_NOEXEC ) {
-		$toolkit_output = sprintf(
-			/* translators: %s: Graphics libraries - */
-			esc_html__( '%s only need one, used for conversion, not optimization', 'ewww-image-optimizer' ),
-			'<b>' . __( 'Graphics libraries', 'ewww-image-optimizer' ) . '</b> - '
-		);
-		$toolkit_output .= '<br>';
-		$toolkit_found = false;
-		if ( ewww_image_optimizer_gd_support() ) {
-			$toolkit_output .= 'GD: <span style="color: green; font-weight: bolder">' . esc_html__( 'Installed', 'ewww-image-optimizer' );
-			$toolkit_found = true;
-		} else {
-			$toolkit_output .= 'GD: <span style="color: red; font-weight: bolder">' . esc_html__( 'Missing', 'ewww-image-optimizer' );
-		}
-		$toolkit_output .= '</span>&emsp;&emsp;' .
-		'Gmagick: ';
-		if ( ewww_image_optimizer_gmagick_support() ) {
-			$toolkit_output .= '<span style="color: green; font-weight: bolder">' . esc_html__( 'Installed', 'ewww-image-optimizer' );
-			$toolkit_found = true;
-		} else {
-			$toolkit_output .= '<span style="color: red; font-weight: bolder">' . esc_html__( 'Missing', 'ewww-image-optimizer' );
-		}
-		$toolkit_output .= '</span>&emsp;&emsp;' .
-		'Imagick: ';
-		if ( ewww_image_optimizer_imagick_support() ) {
-			$toolkit_output .= '<span style="color: green; font-weight: bolder">' . esc_html__( 'Installed', 'ewww-image-optimizer' );
-			$toolkit_found = true;
-		} else {
-			$toolkit_output .= '<span style="color: red; font-weight: bolder">' . esc_html__( 'Missing', 'ewww-image-optimizer' );
-		}
-		$toolkit_output .= "</span><br />\n";
-		if ( ! $toolkit_found && ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_to_jpg' ) || ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_to_png' ) ) ) {
-			$collapsible = false;
-		} else {
-			$toolkit_output = str_replace( 'color: red', 'color: gray', $toolkit_output );
-		}
-		$status_output .= $toolkit_output;
-	} // End if().
-	$mimetype_output = '<b>' . esc_html__( 'Only need one of these:', 'ewww-image-optimizer' ) . ' </b><br>';
-	// Initialize this variable to check for the 'file' command if we don't have any php libraries we can use.
-	$file_command_check = true;
-	$mimetype_tool = '';
-	if ( function_exists( 'finfo_file' ) ) {
-		$mimetype_output .= 'fileinfo: <span style="color: green; font-weight: bolder">' . esc_html__( 'Installed', 'ewww-image-optimizer' ) . '</span>&emsp;&emsp;';
-		$file_command_check = false;
-		$mimetype_tool = 'fileinfo';
-	} else {
-		$mimetype_output .= 'fileinfo: <span style="color: red; font-weight: bolder">' . esc_html__( 'Missing', 'ewww-image-optimizer' ) . '</span>&emsp;&emsp;';
-	}
-	if ( function_exists( 'getimagesize' ) ) {
-		$mimetype_output .= 'getimagesize(): <span style="color: green; font-weight: bolder">' . esc_html__( 'Installed', 'ewww-image-optimizer' ) . '</span>&emsp;&emsp;';
-		if ( ewww_image_optimizer_full_cloud() || EWWW_IMAGE_OPTIMIZER_NOEXEC || PHP_OS == 'WINNT' ) {
-			$file_command_check = false;
-		}
-		$mimetype_tool = empty( $mimetype_tool ) ? 'getimagesize' : $mimetype_tool;
-	} else {
-		$mimetype_output .= 'getimagesize(): <span style="color: red; font-weight: bolder">' . esc_html__( 'Missing', 'ewww-image-optimizer' ) . '</span>&emsp;&emsp;';
-	}
-	if ( function_exists( 'mime_content_type' ) ) {
-		$mimetype_output .= 'mime_content_type(): <span style="color: green; font-weight: bolder">' . esc_html__( 'Installed', 'ewww-image-optimizer' ) . '</span><br />' . "\n";
-		$file_command_check = false;
-		$mimetype_tool = empty( $mimetype_tool ) ? 'mime_content_type' : $mimetype_tool;
-	} else {
-		$mimetype_output .= 'mime_content_type(): <span style="color: red; font-weight: bolder">' . esc_html__( 'Missing', 'ewww-image-optimizer' ) . '</span><br />' . "\n";
-	}
-	$extra_tool_output = '';
-	if ( PHP_OS != 'WINNT' && ! ewww_image_optimizer_full_cloud() && ! EWWW_IMAGE_OPTIMIZER_NOEXEC ) {
-		if ( $file_command_check && ! ewww_image_optimizer_find_nix_binary( 'file', 'f' ) ) {
-			$extra_tool_output .= '<span style="color: red; font-weight: bolder">file: ' . esc_html__( 'command not found on your system', 'ewww-image-optimizer' ) . '</span><br />';
-			$collapsible = false;
-		} elseif ( empty( $mimetype_tool ) ) {
-			$mimetype_tool = 'file'; // So that we know a mimetype library was found.
-		}
-		if ( ! ewww_image_optimizer_find_nix_binary( 'nice', 'n' ) ) {
-			$extra_tool_output .= '<span style="color: orange; font-weight: bolder">nice: ' . esc_html__( 'command not found on your system', 'ewww-image-optimizer' ) . ' (' . esc_html__( 'not required', 'ewww-image-optimizer' ) . ')</span><br />';
-		}
-		if ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_pngout' ) && ! $skip['pngout'] && PHP_OS != 'SunOS' && ! ewww_image_optimizer_find_nix_binary( 'tar', 't' ) ) {
-			$extra_tool_output .= '<span style="color: red; font-weight: bolder">tar: ' . esc_html__( 'command not found on your system', 'ewww-image-optimizer' ) . ' (' . esc_html__( 'required for automatic pngout installer', 'ewww-image-optimizer' ) . ')</span><br />';
-			$collapsible = false;
-		}
-	} elseif ( $file_command_check ) {
-		$collapsible = false;
-	}
-	if ( 'getimagesize' == $mimetype_tool && ewww_image_optimizer_get_option( 'ewww_image_optimizer_pdf_level' ) ) {
-		$collapsible = false;
-		ewww_image_optimizer_set_option( 'ewww_image_optimizer_pdf_level', 0 );
-	} elseif ( $mimetype_tool ) {
-		$mimetype_output = str_replace( 'color: red', 'color: gray', $mimetype_output );
-	}
-	ewwwio_debug_message( "mimetype function in use: $mimetype_tool" );
-	$status_output .= $mimetype_output;
-	$status_output .= $extra_tool_output;
-	$status_output .= '</div><!-- end .inside -->';
-	$status_output .= "</div></div></div>\n";
-	if ( $collapsible ) {
-		$output[] = str_replace( 'STATUS_PLACEHOLDER', "<span id='ewww-status-ok' style='color: green;'>" . esc_html__( 'All Clear', 'ewww-image-optimizer' ) . '</span>', $status_output );
-	} else {
-		$output[] = str_replace( 'STATUS_PLACEHOLDER', "<span id='ewww-status-attention' style='color: red;'>" . esc_html__( 'Requires Attention', 'ewww-image-optimizer' ) . '</span>', $status_output );
-	}
-	if ( ( 'network-multisite' != $network || ! get_site_option( 'ewww_image_optimizer_allow_multisite_override' ) ) && // Display tabs so long as this isn't the network admin OR single-site override is disabled.
-		! ( 'network-singlesite' == $network && ! get_site_option( 'ewww_image_optimizer_allow_multisite_override' ) ) ) { // Also make sure that this isn't single site without override mode.
-		$output[] = "<ul class='ewww-tab-nav'>\n" .
-			"<li class='ewww-tab ewww-general-nav'><span class='ewww-tab-hidden'>" . esc_html__( 'Basic Settings', 'ewww-image-optimizer' ) . "</span></li>\n" .
-			"<li class='ewww-tab ewww-optimization-nav'><span class='ewww-tab-hidden'>" . esc_html__( 'Advanced Settings', 'ewww-image-optimizer' ) . "</span></li>\n" .
-			"<li class='ewww-tab ewww-conversion-nav'><span class='ewww-tab-hidden'>" . esc_html__( 'Conversion Settings', 'ewww-image-optimizer' ) . "</span></li>\n" .
-			"<li class='ewww-tab ewww-webp-nav'><span class='ewww-tab-hidden'>" . esc_html__( 'WebP Settings', 'ewww-image-optimizer' ) . "</span></li>\n" .
-		"</ul>\n";
-	}
-	if ( 'network-multisite' == $network ) {
-		$output[] = "<form method='post' action=''>\n";
-	} else {
-		$output[] = "<form method='post' action='options.php'>\n";
-	}
-	$output[] = "<input type='hidden' name='option_page' value='ewww_image_optimizer_options' />\n";
-	$output[] = "<input type='hidden' name='action' value='update' />\n";
-	$output[] = wp_nonce_field( 'ewww_image_optimizer_options-options', '_wpnonce', true, false ) . "\n";
-	$output[] = "<div id='ewww-general-settings'>\n";
-	$output[] = "<table class='form-table'>\n";
-	if ( is_multisite() ) {
-		$output[] = "<tr class='network-only'><th><label for='ewww_image_optimizer_allow_multisite_override'>" . esc_html__( 'Allow Single-site Override', 'ewww-image-optimizer' ) . "</label></th><td><input type='checkbox' id='ewww_image_optimizer_allow_multisite_override' name='ewww_image_optimizer_allow_multisite_override' value='true' " . ( get_site_option( 'ewww_image_optimizer_allow_multisite_override' ) == true ? "checked='true'" : '' ) . ' /> ' . esc_html__( 'Allow individual sites to configure their own settings and override all network options.', 'ewww-image-optimizer' ) . "</td></tr>\n";
-		if ( 'network-multisite' == $network && get_site_option( 'ewww_image_optimizer_allow_multisite_override' ) ) {
-			$output[] = "<tr><th><label for='ewww_image_optimizer_allow_tracking'>" . esc_html__( 'Allow Usage Tracking?', 'ewww-image-optimizer' ) . "</label></th><td><input type='checkbox' id='ewww_image_optimizer_allow_tracking' name='ewww_image_optimizer_allow_tracking' value='true' " . ( get_site_option( 'ewww_image_optimizer_allow_tracking' ) == true ? "checked='true'" : '' ) . ' /> ' .
-				esc_html__( 'Allow EWWW Image Optimizer to anonymously track how this plugin is used and help us make the plugin better. Opt-in to tracking and receive 500 API image credits free. No sensitive data is tracked.', 'ewww-image-optimizer' ) . "</td></tr>\n";
-			$output[] = "<input type='hidden' id='ewww_image_optimizer_allow_multisite_override_active' name='ewww_image_optimizer_allow_multisite_override_active' value='0'>";
-			foreach ( $output as $line ) {
-				echo $line;
-			}
-			echo '</table></div><!-- end container general settings -->';
-			echo "<p class='submit'><input type='submit' class='button-primary' value='" . esc_attr__( 'Save Changes', 'ewww-image-optimizer' ) . "' /></p>\n";
-			echo '</form></div><!-- end container left --></div><!-- end container wrap -->';
-			return;
-		}
-	}
-	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ) {
-		$blog_id = get_current_blog_id();
-		$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_cloud_notkey'>" . esc_html__( 'Cloud optimization API Key', 'ewww-image-optimizer' ) . "</label></th><td><input type='text' id='ewww_image_optimizer_cloud_notkey' name='ewww_image_optimizer_cloud_notkey' readonly='readonly' value='****************************" . substr( ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ), 28 ) . "' size='32' /> <a href='admin.php?action=ewww_image_optimizer_remove_cloud_key&site=$blog_id'>" . esc_html__( 'Remove API key.', 'ewww-image-optimizer' ) . "</a></td></tr>\n";
-		$output[] = "<input type='hidden' id='ewww_image_optimizer_cloud_key' name='ewww_image_optimizer_cloud_key' value='" . ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) . "' />\n";
-	} else {
-		$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_cloud_key'>" . esc_html__( 'Cloud optimization API Key', 'ewww-image-optimizer' ) . "</label></th><td><input type='text' id='ewww_image_optimizer_cloud_key' name='ewww_image_optimizer_cloud_key' value='' size='32' /> " . esc_html__( 'API Key will be validated when you save your settings.', 'ewww-image-optimizer' ) . " <a href='https://ewww.io/plans/'>" . esc_html__( 'Purchase an API key.', 'ewww-image-optimizer' ) . "</a></td></tr>\n";
-	}
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_debug'>" . esc_html__( 'Debugging', 'ewww-image-optimizer' ) . "</label></th><td><input type='checkbox' id='ewww_image_optimizer_debug' name='ewww_image_optimizer_debug' value='true' " . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_debug' ) == true ? "checked='true'" : '' ) . ' /> ' . esc_html__( 'Use this to provide information for support purposes, or if you feel comfortable digging around in the code to fix a problem you are experiencing.', 'ewww-image-optimizer' ) . "</td></tr>\n";
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_jpegtran_copy'>" . esc_html__( 'Remove metadata', 'ewww-image-optimizer' ) . "</label></th>\n" .
-		"<td><input type='checkbox' id='ewww_image_optimizer_jpegtran_copy' name='ewww_image_optimizer_jpegtran_copy' value='true' " . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpegtran_copy' ) == true ? "checked='true'" : '' ) . ' /> ' . esc_html__( 'This will remove ALL metadata: EXIF, comments, color profiles, and anything else that is not pixel data.', 'ewww-image-optimizer' ) . "</td></tr>\n";
-	ewwwio_debug_message( 'remove metadata: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpegtran_copy' ) == true ? 'on' : 'off' ) );
-	$output[] = "<tr class='$network_class'><th>&nbsp;</th><td>";
-	if ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ) {
-		$output[] = "<p class='$network_class nocloud'>* <a href='https://ewww.io/plans/'>" . esc_html__( 'Purchase an API key to unlock additional compression levels below.', 'ewww-image-optimizer' ) . "</a></p>\n";
-	}
-	$output[] = "<p class='$network_class description'>" . esc_html__( 'Lossless compression keeps the original quality of the image.', 'ewww-image-optimizer' ) . ' ' . esc_html__( 'While most users will not notice a difference in image quality, lossy means there IS a loss in image quality.', 'ewww-image-optimizer' ) . "</p></td></tr>\n";
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_jpg_level'>" . esc_html__( 'JPG Optimization Level', 'ewww-image-optimizer' ) . "</label></th>\n" .
-		"<td><span><select id='ewww_image_optimizer_jpg_level' name='ewww_image_optimizer_jpg_level'>\n" .
-		"<option value='0'" . selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ), 0, false ) . '>' . esc_html__( 'No Compression', 'ewww-image-optimizer' ) . "</option>\n";
-	if ( 'ewww-image-optimizer' !== 'ewww-image-optimizer-cloud' ) {
-		$output[] = "<option class='$network_class' value='10'" . selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ), 10, false ) . '>' . esc_html__( 'Lossless Compression', 'ewww-image-optimizer' ) . "</option>\n";
-	}
-	$output[] = "<option class='$network_class' $disable_level value='20'" . selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ), 20, false ) . '>' . esc_html__( 'Maximum Lossless Compression', 'ewww-image-optimizer' ) . " *</option>\n" .
-		"<option $disable_level value='30'" . selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ), 30, false ) . '>' . esc_html__( 'Lossy Compression', 'ewww-image-optimizer' ) . " *</option>\n" .
-		"<option $disable_level value='40'" . selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ), 40, false ) . '>' . esc_html__( 'Maximum Lossy Compression', 'ewww-image-optimizer' ) . " *</option>\n" .
-		"</select></td></tr>\n";
-	ewwwio_debug_message( 'jpg level: ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) );
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_png_level'>" . esc_html__( 'PNG Optimization Level', 'ewww-image-optimizer' ) . "</label></th>\n" .
-		"<td><span><select id='ewww_image_optimizer_png_level' name='ewww_image_optimizer_png_level'>\n" .
-		"<option value='0'" . selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ), 0, false ) . '>' . esc_html__( 'No Compression', 'ewww-image-optimizer' ) . "</option>\n";
-	if ( 'ewww-image-optimizer' !== 'ewww-image-optimizer-cloud' ) {
-		$output[] = "<option class='$network_class' value='10'" . selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ), 10, false ) . '>' . esc_html__( 'Lossless Compression', 'ewww-image-optimizer' ) . "</option>\n";
-	}
-	$output[] = "<option class='$network_class' $disable_level value='20'" . selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ), 20, false ) . '>' . esc_html__( 'Better Lossless Compression', 'ewww-image-optimizer' ) . " *</option>\n" .
-		"<option $disable_level value='30'" . selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ), 30, false ) . '>' . esc_html__( 'Maximum Lossless Compression', 'ewww-image-optimizer' ) . " *</option>\n" .
-		"<option value='40'" . selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ), 40, false ) . '>' . esc_html__( 'Lossy Compression', 'ewww-image-optimizer' ) . "</option>\n" .
-		"<option $disable_level value='50'" . selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ), 50, false ) . '>' . esc_html__( 'Maximum Lossy Compression', 'ewww-image-optimizer' ) . " *</option>\n" .
-		"</select></td></tr>\n";
-	ewwwio_debug_message( 'png level: ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) );
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_gif_level'>" . esc_html__( 'GIF Optimization Level', 'ewww-image-optimizer' ) . "</label></th>\n" .
-		"<td><span><select id='ewww_image_optimizer_gif_level' name='ewww_image_optimizer_gif_level'>\n" .
-		"<option value='0'" . selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_level' ), 0, false ) . '>' . esc_html__( 'No Compression', 'ewww-image-optimizer' ) . "</option>\n" .
-		"<option value='10'" . selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_level' ), 10, false ) . '>' . esc_html__( 'Lossless Compression', 'ewww-image-optimizer' ) . "</option>\n" .
-		"</select></td></tr>\n";
-	ewwwio_debug_message( 'gif level: ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_level' ) );
-	$disable_pdf_level = $disable_level;
-	if ( 'getimagesize' == $mimetype_tool ) {
-		$disable_pdf_level = "disabled='disabled'";
-		$output[] = "<tr class='$network_class'><th>&nbsp;</th><td>";
-		$output[] = "<p class='$network_class description'>" . esc_html__( '*PDF optimization cannot be enabled because the fileinfo extension is missing.', 'ewww-image-optimizer' ) . "</p></td></tr>\n";
-	}
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_pdf_level'>" . esc_html__( 'PDF Optimization Level', 'ewww-image-optimizer' ) . "</label></th>\n" .
-		"<td><span><select id='ewww_image_optimizer_pdf_level' name='ewww_image_optimizer_pdf_level'>\n" .
-		"<option value='0'" . selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_pdf_level' ), 0, false ) . '>' . esc_html__( 'No Compression', 'ewww-image-optimizer' ) . "</option>\n" .
-		"<option $disable_pdf_level value='10'" . selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_pdf_level' ), 10, false ) . '>' . esc_html__( 'Lossless Compression', 'ewww-image-optimizer' ) . " *</option>\n" .
-		"<option $disable_pdf_level value='20'" . selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_pdf_level' ), 20, false ) . '>' . esc_html__( 'Lossy Compression', 'ewww-image-optimizer' ) . " *</option>\n" .
-		"</select></td></tr>\n";
-	ewwwio_debug_message( 'pdf level: ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_pdf_level' ) );
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_delay'>" . esc_html__( 'Bulk Delay', 'ewww-image-optimizer' ) . "</label></th><td><input type='text' id='ewww_image_optimizer_delay' name='ewww_image_optimizer_delay' size='5' value='" . ewww_image_optimizer_get_option( 'ewww_image_optimizer_delay' ) . "'> " . esc_html__( 'Choose how long to pause between images (in seconds, 0 = disabled)', 'ewww-image-optimizer' ) . "</td></tr>\n";
-	ewwwio_debug_message( 'bulk delay: ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_delay' ) );
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_backup_files'>" . esc_html__( 'Backup Originals', 'ewww-image-optimizer' ) . "</label></th><td><input type='checkbox' id='ewww_image_optimizer_backup_files' name='ewww_image_optimizer_backup_files' value='true' " .
-		( ewww_image_optimizer_get_option( 'ewww_image_optimizer_backup_files' ) ? "checked='true'" : '' ) . " $disable_level > " . esc_html__( 'Store a copy of your original images on our secure server for 30 days. *Requires an active API key.', 'ewww-image-optimizer' ) . "</td></tr>\n";
-	ewwwio_debug_message( 'backup mode: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_backup_files' ) ? 'on' : 'off' ) );
-	if ( class_exists( 'Cloudinary' ) && Cloudinary::config_get( 'api_secret' ) ) {
-		$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_enable_cloudinary'>" . esc_html__( 'Automatic Cloudinary upload', 'ewww-image-optimizer' ) . "</label></th><td><input type='checkbox' id='ewww_image_optimizer_enable_cloudinary' name='ewww_image_optimizer_enable_cloudinary' value='true' " . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_enable_cloudinary' ) == true ? "checked='true'" : '' ) . ' /> ' . esc_html__( 'When enabled, uploads to the Media Library will be transferred to Cloudinary after optimization. Cloudinary generates resizes, so only the full-size image is uploaded.', 'ewww-image-optimizer' ) . "</td></tr>\n";
-		ewwwio_debug_message( 'cloudinary upload: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_enable_cloudinary' ) == true ? 'on' : 'off' ) );
-	}
-	$output[] = "</table>\n</div>\n";
-	$output[] = "<div id='ewww-optimization-settings'>\n";
-	$output[] = "<table class='form-table'>\n";
-	if ( ewww_image_optimizer_full_cloud() ) {
-		$output[] = "<input class='$network_class' id='ewww_image_optimizer_optipng_level' name='ewww_image_optimizer_optipng_level' type='hidden' value='2'>\n" .
-			"<input id='ewww_image_optimizer_pngout_level' name='ewww_image_optimizer_pngout_level' type='hidden' value='2'>\n" .
-			"<input id='ewww_image_optimizer_disable_pngout' name='ewww_image_optimizer_disable_pngout' type='hidden' value='true'/>\n";
-	} else {
-		$optipng_levels = array( 0, 1, 8, 16, 24, 48 );
-		$optipng_levels_output = '';
-		foreach ( $optipng_levels as $level => $trials ) {
-			if ( empty( $level ) ) {
-				continue;
-			}
-			/* translators: %d: a number 0-5 */
-			$optipng_levels_output .= "<option value='$level'" . selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_optipng_level' ), $level, false ) . '>' . sprintf( esc_html__( 'Level %d', 'ewww-image-optimizer' ), $level ) . ': ' .
-				/* translators: %d: a number 1-48 */
-				sprintf( esc_html( _n( '%d trial', '%d trials', $trials, 'ewww-image-optimizer' ) ), $trials ) . "</option>\n";
-		}
-		$output[] = "<tr class='$network_class nocloud'><th><label for='ewww_image_optimizer_optipng_level'>" . esc_html__( 'optipng optimization level', 'ewww-image-optimizer' ) . "</label></th>\n" .
-			"<td><span><select id='ewww_image_optimizer_optipng_level' name='ewww_image_optimizer_optipng_level'>\n" .
-			$optipng_levels_output .
-			'</select> (' . esc_html__( 'default', 'ewww-image-optimizer' ) . "=2)</span>\n" .
-			"<p class='description'>" . esc_html__( 'Levels 4 and above are unlikely to yield any additional savings.', 'ewww-image-optimizer' ) . "</p></td></tr>\n";
-		ewwwio_debug_message( 'optipng level: ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_optipng_level' ) );
-		$output[] = "<tr class='$network_class nocloud'><th><label for='ewww_image_optimizer_disable_pngout'>" . esc_html__( 'disable', 'ewww-image-optimizer' ) . " pngout</label></th><td><input type='checkbox' id='ewww_image_optimizer_disable_pngout' name='ewww_image_optimizer_disable_pngout' " . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_pngout' ) == true  ? "checked='true'" : '' ) . " /></td><tr>\n";
-		ewwwio_debug_message( 'pngout disabled: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_pngout' ) == true ? 'yes' : 'no' ) );
-		$pngout_levels = array(
-			esc_html__( 'Xtreme! (Slowest)', 'ewww-image-optimizer' ),
-			esc_html__( 'Intense (Slow)', 'ewww-image-optimizer' ),
-			esc_html__( 'Longest Match (Fast)', 'ewww-image-optimizer' ),
-			esc_html__( 'Huffman Only (Faster)', 'ewww-image-optimizer' ),
-		);
-		$pngout_levels_output = '';
-		foreach ( $pngout_levels as $level => $description ) {
-			/* translators: %d: a number 0-5 */
-			$pngout_levels_output .= "<option value='$level'" . selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_pngout_level' ), $level, false ) . '>' . sprintf( esc_html__( 'Level %d', 'ewww-image-optimizer' ), $level ) . ": $description</option>\n";
-		}
-		$output[] = "<tr class='$network_class nocloud'><th><label for='ewww_image_optimizer_pngout_level'>" . esc_html__( 'pngout optimization level', 'ewww-image-optimizer' ) . "</label></th>\n" .
-			"<td><span><select id='ewww_image_optimizer_pngout_level' name='ewww_image_optimizer_pngout_level'>\n" .
-			$pngout_levels_output .
-			'</select> (' . esc_html__( 'default', 'ewww-image-optimizer' ) . "=2)</span>\n" .
-			"<p class='description'>" . esc_html__( 'If you have CPU cycles to spare, go with level 0', 'ewww-image-optimizer' ) . "</p></td></tr>\n";
-		ewwwio_debug_message( 'pngout level: ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_pngout_level' ) );
-	} // End if().
-	$output[] = "<tr class='$network_class'><th><span><label for='ewww_image_optimizer_jpg_quality'>" . esc_html__( 'JPG quality level:', 'ewww-image-optimizer' ) . "</label></th><td><input type='text' id='ewww_image_optimizer_jpg_quality' name='ewww_image_optimizer_jpg_quality' class='small-text' value='" . ewww_image_optimizer_jpg_quality() . "' /> " . esc_html__( 'Valid values are 1-100.', 'ewww-image-optimizer' ) . "\n<p class='description'>" . esc_html__( 'Use this to override the default WordPress quality level of 82. Applies to image editing, resizing, PNG to JPG conversion, and JPG to WebP conversion. Does not affect the original uploaded image unless maximum dimensions are set and resizing occurs.', 'ewww-image-optimizer' ) . "</p></td></tr>\n";
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_parallel_optimization'>" . esc_html__( 'Parallel optimization', 'ewww-image-optimizer' ) . "</label></th><td><input type='checkbox' id='ewww_image_optimizer_parallel_optimization' name='ewww_image_optimizer_parallel_optimization' value='true' " . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_parallel_optimization' ) == true ? "checked='true'" : '' ) . ' /> ' . esc_html__( 'All resizes generated from a single upload are optimized in parallel for faster optimization. If this is causing performance issues, disable parallel optimization to reduce the load on your server.', 'ewww-image-optimizer' ) . "</td></tr>\n";
-	ewwwio_debug_message( 'parallel optimization: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_parallel_optimization' ) == true ? 'on' : 'off' ) );
-	ewwwio_debug_message( 'background optimization: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_background_optimization' ) == true ? 'on' : 'off' ) );
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_auto'>" . esc_html__( 'Scheduled optimization', 'ewww-image-optimizer' ) . "</label></th><td><input type='checkbox' id='ewww_image_optimizer_auto' name='ewww_image_optimizer_auto' value='true' " . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_auto' ) == true ? "checked='true'" : '' ) . ' /> ' . esc_html__( 'This will enable scheduled optimization of unoptimized images for your theme, buddypress, and any additional folders you have configured below. Runs hourly: wp_cron only runs when your site is visited, so it may be even longer between optimizations.', 'ewww-image-optimizer' ) . "</td></tr>\n";
-	ewwwio_debug_message( 'scheduled optimization: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_auto' ) == true ? 'on' : 'off' ) );
-	$media_include_disable = '';
-	if ( get_option( 'ewww_image_optimizer_disable_resizes_opt' ) ) {
-		$media_include_disable = 'disabled="disabled"';
-		$output[] = "<tr class='$network_class'><th>&nbsp;</th><td>" .
-			'<p><span style="color: green">' . esc_html__( '*Include Media Library Folders has been disabled because it will cause the scanner to ignore the disabled resizes.', 'ewww-image-optimizer' ) . "</span></p></td></tr>\n";
-	}
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_include_media_paths'>" . esc_html__( 'Include Media Library Folders', 'ewww-image-optimizer' ) . "</label></th><td><input type='checkbox' id='ewww_image_optimizer_include_media_paths' name='ewww_image_optimizer_include_media_paths' $media_include_disable value='true' " . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_include_media_paths' ) == true && ! get_option( 'ewww_image_optimizer_disable_resizes_opt' ) ? "checked='true'" : '' ) . ' /> ' . esc_html__( 'Scan all images from the latest two folders of the Media Library during the Bulk Optimizer and Scheduled Optimization.', 'ewww-image-optimizer' ) . "</td></tr>\n";
-	ewwwio_debug_message( 'include media library: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_include_media_paths' ) == true ? 'on' : 'off' ) );
-	$aux_paths = ewww_image_optimizer_get_option( 'ewww_image_optimizer_aux_paths' ) ? esc_html( implode( "\n", ewww_image_optimizer_get_option( 'ewww_image_optimizer_aux_paths' ) ) ) : '';
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_aux_paths'>" . esc_html__( 'Folders to optimize', 'ewww-image-optimizer' ) . '</label></th><td>' .
-		/* translators: %s: the folder where WordPress is installed */
-		sprintf( esc_html__( 'One path per line, must be within %s. Use full paths, not relative paths.', 'ewww-image-optimizer' ), ABSPATH ) . "<br>\n" .
-		"<textarea id='ewww_image_optimizer_aux_paths' name='ewww_image_optimizer_aux_paths' rows='3' cols='60'>$aux_paths</textarea>\n" .
-		"<p class='description'>" . esc_html__( 'Provide paths containing images to be optimized using the Bulk Optimizer and Scheduled Optimization.', 'ewww-image-optimizer' ) . "</p></td></tr>\n";
-	ewwwio_debug_message( 'folders to optimize:' );
-	ewwwio_debug_message( $aux_paths );
+	if ( ! $skip['svgcleaner'] && ! EWWW_IMAGE_OPTIMIZER_NOEXEC ) {
 
-	$exclude_paths = ewww_image_optimizer_get_option( 'ewww_image_optimizer_exclude_paths' ) ? esc_html( implode( "\n", ewww_image_optimizer_get_option( 'ewww_image_optimizer_exclude_paths' ) ) ) : '';
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_exclude_paths'>" . esc_html__( 'Folders to ignore', 'ewww-image-optimizer' ) . '</label></th><td>' . esc_html__( 'One path per line, partial paths allowed, but no urls.', 'ewww-image-optimizer' ) . "<br>\n" .
-		"<textarea id='ewww_image_optimizer_exclude_paths' name='ewww_image_optimizer_exclude_paths' rows='3' cols='60'>$exclude_paths</textarea>\n" .
-		"<p class='description'>" . esc_html__( 'A file that matches any pattern or path provided will not be optimized.', 'ewww-image-optimizer' ) . "</p></td></tr>\n";
-	ewwwio_debug_message( 'folders to ignore:' );
-	ewwwio_debug_message( $exclude_paths );
-
-	// $output[] = "<tr><th><label for='ewww_image_optimizer_resize_detection'>" . esc_html__( 'Resize Detection', 'ewww-image-optimizer' ) . "</label></th><td><input type='checkbox' id='ewww_image_optimizer_resize_detection' name='ewww_image_optimizer_resize_detection' value='true' " . ( ewww_image_optimizer_get_option('ewww_image_optimizer_resize_detection') == TRUE ? "checked='true'" : "" ) . " /> " . esc_html__( 'Will highlight images that need to be resized because the browser is scaling them down. Only visible for Admin users and adds a button to the admin bar to detect scaled images that have been lazy loaded.', 'ewww-image-optimizer' ) . "</td></tr>\n";
-	// ewwwio_debug_message( 'resize detection: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_resize_detection' ) == TRUE ? 'on' : 'off' ) );
-	if ( function_exists( 'imsanity_get_max_width_height' ) ) {
-		$output[] = "<tr class='$network_class'><th>&nbsp;</th><td>" .
-			'<p><span style="color: green">' . esc_html__( '*Imsanity settings override the EWWW resize dimensions.', 'ewww-image-optimizer' ) . "</span></p></td></tr>\n";
-	}
-	$output[] = "<tr class='$network_class'><th>" . esc_html__( 'Resize Media Images', 'ewww-image-optimizer' ) . "</th><td><label for='ewww_image_optimizer_maxmediawidth'>" . esc_html__( 'Max Width', 'ewww-image-optimizer' ) . "</label> <input type='number' step='1' min='0' class='small-text' id='ewww_image_optimizer_maxmediawidth' name='ewww_image_optimizer_maxmediawidth' value='" . ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediawidth' ) . ( function_exists( 'imsanity_get_max_width_height' ) ? "' disabled='disabled" : '' ) . "' /> <label for='ewww_image_optimizer_maxmediaheight'>" . esc_html__( 'Max Height', 'ewww-image-optimizer' ) . "</label> <input type='number' step='1' min='0' class='small-text' id='ewww_image_optimizer_maxmediaheight' name='ewww_image_optimizer_maxmediaheight' value='" . ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediaheight' ) . ( function_exists( 'imsanity_get_max_width_height' ) ? "' disabled='disabled" : '' ) . "' /> " . esc_html__( 'in pixels', 'ewww-image-optimizer' ) . "\n" .
-		"<p class='description'>" . esc_html__( 'Resizes images uploaded directly to the Media Library and those uploaded within a post or page.', 'ewww-image-optimizer' ) .
-		"</td></tr>\n";
-	ewwwio_debug_message( 'max media dimensions: ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediawidth' ) . ' x ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediaheight' ) );
-	$output[] = "<tr class='$network_class'><th>" . esc_html__( 'Resize Other Images', 'ewww-image-optimizer' ) . "</th><td><label for='ewww_image_optimizer_maxotherwidth'>" . esc_html__( 'Max Width', 'ewww-image-optimizer' ) . "</label> <input type='number' step='1' min='0' class='small-text' id='ewww_image_optimizer_maxotherwidth' name='ewww_image_optimizer_maxotherwidth' value='" . ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxotherwidth' ) . ( function_exists( 'imsanity_get_max_width_height' ) ? "' disabled='disabled" : '' ) . "' /> <label for='ewww_image_optimizer_maxotherheight'>" . esc_html__( 'Max Height', 'ewww-image-optimizer' ) . "</label> <input type='number' step='1' min='0' class='small-text' id='ewww_image_optimizer_maxotherheight' name='ewww_image_optimizer_maxotherheight' value='" . ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxotherheight' ) . ( function_exists( 'imsanity_get_max_width_height' ) ? "' disabled='disabled" : '' ) . "' /> " . esc_html__( 'in pixels', 'ewww-image-optimizer' ) . "\n" .
-		"<p class='description'>" . esc_html__( 'Resizes images uploaded indirectly to the Media Library, like theme images or front-end uploads.', 'ewww-image-optimizer' ) .
-		"</td></tr>\n";
-	ewwwio_debug_message( 'max other dimensions: ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxotherwidth' ) . ' x ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxotherheight' ) );
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_resize_existing'>" . esc_html__( 'Resize Existing Images', 'ewww-image-optimizer' ) . "</label></th><td><input type='checkbox' id='ewww_image_optimizer_resize_existing' name='ewww_image_optimizer_resize_existing' value='true' " . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_resize_existing' ) == true ? "checked='true'" : '' ) . ' /> ' . esc_html__( 'Allow resizing of existing Media Library images.', 'ewww-image-optimizer' ) . "</td></tr>\n";
-	ewwwio_debug_message( 'resize existing images: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_resize_existing' ) == true ? 'on' : 'off' ) );
-
-	$output[] = '<tr class="network-singlesite"><th>' . esc_html__( 'Disable Resizes', 'ewww-image-optimizer' ) . '</th><td><p>' . esc_html__( 'Wordpress, your theme, and other plugins generate various image sizes. You may disable optimization for certain sizes, or completely prevent those sizes from being created.', 'ewww-image-optimizer' ) . "</p>\n";
-	$image_sizes = ewww_image_optimizer_get_image_sizes();
-	$disabled_sizes = get_option( 'ewww_image_optimizer_disable_resizes' );
-	$disabled_sizes_opt = get_option( 'ewww_image_optimizer_disable_resizes_opt' );
-	$output[] = '<table><tr class="network-singlesite"><th>' . esc_html__( 'Disable Optimization', 'ewww-image-optimizer' ) . '</th><th>' . esc_html__( 'Disable Creation', 'ewww-image-optimizer' ) . "</th></tr>\n";
-	ewwwio_debug_message( 'disabled resizes:' );
-	foreach ( $image_sizes as $size => $dimensions ) {
-		if ( 'thumbnail' == $size ) {
-			$output [] = "<tr class='network-singlesite'><td><input type='checkbox' id='ewww_image_optimizer_disable_resizes_opt_$size' name='ewww_image_optimizer_disable_resizes_opt[$size]' value='true' " . ( ! empty( $disabled_sizes_opt[ $size ] ) ? "checked='true'" : '' ) . " /></td><td><input type='checkbox' id='ewww_image_optimizer_disable_resizes_$size' name='ewww_image_optimizer_disable_resizes[$size]' value='true' disabled /></td><td><label for='ewww_image_optimizer_disable_resizes_$size'>$size - {$dimensions['width']}x{$dimensions['height']}</label></td></tr>\n";
-		} elseif ( 'pdf-full' == $size ) {
-			$output [] = "<tr class='network-singlesite'><td><input type='checkbox' id='ewww_image_optimizer_disable_resizes_opt_$size' name='ewww_image_optimizer_disable_resizes_opt[$size]' value='true' " . ( ! empty( $disabled_sizes_opt[ $size ] ) ? "checked='true'" : '' ) . " /></td><td><input type='checkbox' id='ewww_image_optimizer_disable_resizes_$size' name='ewww_image_optimizer_disable_resizes[$size]' value='true' " . ( ! empty( $disabled_sizes[ $size ] ) ? "checked='true'" : '' ) . " /></td><td><label for='ewww_image_optimizer_disable_resizes_$size'>$size - <span class='description'>" . esc_html__( 'Disabling creation of the full-size preview for PDF files will disable all PDF preview sizes', 'ewww-image-optimizer' ) . "</span></label></td></tr>\n";
-		} else {
-			$output [] = "<tr class='network-singlesite'><td><input type='checkbox' id='ewww_image_optimizer_disable_resizes_opt_$size' name='ewww_image_optimizer_disable_resizes_opt[$size]' value='true' " . ( ! empty( $disabled_sizes_opt[ $size ] ) ? "checked='true'" : '' ) . " /></td><td><input type='checkbox' id='ewww_image_optimizer_disable_resizes_$size' name='ewww_image_optimizer_disable_resizes[$size]' value='true' " . ( ! empty( $disabled_sizes[ $size ] ) ? "checked='true'" : '' ) . " /></td><td><label for='ewww_image_optimizer_disable_resizes_$size'>$size - {$dimensions['width']}x{$dimensions['height']}</label></td></tr>\n";
+		if ( EWWW_IMAGE_OPTIMIZER_SVGCLEANER ) {
+			$svgcleaner_version = ewww_image_optimizer_tool_found( EWWW_IMAGE_OPTIMIZER_SVGCLEANER, 's' );
 		}
-		ewwwio_debug_message( $size . ': ' . ( ! empty( $disabled_sizes_opt[ $size ] ) ? 'optimization=disabled ' : 'optimization=enabled ' ) . ( ! empty( $disabled_sizes[ $size ] ) ? 'creation=disabled' : 'creation=enabled' ) );
+		if ( empty( $svgcleaner_version ) ) {
+			$speed_recommendations[] = '<a href="' . admin_url( 'admin.php?action=ewww_image_optimizer_install_svgcleaner' ) . '">' . __( 'Install svgcleaner', 'ewww-image-optimizer' ) . '</a>';
+		}
 	}
-	if ( 'network-multisite' != $network ) {
-		$output[] = "</table>\n";
-		$output[] = "</td></tr>\n";
+	if ( get_option( 'easyio_lazy_load' ) || ewww_image_optimizer_get_option( 'ewww_image_optimizer_lazy_load' ) ) {
+		$speed_score += 10;
 	} else {
-		$output[] = '<tr><th>' . esc_html__( 'Disable Resizes', 'ewww-image-optimizer' ) . '</th><td>';
-		$output[] = '<p><span style="color: green">' . esc_html__( '*Settings to disable creation and optimization of individual sizes must be configured for each individual site.', 'ewww-image-optimizer' ) . "</span></p></td></tr>\n";
+		$speed_recommendations[] = __( 'Enable Lazy Loading.', 'ewww-image-optimizer' );
 	}
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_skip_size'>" . esc_html__( 'Skip Small Images', 'ewww-image-optimizer' ) . "</label></th><td><input type='text' id='ewww_image_optimizer_skip_size' name='ewww_image_optimizer_skip_size' size='8' value='" . ewww_image_optimizer_get_option( 'ewww_image_optimizer_skip_size' ) . "'> " . esc_html__( 'Do not optimize images smaller than this (in bytes)', 'ewww-image-optimizer' ) . "</td></tr>\n";
-	ewwwio_debug_message( 'skip images smaller than: ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_skip_size' ) . ' bytes' );
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_skip_png_size'>" . esc_html__( 'Skip Large PNG Images', 'ewww-image-optimizer' ) . "</label></th><td><input type='text' id='ewww_image_optimizer_skip_png_size' name='ewww_image_optimizer_skip_png_size' size='8' value='" . ewww_image_optimizer_get_option( 'ewww_image_optimizer_skip_png_size' ) . "'> " . esc_html__( 'Do not optimize PNG images larger than this (in bytes)', 'ewww-image-optimizer' ) . "</td></tr>\n";
-	ewwwio_debug_message( 'skip PNG images larger than: ' . ewww_image_optimizer_get_option( 'ewww_image_optimizer_skip_png_size' ) . ' bytes' );
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_lossy_skip_full'>" . esc_html__( 'Exclude full-size images from lossy optimization', 'ewww-image-optimizer' ) . "</label></th><td><input type='checkbox' id='ewww_image_optimizer_lossy_skip_full' name='ewww_image_optimizer_lossy_skip_full' value='true' " . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_lossy_skip_full' ) == true ? "checked='true'" : '' ) . " /></td></tr>\n";
-	ewwwio_debug_message( 'exclude originals from lossy: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_lossy_skip_full' ) == true ? 'on' : 'off' ) );
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_metadata_skip_full'>" . esc_html__( 'Exclude full-size images from metadata removal', 'ewww-image-optimizer' ) . "</label></th><td><input type='checkbox' id='ewww_image_optimizer_metadata_skip_full' name='ewww_image_optimizer_metadata_skip_full' value='true' " . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_metadata_skip_full' ) == true ? "checked='true'" : '' ) . " /></td></tr>\n";
-	ewwwio_debug_message( 'exclude originals from metadata removal: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_metadata_skip_full' ) == true ? 'on' : 'off' ) );
-	$output[] = "<tr class='$network_class nocloud'><th><label for='ewww_image_optimizer_skip_bundle'>" . esc_html__( 'Use System Paths', 'ewww-image-optimizer' ) . "</label></th><td><input type='checkbox' id='ewww_image_optimizer_skip_bundle' name='ewww_image_optimizer_skip_bundle' value='true' " . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_skip_bundle' ) == true ? "checked='true'" : '' ) . ' /> ' .
-		/* translators: 1: an example folder where system binaries/executables are installed 2: another example folder */
-		sprintf( esc_html__( 'If you have already installed the utilities in a system location, such as %1$s or %2$s, use this to force the plugin to use those versions and skip the auto-installers.', 'ewww-image-optimizer' ), '/usr/local/bin', '/usr/bin' ) . "</td></tr>\n";
-	ewwwio_debug_message( 'use system binaries: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_skip_bundle' ) == true ? 'yes' : 'no' ) );
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_allow_tracking'>" . esc_html__( 'Allow Usage Tracking?', 'ewww-image-optimizer' ) . "</label></th><td><input type='checkbox' id='ewww_image_optimizer_allow_tracking' name='ewww_image_optimizer_allow_tracking' value='true' " . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_allow_tracking' ) == true ? "checked='true'" : '' ) . ' /> ' .
-		esc_html__( 'Allow EWWW Image Optimizer to anonymously track how this plugin is used and help us make the plugin better. Opt-in to tracking and receive 500 API image credits free. No sensitive data is tracked.', 'ewww-image-optimizer' ) . "</td></tr>\n";
-	$output[] = "</table>\n</div>\n";
-	$output[] = "<div id='ewww-conversion-settings'>\n";
-	$output[] = '<p>' . esc_html__( 'Conversion is only available for images in the Media Library (except WebP). By default, all images have a link available in the Media Library for one-time conversion. Turning on individual conversion operations below will enable conversion filters any time an image is uploaded or modified.', 'ewww-image-optimizer' ) . "<br />\n" .
-		'<b>' . esc_html__( 'NOTE:', 'ewww-image-optimizer' ) . '</b> ' . esc_html__( 'The plugin will attempt to update image locations for any posts that contain the images. You may still need to manually update locations/urls for converted images.', 'ewww-image-optimizer' ) . "\n" .
-		"</p>\n";
-	$output[] = "<table class='form-table'>\n";
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_disable_convert_links'>" . esc_html__( 'Hide Conversion Links', 'ewww-image-optimizer' ) . "</label</th><td><input type='checkbox' id='ewww_image_optimizer_disable_convert_links' name='ewww_image_optimizer_disable_convert_links' " . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_convert_links' ) == true ? "checked='true'" : '' ) . ' /> ' . esc_html__( 'Site or Network admins can use this to prevent other users from using the conversion links in the Media Library which bypass the settings below.', 'ewww-image-optimizer' ) . "</td></tr>\n";
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_delete_originals'>" . esc_html__( 'Delete originals', 'ewww-image-optimizer' ) . "</label></th><td><input type='checkbox' id='ewww_image_optimizer_delete_originals' name='ewww_image_optimizer_delete_originals' " . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_delete_originals' ) == true ? "checked='true'" : '' ) . ' /> ' . esc_html__( 'This will remove the original image from the server after a successful conversion.', 'ewww-image-optimizer' ) . "</td></tr>\n";
-	ewwwio_debug_message( 'delete originals: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_delete_originals' ) == true ? 'on' : 'off' ) );
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_jpg_to_png'>" .
-		/* translators: 1: JPG, GIF or PNG 2: JPG or PNG */
-		sprintf( esc_html__( 'enable %1$s to %2$s conversion', 'ewww-image-optimizer' ), 'JPG', 'PNG' ) .
-		"</label></th><td><span><input type='checkbox' id='ewww_image_optimizer_jpg_to_png' name='ewww_image_optimizer_jpg_to_png' " . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_to_png' ) == true ? "checked='true'" : '' ) . ' /> <b>' . esc_html__( 'WARNING:', 'ewww-image-optimizer' ) . '</b> ' . esc_html__( 'Removes metadata and increases cpu usage dramatically.', 'ewww-image-optimizer' ) . "</span>\n" .
-		"<p class='description'>" . esc_html__( 'PNG is generally much better than JPG for logos and other images with a limited range of colors. Checking this option will slow down JPG processing significantly, and you may want to enable it only temporarily.', 'ewww-image-optimizer' ) . "</p></td></tr>\n";
-	ewwwio_debug_message( 'jpg2png: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_to_png' ) == true ? 'on' : 'off' ) );
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_png_to_jpg'>" .
-		/* translators: 1: JPG, GIF or PNG 2: JPG or PNG */
-		sprintf( esc_html__( 'enable %1$s to %2$s conversion', 'ewww-image-optimizer' ), 'PNG', 'JPG' ) .
-		"</label></th><td><span><input type='checkbox' id='ewww_image_optimizer_png_to_jpg' name='ewww_image_optimizer_png_to_jpg' " . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_to_jpg' ) == true ? "checked='true'" : '' ) . ' /> <b>' . esc_html__( 'WARNING:', 'ewww-image-optimizer' ) . '</b> ' . esc_html__( 'This is not a lossless conversion.', 'ewww-image-optimizer' ) . "</span>\n" .
-		"<p class='description'>" . esc_html__( 'JPG is generally much better than PNG for photographic use because it compresses the image and discards data. PNGs with transparency are not converted by default.', 'ewww-image-optimizer' ) . "</p>\n" .
-		"<span><label for='ewww_image_optimizer_jpg_background'> " . esc_html__( 'JPG background color:', 'ewww-image-optimizer' ) . "</label> #<input type='text' id='ewww_image_optimizer_jpg_background' name='ewww_image_optimizer_jpg_background' size='6' value='" . ewww_image_optimizer_jpg_background() . "' /> <span style='padding-left: 12px; font-size: 12px; border: solid 1px #555555; background-color: #" . ewww_image_optimizer_jpg_background() . "'>&nbsp;</span> " . esc_html__( 'HEX format (#123def)', 'ewww-image-optimizer' ) . ".</span>\n" .
-		"<p class='description'>" . esc_html__( 'Background color is used only if the PNG has transparency. Leave this value blank to skip PNGs with transparency.', 'ewww-image-optimizer' ) . "</p></td></tr>\n";
-	ewwwio_debug_message( 'png2jpg: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_to_jpg' ) == true ? 'on' : 'off' ) );
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_gif_to_png'>" .
-		/* translators: 1: JPG, GIF or PNG 2: JPG or PNG */
-		sprintf( esc_html__( 'enable %1$s to %2$s conversion', 'ewww-image-optimizer' ), 'GIF', 'PNG' ) .
-		"</label></th><td><span><input type='checkbox' id='ewww_image_optimizer_gif_to_png' name='ewww_image_optimizer_gif_to_png' " . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_to_png' ) == true ? "checked='true'" : '' ) . ' /> ' . esc_html__( 'No warnings here, just do it.', 'ewww-image-optimizer' ) . "</span>\n" .
-		"<p class='description'> " . esc_html__( 'PNG is generally better than GIF, but animated images cannot be converted.', 'ewww-image-optimizer' ) . "</p></td></tr>\n";
-	ewwwio_debug_message( 'gif2png: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_to_png' ) == true ? 'on' : 'off' ) );
-	$output[] = "</table>\n</div>\n";
-	$output[] = "<div id='ewww-webp-settings'>\n";
-	$output[] = "<table class='form-table'>\n";
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_webp'>" . esc_html__( 'JPG/PNG to WebP', 'ewww-image-optimizer' ) . "</label></th><td><span><input type='checkbox' id='ewww_image_optimizer_webp' name='ewww_image_optimizer_webp' value='true' " . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp' ) == true ? "checked='true'" : '' ) . ' /> <b>' . esc_html__( 'WARNING:', 'ewww-image-optimizer' ) . '</b> ' . esc_html__( 'JPG to WebP conversion is lossy, but quality loss is minimal. PNG to WebP conversion is lossless.', 'ewww-image-optimizer' ) . "</span>\n" .
-		"<p class='description'>" . esc_html__( 'Originals are never deleted, and WebP images should only be served to supported browsers.', 'ewww-image-optimizer' ) . " <a href='#webp-rewrite'>" . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp' ) && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_for_cdn' ) ? esc_html__( 'You can use the rewrite rules below to serve WebP images with Apache.', 'ewww-image-optimizer' ) : '' ) . "</a></td></tr>\n";
-	ewwwio_debug_message( 'webp conversion: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp' ) == true ? 'on' : 'off' ) );
-	$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_webp_force'>" . esc_html__( 'Force WebP', 'ewww-image-optimizer' ) . "</label></th><td><span><input type='checkbox' id='ewww_image_optimizer_webp_force' name='ewww_image_optimizer_webp_force' value='true' " . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_force' ) == true ? "checked='true'" : '' ) . ' /> ' . esc_html__( 'WebP images will be generated and saved for all JPG/PNG images regardless of their size. The Alternative WebP Rewriting will not check if a file exists, only that the domain matches the home url.', 'ewww-image-optimizer' ) . "</span></td></tr>\n";
-	ewwwio_debug_message( 'forced webp: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_force' ) == true ? 'on' : 'off' ) );
-	if ( ! ewww_image_optimizer_ce_webp_enabled() ) {
-		$webp_paths = ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_paths' ) ? esc_html( implode( "\n", ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_paths' ) ) ) : '';
-		$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_webp_paths'>" . esc_html__( 'WebP URLs', 'ewww-image-optimizer' ) . '</label></th><td>' . esc_html__( 'If Force WebP is enabled, enter URL patterns that should be permitted for Alternative WebP Rewriting. One pattern per line, may be partial URLs, but must include the domain name.', 'ewww-image-optimizer' ) . '<br>' .
-			"<textarea id='ewww_image_optimizer_webp_paths' name='ewww_image_optimizer_webp_paths' rows='3' cols='60'>$webp_paths</textarea></td></tr>\n";
-		ewwwio_debug_message( 'webp paths:' );
-		ewwwio_debug_message( $webp_paths );
-		$output[] = "<tr class='$network_class'><th><label for='ewww_image_optimizer_webp_for_cdn'>" .
-			esc_html__( 'Alternative WebP Rewriting', 'ewww-image-optimizer' ) .
-			"</label></th><td><span><input type='checkbox' id='ewww_image_optimizer_webp_for_cdn' name='ewww_image_optimizer_webp_for_cdn' value='true' " .
-			( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_for_cdn' ) == true ? "checked='true'" : '' ) . ' /> ' .
-			esc_html__( 'Uses output buffering and libxml functionality from PHP. Use this if the Apache rewrite rules do not work, or if your images are served from a CDN.', 'ewww-image-optimizer' ) . ' ' .
-			/* translators: %s: Cache Enabler (link) */
-			sprintf( esc_html__( 'Sites using a CDN may also use the WebP option in the %s plugin.', 'ewww-image-optimizer' ), '<a href="https://wordpress.org/plugins/cache-enabler/">Cache Enabler</a>' ) . '</span></td></tr>';
+	if ( ! ewww_image_optimizer_easy_active() && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp' ) ) {
+		$speed_recommendations[] = __( 'Enable WebP conversion.', 'ewww-image-optimizer' ) . ewwwio_get_help_link( 'https://docs.ewww.io/article/16-ewww-io-and-webp-images', '5854745ac697912ffd6c1c89' );
+	} elseif ( ! ewww_image_optimizer_easy_active() && ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) && ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp' ) ) {
+		$speed_score += 10;
 	}
-	ewwwio_debug_message( 'alt webp rewriting: ' . ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_for_cdn' ) == true ? 'on' : 'off' ) );
-	$output[] = "</table>\n</div>\n";
-	$output[] = "<p class='submit'><input type='submit' class='button-primary' value='" . esc_attr__( 'Save Changes', 'ewww-image-optimizer' ) . "' /></p>\n";
-	$output[] = "</form>\n";
-	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp' ) && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_for_cdn' ) && ! ewww_image_optimizer_ce_webp_enabled() ) {
-		$output[] = "<form id='ewww-webp-rewrite'>\n";
-		$output[] = '<p>' . esc_html__( 'There are many ways to serve WebP images to visitors with supported browsers. You may choose any you wish, but it is recommended to serve them with an .htaccess file using mod_rewrite and mod_headers. The plugin can insert the rules for you if the file is writable, or you can edit .htaccess yourself.', 'ewww-image-optimizer' ) . "</p>\n";
-		if ( ! ewww_image_optimizer_webp_rewrite_verify() ) {
-			$output[] = "<img id='webp-image' src='" . plugins_url( '/images/test.png', __FILE__ ) . "' style='float: right; padding: 0 0 10px 10px;'>\n" .
-				"<p id='ewww-webp-rewrite-status'><b>" . esc_html__( 'Rules verified successfully', 'ewww-image-optimizer' ) . "</b></p>\n";
-			ewwwio_debug_message( 'webp .htaccess rewriting enabled' );
-		} else {
-			$output[] = "<pre id='webp-rewrite-rules' style='background: white; font-color: black; border: 1px solid black; clear: both; padding: 10px;'>\n" .
-				"&lt;IfModule mod_rewrite.c&gt;\n" .
-				"RewriteEngine On\n" .
-				"RewriteCond %{HTTP_ACCEPT} image/webp\n" .
-				"RewriteCond %{REQUEST_FILENAME} (.*)\.(jpe?g|png)$\n" .
-				"RewriteCond %{REQUEST_FILENAME}\.webp -f\n" .
-				"RewriteRule (.+)\.(jpe?g|png)$ %{REQUEST_FILENAME}.webp [T=image/webp,E=accept:1]\n" .
-				"&lt;/IfModule&gt;\n" .
-				"&lt;IfModule mod_headers.c&gt;\n" .
-				"Header append Vary Accept env=REDIRECT_accept\n" .
-				"&lt;/IfModule&gt;\n" .
-				"AddType image/webp .webp</pre>\n" .
-				"<img id='webp-image' src='" . plugins_url( '/images/test.png', __FILE__ ) . "' style='float: right; padding-left: 10px;'>\n" .
-				"<p id='ewww-webp-rewrite-status'>" . esc_html__( 'The image to the right will display a WebP image with WEBP in white text, if your site is serving WebP images and your browser supports WebP.', 'ewww-image-optimizer' ) . "</p>\n" .
-				"<button type='submit' class='button-secondary action'>" . esc_html__( 'Insert Rewrite Rules', 'ewww-image-optimizer' ) . "</button>\n";
-			ewwwio_debug_message( 'webp .htaccess rules not detected' );
+	if (
+		( $free_exec || ! empty( $jpegtran_installed ) || ewww_image_optimizer_easy_active() || ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ) &&
+		ewww_image_optimizer_get_option( 'ewww_image_optimizer_metadata_remove' )
+	) {
+		$speed_score += 5;
+	} elseif ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_metadata_remove' ) ) {
+		$speed_recommendations[] = __( 'Remove metadata from JPG images.', 'ewww-image-optimizer' ) . ewwwio_get_help_link( 'https://docs.ewww.io/article/7-basic-configuration', '585373d5c697912ffd6c0bb2' );
+	}
+	if ( ! ewww_image_optimizer_easy_active() && ! $free_exec ) {
+		if ( 0 === (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) ) {
+			$speed_recommendations[] = __( 'Enable JPG compression.', 'ewww-image-optimizer' );
 		}
-		$output[] = "</form>\n";
-	} elseif ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_for_cdn' ) && ! ewww_image_optimizer_ce_webp_enabled() ) {
-		$test_webp_image = plugins_url( '/images/test.png.webp', __FILE__ );
-		$test_png_image = plugins_url( '/images/test.png', __FILE__ );
-		$output[] = "<noscript  data-img='$test_png_image' data-webp='$test_webp_image' data-style='float: right; padding: 0 0 10px 10px;' class='ewww_webp'><img src='$test_png_image' style='float: right; padding: 0 0 10px 10px;'></noscript>\n";
+		if ( 0 === (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) ) {
+			$speed_recommendations[] = __( 'Enable PNG compression.', 'ewww-image-optimizer' );
+		}
+		if ( 0 === (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_level' ) ) {
+			$speed_recommendations[] = __( 'Enable GIF compression.', 'ewww-image-optimizer' );
+		}
 	}
-	$output[] = "</div><!-- end container left -->\n";
-	$output[] = "<div id='ewww-container-right' style='border: 1px solid #e5e5e5; float: right; margin-left: -215px; padding: 0em 1.5em 1em; background-color: #fff; box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04); display: inline-block; width: 174px;'>\n" .
-		'<h2>' . esc_html__( 'Support EWWW I.O.', 'ewww-image-optimizer' ) . "</h2>\n" .
-		'<p>' . esc_html__( 'Would you like to help support development of this plugin?', 'ewww-image-optimizer' ) . "</p>\n" .
-		"<p><a href='https://translate.wordpress.org/projects/wp-plugins/ewww-image-optimizer/'>" . esc_html__( 'Help translate EWWW I.O.', 'ewww-image-optimizer' ) . "</a></p>\n" .
-		"<p><a href='https://wordpress.org/support/view/plugin-reviews/ewww-image-optimizer#postform'>" . esc_html__( 'Write a review.', 'ewww-image-optimizer' ) . "</a></p>\n" .
-		/* translators: %s: Paypal (link) */
-		'<p>' . sprintf( esc_html__( 'Contribute directly via %s.',  'ewww-image-optimizer' ), "<a href='https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&amp;hosted_button_id=MKMQKCBFFG3WW'>Paypal</a>" ) . "</p>\n" .
-		'<p>' . esc_html__( 'Use any of these referral links to show your appreciation:', 'ewww-image-optimizer' ) . "</p>\n" .
-		'<p><b>' . esc_html__( 'Web Hosting:', 'ewww-image-optimizer' ) . "</b><br>\n" .
-		"<a href='http://www.a2hosting.com/?aid=b6322137'>A2 Hosting:</a> " . esc_html_x( 'with automatic EWWW IO setup', 'A2 Hosting:', 'ewww-image-optimizer' ) . "<br>\n" .
-		"<a href='http://www.shareasale.com/r.cfm?b=394686&u=1481701&m=41388&urllink='>WP Engine</a><br>\n" .
-		"</p>\n" .
-		'<p><b>' . esc_html_x( 'VPS:', 'abbreviation for Virtual Private Server', 'ewww-image-optimizer' ) . "</b><br>\n" .
-		"<a href='https://www.digitalocean.com/?refcode=89ef0197ec7e'>DigitalOcean</a><br>\n" .
-		"</p>\n" .
-		'<p><b>' . esc_html_x( 'CDN:', 'abbreviation for Content Delivery Network', 'ewww-image-optimizer' ) . "</b><br><a target='_blank' href='http://tracking.maxcdn.com/c/91625/36539/378'>" . esc_html__( 'Add MaxCDN to increase website speeds dramatically! Sign Up Now and Save 25%.', 'ewww-image-optimizer' ) . "</a></p>\n" .
-		"</div>\n" .
-		"</div>\n";
-	ewwwio_debug_message( 'max_execution_time: ' . ini_get( 'max_execution_time' ) );
-	ewww_image_optimizer_stl_check();
-	if ( ! ewww_image_optimizer_function_exists( 'sleep' ) ) {
-		ewwwio_debug_message( 'sleep disabled' );
-	}
-	if ( ! ewww_image_optimizer_function_exists( 'print_r' ) ) {
-		ewwwio_debug_message( 'print_r disabled' );
-	}
-	ewwwio_check_memory_available();
-	echo apply_filters( 'ewww_image_optimizer_settings', $output );
-	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_for_cdn' ) && ! ewww_image_optimizer_ce_webp_enabled() ) {
-		ewww_image_optimizer_webp_inline_script();
+	if ( defined( 'PHP_VERSION_ID' ) && PHP_VERSION_ID < 70200 ) {
+		if ( defined( 'PHP_VERSION_ID' ) && PHP_VERSION_ID < 70000 && $speed_score > 20 ) {
+			$speed_score -= 20;
+		} elseif ( $speed_score > 10 ) {
+			$speed_score -= 10;
+		}
+		/* translators: %s: The server PHP version. */
+		$speed_recommendations[] = sprintf( __( 'Your site is running an older version of PHP (%s), which should be updated.', 'ewww-image-optimizer' ), PHP_VERSION ) . ewwwio_get_help_link( 'https://wordpress.org/support/update-php/', '' );
 	}
 
-	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_debug' ) ) {
+	// Check that an image library exists for converting resizes. Originals can be done via the API, but resizes are done locally for speed.
+	$toolkit_found = false;
+	if ( ewww_image_optimizer_gd_support() ) {
+		$toolkit_found = true;
+	}
+	if ( ewww_image_optimizer_gmagick_support() ) {
+		$toolkit_found = true;
+	}
+	if ( ewww_image_optimizer_imagick_support() ) {
+		$toolkit_found = true;
+	}
+	if ( PHP_OS !== 'WINNT' && ! ewww_image_optimizer_full_cloud() && ! EWWW_IMAGE_OPTIMIZER_NOEXEC ) {
+		ewww_image_optimizer_find_nix_binary( 'nice', 'n' );
+	}
+	$allow_help_html = array(
+		'a'   => array(
+			'class'                => array(),
+			'href'                 => array(),
+			'target'               => array(),
+			'data-beacon-article'  => array(),
+			'data-beacon-articles' => array(),
+		),
+		'img' => array(
+			'title' => array(),
+			'src'   => array(),
+		),
+	);
+
+	if ( 'network-multisite-over' === $network ) {
+		ob_start();
+	}
+	// Begin building of status inside section.
+	$speed_score  = min( $speed_score, 100 );
+	$stroke_class = 'ewww-green';
+	if ( $speed_score < 50 ) {
+		$stroke_class = 'ewww-red';
+	} elseif ( $speed_score < 90 ) {
+		$stroke_class = 'ewww-orange';
+	}
 	?>
-<script type="text/javascript">
-	function selectText(containerid) {
-		if (document.selection) {
-			var range = document.body.createTextRange();
-			range.moveToElementText(document.getElementById(containerid));
-			range.select();
-		} else if (window.getSelection) {
-			var range = document.createRange();
-			range.selectNode(document.getElementById(containerid));
-			window.getSelection().addRange(range);
-		}
+	<div id='ewww-widgets' class='metabox-holder'>
+		<div class='meta-box-sortables'>
+			<div id='ewww-status' class='postbox'>
+				<!--<h2 class='ewww-hndle'><?php esc_html_e( 'Optimization Status', 'ewww-image-optimizer' ); ?></h2>-->
+				<div class='ewww-hndle' id="ewwwio-banner">
+					<img height="95" width="167" src="<?php echo esc_url( plugins_url( '/images/ewwwio-logo.png', __FILE__ ) ); ?>">
+					<div>
+						<div class='ewwwio-flex-space-between'>
+							<p>
+								<?php esc_html_e( 'Get performance tips, exclusive discounts, and the latest news when you signup for our newsletter!', 'ewww-image-optimizer' ); ?>
+							</p>
+							<p id='ewww-review'>
+								<a target="_blank" href="https://wordpress.org/support/plugin/ewww-image-optimizer/reviews/#new-post"><?php esc_html_e( 'Write a Review', 'ewww-image-optimizer' ); ?></a>
+								<a target="_blank" href="https://wordpress.org/support/plugin/ewww-image-optimizer/reviews/#new-post">
+									<span class="dashicons dashicons-star-filled"></span><span class="dashicons dashicons-star-filled"></span><span class="dashicons dashicons-star-filled"></span><span class="dashicons dashicons-star-filled"></span><span class="dashicons dashicons-star-filled"></span>
+								</a>
+							</p>
+						</div>
+						<p id='ewww-news-button'>
+							<a href="https://eepurl.com/gKyU6L?TB_iframe=true&width=600&height=610" class="thickbox button-secondary"><?php esc_html_e( 'Subscribe now!', 'ewww-image-optimizer' ); ?></a>
+						</p>
+					</div>
+				</div>
+				<div class='inside'>
+					<div class='ewww-row ewww-blocks'>
+						<div id='ewww-score-bars' class='ewww-status-detail'>
+							<div id='ewww-speed-container' class='ewww-bar-container'>
+								<div id='ewww-speed-fill' data-score='<?php echo (int) $speed_score; ?>' class='<?php echo esc_attr( $stroke_class ); ?> ewww-bar-fill'></div>
+							</div>
+							<div id='ewww-speed-flex' class='ewww-bar-caption'>
+								<p><strong><?php esc_html_e( 'Optimization Score', 'ewww-image-optimizer' ); ?></strong></p>
+								<p class='ewww-bar-score'><?php echo (int) $speed_score; ?>%</p>
+								<p id='ewww-show-recommendations'>
+	<?php if ( $speed_score < 100 ) : ?>
+									<a href='#'><?php esc_html_e( 'View recommendations', 'ewww-image-optimizer' ); ?></a>
+									<a style='display:none' href='#'><?php esc_html_e( 'Hide recommendations', 'ewww-image-optimizer' ); ?></a>
+	<?php endif; ?>
+								</p>
+							</div>
+							<div class="ewww-recommend">
+								<p><strong><?php echo ( (int) $speed_score < 100 ? esc_html__( 'How do I get to 100%?', 'ewww-image-optimizer' ) : esc_html__( 'You got the perfect score!', 'ewww-image-optimizer' ) ); ?></strong></p>
+	<?php if ( $speed_score < 100 ) : ?>
+								<ul class="ewww-tooltip">
+		<?php foreach ( $speed_recommendations as $recommendation ) : ?>
+									<li><?php echo wp_kses( $recommendation, $allow_help_html ); ?></li>
+		<?php endforeach; ?>
+								</ul>
+	<?php endif; ?>
+							</div><!-- end .ewww-recommend -->
+	<?php if ( $total_savings > 0 ) : ?>
+							<div id='ewww-savings-container' class='ewww-bar-container'>
+								<div id='ewww-savings-fill' data-score='<?php echo intval( $total_savings / $total_sizes[1] * 100 ); ?>' class='ewww-bar-fill'></div>
+							</div>
+							<div id='ewww-savings-flex' class='ewww-bar-caption'>
+								<p><strong><?php esc_html_e( 'Local Compression Savings', 'ewww-image-optimizer' ); ?></strong></p>
+								<p class='ewww-bar-score'><?php echo esc_html( ewww_image_optimizer_size_format( $total_savings, 2 ) ); ?></p>
+								<p>
+									<a href="<?php echo esc_url( admin_url( 'tools.php?page=ewww-image-optimizer-tools' ) ); ?>"><?php esc_html_e( 'View optimized images', 'ewww-image-optimizer' ); ?></a>
+								</p>
+							</div>
+	<?php endif; ?>
+	<?php if ( $exactdn_enabled && ! empty( $exactdn_savings ) && ! empty( $exactdn_savings['original'] ) && ! empty( $exactdn_savings['savings'] ) ) : ?>
+							<div id='easyio-savings-container' class='ewww-bar-container'>
+								<div id='easyio-savings-fill' data-score='<?php echo intval( $exactdn_savings['savings'] / $exactdn_savings['original'] * 100 ); ?>' class='ewww-bar-fill'></div>
+							</div>
+							<div id='easyio-savings-flex' class='ewww-bar-caption'>
+								<p>
+									<strong><?php esc_html_e( 'Easy IO Savings', 'ewww-image-optimizer' ); ?></strong>
+									<?php ewwwio_help_link( 'https://docs.ewww.io/article/96-easy-io-is-it-working', '5f871dd2c9e77c0016217c4e' ); ?>
+								</p>
+								<p class='ewww-bar-score'><?php echo esc_html( ewww_image_optimizer_size_format( $exactdn_savings['savings'], 2 ) ); ?></p>
+								<p>&nbsp;</p>
+							</div>
+	<?php endif; ?>
+						</div>
+						<!-- begin notices section -->
+						<div id="ewww-notices" class="ewww-status-detail">
+							<p>
+								<?php
+								printf(
+									/* translators: %s: Bulk Optimize (link) */
+									esc_html__( 'New uploads will be optimized automatically. Optimize existing images with the %s.', 'ewww-image-optimizer' ),
+									( 'network-multisite' === esc_attr( $network ) ?
+									esc_html__( 'Media Library', 'ewww-image-optimizer' ) . ' -> ' . esc_html__( 'Bulk Optimizer', 'ewww-image-optimizer' ) :
+									'<a href="' . esc_url( admin_url( 'upload.php?page=ewww-image-optimizer-bulk' ) ) . '">' . esc_html__( 'Bulk Optimizer', 'ewww-image-optimizer' ) . '</a>'
+									)
+								);
+								ewwwio_help_link( 'https://docs.ewww.io/article/4-getting-started', '5853713bc697912ffd6c0b98' );
+								echo ' ' . ( ! class_exists( 'Amazon_S3_And_CloudFront' ) ?
+									'<br>' .
+									sprintf(
+										/* translators: %s: S3 Image Optimizer (link) */
+										esc_html__( 'Optimize unlimited Amazon S3 buckets with our %s.' ),
+										'<a href="https://ewww.io/downloads/s3-image-optimizer/">' . esc_html__( 'S3 Image Optimizer', 'ewww-image-optimizer' ) . '</a>'
+									) : '' );
+								?>
+							</p>
+							<p>
+								<strong><?php esc_html_e( 'Background optimization (faster uploads):', 'ewww-image-optimizer' ); ?></strong><br>
+	<?php if ( defined( 'EWWW_DISABLE_ASYNC' ) && EWWW_DISABLE_ASYNC ) : ?>
+								<span><?php esc_html_e( 'Disabled by administrator', 'ewww-image-optimizer' ); ?></span>
+	<?php elseif ( ! ewww_image_optimizer_function_exists( 'sleep' ) ) : ?>
+								<span style="color: orange; font-weight: bolder"><?php esc_html_e( 'Disabled, sleep function missing', 'ewww-image-optimizer' ); ?></span>
+	<?php elseif ( $ewwwio_upgrading ) : ?>
+								<span><?php esc_html_e( 'Update detected, re-testing', 'ewww-image-optimizer' ); ?></span>
+	<?php elseif ( ewww_image_optimizer_detect_wpsf_location_lock() ) : ?>
+								<span style="color: orange; font-weight: bolder"><?php esc_html_e( "Disabled by Shield's Lock to Location feature", 'ewww-image-optimizer' ); ?></span>
+	<?php elseif ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_background_optimization' ) ) : ?>
+								<span style="color: orange; font-weight: bolder">
+									<?php esc_html_e( 'Disabled automatically, async requests blocked', 'ewww-image-optimizer' ); ?>
+									- <a href="<?php echo esc_url( admin_url( 'admin.php?action=ewww_image_optimizer_retest_background_optimization' ) ); ?>">
+										<?php esc_html_e( 'Re-test', 'ewww-image-optimizer' ); ?>
+									</a>
+								</span>
+								<?php ewwwio_help_link( 'https://docs.ewww.io/article/42-background-and-parallel-optimization-disabled', '598cb8be2c7d3a73488be237' ); ?>
+	<?php else : ?>
+								<span><?php esc_html_e( 'Enabled', 'ewww-image-optimizer' ); ?>
+									- <a href="<?php echo esc_url( admin_url( 'admin.php?action=ewww_image_optimizer_retest_background_optimization' ) ); ?>">
+										<?php esc_html_e( 'Re-test', 'ewww-image-optimizer' ); ?>
+									</a>
+								</span>
+	<?php endif; ?>
+							</p>
+						</div><!-- end .ewww-status-detail -->
+					</div><!-- end .ewww-blocks --><!-- end .ewww-row -->
+				</div><!-- end .inside -->
+			</div>
+		</div>
+	</div>
+
+	<?php
+	if ( 'network-multisite-over' === $network ) {
+		ob_end_clean();
 	}
+	?>
+
+	<?php if ( $exactdn_enabled && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ) : ?>
+	<script type='text/javascript'>
+		var exactdn_enabled = true;
+	</script>
+	<?php else : ?>
+	<script type='text/javascript'>
+		var exactdn_enabled = false;
+	</script>
+	<?php endif; ?>
+	<?php
+	$frontend_functions = array();
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_lazy_load' ) ) {
+		$frontend_functions[] = __( 'Lazy Load', 'ewww-image-optimizer' );
+	}
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_for_cdn' ) ) {
+		$frontend_functions[] = __( 'JS WebP Rewriting', 'ewww-image-optimizer' );
+	}
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_picture_webp' ) ) {
+		$frontend_functions[] = __( '<picture> WebP Rewriting', 'ewww-image-optimizer' );
+	}
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn' ) ) {
+		$frontend_functions[] = __( 'Easy IO', 'ewww-image-optimizer' );
+	}
+	$loading_image_url    = plugins_url( '/images/spinner.gif', __FILE__ );
+	$eio_base             = new EIO_Base();
+	$easyio_site_url      = $eio_base->content_url();
+	$exactdn_los_che      = ewww_image_optimizer_get_option( 'exactdn_lossy' ) || ( is_object( $exactdn ) && 1 === $exactdn->get_plan_id() );
+	$exactdn_los_id       = ( ! $exactdn_enabled || 1 === $exactdn->get_plan_id() ? 'exactdn_lossy_disabled' : 'exactdn_lossy' );
+	$exactdn_los_dis      = ! $exactdn_enabled || 1 === $exactdn->get_plan_id();
+	$eio_exclude_paths    = ewww_image_optimizer_get_option( 'exactdn_exclude' ) ? implode( "\n", ewww_image_optimizer_get_option( 'exactdn_exclude' ) ) : '';
+	$lqip_che             = is_object( $exactdn ) && 1 < $exactdn->get_plan_id() && ewww_image_optimizer_get_option( 'ewww_image_optimizer_use_lqip' );
+	$lqip_id              = ( ! $exactdn_enabled || 1 === $exactdn->get_plan_id() ? 'ewww_image_optimizer_use_lqip_disabled' : 'ewww_image_optimizer_use_lqip' );
+	$lqip_dis             = ! $exactdn_enabled || 1 === $exactdn->get_plan_id();
+	$ll_exclude_paths     = ewww_image_optimizer_get_option( 'ewww_image_optimizer_ll_exclude' ) ? implode( "\n", ewww_image_optimizer_get_option( 'ewww_image_optimizer_ll_exclude' ) ) : '';
+	$current_jpeg_quality = apply_filters( 'jpeg_quality', 82, 'image_resize' );
+	$webp_php_rewriting   = ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_for_cdn' ) || ewww_image_optimizer_get_option( 'ewww_image_optimizer_picture_webp' );
+	$webp_exclude_paths   = ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_rewrite_exclude' ) ? implode( "\n", ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_rewrite_exclude' ) ) : '';
+	$webp_paths           = ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_paths' ) ? implode( "\n", ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_paths' ) ) : '';
+	$webp_url_example     = sprintf(
+		/* translators: 1: An image URL on a CDN 2: An image URL 3: An example folder URL */
+		esc_html__( 'For example, with a CDN URL of %1$s and a local URL of %2$s you would enter %3$s.', 'ewww-image-optimizer' ),
+		'https://cdn.example.com/<strong>files/</strong>2038/01/image.jpg',
+		'https://example.com/<strong>wp-content/uploads/</strong>2038/01/image.jpg',
+		'https://cdn.example.com/<strong>files/</strong>'
+	);
+	// Setup URLs for Ludicrous/Easy Mode.
+	$enable_local_url = wp_nonce_url(
+		add_query_arg(
+			array(
+				'page'         => 'ewww-image-optimizer-options',
+				'enable-local' => 1,
+			),
+			null
+		),
+		'ewww_image_optimizer_options-options'
+	);
+	$enable_easy_url  = wp_nonce_url(
+		add_query_arg(
+			array(
+				'page'         => 'ewww-image-optimizer-options',
+				'enable-local' => 0,
+			),
+			null
+		),
+		'ewww_image_optimizer_options-options'
+	);
+	$rescue_mode_url  = wp_nonce_url(
+		add_query_arg(
+			array(
+				'page'        => 'ewww-image-optimizer-options',
+				'rescue_mode' => 1,
+			),
+			null
+		),
+		'ewww_image_optimizer_options-options'
+	);
+	// Make sure .htaccess rules are terminated when ExactDN is enabled or if Cloudflare is detected.
+	$cf_host = ewwwio_is_cf_host();
+	if ( ewww_image_optimizer_easy_active() || $cf_host ) {
+		ewww_image_optimizer_webp_rewrite_verify();
+	}
+	$test_webp_image = plugins_url( '/images/test.png.webp', __FILE__ );
+	$test_png_image  = plugins_url( '/images/test.png', __FILE__ );
+	?>
+
+
+	<!-- 'network-multisite-over' and 'network-singlesite' get simpler settings, 'network-singlesite-over' masquerades as 'singlesite' -->
+	<?php if ( ! $easymode && ( 'singlesite' === $network || 'network-multisite' === $network ) ) : ?>
+	<ul class='ewww-tab-nav'>
+		<li class='ewww-tab ewww-general-nav'><span><?php esc_html_e( 'Basic', 'ewww-image-optimizer' ); ?></span></li>
+		<li class='ewww-tab ewww-local-nav'><span><?php esc_html_e( 'Local', 'ewww-image-optimizer' ); ?></span></li>
+		<li class='ewww-tab ewww-advanced-nav'><span><?php esc_html_e( 'Advanced', 'ewww-image-optimizer' ); ?></span></li>
+		<li class='ewww-tab ewww-resize-nav'><span><?php esc_html_e( 'Resize', 'ewww-image-optimizer' ); ?></span></li>
+		<li class='ewww-tab ewww-conversion-nav'><span><?php esc_html_e( 'Convert', 'ewww-image-optimizer' ); ?></span></li>
+		<li class='ewww-tab ewww-overrides-nav'><span><a href='https://docs.ewww.io/article/40-override-options' target='_blank'><span class='ewww-tab-hidden'><?php esc_html_e( 'Overrides', 'ewww-image-optimizer' ); ?></a></span></li>
+		<li class='ewww-tab ewww-support-nav'><span><?php esc_html_e( 'Support', 'ewww-image-optimizer' ); ?></span></li>
+		<li class='ewww-tab ewww-contribute-nav'><span><?php esc_html_e( 'Contribute', 'ewww-image-optimizer' ); ?></span></li>
+	</ul>
+	<?php elseif ( $easymode ) : ?>
+	<ul class='ewww-tab-nav'>
+		<li class='ewww-tab ewww-general-nav'><span><?php esc_html_e( 'Basic', 'ewww-image-optimizer' ); ?></span></li>
+		<li class='ewww-tab ewww-support-nav'><span><?php esc_html_e( 'Support', 'ewww-image-optimizer' ); ?></span></li>
+		<li class='ewww-tab ewww-contribute-nav'><span><?php esc_html_e( 'Contribute', 'ewww-image-optimizer' ); ?></span></li>
+	</ul>
+	<?php endif; ?>
+	<?php if ( false !== strpos( $network, 'network-multisite' ) ) : ?>
+	<form id='ewww-settings-form' method='post' action=''>
+	<?php else : ?>
+	<form id='ewww-settings-form' method='post' action='options.php'>
+	<?php endif; ?>
+		<input type='hidden' name='option_page' value='ewww_image_optimizer_options' />
+		<input type='hidden' name='action' value='update' />
+		<?php wp_nonce_field( 'ewww_image_optimizer_options-options' ); ?>
+	<?php if ( 'network-singlesite' === $network ) : ?>
+		<p><i class="network-singlesite"><strong>
+			<?php /* translators: %s: Network Admin */ ?>
+			<?php printf( esc_html__( 'Configure network-wide settings in the %s.', 'ewww-image-optimizer' ), '<a href="' . esc_url( ewww_image_optimizer_get_settings_link() ) . '">' . esc_html__( 'Network Admin', 'ewww-image-optimizer' ) . '</a>' ); ?>
+		</strong></i></p>
+		<?php ob_start(); ?>
+	<?php endif; ?>
+		<div id='ewww-general-settings'>
+			<noscript><h2><?php esc_html_e( 'Basic', 'ewww-image-optimizer' ); ?></h2></noscript>
+	<?php if ( $easymode ) : ?>
+			<p>
+				<a href='<?php echo esc_url( $enable_local_url ); ?>'>
+					<?php esc_html_e( 'Enable Ludicrous Mode', 'ewww-image-optimizer' ); ?>
+				</a>
+			</p>
+	<?php else : ?>
+			<p>
+				<?php /* translators: %s: Easy Mode */ ?>
+				<?php printf( esc_html__( 'Switch to %s.', 'ewww-image-optimizer' ), '<a href="' . esc_url( $enable_easy_url ) . '">' . esc_html__( 'Easy Mode', 'ewww-image-optimizer' ) . '</a>' ); ?>
+			</p>
+	<?php endif; ?>
+	<?php ob_start(); ?>
+			<table class='form-table'>
+	<?php if ( 'network-multisite' === $network || 'network-multisite-over' === $network ) : ?>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_allow_multisite_override'><?php esc_html_e( 'Allow Single-site Override', 'ewww-image-optimizer' ); ?></label>
+					</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_allow_multisite_override' name='ewww_image_optimizer_allow_multisite_override' value='true' <?php checked( get_site_option( 'ewww_image_optimizer_allow_multisite_override' ) ); ?> /><?php esc_html_e( 'Allow individual sites to configure their own settings and override all network options.', 'ewww-image-optimizer' ); ?>
+					</td>
+				</tr>
+	<?php endif; ?>
+	<?php if ( 'network-multisite-over' === $network ) : ?>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_allow_tracking'><?php esc_html_e( 'Allow Usage Tracking?', 'ewww-image-optimizer' ); ?></label>
+					</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_allow_tracking' name='ewww_image_optimizer_allow_tracking' value='true' <?php checked( get_site_option( 'ewww_image_optimizer_allow_tracking' ) ); ?> />
+						<?php esc_html_e( 'Allow EWWW Image Optimizer to anonymously track how this plugin is used and help us make the plugin better. Opt-in to tracking and receive a 10% discount on premium compression. No sensitive data is tracked.', 'ewww-image-optimizer' ); ?>
+						<p>
+							<?php
+							if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_allow_tracking' ) ) {
+								printf(
+									/* translators: 1: link to https://ewww.io/plans/ 2: discount code (yes, you may use it) */
+									esc_html__( 'Use this code at %1$s: %2$s', 'ewww-image-optimizer' ),
+									'<a href="https://ewww.io/plans/" target="_blank">https://ewww.io/</a>',
+									'<code>SPEEDER1012</code>'
+								);
+							}
+							?>
+						</p>
+					</td>
+				</tr>
+			</table>
+			<input type='hidden' id='ewww_image_optimizer_allow_multisite_override_active' name='ewww_image_optimizer_allow_multisite_override_active' value='0'>
+		<?php if ( get_site_option( 'ewww_image_optimizer_cloud_key' ) ) : ?>
+			<input type='hidden' id='ewww_image_optimizer_cloud_key' name='ewww_image_optimizer_cloud_key' value='<?php echo esc_attr( get_site_option( 'ewww_image_optimizer_cloud_key' ) ); ?>' />
+		<?php endif; ?>
+		</div><!-- end container general settings -->
+		<p class='submit'><input type='submit' class='button-primary' value='<?php esc_attr_e( 'Save Changes', 'ewww-image-optimizer' ); ?>' /></p>
+	</form>
+</div><!-- end container wrap -->
+		<?php
+		return;
+	endif;
+	$premium_hide = '';
+	if ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn' ) ) {
+		$premium_hide = ' style="display:none"';
+	}
+	?>
+	<?php if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ) : ?>
+				<tr id='ewww_image_optimizer_cloud_key_container'>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_cloud_notkey'><?php esc_html_e( 'Compress API Key', 'ewww-image-optimizer' ); ?></label>
+					</th>
+					<td>
+						<input type='text' id='ewww_image_optimizer_cloud_notkey' name='ewww_image_optimizer_cloud_notkey' readonly='readonly' value='****************************<?php	echo esc_attr( substr( ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ), 28 ) ); ?>' size='32' />
+						<a class='button-secondary' href='<?php echo esc_url( admin_url( 'admin.php?action=ewww_image_optimizer_remove_cloud_key' ) ); ?>'>
+							<?php esc_html_e( 'Remove API key', 'ewww-image-optimizer' ); ?>
+						</a>
+						<input type='hidden' id='ewww_image_optimizer_cloud_key' name='ewww_image_optimizer_cloud_key' value='<?php echo esc_attr( ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ); ?>' />
+						<p>
+		<?php if ( false !== strpos( $verify_cloud, 'great' ) ) : ?>
+							<span style="color: #3eadc9; font-weight: bolder"><?php esc_html_e( 'Verified,', 'ewww-image-optimizer' ); ?> </span><?php echo esc_html( ewww_image_optimizer_cloud_quota() ); ?>
+		<?php elseif ( false !== strpos( $verify_cloud, 'exceeded' ) ) : ?>
+							<span style="color: orange; font-weight: bolder"><?php esc_html_e( 'Out of credits', 'ewww-image-optimizer' ); ?></span> - <a href="https://ewww.io/buy-credits/" target="_blank"><?php esc_html_e( 'Purchase more', 'ewww-image-optimizer' ); ?></a>
+		<?php else : ?>
+							<span style="color: red; font-weight: bolder"><?php esc_html_e( 'Not Verified', 'ewww-image-optimizer' ); ?></span>
+		<?php endif; ?>
+		<?php if ( false !== strpos( $verify_cloud, 'great' ) ) : ?>
+							<a target="_blank" href="https://history.exactlywww.com/show/?api_key=<?php echo esc_attr( ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ); ?>"><?php esc_html_e( 'View Usage', 'ewww-image-optimizer' ); ?></a>
+		<?php endif; ?>
+						</p>
+					</td>
+				</tr>
+	<?php else : ?>
+		<?php if ( ! $exactdn_enabled ) : ?>
+				<tr>
+					<th scope='row'>&nbsp;</th>
+					<td>
+						<input type='radio' id='ewww_image_optimizer_budget_pay' name='ewww_image_optimizer_budget' value='pay' required />
+						<label for='ewww_image_optimizer_budget_pay'><?php esc_html_e( 'Activate Easy IO and/or the Compress API to get 5x more optimization and priority support', 'ewww-image-optimizer' ); ?></label><br>
+						<input type='radio' id='ewww_image_optimizer_budget_free' name='ewww_image_optimizer_budget' value='free' required <?php checked( (bool) $premium_hide ); ?> />
+						<label for='ewww_image_optimizer_budget_free'><?php esc_html_e( 'Stick with free mode for now', 'ewww-image-optimizer' ); ?></label>
+						<p class="ewwwio-premium-setup-disabled-for-now" <?php echo wp_kses_post( $premium_hide ); ?>><strong><a href='https://ewww.io/plans/' target='_blank'>&gt;&gt;<?php esc_html_e( 'Start your free trial', 'ewww-image-optimizer' ); ?></a></strong></p>
+					</td>
+				</tr>
+		<?php endif; ?>
+				<tr id='ewww_image_optimizer_cloud_key_container' class='ewwwio-premium-setup' <?php echo wp_kses_post( $premium_hide ); ?>>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_cloud_key'><?php esc_html_e( 'Compress API Key', 'ewww-image-optimizer' ); ?></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/7-basic-configuration', '585373d5c697912ffd6c0bb2,5ad0c8e7042863075092650b,5a9efec62c7d3a7549516550' ); ?>
+					</th>
+					<td>
+						<div id='ewwwio-api-activation-result'></div>
+						<input type='text' id='ewww_image_optimizer_cloud_key' name='ewww_image_optimizer_cloud_key' value='' size='32' />
+						<span id='ewwwio-api-activate'><a href='#' class='button-secondary'><?php esc_html_e( 'Activate', 'ewww-image-optimizer' ); ?></a></span>
+						<span id='ewwwio-api-activation-processing'><img src='<?php echo esc_url( $loading_image_url ); ?>' alt='loading'/></span>
+						<p class='description'>
+							<?php esc_html_e( 'Premium compression for your local images.', 'ewww-image-optimizer' ); ?>
+							<a href='https://ewww.io/plans/' target='_blank'>
+								<?php esc_html_e( 'Start your free trial today.', 'ewww-image-optimizer' ); ?>
+							</a>
+						</p>
+					</td>
+				</tr>
+	<?php endif; ?>
+	<?php if ( ! get_option( 'easyio_exactdn' ) ) : ?>
+				<tr id="ewww_image_optimizer_exactdn_container" class="ewwwio-premium-setup" <?php echo wp_kses_post( $premium_hide ); ?>>
+					<th scope='row'>
+						<span id='ewwwio-exactdn-anchor'></span>
+						<label for='ewww_image_optimizer_exactdn'><?php esc_html_e( 'Easy IO', 'ewww-image-optimizer' ); ?></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/44-introduction-to-exactdn', '59bc5ad6042863033a1ce370,5c0042892c7d3a31944e88a4' ); ?>
+					</th>
+					<td>
+						<div id='ewwwio-easy-activation-result'></div>
+		<?php
+		printf(
+			/* translators: %s: the string 'and more' with a link to the docs */
+			esc_html__( 'An image-optimizing CDN with automatic compression, scaling, WebP conversion %s.', 'ewww-image-optimizer' ),
+			'<a href="https://docs.ewww.io/article/44-introduction-to-exactdn" target="_blank" data-beacon-article="59bc5ad6042863033a1ce370">' . esc_html__( 'and more', 'ewww-image-optimizer' ) . '</a>'
+		);
+		?>
+		<?php if ( class_exists( 'Jetpack' ) && Jetpack::is_module_active( 'photon' ) && ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn' ) ) : ?>
+						<p style='color: red'><?php esc_html_e( 'Inactive, please disable the Image Accelerator option on the Jetpack Dashboard.', 'ewww-image-optimizer' ); ?></p>
+		<?php elseif ( ! $exactdn_enabled ) : ?>
+						<p>
+							<strong><a href="https://ewww.io/plans/" target="_blank">
+								<?php esc_html_e( 'Purchase a subscription for your site.', 'ewww-image-optimizer' ); ?>
+							</a></strong><br>
+							<a href="https://ewww.io/manage-sites/" target="_blank"><?php esc_html_e( 'Then, add your Site URL to your account:', 'easy-image-optimizer' ); ?></a>
+							<input type='text' id='exactdn_site_url' name='exactdn_site_url' value='<?php echo esc_url( trim( $easyio_site_url ) ); ?>' readonly />
+							<span id='exactdn-site-url-copy'><?php esc_html_e( 'Click to Copy', 'ewww-image-optimizer' ); ?></span>
+							<span id='exactdn-site-url-copied'><?php esc_html_e( 'Copied', 'ewww-image-optimizer' ); ?></span><br>
+							<a id='ewwwio-easy-activate' href='#' class='button-secondary'><?php esc_html_e( 'Activate', 'ewww-image-optimizer' ); ?></a>
+							<span id='ewwwio-easy-activation-processing'><img src='<?php echo esc_url( $loading_image_url ); ?>' alt='loading'/></span>
+						</p>
+		<?php elseif ( class_exists( 'ExactDN' ) && ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn' ) ) : ?>
+						<p>
+				<?php if ( $exactdn->get_exactdn_domain() && $exactdn->verify_domain( $exactdn->get_exactdn_domain() ) ) : ?>
+							<span style="color: #3eadc9; font-weight: bolder"><?php esc_html_e( 'Verified', 'ewww-image-optimizer' ); ?></span>
+							<br><?php echo esc_html( $exactdn->get_exactdn_domain() ); ?>
+				<?php elseif ( $exactdn->get_exactdn_domain() && $exactdn->get_exactdn_option( 'verified' ) ) : ?>
+							<span style="color: orange; font-weight: bolder"><?php esc_html_e( 'Temporarily disabled.', 'ewww-image-optimizer' ); ?></span>
+				<?php elseif ( $exactdn->get_exactdn_domain() && $exactdn->get_exactdn_option( 'suspended' ) ) : ?>
+							<span style="color: orange; font-weight: bolder"><?php esc_html_e( 'Active, not yet verified.', 'ewww-image-optimizer' ); ?></span>';
+				<?php else : ?>
+							<span style="color: red; font-weight: bolder"><a href="https://ewww.io/manage-sites/" target="_blank"><?php esc_html_e( 'Not Verified', 'ewww-image-optimizer' ); ?></a></span>
+				<?php endif; ?>
+				<?php if ( function_exists( 'remove_query_strings_link' ) || function_exists( 'rmqrst_loader_src' ) || function_exists( 'qsr_remove_query_strings_1' ) ) : ?>
+							<br><i><?php esc_html_e( 'Plugins that remove query strings are unnecessary with Easy IO. You may remove them at your convenience.', 'ewww-image-optimizer' ); ?></i><?php ewwwio_help_link( 'https://docs.ewww.io/article/50-exactdn-and-query-strings', '5a3d278a2c7d3a1943677b52' ); ?>
+				<?php endif; ?>
+							<br>
+							<a id='ewwwio-easy-deactivate' class='button-secondary' href='<?php echo esc_url( admin_url( 'admin.php?action=ewww_image_optimizer_remove_easyio' ) ); ?>'>
+								<?php esc_html_e( 'De-activate', 'ewww-image-optimizer' ); ?>
+							</a>
+						</p>
+		<?php endif; ?>
+					</td>
+				</tr>
+	<?php endif; ?>
+				<tr class='ewwwio-exactdn-options' <?php echo $exactdn_enabled ? '' : 'style="display:none;"'; ?>>
+					<td>&nbsp;</td>
+					<td>
+						<input type='checkbox' name='exactdn_all_the_things' value='true' id='exactdn_all_the_things' <?php checked( ewww_image_optimizer_get_option( 'exactdn_all_the_things' ) ); ?> />
+						<label for='exactdn_all_the_things'><strong><?php esc_html_e( 'Include All Resources', 'ewww-image-optimizer' ); ?></strong></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/47-getting-more-from-exactdn', '59de6631042863379ddc953c' ); ?>
+						<p class='description'>
+							<?php esc_html_e( 'Use Easy IO for all resources in wp-includes/ and wp-content/, including JavaScript, CSS, fonts, etc.', 'ewww-image-optimizer' ); ?>
+						</p>
+					</td>
+				</tr>
+				<tr class='ewwwio-exactdn-options' <?php echo $exactdn_enabled && ! $easymode ? '' : 'style="display:none;"'; ?>>
+					<td>&nbsp;</td>
+					<td>
+						<input type='checkbox' name='exactdn_lossy' value='true' id='<?php echo esc_attr( $exactdn_los_id ); ?>' <?php disabled( $exactdn_los_dis ); ?> <?php checked( $exactdn_los_che ); ?> />
+						<label for='exactdn_lossy'><strong><?php esc_html_e( 'Premium Compression', 'ewww-image-optimizer' ); ?></strong></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/47-getting-more-from-exactdn', '59de6631042863379ddc953c' ); ?>
+						<p class='description'>
+							<?php esc_html_e( 'Enable high quality premium compression for all images on Easy IO. Disable to use Pixel Perfect mode instead.', 'ewww-image-optimizer' ); ?>
+						</p>
+					</td>
+				</tr>
+	<?php if ( ! $exactdn_enabled || 1 === $exactdn->get_plan_id() ) : ?>
+				<input type='hidden' id='exactdn_lossy' name='exactdn_lossy' <?php echo ( ewww_image_optimizer_get_option( 'exactdn_lossy' ) ? "value='1'" : "value='0'" ); ?> />
+				<input type='hidden' id='ewww_image_optimizer_use_lqip' name='ewww_image_optimizer_use_lqip' <?php echo ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_use_lqip' ) ? "value='1'" : "value='0'" ); ?> />
+	<?php endif; ?>
+				<tr class="ewwwio-exactdn-options" <?php echo $exactdn_enabled ? '' : 'style="display:none;"'; ?>>
+					<td>&nbsp;</td>
+					<td>
+						<label for='exactdn_exclude'><strong><?php esc_html_e( 'Exclusions', 'ewww-image-optimizer' ); ?></strong></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/68-exactdn-exclude', '5c0042892c7d3a31944e88a4' ); ?><br>
+						<textarea id='exactdn_exclude' name='exactdn_exclude' rows='3' cols='60'><?php echo esc_html( $eio_exclude_paths ); ?></textarea>
+						<p class='description'>
+							<?php esc_html_e( 'One exclusion per line, no wildcards (*) needed. Any pattern or path provided will not be routed through Easy IO.', 'ewww-image-optimizer' ); ?>
+						</p>
+					</td>
+				</tr>
+	<?php if ( ! function_exists( 'swis' ) ) : ?>
+				<tr id="swis_promo_container" class="ewwwio-premium-setup" <?php echo wp_kses_post( $premium_hide ); ?>>
+					<th scope='row'>
+						SWIS Performance
+					</th>
+					<td>
+						<a href="https://ewww.io/swis/" target="_blank"><?php esc_html_e( 'Go beyond image optimization with the tools I use for improving site speed.', 'ewww-image-optimizer' ); ?></a>
+					</td>
+				</tr>
+	<?php endif; ?>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_metadata_remove'><?php esc_html_e( 'Remove Metadata', 'ewww-image-optimizer' ); ?></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/7-basic-configuration', '585373d5c697912ffd6c0bb2' ); ?>
+					</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_metadata_remove' name='ewww_image_optimizer_metadata_remove' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_metadata_remove' ) ); ?> />
+						<?php esc_html_e( 'This will remove ALL metadata: EXIF, comments, color profiles, and anything else that is not pixel data.', 'ewww-image-optimizer' ); ?>
+						<p class ='description'><?php esc_html_e( 'Color profiles are preserved when using the API or Easy IO.', 'ewww-image-optimizer' ); ?></p>
+					</td>
+				</tr>
+	<?php if ( $current_jpeg_quality > 90 || $current_jpeg_quality < 50 || ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_quality' ) ) : ?>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_jpg_quality'><?php esc_html_e( 'JPG Quality Level', 'ewww-image-optimizer' ); ?></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/11-advanced-configuration', '58542afac697912ffd6c18c0,58543c69c697912ffd6c19a7' ); ?>
+					</th>
+					<td>
+						<input type='text' id='ewww_image_optimizer_jpg_quality' name='ewww_image_optimizer_jpg_quality' class='small-text' value='<?php echo esc_attr( ewww_image_optimizer_jpg_quality() ); ?>' />
+						<?php esc_html_e( 'Valid values are 1-100.', 'ewww-image-optimizer' ); ?>
+						<p class='description'>
+							<?php esc_html_e( 'Use this to override the default WordPress quality level of 82. Applies to image editing, resizing, and PNG to JPG conversion. Does not affect the original uploaded image unless maximum dimensions are set and resizing occurs.', 'ewww-image-optimizer' ); ?>
+						</p>
+					</td>
+				</tr>
+	<?php endif; ?>
+				<tr>
+					<th scope='row'>
+						<?php esc_html_e( 'Resize Images', 'ewww-image-optimizer' ); ?>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/41-resize-settings', '59849911042863033a1ba5f9' ); ?>
+					</th>
+					<td>
+						<label for='ewww_image_optimizer_maxmediawidth'><?php esc_html_e( 'Max Width', 'ewww-image-optimizer' ); ?></label>
+						<input type='number' step='1' min='0' class='small-text' id='ewww_image_optimizer_maxmediawidth' name='ewww_image_optimizer_maxmediawidth' value='<?php	echo (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediawidth' ); ?>' <?php disabled( function_exists( 'imsanity_get_max_width_height' ) ); ?> />
+						<label for='ewww_image_optimizer_maxmediaheight'><?php esc_html_e( 'Max Height', 'ewww-image-optimizer' ); ?></label>
+						<input type='number' step='1' min='0' class='small-text' id='ewww_image_optimizer_maxmediaheight' name='ewww_image_optimizer_maxmediaheight' value='<?php echo (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_maxmediaheight' ); ?>' <?php disabled( function_exists( 'imsanity_get_max_width_height' ) ); ?> />
+						<?php esc_html_e( 'in pixels', 'ewww-image-optimizer' ); ?>
+	<?php if ( function_exists( 'imsanity_get_max_width_height' ) ) : ?>
+						<p>
+							<span style="color: #3eadc9"><?php esc_html_e( '*Imsanity settings override the resize dimensions.', 'ewww-image-optimizer' ); ?></span>
+						</p>
+	<?php else : ?>
+						<p class='description'>
+							<?php esc_html_e( 'Resize uploaded images to these dimensions (in pixels).', 'ewww-image-optimizer' ); ?>
+						</p>
+	<?php endif; ?>
+					</td>
+				</tr>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_add_missing_dims'>
+							<?php esc_html_e( 'Add Missing Dimensions', 'ewww-image-optimizer' ); ?>
+						</label>
+					</th>
+					<td>
+	<?php if ( function_exists( 'easyio_get_option' ) && easyio_get_option( 'easyio_lazy_load' ) && easyio_get_option( 'easyio_add_missing_dims' ) ) : ?>
+						<p class='description'><?php esc_html_e( 'Enabled in Easy Image Optimizer.', 'ewww-image-optimizer' ); ?></p>
+						<input type='hidden' id='ewww_image_optimizer_add_missing_dims' name='ewww_image_optimizer_add_missing_dims' <?php echo ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_add_missing_dims' ) ? "value='1'" : "value='0'" ); ?> />
+	<?php else : ?>
+						<input type='checkbox' id='ewww_image_optimizer_add_missing_dims' name='ewww_image_optimizer_add_missing_dims' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_add_missing_dims' ) ); ?> <?php disabled( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_lazy_load' ) ); ?> />
+						<?php esc_html_e( 'Add width/height attributes to reduce layout shifts and improve user experience.', 'ewww-image-optimizer' ); ?>
+		<?php if ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_lazy_load' ) ) : ?>
+						<p class ='description'>*<?php esc_html_e( 'Requires Lazy Load.', 'ewww-image-optimizer' ); ?></p>
+		<?php endif; ?>
+	<?php endif; ?>
+					</td>
+				</tr>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_lazy_load'><?php esc_html_e( 'Lazy Load', 'ewww-image-optimizer' ); ?></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/74-lazy-load', '5c6c36ed042863543ccd2d9b' ); ?>
+					</th>
+					<td>
+	<?php if ( function_exists( 'easyio_get_option' ) && easyio_get_option( 'easyio_lazy_load' ) ) : ?>
+						<p class='description'><?php esc_html_e( 'Lazy Load enabled in Easy Image Optimizer.', 'ewww-image-optimizer' ); ?></p>
+	<?php else : ?>
+						<input type='checkbox' id='ewww_image_optimizer_lazy_load' name='ewww_image_optimizer_lazy_load' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_lazy_load' ) ); ?> />
+						<?php esc_html_e( 'Improves actual and perceived loading time as images will be loaded only as they enter (or are about to enter) the viewport.', 'ewww-image-optimizer' ); ?>
+		<?php if ( ewwwio_other_lazy_detected() ) : ?>
+						<p><strong><?php esc_html_e( 'Though you already have a lazy loader on your site, the EWWW IO lazy loader includes auto-scaling for improved responsive images.', 'ewww-image-optimizer' ); ?></strong></p>
+		<?php endif; ?>
+						<p class='description'>
+							<?php esc_html_e( 'The lazy loader chooses the best available image size from existing responsive markup. When used with Easy IO, all images become responsive.', 'ewww-image-optimizer' ); ?></br>
+						</p>
+					</td>
+				</tr>
+				<tr id='ewww_image_optimizer_ll_autoscale_container' <?php echo ewww_image_optimizer_get_option( 'ewww_image_optimizer_lazy_load' ) ? '' : ' style="display:none"'; ?>>
+					<td>&nbsp;</td>
+					<td>
+						<input type='checkbox' name='ewww_image_optimizer_ll_autoscale' value='true' id='ewww_image_optimizer_ll_autoscale' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_ll_autoscale' ) ); ?> />
+						<label for='ewww_image_optimizer_ll_autoscale'><strong><?php esc_html_e( 'Automatic Scaling', 'ewww-image-optimizer' ); ?></strong></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/74-lazy-load', '5c6c36ed042863543ccd2d9b' ); ?>
+						<p class='description'>
+							<?php esc_html_e( 'Automatically detect the correct image size within responsive (srcset) markup.', 'ewww-image-optimizer' ); ?>
+						</p>
+					</td>
+				</tr>
+				<tr id='ewww_image_optimizer_siip_container' <?php echo ewww_image_optimizer_get_option( 'ewww_image_optimizer_lazy_load' ) ? '' : ' style="display:none"'; ?>>
+					<td>&nbsp;</td>
+					<td>
+						<input type='checkbox' name='ewww_image_optimizer_use_siip' value='true' id='ewww_image_optimizer_use_siip' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_use_siip' ) ); ?> />
+						<label for='ewww_image_optimizer_use_siip'><strong><?php esc_html_e( 'SVG Placeholders', 'ewww-image-optimizer' ); ?></strong></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/75-lazy-load-placeholders', '5c9a7a302c7d3a1544615e47' ); ?>
+						<p class='description'>
+							<?php esc_html_e( 'Inline SVG placeholders use fewer HTTP requests than right-sized PNG placeholders, but may not work with some themes.', 'ewww-image-optimizer' ); ?>
+						</p>
+					</td>
+				</tr>
+				<tr id='ewww_image_optimizer_lqip_container' <?php echo ewww_image_optimizer_get_option( 'ewww_image_optimizer_lazy_load' ) ? '' : ' style="display:none"'; ?>>
+					<td>&nbsp;</td>
+					<td>
+						<input type='checkbox' name='ewww_image_optimizer_use_lqip' value='true' id='<?php echo esc_attr( $lqip_id ); ?>' <?php disabled( $lqip_dis ); ?> <?php checked( $lqip_che ); ?> />
+						<label for='ewww_image_optimizer_use_lqip'><strong>LQIP</strong></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/75-lazy-load-placeholders', '5c9a7a302c7d3a1544615e47' ); ?>
+						<p class='description'>
+							<?php esc_html_e( 'Use low-quality versions of your images as placeholders via Easy IO. Can improve user experience, but may be slower than blank placeholders.', 'ewww-image-optimizer' ); ?>
+						</p>
+					</td>
+				</tr>
+				<tr id='ewww_image_optimizer_ll_all_things_container' <?php echo ewww_image_optimizer_get_option( 'ewww_image_optimizer_lazy_load' ) ? '' : ' style="display:none"'; ?>>
+					<td>&nbsp;</td>
+					<td>
+						<label for='ewww_image_optimizer_ll_all_things'><strong><?php esc_html_e( 'External Background Images', 'ewww-image-optimizer' ); ?></strong></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/74-lazy-load', '5c6c36ed042863543ccd2d9b' ); ?><br>
+						<input type='text' name='ewww_image_optimizer_ll_all_things' id='ewww_image_optimizer_all_things' class='regular-text' value='<?php echo esc_attr( ewww_image_optimizer_get_option( 'ewww_image_optimizer_ll_all_things' ) ); ?>' />
+						<p class='description'>
+							<?php esc_html_e( 'Specify class/id values of elements with CSS background images (comma-separated).', 'ewww-image-optimizer' ); ?>
+							<br>*<?php esc_html_e( 'Background images directly attached via inline style attributes will be lazy loaded by default.', 'ewww-image-optimizer' ); ?>
+						</p>
+					</td>
+				</tr>
+		<?php if ( true || ! $easymode ) : ?>
+		<?php endif; ?>
+				<tr id='ewww_image_optimizer_ll_exclude_container' <?php echo ewww_image_optimizer_get_option( 'ewww_image_optimizer_lazy_load' ) ? '' : ' style="display:none"'; ?>>
+					<td>&nbsp;</td>
+					<td>
+						<label for='ewww_image_optimizer_ll_exclude'><strong><?php esc_html_e( 'Exclusions', 'ewww-image-optimizer' ); ?></strong></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/74-lazy-load', '5c6c36ed042863543ccd2d9b' ); ?><br>
+						<textarea id='ewww_image_optimizer_ll_exclude' name='ewww_image_optimizer_ll_exclude' rows='3' cols='60'><?php echo esc_html( $ll_exclude_paths ); ?></textarea>
+						<p class='description'>
+							<?php esc_html_e( 'One exclusion per line, no wildcards (*) needed. Use any string that matches the desired element(s) or exclude entire element types like "div", "span", etc. The class "skip-lazy" and attribute "data-skip-lazy" are excluded by default.', 'ewww-image-optimizer' ); ?>
+						</p>
+					</td>
+				</tr>
+		<?php if ( false && $easymode ) : ?>
+				<tr id='ewww_image_optimizer_more_options_container' <?php echo ewww_image_optimizer_get_option( 'ewww_image_optimizer_lazy_load' ) ? '' : ' style="display:none"'; ?>>
+					<td>&nbsp;</td>
+					<td>
+						<p class='description'>
+							<?php
+							printf(
+								/* translators: %s: Ludicrous Mode */
+								'*' . esc_html__( 'More Lazy Load options are available in %s.', 'ewww-image-optimizer' ),
+								"<a href='" . esc_url( $enable_local_url ) . "'>" . esc_html__( 'Ludicrous Mode', 'ewww-image-optimizer' ) . '</a>'
+							);
+							?>
+						</p>
+					</td>
+				</tr>
+		<?php endif; ?>
+	<?php endif; ?>
+	<?php if ( $free_exec ) : ?>
+				<tr>
+					<th>&nbsp;</th>
+					<td>
+						<p class='description'><?php esc_html_e( 'WebP conversion requires an API key or Easy IO subscription.', 'ewww-image-optimizer' ); ?></p>
+					</td>
+				</tr>
+	<?php elseif ( ! ewww_image_optimizer_easy_active() || ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp' ) ) : ?>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_webp'><?php esc_html_e( 'WebP Conversion', 'ewww-image-optimizer' ); ?></label>
+						<span><?php ewwwio_help_link( 'https://docs.ewww.io/article/16-ewww-io-and-webp-images', '5854745ac697912ffd6c1c89' ); ?></span>
+					</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_webp' name='ewww_image_optimizer_webp' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp' ) ); ?> />
+						<span><?php esc_html_e( 'Convert your images to the next generation format for supported browsers, while retaining originals for other browsers.', 'ewww-image-optimizer' ); ?></span>
+		<?php if ( ! ewww_image_optimizer_easy_active() ) : ?>
+						<p id='ewwwio-webp-storage-warning'>
+							<i><?php esc_html_e( 'Enabling WebP Conversion without Easy IO will increase your storage requirements. Do you want to continue?', 'ewww-image-optimizer' ); ?></i><br>
+							<a id='ewwwio-cancel-webp' href='#'><?php esc_html_e( 'Nevermind', 'ewww-image-optimizer' ); ?></a><br>
+							<a id='ewwwio-easyio-webp-info' class='ewww-help-beacon-single' href='https://docs.ewww.io/article/44-introduction-to-exactdn' data-beacon-article='59bc5ad6042863033a1ce370'><?php esc_html_e( 'Tell me more about Easy IO', 'ewww-image-optimizer' ); ?></a><br>
+							<?php ewwwio_help_link( 'https://docs.ewww.io/article/44-introduction-to-exactdn', '59bc5ad6042863033a1ce370,5c0042892c7d3a31944e88a4' ); ?>
+							<span id='ewwwio-confirm-webp' class='button-primary'><?php esc_html_e( 'Continue', 'ewww-image-optimizer' ); ?></span>
+						</p>
+						<p class='description'>
+							<?php esc_html_e( 'WebP images will be generated automatically for new uploads.', 'ewww-image-optimizer' ); ?>
+							<?php
+							printf(
+								/* translators: 1: Bulk Optimizer 2: Easy IO */
+								esc_html__( 'Use the %1$s for existing uploads or get %2$s for automatic WebP conversion and delivery.', 'ewww-image-optimizer' ),
+								'<a href="' . esc_url( admin_url( 'upload.php?page=ewww-image-optimizer-bulk' ) ) . '">' . esc_html__( 'Bulk Optimizer', 'ewww-image-optimizer' ) . '</a>',
+								'<a href="https://ewww.io/plans/">' . esc_html__( 'Easy IO', 'ewww-image-optimizer' ) . '</a>'
+							);
+							?>
+						</p>
+		<?php endif; ?>
+		<?php if ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ) : ?>
+						<p class='description'>
+							*<?php esc_html_e( 'GIF to WebP conversion requires an active API key.', 'ewww-image-optimizer' ); ?>
+						</p>
+		<?php endif; ?>
+					</td>
+				</tr>
+				<tr>
+	<?php endif; ?>
+	<?php if ( ! $free_exec && ! ewww_image_optimizer_ce_webp_enabled() && ! ewww_image_optimizer_easy_active() ) : ?>
+				<tr class='ewww_image_optimizer_webp_setting_container' <?php echo ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp' ) ? '' : ' style="display:none"'; ?>>
+					<th scope='row'>
+						<?php esc_html_e( 'WebP Delivery Method', 'ewww-image-optimizer' ); ?>
+					</th>
+					<td>
+		<?php if ( ! $cf_host && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp' ) ) : ?>
+						<?php
+						printf(
+							/* translators: %s: documentation */
+							esc_html__( 'The recommended delivery method is to use Apache/LiteSpeed rewrite rules. Nginx users may reference the %s for configuration instructions.', 'ewww-image-optimizer' ),
+							'<a class="ewww-help-beacon-single" href="https://docs.ewww.io/article/16-ewww-io-and-webp-images" target="_blank" data-beacon-article="5854745ac697912ffd6c1c89">' . esc_html__( 'documentation', 'ewww-image-optimizer' ) . '</a>'
+						);
+						?>
+		<?php else : ?>
+		<?php endif; ?>
+		<?php
+		if (
+			! $cf_host &&
+			ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp' ) &&
+			! ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_for_cdn' ) &&
+			! ewww_image_optimizer_get_option( 'ewww_image_optimizer_picture_webp' )
+		) :
+			if ( defined( 'PHP_SAPI' ) && false === strpos( PHP_SAPI, 'apache' ) && false === strpos( PHP_SAPI, 'litespeed' ) ) {
+				$false_positive_headers = esc_html( 'This may be a false positive. If so, the warning should go away once you implement the rewrite rules.' );
+			}
+			$header_error = '';
+			if ( ! apache_mod_loaded( 'mod_rewrite' ) ) {
+				/* translators: %s: mod_rewrite or mod_headers */
+				$header_error = '<p><strong>' . sprintf( esc_html__( 'Your site appears to be missing %s, please contact your webhost or system administrator to enable this Apache module.', 'ewww-image-optimizer' ), 'mod_rewrite' ) . "</strong><br>$false_positive_headers</p>\n";
+			}
+			if ( ! apache_mod_loaded( 'mod_headers' ) ) {
+				/* translators: %s: mod_rewrite or mod_headers */
+				$header_error = '<p><strong>' . sprintf( esc_html__( 'Your site appears to be missing %s, please contact your webhost or system administrator to enable this Apache module.', 'ewww-image-optimizer' ), 'mod_headers' ) . "</strong><br>$false_positive_headers</p>\n";
+			}
+
+			$webp_mime_error = ewww_image_optimizer_test_webp_mime_error();
+			if ( $webp_mime_error ) {
+				echo wp_kses_post( $header_error );
+			}
+
+			$webp_rewrite_verify = ! (bool) ewww_image_optimizer_webp_rewrite_verify();
+			if ( $webp_mime_error && $webp_rewrite_verify ) :
+				printf(
+					/* translators: %s: an error message from the WebP self-test */
+					'<p>' . esc_html__( 'WebP rules verified, but self-test failed: %s', 'ewww-image-optimizer' ) . '</p>',
+					esc_html( $webp_mime_error )
+				);
+			elseif ( ! $webp_mime_error || $webp_rewrite_verify ) :
+				?>
+						<div id='ewww-webp-rewrite'>
+							<img id='ewww-webp-image' src='<?php echo esc_url( $test_png_image . '?m=' . time() ); ?>'>
+							<div id='ewww-webp-rewrite-status'>
+								<p>
+									<?php esc_html_e( 'WebP Rules verified successfully', 'ewww-image-optimizer' ); ?>
+								</p>
+							</div>
+				<?php if ( $webp_rewrite_verify ) : ?>
+							<div id='ewww-webp-rewrite-result'></div>
+							<button type='button' id='ewww-webp-remove' class='button-secondary action'><?php esc_html_e( 'Remove Rewrite Rules', 'ewww-image-optimizer' ); ?></button>
+				<?php endif; ?>
+						</div>
+			<?php else : ?>
+						<p>
+							<?php
+							printf(
+								/* translators: %s: documentation */
+								esc_html__( 'The recommended delivery method is to use Apache/LiteSpeed rewrite rules. Nginx users may reference the %s for configuration instructions.', 'ewww-image-optimizer' ),
+								'<a class="ewww-help-beacon-single" href="https://docs.ewww.io/article/16-ewww-io-and-webp-images" target="_blank" data-beacon-article="5854745ac697912ffd6c1c89">' . esc_html__( 'documentation', 'ewww-image-optimizer' ) . '</a>'
+							);
+							?>
+						</p>
+						<div id='ewww-webp-rewrite'>
+<pre id='webp-rewrite-rules'>&lt;IfModule mod_rewrite.c&gt;
+	RewriteEngine On
+	RewriteCond %{HTTP_ACCEPT} image/webp
+	RewriteCond %{REQUEST_FILENAME} (.*)\.(jpe?g|png|gif)$
+	RewriteCond %{REQUEST_FILENAME}\.webp -f
+	RewriteCond %{QUERY_STRING} !type=original
+	RewriteRule (.+)\.(jpe?g|png|gif)$ %{REQUEST_FILENAME}.webp [T=image/webp,L]
+&lt;/IfModule&gt;
+&lt;IfModule mod_headers.c&gt;
+	&lt;FilesMatch "\.(jpe?g|png|gif)$"&gt;
+		Header append Vary Accept
+	&lt;/FilesMatch&gt;
+&lt;/IfModule&gt;
+AddType image/webp .webp</pre>
+							<img id='ewww-webp-image' src='<?php echo esc_url( $test_png_image . '?m=' . time() ); ?>'>
+							<p id='ewww-webp-rewrite-status'>
+								<?php esc_html_e( 'The image to the right will display a WebP image with WEBP in white text, if your site is serving WebP images and your browser supports WebP.', 'ewww-image-optimizer' ); ?>
+							</p>
+							<div id='ewww-webp-rewrite-result'></div>
+							<button type='button' id='ewww-webp-insert' class='button-secondary action'><?php esc_html_e( 'Insert Rewrite Rules', 'ewww-image-optimizer' ); ?></button>
+						</div>
+			<?php endif; ?>
+		<?php elseif ( $cf_host && ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp' ) ) : ?>
+			<p><?php esc_html_e( 'Your site is using Cloudflare, please use JS WebP or <picture> WebP rewriting.', 'ewww-image-optimizer' ); ?></p>
+		<?php endif; ?>
+					</td>
+				</tr>
+				<tr class='ewww_image_optimizer_webp_setting_container' <?php echo ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp' ) || ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_for_cdn' ) ? '' : ' style="display:none"'; ?>>
+					<th>&nbsp;</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_webp_for_cdn' name='ewww_image_optimizer_webp_for_cdn' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_for_cdn' ) ); ?> />
+						<label for='ewww_image_optimizer_webp_for_cdn'><strong><?php esc_html_e( 'JS WebP Rewriting', 'ewww-image-optimizer' ); ?></strong></label>
+						<span><?php ewwwio_help_link( 'https://docs.ewww.io/article/16-ewww-io-and-webp-images', '5854745ac697912ffd6c1c89,59443d162c7d3a0747cdf9f0' ); ?></span>
+						<p class='description'>
+							<?php esc_html_e( 'Uses JavaScript for CDN and cache friendly WebP delivery.', 'ewww-image-optimizer' ); ?>
+							<?php esc_html_e( 'Supports CSS background images via the Lazy Load option.', 'ewww-image-optimizer' ); ?>
+						</p>
+					</td>
+				</tr>
+				<tr class='ewww_image_optimizer_webp_setting_container' <?php echo ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp' ) || ewww_image_optimizer_get_option( 'ewww_image_optimizer_picture_webp' ) ? '' : ' style="display:none"'; ?>>
+					<th>&nbsp;</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_picture_webp' name='ewww_image_optimizer_picture_webp' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_picture_webp' ) ); ?> />
+						<label for='ewww_image_optimizer_picture_webp'><strong><?php esc_html_e( '<picture> WebP Rewriting', 'ewww-image-optimizer' ); ?></strong></label>
+						<span><?php ewwwio_help_link( 'https://docs.ewww.io/article/16-ewww-io-and-webp-images', '5854745ac697912ffd6c1c89,59443d162c7d3a0747cdf9f0' ); ?></span><br>
+						<p class='description'>
+							<?php esc_html_e( 'A JavaScript-free rewriting method using picture tags.', 'ewww-image-optimizer' ); ?>
+							<?php esc_html_e( 'Some themes may not display <picture> tags properly, and does not support CSS background images.', 'ewww-image-optimizer' ); ?>
+						</p>
+					</td>
+				</tr>
+				<tr class='ewww_image_optimizer_webp_rewrite_setting_container' <?php echo ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp' ) && $webp_php_rewriting ? '' : ' style="display:none"'; ?>>
+					<td>&nbsp;</td>
+					<td>
+						<label for='ewww_image_optimizer_webp_rewrite_exclude'><strong><?php esc_html_e( 'JS WebP and <picture> Web Exclusions', 'ewww-image-optimizer' ); ?></strong></label><br>
+						<textarea id='ewww_image_optimizer_webp_rewrite_exclude' name='ewww_image_optimizer_webp_rewrite_exclude' rows='3' cols='60'><?php echo esc_html( $webp_exclude_paths ); ?></textarea>
+						<p class='description'><?php esc_html_e( 'One exclusion per line, no wildcards (*) needed. Use any string that matches the desired element(s) or exclude entire element types like "div", "span", etc.', 'ewww-image-optimizer' ); ?></p>
+					</td>
+				</tr>
+		<?php if ( ! $easymode ) : ?>
+				<tr class='ewww_image_optimizer_webp_rewrite_setting_container' <?php echo $webp_php_rewriting ? '' : ' style="display:none"'; ?>>
+					<th>&nbsp;</th>
+					<td>
+						<label for='ewww_image_optimizer_webp_paths'><strong><?php esc_html_e( 'WebP URLs', 'ewww-image-optimizer' ); ?></strong></label>
+						<span><?php ewwwio_help_link( 'https://docs.ewww.io/article/16-ewww-io-and-webp-images', '5854745ac697912ffd6c1c89' ); ?></span><br>
+						<span><?php esc_html_e( 'Enter additional URL patterns, like a CDN URL, that should be permitted for WebP Rewriting. One URL per line, must include the domain name (cdn.example.com).', 'ewww-image-optimizer' ); ?></span>
+						<p><?php esc_html_e( 'Optionally include a folder with the URL if your CDN path is different from your local path.', 'ewww-image-optimizer' ); ?></p>
+						<textarea id='ewww_image_optimizer_webp_paths' name='ewww_image_optimizer_webp_paths' rows='3' cols='60'><?php echo esc_html( $webp_paths ); ?></textarea>
+						<?php
+						if ( ewww_image_optimizer_cloud_based_media() ) {
+							$webp_domains = false;
+							if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_for_cdn' ) ) {
+								global $eio_alt_webp;
+								if ( isset( $eio_alt_webp ) && is_object( $eio_alt_webp ) ) {
+									$webp_domains = $eio_alt_webp->get_webp_domains();
+								}
+							} elseif ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_picture_webp' ) ) {
+								global $eio_picture_webp;
+								if ( isset( $eio_picture_webp ) && is_object( $eio_picture_webp ) ) {
+									$webp_domains = $eio_picture_webp->get_webp_domains();
+								}
+							}
+							if ( ! empty( $webp_domains ) ) {
+								echo "<p class='description'>";
+								printf(
+									/* translators: %s: a comma-separated list of domain names */
+									'*' . esc_html__( 'These domains have been auto-detected: %s', 'ewww-image-optimizer' ),
+									esc_html( implode( ',', $webp_domains ) )
+								);
+								echo '</p>';
+							}
+						}
+						?>
+						<p class='description'><?php echo wp_kses_post( $webp_url_example ); ?></p>
+					</td>
+				</tr>
+				<tr class='ewww_image_optimizer_webp_rewrite_setting_container' <?php echo $webp_php_rewriting ? '' : ' style="display:none"'; ?>>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_webp_force'><?php esc_html_e( 'Force WebP', 'ewww-image-optimizer' ); ?></label>
+						<span><?php ewwwio_help_link( 'https://docs.ewww.io/article/16-ewww-io-and-webp-images', '5854745ac697912ffd6c1c89' ); ?></span>
+					</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_webp_force' name='ewww_image_optimizer_webp_force' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_force' ) ); ?> />
+						<span><?php esc_html_e( 'WebP images will be generated and saved for all images regardless of their size. The JS WebP Rewriting will not check if a file exists, only that the domain matches the home url, or one of the provided WebP URLs.', 'ewww-image-optimizer' ); ?></span>
+			<?php if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_force' ) && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_force_gif2webp' ) && ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ) : ?>
+						<p>
+							<a href='<?php echo esc_url( admin_url( 'admin.php?action=ewww_image_optimizer_enable_force_gif2webp' ) ); ?>'>
+								<?php esc_html_e( 'Click to enable forced GIF rewriting once WebP version have been generated.', 'ewww-image-optimizer' ); ?>
+							</a>
+						</p>
+			<?php elseif ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_force' ) && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_force_gif2webp' ) && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ) : ?>
+						<p>
+							<a href="https://ewww.io/plans/" target="_blank">
+								<?php esc_html_e( 'GIF to WebP conversion requires an API key.', 'ewww-image-optimizer' ); ?>
+							</a>
+						</p>
+			<?php endif; ?>
+					</td>
+				</tr>
+				<tr class='ewww_image_optimizer_webp_setting_container' <?php echo ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp' ) ? '' : ' style="display:none"'; ?>>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_webp_quality'><?php esc_html_e( 'WebP Quality Level', 'ewww-image-optimizer' ); ?></label>
+					</th>
+					<td>
+						<input type='text' id='ewww_image_optimizer_webp_quality' name='ewww_image_optimizer_webp_quality' class='small-text' value='<?php echo esc_attr( ewww_image_optimizer_webp_quality() ); ?>' />
+						<?php esc_html_e( 'Default is 75, allowed range is 50-100.', 'ewww-image-optimizer' ); ?>
+					</td>
+				</tr>
+		<?php elseif ( ewww_image_optimizer_cloud_based_media() ) : ?>
+				<tr class='ewww_image_optimizer_webp_setting_container' <?php echo ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp' ) ? '' : ' style="display:none"'; ?>>
+					<th>&nbsp;</th>
+					<td>
+						<p class='description'>
+							<?php
+							printf(
+								/* translators: %s: Enable Ludicrous Mode */
+								'*' . esc_html__( 'It seems your images are being offloaded to cloud-based storage without retaining the local copies. Force WebP mode has been configured automatically. %s to view/change these settings.', 'ewww-image-optimizer' ),
+								"<a href='" . esc_url( $enable_local_url ) . "'>" . esc_html__( 'Enable Ludicrous Mode', 'ewww-image-optimizer' ) . '</a>'
+							);
+							?>
+						</p>
+					</td>
+		<?php endif; ?>
+	<?php elseif ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn' ) ) : ?>
+				<tr>
+					<th>&nbsp;</th>
+					<td>
+						<p class='description'><?php esc_html_e( 'WebP images are served automatically by Easy IO.', 'ewww-image-optimizer' ); ?></p>
+					</td>
+				</tr>
+	<?php elseif ( get_option( 'easyio_exactdn' ) ) : ?>
+				<tr>
+					<th>&nbsp;</th>
+					<td>
+						<p class='description'><?php esc_html_e( 'WebP images are served automatically by Easy Image Optimizer.', 'ewww-image-optimizer' ); ?></p>
+					</td>
+				</tr>
+	<?php endif; ?>
+
+	<?php if ( class_exists( 'Cloudinary' ) && Cloudinary::config_get( 'api_secret' ) ) : ?>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_enable_cloudinary'><?php esc_html_e( 'Automatic Cloudinary Upload', 'ewww-image-optimizer' ); ?></label>
+					</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_enable_cloudinary' name='ewww_image_optimizer_enable_cloudinary' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_enable_cloudinary' ) ); ?> />
+						<?php esc_html_e( 'When enabled, uploads to the Media Library will be transferred to Cloudinary after optimization. Cloudinary generates resizes, so only the full-size image is uploaded.', 'ewww-image-optimizer' ); ?>
+					</td>
+				</tr>
+	<?php endif; ?>
+			</table>
+	<?php ob_end_flush(); ?>
+		</div>
+
+		<div id='ewww-local-settings'>
+			<noscript><h2><?php esc_html_e( 'Local', 'ewww-image-optimizer' ); ?></h2></noscript>
+			<p>
+	<?php if ( $exactdn_enabled && 1 === $exactdn->get_plan_id() ) : ?>
+				<br><i>* <?php esc_html_e( 'Upgrade to a Pro or Developer subscription to unlock additional options below.', 'ewww-image-optimizer' ); ?></i>
+	<?php endif; ?>
+			</p>
+			<table class='form-table'>
+	<?php $maybe_api_level = ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ? '*' : ''; ?>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_jpg_level'><?php esc_html_e( 'JPG Optimization Level', 'ewww-image-optimizer' ); ?></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/7-basic-configuration', '585373d5c697912ffd6c0bb2' ); ?>
+					</th>
+					<td>
+						<select id='ewww_image_optimizer_jpg_level' name='ewww_image_optimizer_jpg_level'>
+							<option value='0' <?php selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ), 0 ); ?>>
+								<?php esc_html_e( 'No Compression', 'ewww-image-optimizer' ); ?>
+							</option>
+	<?php if ( defined( 'EWWW_IMAGE_OPTIMIZER_TOOL_PATH' ) ) : ?>
+							<option value='10' <?php selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ), 10 ); ?>>
+								<?php esc_html_e( 'Pixel Perfect', 'ewww-image-optimizer' ); ?>
+							</option>
+	<?php endif; ?>
+							<option <?php disabled( $disable_level ); ?> value='20' <?php selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ), 20 ); ?>>
+								<?php esc_html_e( 'Pixel Perfect Plus', 'ewww-image-optimizer' ); ?> *
+							</option>
+							<option <?php disabled( $disable_level ); ?> value='30' <?php selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ), 30 ); ?>>
+								<?php esc_html_e( 'Premium', 'ewww-image-optimizer' ); ?> *
+							</option>
+							<option <?php disabled( $disable_level ); ?> value='40' <?php selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ), 40 ); ?>>
+								<?php esc_html_e( 'Premium Plus', 'ewww-image-optimizer' ); ?> *
+							</option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_png_level'><?php esc_html_e( 'PNG Optimization Level', 'ewww-image-optimizer' ); ?></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/7-basic-configuration', '585373d5c697912ffd6c0bb2,5854531bc697912ffd6c1afa' ); ?>
+					</th>
+					<td>
+						<select id='ewww_image_optimizer_png_level' name='ewww_image_optimizer_png_level'>
+							<option value='0' <?php selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ), 0 ); ?>>
+								<?php esc_html_e( 'No Compression', 'ewww-image-optimizer' ); ?>
+							</option>
+	<?php if ( defined( 'EWWW_IMAGE_OPTIMIZER_TOOL_PATH' ) ) : ?>
+							<option <?php disabled( $free_exec ); ?> value='10' <?php selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ), 10 ); ?>>
+								<?php esc_html_e( 'Pixel Perfect', 'ewww-image-optimizer' ); ?>
+							</option>
+	<?php endif; ?>
+							<option <?php disabled( $disable_level ); ?> value='20' <?php selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ), 20 ); ?><?php selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ), 30 ); ?>>
+								<?php esc_html_e( 'Pixel Perfect Plus', 'ewww-image-optimizer' ); ?> *
+							</option>
+							<option <?php disabled( $free_exec ); ?> value='40' <?php selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ), 40 ); ?>>
+								<?php esc_html_e( 'Premium', 'ewww-image-optimizer' ) . ' ' . $maybe_api_level; ?>
+							</option>
+							<option <?php disabled( $disable_level ); ?> value='50' <?php selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ), 50 ); ?>>
+								<?php esc_html_e( 'Premium Plus', 'ewww-image-optimizer' ); ?> *
+							</option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_gif_level'><?php esc_html_e( 'GIF Optimization Level', 'ewww-image-optimizer' ); ?></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/7-basic-configuration', '585373d5c697912ffd6c0bb2' ); ?>
+					</th>
+					<td>
+						<select id='ewww_image_optimizer_gif_level' name='ewww_image_optimizer_gif_level'>
+							<option value='0' <?php selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_level' ), 0 ); ?>>
+								<?php esc_html_e( 'No Compression', 'ewww-image-optimizer' ); ?>
+							</option>
+							<option <?php disabled( $free_exec ); ?> value='10' <?php selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_level' ), 10 ); ?>>
+								<?php esc_html_e( 'Pixel Perfect', 'ewww-image-optimizer' ) . ' ' . $maybe_api_level; ?>
+							</option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_pdf_level'><?php esc_html_e( 'PDF Optimization Level', 'ewww-image-optimizer' ); ?></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/7-basic-configuration', '585373d5c697912ffd6c0bb2' ); ?>
+					</th>
+					<td>
+						<select id='ewww_image_optimizer_pdf_level' name='ewww_image_optimizer_pdf_level'>
+							<option value='0' <?php selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_pdf_level' ), 0 ); ?>>
+								<?php esc_html_e( 'No Compression', 'ewww-image-optimizer' ); ?>
+							</option>
+							<option <?php disabled( $disable_level ); ?> value='10' <?php selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_pdf_level' ), 10 ); ?>>
+								<?php esc_html_e( 'Pixel Perfect', 'ewww-image-optimizer' ); ?> *
+							</option>
+							<option <?php disabled( $disable_level ); ?> value='20' <?php selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_pdf_level' ), 20 ); ?>>
+								<?php esc_html_e( 'High Compression', 'ewww-image-optimizer' ); ?> *
+							</option>
+						</select>
+					</td>
+				</tr>
+	<?php $disable_svg_level = ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_svgcleaner' ); ?>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_svg_level'><?php esc_html_e( 'SVG Optimization Level', 'ewww-image-optimizer' ); ?></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/7-basic-configuration', '585373d5c697912ffd6c0bb2' ); ?>
+					</th>
+					<td>
+						<select id='ewww_image_optimizer_svg_level' name='ewww_image_optimizer_svg_level'>
+							<option value='0' <?php selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_svg_level' ), 0 ); ?>>
+								<?php esc_html_e( 'No Compression', 'ewww-image-optimizer' ); ?>
+							</option>
+							<option <?php disabled( $disable_svg_level ); ?> value='1' <?php selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_svg_level' ), 1 ); ?>>
+								<?php esc_html_e( 'Minimal', 'ewww-image-optimizer' ); ?>
+							</option>
+							<option <?php disabled( $disable_svg_level ); ?> value='10' <?php selected( ewww_image_optimizer_get_option( 'ewww_image_optimizer_svg_level' ), 10 ); ?>>
+								<?php esc_html_e( 'Default', 'ewww-image-optimizer' ); ?>
+							</option>
+						</select>
+	<?php if ( $disable_svg_level || ( ! EWWW_IMAGE_OPTIMIZER_SVGCLEANER && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ) ) : ?>
+						<a href="<?php echo esc_url( admin_url( 'admin.php?action=ewww_image_optimizer_install_svgcleaner' ) ); ?>"><?php esc_html_e( 'Install svgcleaner', 'ewww-image-optimizer' ); ?></a>
+	<?php endif; ?>
+					</td>
+				</tr>
+				<tr>
+					<th>&nbsp;</th>
+					<td>
+	<?php if ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ) : ?>
+						<p>
+							* <strong><a href='https://ewww.io/plans/' target='_blank'>
+								<?php esc_html_e( 'Get an API key to unlock these optimization levels and receive priority support. Achieve up to 80% compression to speed up your site, save storage space, and reduce server load.', 'ewww-image-optimizer' ); ?>
+							</a></strong>
+						</p>
+	<?php else : ?>
+						<p>
+							* <?php esc_html_e( 'These levels use the compression API.', 'ewww-image-optimizer' ); ?>
+						</p>
+	<?php endif; ?>
+						<p class='description'>
+							<?php esc_html_e( 'All methods used by the EWWW Image Optimizer are intended to produce visually identical images.', 'ewww-image-optimizer' ); ?>
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_backup_files'><?php esc_html_e( 'Backup Originals', 'ewww-image-optimizer' ); ?></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/7-basic-configuration', '585373d5c697912ffd6c0bb2' ); ?>
+					</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_backup_files' name='ewww_image_optimizer_backup_files' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_backup_files' ) ); ?> <?php disabled( $disable_level ); ?>>
+						<?php esc_html_e( 'Store a copy of your original images on our secure server for 30 days. *Requires an active API key.', 'ewww-image-optimizer' ); ?>
+					</td>
+				</tr>
+			</table>
+		</div>
+
+	<?php
+	$media_include_disable = '';
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_resizes_opt', false, true ) ) {
+		$media_include_disable = true;
+	}
+	$aux_paths     = ewww_image_optimizer_get_option( 'ewww_image_optimizer_aux_paths' ) ? implode( "\n", ewww_image_optimizer_get_option( 'ewww_image_optimizer_aux_paths' ) ) : '';
+	$exclude_paths = ewww_image_optimizer_get_option( 'ewww_image_optimizer_exclude_paths' ) ? implode( "\n", ewww_image_optimizer_get_option( 'ewww_image_optimizer_exclude_paths' ) ) : '';
+	/* translators: %s: the folder where WordPress is installed */
+	$aux_paths_desc = sprintf( __( 'One path per line, must be within %s. Use full paths, not relative paths.', 'ewww-image-optimizer' ), ABSPATH );
+	?>
+
+		<div id='ewww-advanced-settings'>
+			<noscript><h2><?php esc_html_e( 'Advanced', 'ewww-image-optimizer' ); ?></h2></noscript>
+			<table class='form-table'>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_parallel_optimization'><?php esc_html_e( 'Parallel Optimization', 'ewww-image-optimizer' ); ?></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/11-advanced-configuration', '58542afac697912ffd6c18c0,598cb8be2c7d3a73488be237' ); ?>
+					</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_parallel_optimization' name='ewww_image_optimizer_parallel_optimization' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_parallel_optimization' ) ); ?> />
+						<?php esc_html_e( 'All resizes generated from a single upload are optimized in parallel for faster optimization. If this is causing performance issues, disable parallel optimization to reduce the load on your server.', 'ewww-image-optimizer' ); ?>
+					</td>
+				</tr>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_auto'><?php esc_html_e( 'Scheduled Optimization', 'ewww-image-optimizer' ); ?></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/11-advanced-configuration', '58542afac697912ffd6c18c0,5853713bc697912ffd6c0b98' ); ?>
+					</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_auto' name='ewww_image_optimizer_auto' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_auto' ) ); ?> />
+						<?php esc_html_e( 'This will enable scheduled optimization of unoptimized images for your theme, buddypress, and any additional folders you have configured below. Runs hourly: wp_cron only runs when your site is visited, so it may be even longer between optimizations.', 'ewww-image-optimizer' ); ?>
+					</td>
+				</tr>
+	<?php if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_resizes_opt', false, true ) ) : ?>
+				<tr>
+					<th>&nbsp;</th>
+					<td>
+						<p>
+							<span style="color: #3eadc9"><?php esc_html_e( '*Include Media Library Folders has been disabled because it will cause the scanner to ignore the disabled resizes.', 'ewww-image-optimizer' ); ?></span>
+						</p>
+					</td>
+				</tr>
+	<?php endif; ?>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_include_media_paths'><?php esc_html_e( 'Include Media Folders', 'ewww-image-optimizer' ); ?></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/11-advanced-configuration', '58542afac697912ffd6c18c0,5853713bc697912ffd6c0b98' ); ?>
+					</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_include_media_paths' name='ewww_image_optimizer_include_media_paths' <?php disabled( $media_include_disable ); ?> value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_include_media_paths' ) && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_resizes_opt', false, true ) ); ?> />
+						<?php esc_html_e( 'Scan all images from the latest two folders of the Media Library during the Bulk Optimizer and Scheduled Optimization.', 'ewww-image-optimizer' ); ?>
+					</td>
+				</tr>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_include_originals'><?php esc_html_e( 'Include Originals', 'ewww-image-optimizer' ); ?></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/11-advanced-configuration', '58542afac697912ffd6c18c0' ); ?>
+					</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_include_originals' name='ewww_image_optimizer_include_originals' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_include_originals' ) ); ?> />
+						<?php esc_html_e( 'Optimize the original version of images that have been scaled down by WordPress.', 'ewww-image-optimizer' ); ?>
+					</td>
+				</tr>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_aux_paths'><?php esc_html_e( 'Folders to Optimize', 'ewww-image-optimizer' ); ?></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/11-advanced-configuration', '58542afac697912ffd6c18c0,5853713bc697912ffd6c0b98' ); ?>
+					</th>
+					<td>
+						<?php echo esc_html( $aux_paths_desc ); ?><br>
+						<textarea id='ewww_image_optimizer_aux_paths' name='ewww_image_optimizer_aux_paths' rows='3' cols='60'><?php echo esc_html( $aux_paths ); ?></textarea>
+						<p class='description'>
+							<?php esc_html_e( 'Provide paths containing images to be optimized using the Bulk Optimizer and Scheduled Optimization.', 'ewww-image-optimizer' ); ?>
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_exclude_paths'><?php esc_html_e( 'Folders to Ignore', 'ewww-image-optimizer' ); ?></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/11-advanced-configuration', '58542afac697912ffd6c18c0,5853713bc697912ffd6c0b98' ); ?>
+					</th>
+					<td>
+						<?php esc_html_e( 'One path per line, partial paths allowed, but no urls.', 'ewww-image-optimizer' ); ?><br>
+						<textarea id='ewww_image_optimizer_exclude_paths' name='ewww_image_optimizer_exclude_paths' rows='3' cols='60'><?php echo esc_html( $exclude_paths ); ?></textarea>
+						<p class='description'>
+							<?php esc_html_e( 'A file that matches any pattern or path provided will not be optimized.', 'ewww-image-optimizer' ); ?>
+						</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+
+	<?php
+	$image_sizes        = ewww_image_optimizer_get_image_sizes();
+	$disabled_sizes     = ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_resizes', false, true );
+	$disabled_sizes_opt = ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_resizes_opt', false, true );
+	?>
+
+		<div id='ewww-resize-settings'>
+			<noscript><h2><?php esc_html_e( 'Resize', 'ewww-image-optimizer' ); ?></h2></noscript>
+			<table class='form-table'>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_resize_detection'><?php esc_html_e( 'Resize Detection', 'ewww-image-optimizer' ); ?></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/41-resize-settings', '59849911042863033a1ba5f9' ); ?>
+					</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_resize_detection' name='ewww_image_optimizer_resize_detection' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_resize_detection' ) ); ?> />
+						<?php esc_html_e( 'Highlight images that need to be resized because the browser is scaling them down. Only visible for Admin users and adds a button to the admin bar to detect scaled images that have been lazy loaded.', 'ewww-image-optimizer' ); ?>
+					</td>
+				</tr>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_resize_existing'><?php esc_html_e( 'Resize Existing Images', 'ewww-image-optimizer' ); ?></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/41-resize-settings', '59849911042863033a1ba5f9' ); ?>
+					</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_resize_existing' name='ewww_image_optimizer_resize_existing' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_resize_existing' ) ); ?> />
+						<?php esc_html_e( 'Allow resizing of existing Media Library images.', 'ewww-image-optimizer' ); ?>
+					</td>
+				</tr>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_resize_other_existing'><?php esc_html_e( 'Resize Other Images', 'ewww-image-optimizer' ); ?></label>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/41-resize-settings', '59849911042863033a1ba5f9' ); ?>
+					</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_resize_other_existing' name='ewww_image_optimizer_resize_other_existing' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_resize_other_existing' ) ); ?> />
+						<?php esc_html_e( 'Allow resizing of existing images outside the Media Library. Use this to resize images specified under the Folders to Optimize setting when running Bulk or Scheduled Optimization.', 'ewww-image-optimizer' ); ?>
+					</td>
+				</tr>
+	<?php if ( 'network-multisite' === $network ) : ?>
+				<tr>
+					<th scope="row">
+						<?php esc_html_e( 'Disable Resizes', 'ewww-image-optimizer' ); ?>
+					</th>
+					<td>
+						<p>
+							<span style="color: #3eadc9"><?php esc_html_e( '*Settings to disable creation and optimization of individual sizes must be configured for each individual site.', 'ewww-image-optimizer' ); ?></span>
+						</p>
+					</td>
+				</tr>
+	<?php else : ?>
+		<?php if ( 'network-singlesite' === $network ) : ?>
+			<?php ob_end_clean(); ?>
+		<div id='ewww-resize-settings'>
+			<table class='form-table'>
+		<?php endif; ?>
+				<!-- RIGHT HERE is where we begin/clear buffer for network-singlesite (non-override version). -->
+				<!-- Though the buffer will need to be started right the form begins. -->
+				<tr>
+					<th scope="row">
+						<?php esc_html_e( 'Disable Resizes', 'ewww-image-optimizer' ); ?>
+						<?php ewwwio_help_link( 'https://docs.ewww.io/article/41-resize-settings', '59849911042863033a1ba5f9,58598744c697912ffd6c3eb4' ); ?>
+					</th>
+					<td>
+						<p>
+							<?php esc_html_e( 'WordPress, your theme, and other plugins generate various image sizes for each image uploaded.', 'ewww-image-optimizer' ); ?><br>
+		<?php if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ) : ?>
+							<i><?php esc_html_e( 'Remember that each image size will affect your API credits.', 'ewww-image-optimizer' ); ?></i>
+		<?php endif; ?>
+						</p>
+						<table id="ewww-settings-disable-resizes">
+							<tr>
+								<th scope="col">
+									<?php esc_html_e( 'Disable Optimization', 'ewww-image-optimizer' ); ?>
+								</th>
+								<th scope="col">
+									<?php esc_html_e( 'Disable Creation', 'ewww-image-optimizer' ); ?>
+								</th>
+							</tr>
+		<?php
+		foreach ( $image_sizes as $size => $dimensions ) :
+			if ( empty( $dimensions['width'] ) && empty( $dimensions['height'] ) ) :
+				continue;
+			endif;
+			?>
+			<?php if ( 'thumbnail' === $size ) : ?>
+							<tr>
+								<td>
+									<input type='checkbox' id='ewww_image_optimizer_disable_resizes_opt_<?php echo esc_attr( $size ); ?>' name='ewww_image_optimizer_disable_resizes_opt[<?php echo esc_attr( $size ); ?>]' value='true' <?php checked( ! empty( $disabled_sizes_opt[ $size ] ) ); ?> />
+								</td>
+								<td>
+									<input type='checkbox' id='ewww_image_optimizer_disable_resizes_<?php echo esc_attr( $size ); ?>' name='ewww_image_optimizer_disable_resizes[<?php echo esc_attr( $size ); ?>]' value='true' disabled />
+								</td>
+								<td>
+									<label for='ewww_image_optimizer_disable_resizes_<?php echo esc_attr( $size ); ?>'>
+										<?php echo esc_html( $size ) . ' - ' . (int) $dimensions['width'] . ' x ' . (int) $dimensions['height'] . ( empty( $dimensions['crop'] ) ? '' : ' (' . esc_html__( 'cropped', 'ewww-image-optimizer' ) . ')' ); ?>
+									</label>
+								</td>
+							</tr>
+			<?php elseif ( 'pdf-full' === $size ) : ?>
+							<tr>
+								<td>
+									<input type='checkbox' id='ewww_image_optimizer_disable_resizes_opt_<?php echo esc_attr( $size ); ?>' name='ewww_image_optimizer_disable_resizes_opt[<?php echo esc_attr( $size ); ?>]' value='true' <?php checked( ! empty( $disabled_sizes_opt[ $size ] ) ); ?> />
+								</td>
+								<td>
+									<input type='checkbox' id='ewww_image_optimizer_disable_resizes_<?php echo esc_attr( $size ); ?>' name='ewww_image_optimizer_disable_resizes[<?php echo esc_attr( $size ); ?>]' value='true' <?php checked( ! empty( $disabled_sizes[ $size ] ) ); ?> />
+								</td>
+								<td>
+									<label for='ewww_image_optimizer_disable_resizes_<?php echo esc_attr( $size ); ?>'>
+										<?php echo esc_html( $size ); ?> - <span class='description'><?php esc_html_e( 'Disabling creation of the full-size preview for PDF files will disable all PDF preview sizes', 'ewww-image-optimizer' ); ?></span>
+									</label>
+								</td>
+							</tr>
+			<?php else : ?>
+							<tr>
+								<td>
+									<input type='checkbox' id='ewww_image_optimizer_disable_resizes_opt_<?php echo esc_attr( $size ); ?>' name='ewww_image_optimizer_disable_resizes_opt[<?php echo esc_attr( $size ); ?>]' value='true' <?php checked( ! empty( $disabled_sizes_opt[ $size ] ) ); ?> />
+								</td>
+								<td>
+									<input type='checkbox' id='ewww_image_optimizer_disable_resizes_<?php echo esc_attr( $size ); ?>' name='ewww_image_optimizer_disable_resizes[<?php echo esc_attr( $size ); ?>]' value='true' <?php checked( ! empty( $disabled_sizes[ $size ] ) ); ?> />
+								</td>
+								<td>
+									<label for='ewww_image_optimizer_disable_resizes_<?php echo esc_attr( $size ); ?>'>
+										<?php echo esc_html( $size ) . ' - ' . (int) $dimensions['width'] . ' x ' . (int) $dimensions['height'] . ( empty( $dimensions['crop'] ) ? '' : ' (' . esc_html__( 'cropped', 'ewww-image-optimizer' ) . ')' ); ?>
+									</label>
+								</td>
+							</tr>
+			<?php endif; ?>
+		<?php endforeach; ?>
+						</table>
+					</td>
+				</tr>
+	<?php endif; ?>
+			</table>
+		</div>
+
+	<?php if ( 'network-singlesite' === $network ) : ?>
+		<p class='submit'><input type='submit' class='button-primary' value='<?php esc_attr_e( 'Save Changes', 'ewww-image-optimizer' ); ?>' /></p>
+	</form>
+</div><!-- end container wrap -->
+		<?php
+		return;
+	endif;
+	/* translators: 1: JPG, GIF or PNG 2: JPG or PNG */
+	$jpg2png = sprintf( __( '%1$s to %2$s Conversion', 'ewww-image-optimizer' ), 'JPG', 'PNG' );
+	/* translators: 1: JPG, GIF or PNG 2: JPG or PNG */
+	$png2jpg = sprintf( __( '%1$s to %2$s Conversion', 'ewww-image-optimizer' ), 'PNG', 'JPG' );
+	/* translators: 1: JPG, GIF or PNG 2: JPG or PNG */
+	$gif2png = sprintf( __( '%1$s to %2$s Conversion', 'ewww-image-optimizer' ), 'GIF', 'PNG' );
+	?>
+
+		<div id='ewww-conversion-settings'>
+			<noscript><h2><?php esc_html_e( 'Convert', 'ewww-image-optimizer' ); ?></h2></noscript>
+			<p>
+				<?php esc_html_e( 'Conversion is only available for images in the Media Library (except WebP). By default, all images have a link available in the Media Library for one-time conversion. Turning on individual conversion operations below will enable conversion filters any time an image is uploaded or modified.', 'ewww-image-optimizer' ); ?><br />
+				<strong><?php esc_html_e( 'NOTE:', 'ewww-image-optimizer' ); ?></strong> <?php esc_html_e( 'The plugin will attempt to update image locations for any posts that contain the images. You may still need to manually update locations/urls for converted images.', 'ewww-image-optimizer' ); ?>
+			</p>
+			<table class='form-table'>
+	<?php if ( $toolkit_found ) : ?>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_disable_convert_links'><?php esc_html_e( 'Hide Conversion Links', 'ewww-image-optimizer' ); ?></label>
+						<span><?php ewwwio_help_link( 'https://docs.ewww.io/article/14-converting-images', '58545a86c697912ffd6c1b53' ); ?></span>
+					</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_disable_convert_links' name='ewww_image_optimizer_disable_convert_links' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_convert_links' ) ); ?> />
+						<span><?php esc_html_e( 'Site or Network admins can use this to prevent other users from using the conversion links in the Media Library which bypass the settings below.', 'ewww-image-optimizer' ); ?></span>
+					</td>
+				</tr>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_delete_originals'><?php esc_html_e( 'Delete Originals', 'ewww-image-optimizer' ); ?></label>
+						<span><?php ewwwio_help_link( 'https://docs.ewww.io/article/14-converting-images', '58545a86c697912ffd6c1b53' ); ?></span>
+					</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_delete_originals' name='ewww_image_optimizer_delete_originals' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_delete_originals' ) ); ?> />
+						<span><?php esc_html_e( 'This will remove the original image from the server after a successful conversion.', 'ewww-image-optimizer' ); ?></span>
+					</td>
+				</tr>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_jpg_to_png'><?php echo esc_html( $jpg2png ); ?></label>
+						<span><?php ewwwio_help_link( 'https://docs.ewww.io/article/14-converting-images', '58545a86c697912ffd6c1b53' ); ?></span>
+					</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_jpg_to_png' name='ewww_image_optimizer_jpg_to_png' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_to_png' ) ); ?> />
+						<span><b><?php esc_html_e( 'WARNING:', 'ewww-image-optimizer' ); ?></b> <?php	esc_html_e( 'Removes metadata and increases cpu usage dramatically.', 'ewww-image-optimizer' ); ?></span>
+						<p class='description'><?php esc_html_e( 'PNG is generally much better than JPG for logos and other images with a limited range of colors. Checking this option will slow down JPG processing significantly, and you may want to enable it only temporarily.', 'ewww-image-optimizer' ); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_png_to_jpg'><?php echo esc_html( $png2jpg ); ?></label>
+						<span><?php ewwwio_help_link( 'https://docs.ewww.io/article/14-converting-images', '58545a86c697912ffd6c1b53,58543c69c697912ffd6c19a7,58542afac697912ffd6c18c0' ); ?></span>
+					</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_png_to_jpg' name='ewww_image_optimizer_png_to_jpg' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_to_jpg' ) ); ?> />
+						<span><b><?php esc_html_e( 'WARNING:', 'ewww-image-optimizer' ); ?></b> <?php esc_html_e( 'This is not a lossless conversion.', 'ewww-image-optimizer' ); ?></span>
+						<p class='description'><?php esc_html_e( 'JPG is generally much better than PNG for photographic use because it compresses the image and discards data. PNGs with transparency are not converted by default.', 'ewww-image-optimizer' ); ?></p>
+						<label for='ewww_image_optimizer_jpg_background'><strong><?php esc_html_e( 'JPG Background Color:', 'ewww-image-optimizer' ); ?></strong></label>
+						#<input type='text' id='ewww_image_optimizer_jpg_background' name='ewww_image_optimizer_jpg_background' size='6' value='<?php echo esc_attr( ewww_image_optimizer_jpg_background() ); ?>' />
+						<span style='padding-left: 12px; font-size: 12px; border: solid 1px #555555; background-color: #<?php echo esc_attr( ewww_image_optimizer_jpg_background() ); ?>'>&nbsp;</span> <?php esc_html_e( 'HEX format (#123def)', 'ewww-image-optimizer' ); ?></span>
+						<p class='description'><?php esc_html_e( 'Background color is used only if the PNG has transparency. Leave this value blank to skip PNGs with transparency.', 'ewww-image-optimizer' ); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_gif_to_png'><?php echo esc_html( $gif2png ); ?></label>
+						<span><?php ewwwio_help_link( 'https://docs.ewww.io/article/14-converting-images', '58545a86c697912ffd6c1b53' ); ?></span>
+					</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_gif_to_png' name='ewww_image_optimizer_gif_to_png' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_to_png' ) ); ?> />
+						<span><?php esc_html_e( 'No warnings here, just do it.', 'ewww-image-optimizer' ); ?></span>
+						<p class='description'><?php esc_html_e( 'PNG is generally better than GIF, but animated images cannot be converted.', 'ewww-image-optimizer' ); ?></p>
+					</td>
+				</tr>
+	<?php else : ?>
+				<tr>
+					<th>&nbsp;</th>
+					<td>
+						<p>
+							<span style="color: #3eadc9"><?php esc_html_e( 'Image conversion requires one of the following PHP libraries: GD, Imagick, or GMagick.', 'ewww-image-optimizer' ); ?></span>
+						</p>
+					</td>
+				</tr>
+	<?php endif; ?>
+			</table>
+		</div>
+
+		<div id='ewww-webp-settings'>
+			<noscript><h2><?php esc_html_e( 'WebP', 'ewww-image-optimizer' ); ?></h2></noscript>
+			<table class='form-table'>
+			</table>
+		</div>
+
+		<div id='ewww-support-settings'>
+			<noscript><h2><?php esc_html_e( 'Support', 'ewww-image-optimizer' ); ?></h2></noscript>
+			<p>
+				<a class='ewww-docs-root' href='https://docs.ewww.io/'><?php esc_html_e( 'Documentation', 'ewww-image-optimizer' ); ?></a> |
+				<a class='ewww-docs-root' href='https://ewww.io/contact-us/'><?php esc_html_e( 'Plugin Support', 'ewww-image-optimizer' ); ?></a> |
+				<a href='https://feedback.ewww.io/'><?php esc_html_e( 'Submit Feedback', 'ewww-image-optimizer' ); ?></a> |
+				<a href='https://ewww.io/status/'><?php esc_html_e( 'Server Status', 'ewww-image-optimizer' ); ?></a>
+			</p>
+			<p style='float:right;'>
+				<a href='<?php echo esc_url( wp_nonce_url( admin_url( 'options-general.php?page=ewww-image-optimizer-options&uncomplete_wizard=1' ), 'ewww_image_optimizer_options-options' ) ); ?>'>
+					<?php echo '.'; ?>
+				</a>
+			</p>
+	<?php if ( ! empty( $frontend_functions ) ) : ?>
+			<p>
+				<strong><?php esc_html_e( 'Having problems with a broken site or wrong-sized images?', 'ewww-image-optimizer' ); ?></strong><br>
+				<?php esc_html_e( 'Try disabling each of these options to identify the problem, or use the Panic Button to disable them all at once:', 'ewww-image-optimizer' ); ?><br>
+				<?php
+				foreach ( $frontend_functions as $frontend_function ) {
+					echo '<i>' . esc_html( $frontend_function ) . '</i><br>';
+				}
+				?>
+				<a id='ewww-rescue-mode' class='button-secondary' href='<?php echo esc_url( $rescue_mode_url ); ?>'>
+					<?php esc_html_e( 'Panic Button', 'ewww-image-optimizer' ); ?>
+				</a>
+			</p>
+	<?php endif; ?>
+			<table class='form-table'>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_enable_help'><?php esc_html_e( 'Enable Embedded Help', 'ewww-image-optimizer' ); ?></label>
+					</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_enable_help' name='ewww_image_optimizer_enable_help' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_enable_help' ) ); ?> />
+						<span><?php esc_html_e( 'Enable the support beacon, which gives you access to documentation and our support team right from your WordPress dashboard. To assist you more efficiently, we may collect the current url, IP address, browser/device information, and debugging information.', 'ewww-image-optimizer' ); ?></span>
+					</td>
+				</tr>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_debug'><?php esc_html_e( 'Debugging', 'ewww-image-optimizer' ); ?></label>
+						<span><?php ewwwio_help_link( 'https://docs.ewww.io/article/7-basic-configuration', '585373d5c697912ffd6c0bb2' ); ?></span>
+					</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_debug' name='ewww_image_optimizer_debug' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_debug' ) ); ?> />
+						<span><?php esc_html_e( 'Use this to provide information for support purposes, or if you feel comfortable digging around in the code to fix a problem you are experiencing.', 'ewww-image-optimizer' ); ?></span>
+					</td>
+				</tr>
+			</table>
+
+	<?php if ( ! empty( $debug_info ) ) : ?>
+			<p class="debug-actions">
+				<strong><?php esc_html_e( 'Debugging Information', 'ewww-image-optimizer' ); ?>:</strong>
+				<button id="ewww-copy-debug" class="button button-secondary" type="button"><?php esc_html_e( 'Copy', 'ewww-image-optimizer' ); ?></button>
+		<?php if ( ewwwio_is_file( WP_CONTENT_DIR . '/ewww/debug.log' ) ) : ?>
+				&emsp;<a href='<?php echo esc_url( admin_url( 'admin.php?action=ewww_image_optimizer_view_debug_log' ) ); ?>'><?php esc_html_e( 'View Debug Log', 'ewww-image-optimizer' ); ?></a> -
+				<a href='<?php echo esc_url( admin_url( 'admin.php?action=ewww_image_optimizer_delete_debug_log' ) ); ?>'><?php esc_html_e( 'Remove Debug Log', 'ewww-image-optimizer' ); ?></a>
+		<?php endif; ?>
+			</p>
+			<div id="ewww-debug-info" contenteditable="true">
+				<?php echo wp_kses_post( $debug_info ); ?>
+			</div>
+	<?php endif; ?>
+		</div>
+
+		<div id='ewww-contribute-settings'>
+			<noscript><h2><?php esc_html_e( 'Contribute', 'ewww-image-optimizer' ); ?></h2></noscript>
+			<p>
+				<strong><?php esc_html_e( 'Here are some ways you can contribute to the development of this plugin:', 'ewww-image-optimizer' ); ?></strong>
+			</p>
+			<p>
+				<a href='https://translate.wordpress.org/projects/wp-plugins/ewww-image-optimizer/'><?php esc_html_e( 'Translate EWWW I.O.', 'ewww-image-optimizer' ); ?></a> |
+				<a href='https://wordpress.org/support/plugin/ewww-image-optimizer/reviews/#new-post'><?php esc_html_e( 'Write a review', 'ewww-image-optimizer' ); ?></a> |
+				<a href='https://ewww.io/plans/'><?php esc_html_e( 'Upgrade to premium image optimization', 'ewww-image-optimizer' ); ?></a>
+			</p>
+			<table class='form-table'>
+				<tr>
+					<th scope='row'>
+						<label for='ewww_image_optimizer_allow_tracking'><?php esc_html_e( 'Allow Usage Tracking?', 'ewww-image-optimizer' ); ?></label>
+						<span><?php ewwwio_help_link( 'https://docs.ewww.io/article/23-usage-tracking', '591f3a8e2c7d3a057f893d91' ); ?></span>
+					</th>
+					<td>
+						<input type='checkbox' id='ewww_image_optimizer_allow_tracking' name='ewww_image_optimizer_allow_tracking' value='true' <?php checked( ewww_image_optimizer_get_option( 'ewww_image_optimizer_allow_tracking' ) ); ?> />
+						<?php esc_html_e( 'Allow EWWW Image Optimizer to anonymously track how this plugin is used and help us make the plugin better. Opt-in to tracking and receive a 10% discount on premium compression. No sensitive data is tracked.', 'ewww-image-optimizer' ); ?>
+						<p>
+							<?php
+							if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_allow_tracking' ) ) {
+								printf(
+									/* translators: 1: link to https://ewww.io/plans/ 2: discount code (yes, you may use it) */
+									esc_html__( 'Use this code at %1$s: %2$s', 'ewww-image-optimizer' ),
+									'<a href="https://ewww.io/plans/" target="_blank">https://ewww.io/</a>',
+									'<code>SPEEDER1012</code>'
+								);
+							}
+							?>
+						</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+		<p class='submit'><input type='submit' class='button-primary' value='<?php esc_attr_e( 'Save Changes', 'ewww-image-optimizer' ); ?>' /></p>
+	</form>
+
+	<hr style='clear:both;'>
+	<h2><?php esc_html_e( "Shane's Recommendations", 'ewww-image-optimizer' ); ?></h2>
+	<p><?php esc_html_e( 'These are products I have personally used. An * indicates an affiliate link so you can support future development of EWWW IO.', 'ewww-image-optimizer' ); ?></p>
+	<h3><?php esc_html_e( 'Hosting', 'ewww-image-optimizer' ); ?></h3>
+	<p>
+		<a href='http://shareasale.com/r.cfm?b=917225&amp;u=1481701&amp;m=41388&amp;urllink=&amp;afftrack='>WP Engine</a>* -
+		<?php esc_html_e( 'ewww.io is powered by WP Engine, and their performance is worth every penny. This is "managed WordPress hosting" at it\'s finest. 20% discount off your first payment with our link.', 'ewww-image-optimizer' ); ?>
+		<br>
+		<a href="https://kinsta.com?kaid=OCKKBJARSDFR">Kinsta</a>* -
+		<?php esc_html_e( 'Their performance is the same blazing speed as WP Engine, and the support is top notch as well. Very solid offering and highly recommended.', 'ewww-image-optimizer' ); ?>
+		<br>
+		<a href="https://www.cloudways.com/en/?id=48939">Cloudways</a>* -
+		<?php esc_html_e( 'Simple, yet powerful, managed VPS hosting. I use their hosting for a few client sites and performance is crazy fast. Support has been great any time I\'ve needed their assistance.', 'ewww-image-optimizer' ); ?>
+	</p>
+	<h3><?php esc_html_e( 'Plugins and Services', 'ewww-image-optimizer' ); ?></h3>
+	<p>
+		<a href="https://easydigitaldownloads.com/?ref=4735">Easy Digital Downloads</a>* -
+		<?php esc_html_e( 'Sell digital products with a huge number of extensions for amazing flexibility. Naturally, this is how we sell our services and plugins.', 'ewww-image-optimizer' ); ?>
+		<br>
+		<a href="https://www.helpscout.net/referral/?code=SVhaTmZDSSt2WG4xYS9FRmZrNllUa3RSR25VTStXcGhmaStQQ21QQjBDVmdZdz09OnoyVTFIUzBnbldtM21VMEM.">Helpscout</a>* -
+		<?php esc_html_e( 'Treat your customers like people, not numbers, and keep them satisfied. Personal favorite feature is Traffic Cop that keeps you from sending a message if you receive another message from the customer while you are typing.', 'ewww-image-optimizer' ); ?>
+		<br>
+		<a href="http://eepurl.com/cLPIeD">MailChimp</a>* -
+		<?php esc_html_e( 'Mailing lists that just work plus automation features that work even when you\'re not.', 'ewww-image-optimizer' ); ?>
+		<br>
+		<a href="https://malcare.com?src=C600E7">MalCare</a>* -
+		<?php esc_html_e( 'Secure your site with a firewall, advanced heuristic scanning, and brute force login protection. Securing your site is not an option, it\'s a necessity.', 'ewww-image-optimizer' ); ?>
+		<br>
+		<a href="https://nodeping.com?rid=201407082225W862K">NodePing</a>* -
+		<?php esc_html_e( 'Monitor all the things, and make sure they stay online. They have a fantastic array of monitors and notifications that you can setup, they are cheap, simple, and have great support.', 'ewww-image-optimizer' ); ?>
+	</p>
+</div><!-- end container wrap -->
+	<?php
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_enable_help' ) ) {
+		$current_user = wp_get_current_user();
+		$help_email   = $current_user->user_email;
+		$hs_debug     = '';
+		if ( ! empty( $debug_info ) ) {
+			$hs_debug = str_replace( array( "'", '<br>', '<b>', '</b>', '=>' ), array( "\'", '\n', '**', '**', '=' ), $debug_info );
+		}
+		?>
+<script type="text/javascript">!function(e,t,n){function a(){var e=t.getElementsByTagName("script")[0],n=t.createElement("script");n.type="text/javascript",n.async=!0,n.src="https://beacon-v2.helpscout.net",e.parentNode.insertBefore(n,e)}if(e.Beacon=n=function(t,n,a){e.Beacon.readyQueue.push({method:t,options:n,data:a})},n.readyQueue=[],"complete"===t.readyState)return a();e.attachEvent?e.attachEvent("onload",a):e.addEventListener("load",a,!1)}(window,document,window.Beacon||function(){});</script>
+<script type="text/javascript">
+	window.Beacon('init', 'aa9c3d3b-d4bc-4e9b-b6cb-f11c9f69da87');
+	Beacon( 'prefill', {
+		email: '<?php echo esc_js( utf8_encode( $help_email ) ); ?>',
+		text: '\n\n----------------------------------------\n<?php echo wp_kses_post( $hs_debug ); ?>',
+	});
 </script>
 		<?php
-		global $ewww_debug;
-		$debug_log_url = plugins_url( '/debug.log', __FILE__ );
-		echo '<p style="clear:both"><b>' . esc_html__( 'Debugging Information', 'ewww-image-optimizer' ) . ':</b> <button onclick="selectText(' . "'ewww-debug-info'" . ')">' . esc_html__( 'Select All', 'ewww-image-optimizer' ) . '</button>';
-		if ( is_file( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'debug.log' ) ) {
-			echo "&emsp;<a href='$debug_log_url'>" . esc_html( 'View Debug Log', 'ewww-image-optimizer' ) . "</a> - <a href='admin.php?action=ewww_image_optimizer_delete_debug_log'>" . esc_html( 'Remove Debug Log', 'ewww-image-optimizer' ) . '</a>';
-		}
-		echo '</p>';
-		echo '<div id="ewww-debug-info" style="background:#ffff99;margin-left:-20px;padding:10px" contenteditable="true">' . $ewww_debug . '</div>';
 	}
 	ewwwio_memory( __FUNCTION__ );
-	ewww_image_optimizer_debug_log();
+	ewww_image_optimizer_temp_debug_clear();
 }
 
 /**
- * Filters through the settings page to remove unneeded settings for the -cloud plugin.
+ * Gets the HTML for a help icon linked to the docs.
  *
- * @param array $input The output of the settings page, broken up into an array.
- * @return string The filtered output for the settings page.
+ * @param string $link A link to the documentation.
+ * @param string $hsid The HelpScout ID for the docs article. Optional.
+ * @return string An HTML hyperlink element with a help icon.
  */
-function ewww_image_optimizer_filter_settings_page( $input ) {
-	$output = '';
-	foreach ( $input as $line ) {
-		if ( ewww_image_optimizer_full_cloud() && preg_match( "/class='nocloud'/", $line ) ) {
-			continue;
-		} else {
-			$output .= $line;
-		}
-	}
-	ewwwio_memory( __FUNCTION__ );
-	return $output;
+function ewwwio_get_help_link( $link, $hsid = '' ) {
+	ob_start();
+	ewwwio_help_link( $link, $hsid );
+	return ob_get_clean();
 }
 
 /**
- * Filters through the multisite settings page to remove unneeded settings in multisite mode.
+ * Displays a help icon linked to the docs.
  *
- * @param array $input The output of the settings page, broken up into an array.
- * @return string The filtered output for the settings page.
+ * @param string $link A link to the documentation.
+ * @param string $hsid The HelpScout ID for the docs article. Optional.
  */
-function ewww_image_optimizer_filter_network_settings_page( $input ) {
-	$output = array();
-	foreach ( $input as $line ) {
-		if ( strpos( $line, 'network-singlesite' ) ) {
-			continue;
-		} else {
-			$output[] = $line;
-		}
+function ewwwio_help_link( $link, $hsid = '' ) {
+	$help_icon   = plugins_url( '/images/question-circle.png', __FILE__ );
+	$beacon_attr = '';
+	$link_class  = 'ewww-help-icon';
+	if ( strpos( $hsid, ',' ) ) {
+		$beacon_attr = 'data-beacon-articles';
+		$link_class  = 'ewww-help-beacon-multi';
+	} elseif ( $hsid ) {
+		$beacon_attr = 'data-beacon-article';
+		$link_class  = 'ewww-help-beacon-single';
 	}
-	ewwwio_memory( __FUNCTION__ );
-	return $output;
+	if ( empty( $hsid ) ) {
+		echo '<a class="ewww-help-external" href="' . esc_url( $link ) . '" target="_blank">' .
+			'<img title="' . esc_attr__( 'Help', 'ewww-image-optimizer' ) . '" src="' . esc_url( $help_icon ) . '">' .
+			'</a>';
+		return;
+	}
+	echo '<a class="' . esc_attr( $link_class ) . '" href="' . esc_url( $link ) . '" target="_blank" ' . esc_attr( $beacon_attr ) . '="' . esc_attr( $hsid ) . '">' .
+		'<img title="' . esc_attr__( 'Help', 'ewww-image-optimizer' ) . '" src="' . esc_url( $help_icon ) . '">' .
+		'</a>';
 }
 
 /**
- * Filters through the single-site settings page to remove unneeded settings in multisite mode.
- *
- * @param array $input The output of the settings page, broken up into an array.
- * @return string The filtered output for the settings page.
+ * Checks to see if ExactDN or Easy I.O. is active.
  */
-function ewww_image_optimizer_filter_network_singlesite_settings_page( $input ) {
-	$output = array();
-	foreach ( $input as $line ) {
-		if ( ! get_site_option( 'ewww_image_optimizer_allow_multisite_override' ) && strpos( $line, 'network-multisite' ) ) {
-			continue;
-		} elseif ( strpos( $line, 'network-only' ) ) {
-			continue;
-		} else {
-			$output[] = $line;
-		}
+function ewww_image_optimizer_easy_active() {
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_exactdn' ) || get_option( 'easyio_exactdn' ) ) {
+		return true;
 	}
-	ewwwio_memory( __FUNCTION__ );
-	return $output;
+	return false;
 }
 
 /**
  * Removes the API key currently installed.
+ *
+ * @param boolean|string $redirect Should the plugin do a silent redirect back to the referring page? Default true.
  */
-function ewww_image_optimizer_remove_cloud_key() {
-	$permissions = apply_filters( 'ewww_image_optimizer_admin_permissions', 'manage_options' );
-	if ( false === current_user_can( $permissions ) ) {
+function ewww_image_optimizer_remove_cloud_key( $redirect = true ) {
+	$permissions = apply_filters( 'ewww_image_optimizer_admin_permissions', '' );
+	if ( 'none' !== $redirect && false === current_user_can( $permissions ) ) {
 		wp_die( esc_html__( 'Access denied.', 'ewww-image-optimizer' ) );
 	}
 	ewww_image_optimizer_set_option( 'ewww_image_optimizer_cloud_key', '' );
-	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) > 10 ) {
-		ewww_image_optimizer_set_option( 'ewww_image_optimizer_jpg_level', 10 );
+	$default_level = 10;
+	if ( defined( 'EWWW_IO_CLOUD_PLUGIN' ) && EWWW_IO_CLOUD_PLUGIN ) {
+		$default_level = 0;
 	}
-	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) > 10 && ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) != 40 ) {
-		ewww_image_optimizer_set_option( 'ewww_image_optimizer_png_level', 10 );
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) > 10 ) {
+		ewww_image_optimizer_set_option( 'ewww_image_optimizer_jpg_level', $default_level );
+	}
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) > 10 && 40 !== (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) ) {
+		ewww_image_optimizer_set_option( 'ewww_image_optimizer_png_level', $default_level );
+	}
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_level' ) > 0 ) {
+		ewww_image_optimizer_set_option( 'ewww_image_optimizer_gif_level', $default_level );
 	}
 	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_pdf_level' ) > 0 ) {
 		ewww_image_optimizer_set_option( 'ewww_image_optimizer_pdf_level', 0 );
 	}
+	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_disable_svgcleaner' ) ) {
+		ewww_image_optimizer_set_option( 'ewww_image_optimizer_svg_level', 0 );
+	}
+	ewww_image_optimizer_set_option( 'ewww_image_optimizer_cloud_exceeded', 0 );
+	delete_transient( 'ewww_image_optimizer_cloud_status' );
 	ewww_image_optimizer_set_option( 'ewww_image_optimizer_backup_files', '' );
+	if ( 'none' !== $redirect ) {
+		$sendback = wp_get_referer();
+		wp_safe_redirect( $sendback );
+		exit;
+	}
+}
+
+/**
+ * De-activates Easy IO.
+ */
+function ewww_image_optimizer_remove_easyio() {
+	$permissions = apply_filters( 'ewww_image_optimizer_admin_permissions', '' );
+	if ( false === current_user_can( $permissions ) ) {
+		wp_die( esc_html__( 'Access denied.', 'ewww-image-optimizer' ) );
+	}
+	ewww_image_optimizer_set_option( 'ewww_image_optimizer_exactdn', '' );
+	delete_option( 'ewww_image_optimizer_exactdn_domain' );
+	delete_option( 'ewww_image_optimizer_exactdn_plan_id' );
+	delete_option( 'ewww_image_optimizer_exactdn_failures' );
+	delete_option( 'ewww_image_optimizer_exactdn_checkin' );
+	delete_option( 'ewww_image_optimizer_exactdn_verified' );
+	delete_option( 'ewww_image_optimizer_exactdn_validation' );
+	delete_option( 'ewww_image_optimizer_exactdn_suspended' );
+	delete_site_option( 'ewww_image_optimizer_exactdn_domain' );
+	delete_site_option( 'ewww_image_optimizer_exactdn_plan_id' );
+	delete_site_option( 'ewww_image_optimizer_exactdn_failures' );
+	delete_site_option( 'ewww_image_optimizer_exactdn_checkin' );
+	delete_site_option( 'ewww_image_optimizer_exactdn_verified' );
+	delete_site_option( 'ewww_image_optimizer_exactdn_validation' );
+	delete_site_option( 'ewww_image_optimizer_exactdn_suspended' );
 	$sendback = wp_get_referer();
-	wp_redirect( esc_url_raw( $sendback ) );
+	wp_safe_redirect( $sendback );
+	exit;
+}
+
+/**
+ * Enables Forced WebP for GIF images once the site is ready.
+ */
+function ewww_image_optimizer_enable_force_gif2webp() {
+	if ( ! current_user_can( apply_filters( 'ewww_image_optimizer_admin_permissions', '' ) ) ) {
+		wp_die( esc_html__( 'Access denied.', 'ewww-image-optimizer' ) );
+	}
+	ewww_image_optimizer_set_option( 'ewww_image_optimizer_force_gif2webp', true );
+	wp_safe_redirect( wp_get_referer() );
 	exit;
 }
 
@@ -7568,19 +13154,68 @@ function ewww_image_optimizer_remove_cloud_key() {
  * Loads script to detect scaled images within the page, only enabled for admins.
  */
 function ewww_image_optimizer_resize_detection_script() {
-	if ( ! current_user_can( apply_filters( 'ewww_image_optimizer_admin_permissions', 'edit_others_posts' ) ) || 'wp-login.php' == basename( $_SERVER['SCRIPT_NAME'] ) ) {
+	if (
+		! current_user_can( apply_filters( 'ewww_image_optimizer_admin_permissions', '' ) ) ||
+		( ! empty( $_SERVER['SCRIPT_NAME'] ) && 'wp-login.php' === basename( sanitize_text_field( wp_unslash( $_SERVER['SCRIPT_NAME'] ) ) ) )
+	) {
+		return;
+	}
+	if ( ewww_image_optimizer_is_amp() ) {
 		return;
 	}
 	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_resize_detection' ) ) {
-		wp_enqueue_script( 'ewww-resize-detection', plugins_url( '/includes/resize_detection.js', __FILE__ ), array(), EWWW_IMAGE_OPTIMIZER_VERSION );
+		$resize_detection_script = file_get_contents( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'includes/resize_detection.js' );
+		echo "<style>\n" .
+			"img.scaled-image {\n" .
+			"\tborder: 3px #3eadc9 dotted;\n" .
+			"\tmargin: -3px;\n" .
+			"}\n" .
+			"</style>\n";
+		echo '<script type="text/javascript">' . $resize_detection_script . '</script>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
+}
+
+/**
+ * Makes sure the resize detection script is excluded from Autoptimize functions.
+ *
+ * @param string $jsexcludes A list of exclusions from Autoptimize.
+ * @param string $content The page content being parsed by Autoptimize.
+ * @return string The JS excludes plus one more.
+ */
+function ewww_image_optimizer_autoptimize_js_exclude( $jsexcludes = '', $content = '' ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	if ( is_array( $jsexcludes ) ) {
+		$jsexcludes['includes/resize_detection.js'] = '';
+		return $jsexcludes;
+	}
+	return $jsexcludes . ', includes/resize_detection.js';
+}
+
+/**
+ * Checks to see if the current page being output is an AMP page.
+ *
+ * @return bool True for an AMP endpoint, false otherwise.
+ */
+function ewww_image_optimizer_is_amp() {
+	if ( function_exists( 'is_amp_endpoint' ) && is_amp_endpoint() ) {
+		return true;
+	}
+	if ( function_exists( 'ampforwp_is_amp_endpoint' ) && ampforwp_is_amp_endpoint() ) {
+		return true;
+	}
+	return false;
 }
 
 /**
  * Checks if admin bar is visible, and then adds the admin_bar_menu action.
  */
 function ewww_image_optimizer_admin_bar_init() {
-	if ( ! current_user_can( apply_filters( 'ewww_image_optimizer_admin_permissions', 'edit_others_posts' ) ) || ! is_admin_bar_showing() || 'wp-login.php' == basename( $_SERVER['SCRIPT_NAME'] ) || is_admin() ) {
+	if (
+		! current_user_can( apply_filters( 'ewww_image_optimizer_admin_permissions', '' ) ) ||
+		! is_admin_bar_showing() ||
+		( ! empty( $_SERVER['SCRIPT_NAME'] ) && 'wp-login.php' === basename( sanitize_text_field( wp_unslash( $_SERVER['SCRIPT_NAME'] ) ) ) ) ||
+		is_admin()
+	) {
 		return;
 	}
 	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_resize_detection' ) ) {
@@ -7590,44 +13225,46 @@ function ewww_image_optimizer_admin_bar_init() {
 
 /**
  * Adds a resize detection button to the wp admin bar.
+ *
+ * @param object $wp_admin_bar The WP Admin Bar object, passed by reference.
  */
-function ewww_image_optimizer_admin_bar_menu() {
-	global $wp_admin_bar;
-	$wp_admin_bar->add_menu( array(
-		'id'     => 'resize-detection',
-		'parent' => 'top-secondary',
-		'title'  => __( 'Detect Scaled Images', 'ewww-image-optimizer' ),
-	) );
+function ewww_image_optimizer_admin_bar_menu( $wp_admin_bar ) {
+	$wp_admin_bar->add_menu(
+		array(
+			'id'     => 'resize-detection',
+			'parent' => 'top-secondary',
+			'title'  => __( 'Detect Scaled Images', 'ewww-image-optimizer' ),
+		)
+	);
 }
 
 /**
  * Adds information to the in-memory debug log.
  *
- * @global string $ewww_debug The in-memory debug log.
+ * @global string $eio_debug The in-memory debug log.
  *
  * @param string $message Debug information to add to the log.
  */
 function ewwwio_debug_message( $message ) {
+	if ( ! is_string( $message ) && ! is_int( $message ) && ! is_float( $message ) ) {
+		return;
+	}
 	if ( defined( 'WP_CLI' ) && WP_CLI ) {
 		WP_CLI::debug( $message );
 		return;
 	}
-	if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_debug' ) ) {
+	global $ewwwio_temp_debug;
+	if ( $ewwwio_temp_debug || ewww_image_optimizer_get_option( 'ewww_image_optimizer_debug' ) ) {
 		$memory_limit = ewwwio_memory_limit();
 		if ( strlen( $message ) + 4000000 + memory_get_usage( true ) <= $memory_limit ) {
-			global $ewww_debug;
-			global $ewww_version_dumped;
-			if ( empty( $ewww_debug ) && empty( $ewww_version_dumped ) ) {
-				ewwwio_debug_version_info();
-				$ewww_version_dumped = true;
-			}
-			$message = str_replace( "\n\n\n", '<br>', $message );
-			$message = str_replace( "\n\n", '<br>', $message );
-			$message = str_replace( "\n", '<br>', $message );
-			$ewww_debug .= "$message<br>";
+			global $eio_debug;
+			$message    = str_replace( "\n\n\n", '<br>', $message );
+			$message    = str_replace( "\n\n", '<br>', $message );
+			$message    = str_replace( "\n", '<br>', $message );
+			$eio_debug .= "$message<br>";
 		} else {
-			global $ewww_debug;
-			$ewww_debug = "not logging message, memory limit is $memory_limit";
+			global $eio_debug;
+			$eio_debug = "not logging message, memory limit is $memory_limit";
 		}
 	}
 }
@@ -7635,74 +13272,104 @@ function ewwwio_debug_message( $message ) {
 /**
  * Saves the in-memory debug log to a logfile in the plugin folder.
  *
- * @global string $ewww_debug The in-memory debug log.
+ * @global string $eio_debug The in-memory debug log.
  */
 function ewww_image_optimizer_debug_log() {
-	global $ewww_debug;
-	if ( ! empty( $ewww_debug ) && ewww_image_optimizer_get_option( 'ewww_image_optimizer_debug' ) ) {
+	global $eio_debug;
+	global $ewwwio_temp_debug;
+	$debug_log = WP_CONTENT_DIR . '/ewww/debug.log';
+	if ( ! is_dir( dirname( $debug_log ) ) && is_writable( WP_CONTENT_DIR ) ) {
+		wp_mkdir_p( dirname( $debug_log ) );
+	}
+	if (
+		! empty( $eio_debug ) &&
+		empty( $ewwwio_temp_debug ) &&
+		ewww_image_optimizer_get_option( 'ewww_image_optimizer_debug' ) &&
+		is_dir( dirname( $debug_log ) ) &&
+		is_writable( dirname( $debug_log ) )
+	) {
 		$memory_limit = ewwwio_memory_limit();
 		clearstatcache();
-		$timestamp = date( 'y-m-d h:i:s.u' ) . "\n";
-		if ( ! file_exists( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'debug.log' ) ) {
-			touch( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'debug.log' );
+		$timestamp = gmdate( 'Y-m-d H:i:s' ) . "\n";
+		if ( ! file_exists( $debug_log ) ) {
+			touch( $debug_log );
 		} else {
-			if ( filesize( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'debug.log' ) + 4000000 + memory_get_usage( true ) > $memory_limit ) {
-				unlink( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'debug.log' );
-				touch( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'debug.log' );
+			if ( filesize( $debug_log ) + 4000000 + memory_get_usage( true ) > $memory_limit ) {
+				unlink( $debug_log );
+				touch( $debug_log );
 			}
 		}
-		if ( filesize( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'debug.log' ) + strlen( $ewww_debug ) + 4000000 + memory_get_usage( true ) <= $memory_limit ) {
-			$ewww_debug_log = str_replace( '<br>', "\n", $ewww_debug );
-			file_put_contents( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'debug.log', $timestamp . $ewww_debug_log, FILE_APPEND );
+		if ( filesize( $debug_log ) + strlen( $eio_debug ) + 4000000 + memory_get_usage( true ) <= $memory_limit && is_writable( $debug_log ) ) {
+			$eio_debug = str_replace( '<br>', "\n", $eio_debug );
+			file_put_contents( $debug_log, $timestamp . $eio_debug, FILE_APPEND );
 		}
 	}
-	$ewww_debug = '';
+	$eio_debug = '';
 	ewwwio_memory( __FUNCTION__ );
+}
+
+/**
+ * View the debug.log file from the wp-admin.
+ */
+function ewww_image_optimizer_view_debug_log() {
+	if ( ! current_user_can( apply_filters( 'ewww_image_optimizer_admin_permissions', '' ) ) ) {
+		wp_die( esc_html__( 'Access denied.', 'ewww-image-optimizer' ) );
+	}
+	if ( ewwwio_is_file( WP_CONTENT_DIR . '/ewww/debug.log' ) ) {
+		ewwwio_ob_clean();
+		header( 'Content-Type: text/plain;charset=UTF-8' );
+		readfile( WP_CONTENT_DIR . '/ewww/debug.log' );
+		exit;
+	}
+	wp_die( esc_html__( 'The Debug Log is empty.', 'ewww-image-optimizer' ) );
 }
 
 /**
  * Removes the debug.log file from the plugin folder.
  */
 function ewww_image_optimizer_delete_debug_log() {
-	$permissions = apply_filters( 'ewww_image_optimizer_admin_permissions', 'manage_options' );
-	if ( false === current_user_can( $permissions ) ) {
+	if ( ! current_user_can( apply_filters( 'ewww_image_optimizer_admin_permissions', '' ) ) ) {
 		wp_die( esc_html__( 'Access denied.', 'ewww-image-optimizer' ) );
 	}
-	if ( is_file( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'debug.log' ) ) {
-		unlink( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'debug.log' );
+	if ( ewwwio_is_file( WP_CONTENT_DIR . '/ewww/debug.log' ) ) {
+		unlink( WP_CONTENT_DIR . '/ewww/debug.log' );
 	}
 	$sendback = wp_get_referer();
-	wp_redirect( esc_url_raw( $sendback ) );
+	wp_safe_redirect( $sendback );
 	exit;
 }
 
 /**
  * Adds version information to the in-memory debug log.
  *
- * @global string $ewww_debug The in-memory debug log.
+ * @global string $eio_debug The in-memory debug log.
  * @global int $wp_version
  */
 function ewwwio_debug_version_info() {
-	global $ewww_debug;
+	global $eio_debug;
 	if ( ! extension_loaded( 'suhosin' ) && function_exists( 'get_current_user' ) ) {
-		$ewww_debug .= get_current_user() . '<br>';
+		$eio_debug .= get_current_user() . '<br>';
 	}
 
-	$ewww_debug .= 'EWWW IO version: ' . EWWW_IMAGE_OPTIMIZER_VERSION . '<br>';
+	$eio_debug .= 'EWWW IO version: ' . EWWW_IMAGE_OPTIMIZER_VERSION . '<br>';
 
 	// Check the WP version.
 	global $wp_version;
-	$my_version = substr( $wp_version, 0, 3 );
-	$ewww_debug .= "WP version: $wp_version<br>" ;
+	$eio_debug .= "WP version: $wp_version<br>";
 
 	if ( defined( 'PHP_VERSION_ID' ) ) {
-		$ewww_debug .= 'PHP version: ' . PHP_VERSION_ID . '<br>';
+		$eio_debug .= 'PHP version: ' . PHP_VERSION_ID . '<br>';
 	}
 	if ( defined( 'LIBXML_VERSION' ) ) {
-		$ewww_debug .= 'libxml version: ' . LIBXML_VERSION . '<br>';
+		$eio_debug .= 'libxml version: ' . LIBXML_VERSION . '<br>';
 	}
-	if ( ! empty( $_ENV['PANTHEON_ENVIRONMENT'] ) && in_array( $_ENV['PANTHEON_ENVIRONMENT'], array( 'test', 'live', 'dev' ) ) ) {
-		$ewww_debug .= "detected pantheon env: {$_ENV['PANTHEON_ENVIRONMENT']}<br>";
+	if ( ! empty( $_ENV['PANTHEON_ENVIRONMENT'] ) && in_array( $_ENV['PANTHEON_ENVIRONMENT'], array( 'test', 'live', 'dev' ), true ) ) {
+		$eio_debug .= "detected pantheon env: {$_ENV['PANTHEON_ENVIRONMENT']}<br>";
+	}
+	if ( defined( 'EWWW_IO_CLOUD_PLUGIN' ) && EWWW_IO_CLOUD_PLUGIN ) {
+		$eio_debug .= 'cloud plugin<br>';
+	} else {
+		$eio_debug .= 'core plugin<br>';
 	}
 }
 
@@ -7723,135 +13390,15 @@ function ewwwio_debug_backtrace() {
 }
 
 /**
- * Displays backtraces and information on images that have been optimized multiple times.
- *
- * @global object $wpdb
- * @global object $ewwwdb A clone of $wpdb unless it is lacking utf8 connectivity.
+ * Make sure to clear temp debug option on shutdown.
  */
-function ewww_image_optimizer_dynamic_image_debug() {
-	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	echo '<div class="wrap"><h1>' . esc_html__( 'Dynamic Image Debugging', 'ewww-image-optimizer' ) . '</h1>';
-	global $wpdb;
-	if ( strpos( $wpdb->charset, 'utf8' ) === false ) {
-		ewww_image_optimizer_db_init();
-		global $ewwwdb;
-	} else {
-		$ewwwdb = $wpdb;
+function ewww_image_optimizer_temp_debug_clear() {
+	global $ewwwio_temp_debug;
+	global $eio_debug;
+	if ( $ewwwio_temp_debug ) {
+		$eio_debug = '';
 	}
-	$debug_images = $ewwwdb->get_results( "SELECT path,updates,updated,trace FROM $ewwwdb->ewwwio_images WHERE trace IS NOT NULL ORDER BY updates DESC LIMIT 100" );
-	if ( count( $debug_images ) != 0 ) {
-		foreach ( $debug_images as $image ) {
-			$trace = unserialize( $image->trace );
-			echo '<p><b>' . esc_html__( 'File path', 'ewww-image-optimizer' ) . ': ' . $image->path . '</b><br>';
-			echo esc_html__( 'Number of attempted optimizations', 'ewww-image-optimizer' ) . ': ' . $image->updates . '<br>';
-			echo esc_html__( 'Last attempted', 'ewww-image-optimizer' ) . ': ' . $image->updated . '<br>';
-			echo esc_html__( 'PHP trace', 'ewww-image-optimizer' ) . ':<br>';
-			$i = 0;
-			if ( is_array( $trace ) ) {
-				foreach ( $trace as $function ) {
-					if ( ! empty( $function['file'] ) && ! empty( $function['line'] ) ) {
-						echo "#$i {$function['function']}() called at {$function['file']}:{$function['line']}<br>";
-					} else {
-						echo "#$i {$function['function']}() called<br>";
-					}
-					$i++;
-				}
-			} else {
-				esc_html_e( 'Cannot display trace',  'ewww-image-optimizer' );
-			}
-			echo '</p>';
-		}
-	}
-	echo '</div>';
-}
-
-/**
- * Displays images that are in the optimization queue.
- *
- * Allows viewing the image queues for debugging, and lets the user clear all queues.
- *
- * @global object $wpdb
- * @global object $ewwwio_media_background Background optimization class object.
- */
-function ewww_image_optimizer_image_queue_debug() {
-	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-	// Let user clear a queue, or all queues.
-	if ( isset( $_POST['ewww_image_optimizer_clear_queue'] ) && current_user_can( 'manage_options' ) && wp_verify_nonce( $_POST['ewww_nonce'], 'ewww_image_optimizer_clear_queue' ) ) {
-		if ( is_numeric( $_POST['ewww_image_optimizer_clear_queue'] ) ) {
-			global $ewwwio_media_background;
-			if ( ! class_exists( 'WP_Background_Process' ) ) {
-				require_once( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'background.php' );
-			}
-			if ( ! is_object( $ewwwio_media_background ) ) {
-				$ewwwio_media_background = new EWWWIO_Media_Background_Process();
-			}
-			$queues = (int) $_POST['ewww_image_optimizer_clear_queue'];
-			while ( $queues ) {
-				$ewwwio_media_background->cancel_process();
-				$queues--;
-			}
-			if ( ! empty( $_POST['ids'] ) && preg_match( '/^[\d,]+$/', $_POST['ids'], $request_ids ) ) {
-				$ids = explode( ',', $request_ids[0] );
-				foreach ( $ids as $id ) {
-					delete_transient( 'ewwwio-background-in-progress-' . $id );
-				}
-			}
-		} else {
-			delete_site_option( sanitize_text_field( $_POST['ewww_image_optimizer_clear_queue'] ) );
-			if ( ! empty( $_POST['ids'] ) && preg_match( '/^[\d,]+$/', $_POST['ids'], $request_ids ) ) {
-				$ids = explode( ',', $request_ids[0] );
-				foreach ( $ids as $id ) {
-					delete_transient( 'ewwwio-background-in-progress-' . $id );
-				}
-			}
-		}
-	}
-	echo "<div class='wrap'><h1>" . esc_html__( 'Image Queue Debugging', 'ewww-image-optimizer' ) . '</h1>';
-	global $wpdb;
-
-	$table        = $wpdb->options;
-
-	$key = 'wp_ewwwio_media_optimize_batch_%';
-	$queues = $wpdb->get_results(
-		$wpdb->prepare( "
-			SELECT *
-			FROM $wpdb->options
-			WHERE option_name LIKE %s AND option_value != ''
-			ORDER BY option_id ASC
-			", $key ),
-		ARRAY_A
-	);
-
-	$nonce = wp_create_nonce( 'ewww_image_optimizer_clear_queue' );
-	if ( empty( $queues ) ) {
-		esc_html_e( 'Nothing to see here, go upload some images!', 'ewww-image-optimizer' );
-	} else {
-		$all_ids = array();
-		foreach ( $queues as $queue ) {
-			$ids = array();
-			echo "<strong>{$queue['option_id']}</strong> - {$queue['option_name']}<br>";
-			$items = maybe_unserialize( $queue['option_value'] );
-			foreach ( $items as $item ) {
-				echo "{$item['id']} - {$item['type']}<br>";
-				$all_ids[] = $item['id'];
-				$ids[] = $item['id'];
-			}
-			$ids = implode( ',', $ids );
-		?>	<form id="ewww-queue-clear-<?php echo $queue['option_id']; ?>" method="post" style="margin-bottom: 1.5em;" action="">
-			<input type="hidden" id="ewww_nonce" name="ewww_nonce" value="<?php echo $nonce; ?>">
-			<input type="hidden" name="ewww_image_optimizer_clear_queue" value="<?php echo $queue['option_name']; ?>">
-			<input type="hidden" name="ids" value="<?php echo $ids; ?>">
-			<button type="submit" class="button-secondary action"><?php esc_html_e( 'Clear this queue', 'ewww-image-optimizer' ); ?></button>
-		</form>
-<?php		}
-		$all_ids = implode( ',', $all_ids );
-?>		<form id="ewww-queue-clear-all" method="post" style="margin: 2em 0;" action="">
-			<input type="hidden" id="ewww_nonce" name="ewww_nonce" value="<?php echo $nonce; ?>">
-			<input type="hidden" name="ewww_image_optimizer_clear_queue" value="<?php echo count( $queues ); ?>">
-			<input type="hidden" name="ids" value="<?php echo $all_ids; ?>">
-			<button type="submit" class="button-secondary action"><?php esc_html_e( 'Clear all queues', 'ewww-image-optimizer' ); ?></button>
-		</form>
-<?php	}
+	$ewwwio_temp_debug = false;
 }
 
 /**
@@ -7868,18 +13415,18 @@ function ewwwio_memory_limit() {
 		if ( ! defined( 'EWWW_MEMORY_LIMIT' ) ) {
 			// Conservative default, current usage + 16M.
 			$current_memory = memory_get_usage( true );
-			$memory_limit = round( $current_memory / ( 1024 * 1024 ) ) + 16;
+			$memory_limit   = round( $current_memory / ( 1024 * 1024 ) ) + 16;
 			define( 'EWWW_MEMORY_LIMIT', $memory_limit );
 		}
 	}
 	if ( defined( 'WP_CLI' ) && WP_CLI ) {
 		WP_CLI::debug( "memory limit is set at $memory_limit" );
 	}
-	if ( ! $memory_limit || -1 == $memory_limit ) {
+	if ( ! $memory_limit || -1 === intval( $memory_limit ) ) {
 		// Unlimited, set to 32GB.
 		$memory_limit = '32000M';
 	}
-	if ( strpos( $memory_limit, 'G' ) ) {
+	if ( stripos( $memory_limit, 'g' ) ) {
 		$memory_limit = intval( $memory_limit ) * 1024 * 1024 * 1024;
 	} else {
 		$memory_limit = intval( $memory_limit ) * 1024 * 1024;
@@ -7908,6 +13455,36 @@ function ewwwio_check_memory_available( $padding = 1050000 ) {
 }
 
 /**
+ * Implode a multi-dimensional array without throwing errors. Arguments can be reverse order, same as implode().
+ *
+ * @param string $delimiter The character to put between the array items (the glue).
+ * @param array  $data The array to output with the glue.
+ * @return string The array values, separated by the delimiter.
+ */
+function ewwwio_implode( $delimiter, $data = '' ) {
+	if ( is_array( $delimiter ) ) {
+		$temp_data = $delimiter;
+		$delimiter = $data;
+		$data      = $temp_data;
+	}
+	if ( is_array( $delimiter ) ) {
+		return '';
+	}
+	$output = '';
+	foreach ( $data as $value ) {
+		if ( is_string( $value ) || is_numeric( $value ) ) {
+			$output .= $value . $delimiter;
+		} elseif ( is_bool( $value ) ) {
+			$output .= ( $value ? 'true' : 'false' ) . $delimiter;
+		} elseif ( is_array( $value ) ) {
+			$output .= 'Array,';
+		}
+	}
+	return rtrim( $output, ',' );
+}
+
+
+/**
  * Logs memory usage stats. Disabled normally.
  *
  * @global string $ewww_memory An buffer of memory stat messages.
@@ -7931,12 +13508,47 @@ function ewwwio_memory( $function ) {
 function ewwwio_memory_output() {
 	if ( WP_DEBUG ) {
 		global $ewww_memory;
-		$timestamp = date( 'y-m-d h:i:s.u' ) . '  ';
+		$timestamp = gmdate( 'y-m-d h:i:s.u' ) . '  ';
 		if ( ! file_exists( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'memory.log' ) ) {
 			touch( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'memory.log' );
 		}
 		file_put_contents( EWWW_IMAGE_OPTIMIZER_PLUGIN_PATH . 'memory.log', $timestamp . $ewww_memory, FILE_APPEND );
 		$ewww_memory = '';
 	}
+}
+
+/**
+ * Dumps data from any filter.
+ *
+ * @param mixed $var Could be anything, really.
+ * @param mixed $var2 Default false. Could be anything, really.
+ * @param mixed $var3 Default false. Could be anything, really.
+ * @return mixed Whatever they gave us.
+ */
+function ewwwio_dump_var( $var, $var2 = false, $var3 = false ) {
+	if ( ! ewww_image_optimizer_function_exists( 'print_r' ) ) {
+		return $var;
+	}
+	ewwwio_debug_message( 'dumping var' );
+	ewwwio_debug_message( print_r( $var, true ) );
+	if ( $var2 ) {
+		ewwwio_debug_message( 'dumping var2' );
+		ewwwio_debug_message( print_r( $var2, true ) );
+	}
+	if ( $var3 ) {
+		ewwwio_debug_message( 'dumping var3' );
+		ewwwio_debug_message( print_r( $var3, true ) );
+	}
+	return $var;
+}
+
+/**
+ * Dummy function to preserve old strings.
+ */
+function ewwwio_preserve_strings() {
+	$string1 = __( 'Lossless Compression', 'ewww-image-optimizer' );
+	$string2 = __( 'Lossy Compression', 'ewww-image-optimizer' );
+	$string3 = __( 'Maximum Lossless Compression', 'ewww-image-optimizer' );
+	$string4 = __( 'Maximum Lossy Compression', 'ewww-image-optimizer' );
 }
 ?>

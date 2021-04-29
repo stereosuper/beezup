@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /** --------------------------------------------------------------------------------------------- */
 /** ON MODULE SETTINGS SAVE ===================================================================== */
@@ -31,31 +31,44 @@ function secupress_wordpress_core_settings_callback( $settings ) {
 	secupress_manage_submodule( $modulenow, 'major-updates', ! empty( $activate['auto-update_major'] ) );
 
 	// File editor.
-	$can_manage = ! defined( 'DISALLOW_FILE_EDIT' ) || ! DISALLOW_FILE_EDIT || secupress_is_submodule_active( 'wordpress-core', 'wp-config-constant-file-edit' );
-
-	if ( $can_manage ) {
-		secupress_manage_submodule( $modulenow, 'wp-config-constant-file-edit', ! empty( $activate['wp-config_disallow_file_edit'] ) );
-	} else {
-		secupress_deactivate_submodule( $modulenow, 'wp-config-constant-file-edit' );
-	}
+	secupress_manage_submodule( $modulenow, 'wp-config-constant-file-edit', ! empty( $activate['wp-config_disallow_file_edit'] ) );
 
 	// Unfiltered HTML.
-	$can_manage = ! defined( 'DISALLOW_UNFILTERED_HTML' ) || ! DISALLOW_UNFILTERED_HTML || secupress_is_submodule_active( 'wordpress-core', 'wp-config-constant-unfiltered-html' );
-
-	if ( $can_manage ) {
-		secupress_manage_submodule( $modulenow, 'wp-config-constant-unfiltered-html', ! empty( $activate['wp-config_disallow_unfiltered_html'] ) );
-	} else {
-		secupress_deactivate_submodule( $modulenow, 'wp-config-constant-unfiltered-html' );
-	}
+	secupress_manage_submodule( $modulenow, 'wp-config-constant-unfiltered-html', ! empty( $activate['wp-config_disallow_unfiltered_html'] ) );
 
 	// Unfiltered uploads.
-	$can_manage = defined( 'ALLOW_UNFILTERED_UPLOADS' ) && ALLOW_UNFILTERED_UPLOADS || secupress_is_submodule_active( 'wordpress-core', 'wp-config-constant-unfiltered-uploads' );
+	secupress_manage_submodule( $modulenow, 'wp-config-constant-unfiltered-uploads', ! empty( $activate['wp-config_disallow_unfiltered_uploads'] ) );
 
-	if ( $can_manage ) {
-		secupress_manage_submodule( $modulenow, 'wp-config-constant-unfiltered-uploads', ! empty( $activate['wp-config_disallow_unfiltered_uploads'] ) );
-	} else {
-		secupress_deactivate_submodule( $modulenow, 'wp-config-constant-unfiltered-uploads' );
-	}
+	// Database
+	secupress_manage_submodule( $modulenow, 'wp-config-constant-dieondberror', ! empty( $activate['wp-config_dieondberror'] ) );
+
+	// Repair page
+	secupress_manage_submodule( $modulenow, 'wp-config-constant-repair', ! empty( $activate['wp-config_repair'] ) );
+
+	// fs chmod
+	secupress_manage_submodule( $modulenow, 'wp-config-constant-fs-chmod', ! empty( $activate['wp-config_fs_chmod'] ) );
+
+	// Locations
+	secupress_manage_submodule( $modulenow, 'wp-config-constant-locations', ! empty( $activate['wp-config_locations'] ) );
+
+	// Debugging
+	secupress_manage_submodule( $modulenow, 'wp-config-constant-debugging', ! empty( $activate['wp-config_debugging'] ) );
+
+	// cookiehash
+	secupress_manage_submodule( $modulenow, 'wp-config-constant-cookiehash', ! empty( $activate['wp-config_cookiehash'] ) );
+
+	// saltkeys
+	secupress_manage_submodule( $modulenow, 'wp-config-constant-saltkeys', ! empty( $activate['wp-config_saltkeys'] ) );
+
+	/**
+	 * Filter the settings before saving.
+	 *
+	 * @since 1.4.9
+	 *
+	 * @param (array)      $settings The module settings.
+	 * @param (array\bool) $activate Contains the activation rules for the different modules
+	 */
+	$settings = apply_filters( "secupress_{$modulenow}_settings_callback", $settings, $activate );
 
 	// There are no settings to save.
 	return array( 'sanitized' => 1 );

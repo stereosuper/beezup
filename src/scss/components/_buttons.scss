@@ -10,6 +10,7 @@
     line-height: 1;
     background: $secondary;
     color: $white;
+    border-radius: 30px;
     text-decoration: none;
     text-align: center;
     &:hover,
@@ -75,7 +76,7 @@
 }
 .btn-arrow-bg {
     &:after {
-        content: "";
+        content: '';
         width: 11px;
         height: 8px;
         position: absolute;
@@ -83,7 +84,7 @@
         bottom: 0;
         margin: auto;
         right: 30px;
-        background: url("../layoutImg/arrow-right-white.svg") no-repeat;
+        background: url('../layoutImg/arrow-right-white.svg') no-repeat;
         transition: transform $transition;
     }
     &:hover,
@@ -96,14 +97,15 @@
 
 .link-arrow {
     position: relative;
+    text-decoration: none;
     &:after {
-        content: "";
+        content: '';
         display: inline-block;
         width: 11px;
         height: 8px;
         position: relative;
         right: -10px;
-        background: url("../layoutImg/arrow-right.svg") no-repeat;
+        background: url('../layoutImg/arrow-right.svg') no-repeat;
         transition: $transition;
     }
     &:hover,

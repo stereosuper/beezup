@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /**
  * Bad URL Access scan class.
@@ -17,7 +17,7 @@ class SecuPress_Scan_Bad_URL_Access extends SecuPress_Scan implements SecuPress_
 	 *
 	 * @var (string)
 	 */
-	const VERSION = '1.0.3';
+	const VERSION = '1.2';
 
 
 	/** Properties. ============================================================================= */
@@ -40,8 +40,8 @@ class SecuPress_Scan_Bad_URL_Access extends SecuPress_Scan implements SecuPress_
 	protected function init() {
 		global $is_apache, $is_nginx, $is_iis7;
 
-		$this->title    = __( 'Check if any of your WordPress files disclose your site\'s internal path.', 'secupress' );
-		$this->more     = __( 'When an attacker wants to hack into a WordPress site, (s)he will search for all available informations. The goal is to find something useful that will help him penetrate your site. Don\'t let them easily find any informations.', 'secupress' );
+		$this->title    = __( 'Check if any of your WordPress files disclose your site’s internal path.', 'secupress' );
+		$this->more     = __( 'When an attacker wants to hack into a WordPress site, they will search for all available informations. The goal is to find something useful that will help him penetrate your site. Don’t let them easily find any informations.', 'secupress' );
 		$this->more_fix = sprintf(
 			__( 'Activate the %1$s protection from the module %2$s.', 'secupress' ),
 			'<strong>' . __( 'Bad URL Access', 'secupress' ) . '</strong>',
@@ -72,9 +72,9 @@ class SecuPress_Scan_Bad_URL_Access extends SecuPress_Scan implements SecuPress_
 
 		$messages = array(
 			// "good"
-			0   => __( 'Your site does not reveal your site\'s internal path.', 'secupress' ),
+			0   => __( 'Your site does not reveal your site’s internal path.', 'secupress' ),
 			/** Translators: %s is a file name. */
-			1   => sprintf( __( 'Rules preventing disclosure of your site\'s internal path disclosure have been added to your %s file.', 'secupress' ), "<code>$config_file</code>" ),
+			1   => sprintf( __( 'Rules preventing disclosure of your site’s internal path disclosure have been added to your %s file.', 'secupress' ), "<code>$config_file</code>" ),
 			// "warning"
 			100 => _n_noop(
 				/** Translators: %s is a URL or a list of URLs. */
@@ -93,8 +93,8 @@ class SecuPress_Scan_Bad_URL_Access extends SecuPress_Scan implements SecuPress_
 			200 => _n_noop( '%s should not be accessible by anyone.', '%s should not be accessible by anyone.', 'secupress' ),
 			// "cantfix"
 			/** Translators: 1 is a file name, 2 is some code. */
-			300 => sprintf( __( 'Your server runs <strong>Nginx</strong>, the files that disclose your site\'s internal path cannot be protected automatically but you can do it yourself by adding the following code to your %1$s file: %2$s', 'secupress' ), '<code>nginx.conf</code>', '%s' ),
-			301 => __( 'Your server runs an unrecognized system. The files that disclose your site\'s internal path cannot be protected automatically.', 'secupress' ),
+			300 => sprintf( __( 'Your server runs <strong>Nginx</strong>, the files that disclose your site’s internal path cannot be protected automatically but you can do it yourself by adding the following code to your %1$s file: %2$s', 'secupress' ), '<code>nginx.conf</code>', '%s' ),
+			301 => __( 'Your server runs an unrecognized system. The files that disclose your site’s internal path cannot be protected automatically.', 'secupress' ),
 			/** Translators: 1 is a file name, 2 is some code. */
 			302 => sprintf( __( 'Your %1$s file is not writable. Please add the following lines at the beginning of the file: %2$s', 'secupress' ), "<code>$config_file</code>", '%s' ),
 			/** Translators: 1 is a file name, 2 is a folder path (kind of), 3 is some code. */
@@ -119,7 +119,7 @@ class SecuPress_Scan_Bad_URL_Access extends SecuPress_Scan implements SecuPress_
 	 * @return (string)
 	 */
 	public static function get_docs_url() {
-		return __( 'http://docs.secupress.me/article/107-sensitive-files-access-scan', 'secupress' );
+		return __( 'https://docs.secupress.me/article/107-sensitive-files-access-scan', 'secupress' );
 	}
 
 
@@ -133,6 +133,13 @@ class SecuPress_Scan_Bad_URL_Access extends SecuPress_Scan implements SecuPress_
 	 * @return (array) The scan results.
 	 */
 	public function scan() {
+
+		$activated = $this->filter_scanner( __CLASS__ );
+		if ( true === $activated ) {
+			$this->add_message( 0 );
+			return parent::scan();
+		}
+
 		// Avoid plugin's hooks.
 		remove_all_filters( 'site_url' );
 		remove_all_filters( 'includes_url' );
@@ -145,7 +152,6 @@ class SecuPress_Scan_Bad_URL_Access extends SecuPress_Scan implements SecuPress_
 			home_url( 'php.ini' ),
 			site_url( 'wp-config.php' ),
 			admin_url( 'install.php' ),
-			admin_url( 'includes/comment.php' ),
 			admin_url( 'network/menu.php' ),
 			admin_url( 'user/menu.php' ),
 			includes_url( 'admin-bar.php' ),
@@ -154,14 +160,9 @@ class SecuPress_Scan_Bad_URL_Access extends SecuPress_Scan implements SecuPress_
 		foreach ( $urls as $url ) {
 			$response = wp_remote_get( $url, $this->get_default_request_args() );
 
-			if ( ! is_wp_error( $response ) ) {
-				if ( 200 === wp_remote_retrieve_response_code( $response ) ) {
-					// "bad"
-					$bads[] = "<code>$url</code>";
-				}
-			} else {
-				// "warning"
-				$warnings[] = "<code>$url</code>";
+			if ( ! is_wp_error( $response ) && 200 === wp_remote_retrieve_response_code( $response ) ) {
+				// "bad"
+				$bads[] = "<code>$url</code>";
 			}
 		}
 
@@ -174,12 +175,6 @@ class SecuPress_Scan_Bad_URL_Access extends SecuPress_Scan implements SecuPress_
 			}
 		}
 
-		if ( $warnings ) {
-			// "warning"
-			$this->add_message( 100, array( count( $warnings ), $warnings ) );
-			$this->add_message( 101 );
-		}
-
 		// "good"
 		$this->maybe_set_status( 0 );
 
@@ -188,6 +183,44 @@ class SecuPress_Scan_Bad_URL_Access extends SecuPress_Scan implements SecuPress_
 
 
 	/** Fix. ==================================================================================== */
+
+	/**
+	 * Try to fix the flaw(s).
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function need_manual_fix() {
+		return [ 'fix' => 'fix' ];
+	}
+
+	/**
+	 * Get an array containing ALL the forms that would fix the scan if it requires user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) An array of HTML templates (form contents most of the time).
+	 */
+	protected function get_fix_action_template_parts() {
+		return [ 'fix' => '&nbsp;' ];
+	}
+
+	/**
+	 * Try to fix the flaw(s) after requiring user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function manual_fix() {
+		if ( $this->has_fix_action_part( 'fix' ) ) {
+			$this->fix();
+		}
+		// "good"
+		$this->add_fix_message( 1 );
+		return parent::manual_fix();
+	}
 
 	/**
 	 * Try to fix the flaw(s).

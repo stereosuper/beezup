@@ -4,6 +4,9 @@
 
 	<article itemscope itemtype='http://schema.org/Article'>
 		<section class='container-medium post-single-header page-title-default <?php if( get_field('left') ) echo "left"; ?>'>
+
+			<ul class='list-cat'><?php wp_list_categories( array('title_li' => '') ); ?></ul>
+
 			<?php // if( function_exists('yoast_breadcrumb') ){ yoast_breadcrumb('<div class="breadcrumbs">','</span></div>'); } ?>
 
 			<h1 itemprop='name'>
@@ -22,7 +25,6 @@
 			</div>
 
 			<div class='container-small'>
-				<ul class='list-cat'><?php wp_list_categories( array('title_li' => '') ); ?></ul>
 
 				<nav id='sideLinksNav' class='side-links share'>
 					<ul>
@@ -40,7 +42,7 @@
 			</div>
 
 			<div class='container-medium'>
-				<?php get_template_part( 'includes/demo' ); ?>
+				<?php /*get_template_part( 'includes/demo' );*/ ?>
 
 				<?php get_template_part( 'includes/related' ); ?>
 				

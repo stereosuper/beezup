@@ -1,32 +1,36 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /**
- * Get WP Direct filesystem object. Also define chmod constants if not done yet.
+ * Get WP Direct filesystem object.
  *
+ * @author Grégory Viguier
+ * @since 1.3 Don't use the global Filesystem anymore, to make sure to use "direct" (some things don't work over "ftp").
  * @since 1.0
  *
  * @return `$wp_filesystem` object.
  */
 function secupress_get_filesystem() {
-	global $wp_filesystem;
+	static $filesystem;
 
-	if ( ! $wp_filesystem ) {
-		require_once( ABSPATH . 'wp-admin/includes/class-wp-filesystem-base.php' );
-		require_once( ABSPATH . 'wp-admin/includes/class-wp-filesystem-direct.php' );
-
-		$wp_filesystem = new WP_Filesystem_Direct( new StdClass() ); // WPCS: override ok.
+	if ( $filesystem ) {
+		return $filesystem;
 	}
+
+	require_once( ABSPATH . 'wp-admin/includes/class-wp-filesystem-base.php' );
+	require_once( ABSPATH . 'wp-admin/includes/class-wp-filesystem-direct.php' );
+
+	$filesystem = new WP_Filesystem_Direct( new StdClass() ); // WPCS: override ok.
 
 	// Set the permission constants if not already set.
 	if ( ! defined( 'FS_CHMOD_DIR' ) ) {
-		define( 'FS_CHMOD_DIR', ( fileperms( ABSPATH ) & 0777 | 0755 ) );
+		define( 'FS_CHMOD_DIR', ( @fileperms( ABSPATH ) & 0777 | 0755 ) );
 	}
 	if ( ! defined( 'FS_CHMOD_FILE' ) ) {
-		define( 'FS_CHMOD_FILE', ( fileperms( ABSPATH . 'index.php' ) & 0777 | 0644 ) );
+		define( 'FS_CHMOD_FILE', ( @fileperms( ABSPATH . 'index.php' ) & 0777 | 0644 ) );
 	}
 
-	return $wp_filesystem;
+	return $filesystem;
 }
 
 
@@ -171,37 +175,77 @@ function secupress_root_file_is_writable( $file ) {
 /**
  * Try to find the correct `wp-config.php` file, support one level up in filetree.
  *
+ * @since 2.0 Add filter secupress.wpconfig_path to target another file with your constants
  * @since 1.0
  *
+ * @hook secupress.wpconfig_filename
+ * @param (string) $context Can be use for filtering
  * @return (string|bool) The path of `wp-config.php` file or false.
  */
-function secupress_find_wpconfig_path() {
+function secupress_find_wpconfig_path( $context = '' ) {
 	$config_file     = ABSPATH . 'wp-config.php';
 	$config_file_alt = dirname( ABSPATH ) . '/wp-config.php';
 
 	if ( file_exists( $config_file ) ) {
-		return $config_file;
+		/**
+		* Filter the wp-config.php file path
+		*
+		* @param (string) The default file path for wp-config.php
+		* @since 2.0
+		* @author Julio Potier
+		*/
+		return apply_filters( 'secupress.wpconfig_path', $config_file, 'main', $context );
 	}
 	if ( @file_exists( $config_file_alt ) && ! file_exists( dirname( ABSPATH ) . '/wp-settings.php' ) ) {
-		return $config_file_alt;
+		/**
+		* Filter the wp-config.php file path
+		*
+		* @param (string) The default file path for wp-config.php
+		* @since 2.0
+		* @author Julio Potier
+		*/
+		return apply_filters( 'secupress.wpconfig_path', $config_file_alt, 'alt', $context );
 	}
 
 	// No writable file found.
 	return false;
 }
 
+/**
+ * Allow interface to display a custom filename for wp-config.php
+ *
+ * @since 2.0
+ * @author Julio Potier
+ *
+ * @see secupress_find_wpconfig_path()
+ *
+ * @hook secupress.wpconfig_filename
+ * @return (string) The custom wpconfig.php
+ **/
+function secupress_get_wpconfig_filename( $context = 'filename' ) {
+	$filename = str_replace( ABSPATH, '', secupress_find_wpconfig_path( $context ) );
+	/**
+	* Filter the wp-config.php filename (custom or not)
+	*
+	* @param (string) The default filename from the real file path
+	* @since 2.0
+	* @author Julio Potier
+	*/
+	return apply_filters( 'secupress.wpconfig_filename', $filename, $context );
+}
+
 
 /**
- * Tell if the `wp-config.php` file is writtable.
+ * Tell if the `wp-config.php` file is writable.
  *
- * @since 1.2.2
  * @since 1.2.4 Return null if the file can't be located.
+ * @since 1.2.2
  * @author Grégory Viguier
  *
  * @return (string|bool|null) The path of `wp-config.php` file if writable, false if not writable, null if the file doesn't exist.
  */
-function secupress_is_wpconfig_writable() {
-	$wpconfig_filepath = secupress_find_wpconfig_path();
+function secupress_is_wpconfig_writable( $context = '' ) {
+	$wpconfig_filepath = secupress_find_wpconfig_path( $context );
 
 	if ( ! $wpconfig_filepath ) {
 		return null;
@@ -215,42 +259,44 @@ function secupress_is_wpconfig_writable() {
  * Comment a constant definition in the `wp-config.php` file (or any other file).
  * If `$marker` is provided, our definition will be also removed.
  *
+ * @since 2.0 Julio Potier Change the return values to let a possible TRUE if these are WP defaults + remove $new_value param (unused and not the purpose)
  * @since 1.2.2
  * @author Grégory Viguier
  *
  * @param (string) $constant          Name of the constant.
  * @param (string) $wpconfig_filepath Path to the `wp-config.php` file.
  * @param (string) $marker            Name of the marker used to define the constant ourself.
- * @param (string) $new_value         We can define a new value for the constant: a new difinition will be prepended to the commented line.
- *                                    Warning: if the new value of this constant is a string, wrap it with `'` characters: '\'my_value\''.
  *
- * @return (bool) True if at least one of the two actions succeeds. False otherwise.
+ * @return (bool)
  */
-function secupress_comment_constant( $constant, $wpconfig_filepath = false, $marker = false, $new_value = false ) {
-	$replaced1 = false;
-	$prefix    = '';
-
+function secupress_comment_constant( $constant, $wpconfig_filepath = false, $marker = false ) {
+	static $file_content = '';
 	if ( ! $wpconfig_filepath ) {
-		$wpconfig_filepath = secupress_is_wpconfig_writtable();
+		$wpconfig_filepath = secupress_is_wpconfig_writable();
 
 		if ( ! $wpconfig_filepath ) {
-			return  false;
+			return false;
 		}
 	}
 
-	if ( $marker ) {
+	$filesystem   = secupress_get_filesystem();
+	if ( ! $file_content ) {
+		$file_content = $filesystem->get_contents( $wpconfig_filepath );
+	}
+
+	if ( $marker && preg_match( "@[\t ]*?# BEGIN SecuPress {$marker}\s.*# END SecuPress\s*?@sU", $file_content ) ) {
 		// Remove the constant we could have previously set.
-		$replaced1 = secupress_replace_content( $wpconfig_filepath, "@[\t ]*?# BEGIN SecuPress {$marker}\s.*# END SecuPress\s*?@sU", '' );
+		return secupress_replace_content( $wpconfig_filepath, "@[\t ]*?# BEGIN SecuPress {$marker}\s.*# END SecuPress\s*?@sU", '' );
 	}
 
 	// Comment old value.
-	if ( is_string( $new_value ) ) {
-		$prefix = "define( '$constant', $new_value ); // Modified by SecuPress.\n";
+	if ( preg_match( "@^[\t ]*define\s*\(\s*(?:'{$constant}'|\"{$constant}\")\s*,(?:.*);.*\s*$@mU", $file_content ) ) {
+		return secupress_replace_content( $wpconfig_filepath, "@^[\t ]*define\s*\(\s*(?:'{$constant}'|\"{$constant}\")\s*,(?:.*);.*\s*$@mU", '/** Commented by SecuPress. */ /** $0 */' );
 	}
 
-	$replaced2 = secupress_replace_content( $wpconfig_filepath, "@^[\t ]*define\s*\(\s*(?:'{$constant}'|\"{$constant}\")\s*,(?:.*);\s*$@mU", $prefix . '/** Commented by SecuPress. */ /** $0 */' );
-
-	return $replaced1 || $replaced2;
+	// Nothing has been replaced because there is nothing to replace, aka, these are WordPress default values, still overridable
+	// ps: if these constants are set elsewhere… well, my bad :)
+	return true;
 }
 
 
@@ -273,27 +319,31 @@ function secupress_comment_constant( $constant, $wpconfig_filepath = false, $mar
  *                So basically, this information is totally useless, deal with it.
  */
 function secupress_uncomment_constant( $constant, $wpconfig_filepath = false, $marker = false ) {
-	if ( defined( $constant ) ) {
-		// We must not uncomment a constant if it's already defined somewhere.
-		return false;
-	}
-
 	if ( ! $wpconfig_filepath ) {
-		$wpconfig_filepath = secupress_is_wpconfig_writtable();
+		$wpconfig_filepath = secupress_is_wpconfig_writable();
 
 		if ( ! $wpconfig_filepath ) {
-			return  false;
+			return false;
 		}
 	}
 
 	if ( $marker ) {
 		// Remove the constant we could have previously set.
-		secupress_replace_content( $wpconfig_filepath, "@[\t ]*?# BEGIN SecuPress {$marker}\s.*# END SecuPress\s*?@sU", '' );
+		$replaced = secupress_replace_content( $wpconfig_filepath, "@[\t ]*?# BEGIN SecuPress {$marker}\s.*# END SecuPress\s*?@sU", '' );
+
+		if ( defined( $constant ) && ! $replaced ) {
+			/**
+			 * If the constant is defined and "our" has not been removed (because it didn't exist), that means it's defined somewhere else.
+			 * In that case, we must not uncomment the previous value or it will be defined twice.
+			 */
+			return false;
+		}
 	}
 
 	// Uncomment old value.
-	$constant = "(define\s*\(\s*(?:'$constant'|\"$constant\")\s*,(?:.*);)";
-	return secupress_replace_content( $wpconfig_filepath, "@^[\t ]*/\*+\s*Commented by SecuPress\.*\s*\*/\s*?(?:/\*+\s*{$constant}\s*\*/|/+\s*{$constant})\s*$@mU", '$1' );
+	$constant = "(define\s*\(\s*(?:'$constant'|\"$constant\")\s*,(?:.*))";
+	$p = "@^[\t ]*/\*+\s*Commented by SecuPress\.*\s*\*/\s*?(?:/\*+\s*{$constant}\s*\*/|/+\s*{$constant})\s*$@mU";
+	return secupress_replace_content( $wpconfig_filepath, $p, '$1' );
 }
 
 
@@ -382,6 +432,8 @@ function secupress_is_theme_symlinked( $theme_slug ) {
  * @return (bool)
  */
 function secupress_put_contents( $file, $new_content = '', $args = array() ) {
+	static $file_content = '';
+
 	$args = wp_parse_args( $args, array(
 		'marker'   => '',
 		'put'      => 'prepend',
@@ -390,13 +442,14 @@ function secupress_put_contents( $file, $new_content = '', $args = array() ) {
 	) );
 
 	$filesystem   = secupress_get_filesystem();
-	$file_content = '';
-	$comment_char = basename( $file ) !== 'php.ini' ? '#' : ';';
+	$comment_char = pathinfo( $file, PATHINFO_EXTENSION ) !== 'ini' ? '#' : ';';
 
 	// Get the whole content of file and remove old marker content.
 	if ( file_exists( $file ) ) {
 		$pattern      = '/' . $comment_char . ' BEGIN SecuPress ' . $args['marker'] . '(.*)' . $comment_char . ' END SecuPress\s*?/isU';
-		$file_content = file_get_contents( $file );
+		if ( ! $file_content ) {
+			$file_content = file_get_contents( $file );
+		}
 		if ( $args['keep_old'] ) {
 			preg_match( $pattern, $file_content, $keep_old );
 		}
@@ -437,6 +490,7 @@ function secupress_put_contents( $file, $new_content = '', $args = array() ) {
  * File creation based on WordPress Filesystem.
  *
  * @since 1.0
+ * @since 1.3 Use a sandbox for the `wp-config.php` file.
  *
  * @param (string) $file        The path of file will be created.
  * @param (string) $old_content The content to be replaced from the file (preg_replace).
@@ -444,19 +498,112 @@ function secupress_put_contents( $file, $new_content = '', $args = array() ) {
  *
  * @return (bool)
  */
-function secupress_replace_content( $file, $old_content, $new_content ) {
+function secupress_replace_content( $file, $old_content, $new_content, $skip_sandbox = false ) {
+	static $file_content = '';
+
 	if ( ! file_exists( $file ) ) {
 		return false;
 	}
 
-	$filesystem   = secupress_get_filesystem();
-	$file_content = $filesystem->get_contents( $file );
+	$filesystem = secupress_get_filesystem();
+	if ( ! $file_content ) {
+		$file_content = $filesystem->get_contents( $file );
+	}
 
 	$new_content  = preg_replace( $old_content, $new_content, $file_content );
-	$replaced     = null !== $new_content && $new_content !== $file_content;
-	$put_contents = $filesystem->put_contents( $file, $new_content, FS_CHMOD_FILE );
+	if ( null === $new_content || $new_content === $file_content ) {
+		return false;
+	}
 
-	return $put_contents && $replaced;
+	$file_content = $new_content;
+	$filename     = preg_quote( secupress_get_wpconfig_filename() );
+	$skip_sandbox = ( ! defined( 'SECUPRESS_NO_SANDBOX' ) || ! SECUPRESS_NO_SANDBOX ) && $skip_sandbox;
+	if ( ! $skip_sandbox && false !== preg_match( '@/$filename$@', $file ) && true !== secupress_wpconfig_success_in_sandbox( $new_content ) ) {
+		return false;
+	}
+
+	return $filesystem->put_contents( $file, $new_content, FS_CHMOD_FILE );
+}
+
+
+/**
+ * A sandbox for doing crazy things with `wp-config.php`.
+ * Create a folder containing a `index.php` file with the provided content.
+ * Then, make a request to the `index.php` file to test if a server error is triggered.
+ *
+ * @since 2.0 Add secupress.use_sandbox filter
+ * @since 1.3
+ * @author Grégory Viguier
+ * @author Julio Potier
+ *
+ * @param (string) $content The content to put in the `wp-config.php` file.
+ *
+ * @return (object|bool) Return true if the server does not trigger an error 500, false otherwise.
+ *                       Return a WP_Error object if the sandbox creation fails or if the HTTP request fails.
+ */
+function secupress_wpconfig_success_in_sandbox( $content ) {
+	/**
+	* Allows to bypass the sandbox
+	* @since 2.0
+	* @param (bool) true by default, false to use it.
+	* @param (string) A context.
+	*/
+	if ( false === apply_filters( 'secupress.use_sandbox', true, 'wp-config' ) ) {
+		return true;
+	}
+	$wp_filesystem = secupress_get_filesystem();
+	$file_name     = 'index.php';
+	$folder_name   = 'secupress-sandbox-' . uniqid();
+	$folder_path   = ABSPATH . $folder_name;
+	// Remove any `require_once()` and friends.
+	$content       = preg_replace( '@(require|include)(_once)?[\s(][^;]+;@', '$foo = "foo";', $content );
+	// Define `ABSPATH` and add `error_reporting()`.
+	$content       = preg_replace( '@^<\?php@', '<?php error_reporting( -1 );', trim( $content ) );
+	// Print a placeholder when the file is requested.
+	$content      .= "\necho 'SANDBOX OK';";
+	// Create folder.
+	if ( ! $wp_filesystem->mkdir( $folder_path ) ) {
+		return new WP_Error( 'dir_creation_failed', __( 'The temporary directory could not be created.', 'secupress' ) );
+	}
+
+	// Create `index.php` file with our content.
+	if ( ! $wp_filesystem->put_contents( $folder_path . '/' . $file_name, $content, FS_CHMOD_FILE ) ) {
+		$wp_filesystem->delete( $folder_path, true );
+		return new WP_Error( 'file_creation_failed', __( 'The temporary file could not be created.', 'secupress' ) );
+	}
+
+	/** This filter is documented in inc/classes/scanners/class-secupress-scan.php. */
+	$timeout      = apply_filters( 'secupress.remote_timeout', 30 );
+	$origin       = 'wp-config-sandbox';
+	$request_args = array(
+		'redirection' => 0,
+		'timeout'     => $timeout,
+		'local'       => true,
+		'sslverify'   => false,
+		'user-agent'  => SECUPRESS_PLUGIN_NAME . '/' . SECUPRESS_VERSION,
+		'cookies'     => $_COOKIE,
+		'headers'     => array(
+			'X-SecuPress-Origin' => $origin,
+		),
+	);
+
+	/** This filter is documented in inc/classes/scanners/class-secupress-scan.php. */
+	$request_args = apply_filters( 'secupress.scan.default_request_args', $request_args, $origin );
+
+	// Try to reach `index.php`.
+	$request_url = $folder_name . '/' . $file_name . '?' . md5( $folder_name . 's' ) . '=' . md5( $folder_name . 'p' );
+	$response    = wp_remote_get( site_url( $request_url ), $request_args );
+
+	// Now we can get rid of the files.
+	$wp_filesystem->delete( $folder_path, true );
+
+	// HTTP requests are probably blocked.
+	if ( is_wp_error( $response ) ) {
+		return $response;
+	}
+
+	// Finally, the answer we were looking for.
+	return 500 !== wp_remote_retrieve_response_code( $response ) && false !== strpos( wp_remote_retrieve_body( $response ), 'SANDBOX OK' );
 }
 
 

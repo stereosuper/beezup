@@ -1,19 +1,19 @@
 <?php
 /**
- * Module Name: Protect readme files
+ * Module Name: Protect Readme Files
  * Description: Deny access to all <code>readme</code> and <code>changelog</code> files.
  * Main Module: discloses
  * Author: SecuPress
  * Version: 1.0
  */
 
-defined( 'SECUPRESS_VERSION' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'SECUPRESS_VERSION' ) or die( 'Something went wrong.' );
 
 /** --------------------------------------------------------------------------------------------- */
 /** ACTIVATION / DEACTIVATION =================================================================== */
 /** --------------------------------------------------------------------------------------------- */
 
-add_action( 'secupress.modules.activate_submodule_' . basename( __FILE__, '.php' ), 'secupress_protect_readmes_activation' );
+add_action( 'secupress.modules.activation', 'secupress_protect_readmes_activation' );
 /**
  * On module activation, maybe write the rules.
  *
@@ -42,10 +42,16 @@ function secupress_protect_readmes_activation() {
 	secupress_add_module_rules_or_notice( array(
 		'rules'  => $rules,
 		'marker' => 'readme_discloses',
-		'title'  => __( 'Protect readme files', 'secupress' ),
+		'title'  => __( 'Protect Readme Files', 'secupress' ),
 	) );
 }
 
+
+add_action( 'secupress.modules.activate_submodule_' . basename( __FILE__, '.php' ), 'secupress_protect_readmes_activation_file' );
+function secupress_protect_readmes_activation_file() {
+	secupress_protect_readmes_activation();
+	secupress_scanit( 'Readme_Discloses', 3 );
+}
 
 add_action( 'secupress.modules.deactivate_submodule_' . basename( __FILE__, '.php' ), 'secupress_protect_readmes_deactivate' );
 /**
@@ -54,7 +60,8 @@ add_action( 'secupress.modules.deactivate_submodule_' . basename( __FILE__, '.ph
  * @since 1.0
  */
 function secupress_protect_readmes_deactivate() {
-	secupress_remove_module_rules_or_notice( 'readme_discloses', __( 'Protect readme files', 'secupress' ) );
+	secupress_remove_module_rules_or_notice( 'readme_discloses', __( 'Protect Readme Files', 'secupress' ) );
+	secupress_scanit( 'Readme_Discloses', 3 );
 }
 
 
@@ -89,7 +96,7 @@ function secupress_protect_readmes_plugin_activate( $rules ) {
 /** --------------------------------------------------------------------------------------------- */
 
 /**
- * Protect readme files: get rules for apache.
+ * Protect Readme Files: get rules for apache.
  *
  * @since 1.0
  *
@@ -98,7 +105,7 @@ function secupress_protect_readmes_plugin_activate( $rules ) {
 function secupress_protect_readmes_apache_rules() {
 	$bases   = secupress_get_rewrite_bases();
 	$base    = $bases['base'];
-	$pattern = '^' . $bases['site_from'] . '(.*/)?(readme|changelog)\.(txt|md|html)$';
+	$pattern = '^' . $bases['site_from'] . '(.*/)?(readme|changelog|debug)\.(txt|md|html|log)$';
 
 	$rules  = "<IfModule mod_rewrite.c>\n";
 	$rules .= "    RewriteEngine On\n";
@@ -111,7 +118,7 @@ function secupress_protect_readmes_apache_rules() {
 
 
 /**
- * Protect readme files: get rules for iis7.
+ * Protect Readme Files: get rules for iis7.
  *
  * @since 1.0
  *
@@ -121,7 +128,7 @@ function secupress_protect_readmes_iis7_rules() {
 	$marker  = 'readme_discloses';
 	$spaces  = str_repeat( ' ', 8 );
 	$bases   = secupress_get_rewrite_bases();
-	$pattern = '^' . $bases['site_from'] . '(.*/)?(readme|changelog)\.(txt|md|html)$';
+	$pattern = '^' . $bases['site_from'] . '(.*/)?(readme|changelog|debug)\.(txt|md|html|log)$';
 
 	$rules  = "<rule name=\"SecuPress $marker\" stopProcessing=\"true\">\n";
 	$rules .= "$spaces  <match url=\"$pattern\"/ ignoreCase=\"true\">\n";
@@ -133,7 +140,7 @@ function secupress_protect_readmes_iis7_rules() {
 
 
 /**
- * Protect readme files: get rules for nginx.
+ * Protect Readme Files: get rules for nginx.
  *
  * @since 1.0
  *
@@ -142,7 +149,7 @@ function secupress_protect_readmes_iis7_rules() {
 function secupress_protect_readmes_nginx_rules() {
 	$marker  = 'readme_discloses';
 	$bases   = secupress_get_rewrite_bases();
-	$pattern = '^' . $bases['site_from'] . '(.+/)?(readme|changelog)\.(txt|md|html)$';
+	$pattern = '^' . $bases['site_from'] . '(.+/)?(readme|changelog|debug)\.(txt|md|html|log)$';
 
 	// - http://nginx.org/en/docs/http/ngx_http_core_module.html#location
 	$rules  = "

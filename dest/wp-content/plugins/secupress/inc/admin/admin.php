@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /** --------------------------------------------------------------------------------------------- */
 /** VARIOUS ===================================================================================== */
@@ -13,8 +13,12 @@ add_filter( 'admin_page_access_denied', 'secupress_is_jarvis', 9 );
  * @author Tony Stark
  */
 function secupress_is_jarvis() {
+	if ( isset( $_GET['page'] ) && 'secupress_settings' === $_GET['page'] ) {
+		wp_redirect( secupress_admin_url( 'modules' ) );
+		die();
+	}
 	if ( ! secupress_is_white_label() && isset( $_GET['page'] ) && strpos( $_GET['page'], 'secupress' ) !== false ) { // Do not use SECUPRESS_PLUGIN_SLUG, we don't want that in white label.
-		wp_die( '[J.A.R.V.I.S.] You are not authorized to access this area.<br/>[Christine Everhart] Jesus ...<br/>[Pepper Potts] That\'s Jarvis, he runs the house.', 403 );
+		wp_die( '[J.A.R.V.I.S.] You are not authorized to access this area.<br/>[Christine Everhart] Jesus ...<br/>[Pepper Potts] That’s Jarvis, he runs the house.', 403 );
 	}
 }
 
@@ -90,14 +94,38 @@ add_action( 'admin_footer', 'secupress_detect_bad_themes_async_get_and_store_inf
  * @since 1.1.3
  */
 function secupress_detect_bad_themes_async_get_and_store_infos() {
-	if ( false === get_site_transient( 'secupress-detect-bad-themes' ) ) {
-		$args = array(
-			'timeout'   => 0.01,
-			'blocking'  => false,
-			'cookies'   => $_COOKIE,
-			'sslverify' => apply_filters( 'https_local_ssl_verify', false ),
-		);
-		wp_remote_get( admin_url( 'admin-post.php' ) . '?action=secupress_refresh_bad_themes&_wpnonce=' . wp_create_nonce( 'detect-bad-themes' ), $args );
-		set_site_transient( 'secupress-detect-bad-themes', 1, 6 * HOUR_IN_SECONDS );
+	if ( false !== get_site_transient( 'secupress-detect-bad-themes' ) ) {
+		return;
 	}
+
+	$args = array(
+		'timeout'   => 0.01,
+		'blocking'  => false,
+		'cookies'   => $_COOKIE,
+		'sslverify' => apply_filters( 'https_local_ssl_verify', false ),
+	);
+	wp_remote_get( admin_url( 'admin-post.php' ) . '?action=secupress_refresh_bad_themes&_wpnonce=' . wp_create_nonce( 'detect-bad-themes' ), $args );
+
+	set_site_transient( 'secupress-detect-bad-themes', 1, 6 * HOUR_IN_SECONDS );
 }
+
+if ( secupress_is_expert_mode() ) {
+	add_filter( 'secupress.settings.help', '__return_empty_string' );
+	add_filter( 'secupress.settings.description', '__return_empty_string' );
+}
+
+
+add_filter( 'pre_http_request', 'secupress_filter_remote_url', 1, 3 );
+/**
+ * Filter the URL to prevent calls to secupress.me if needed
+ *
+ * @since 2.0
+ * @author Julio Potier
+ **/
+function secupress_filter_remote_url( $val, $parsed_args, $url ) {
+	if ( secupress_is_pro() && 32 !== strlen( secupress_get_consumer_key() ) && 0 === strpos( $url, untrailingslashit( SECUPRESS_WEB_MAIN ) ) ) {
+		return new WP_Error();
+	}
+	return $val;
+}
+

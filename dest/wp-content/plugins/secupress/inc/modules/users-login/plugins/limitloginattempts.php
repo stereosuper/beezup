@@ -4,11 +4,10 @@
  * Description: Limit login attempts and ban if too many tries have been done.
  * Main Module: users_login
  * Author: SecuPress
- * Version: 1.1
+ * Version: 1.4.12
  */
 
-defined( 'SECUPRESS_VERSION' ) or die( 'Cheatin&#8217; uh?' );
-
+defined( 'SECUPRESS_VERSION' ) or die( 'Something went wrong.' );
 add_action( 'authenticate', 'secupress_limitloginattempts', SECUPRESS_INT_MAX, 2 );
 /**
  * Check the number of attemps.

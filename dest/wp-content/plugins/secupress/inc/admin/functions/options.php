@@ -1,9 +1,23 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /** --------------------------------------------------------------------------------------------- */
 /** MODULE OPTIONS ============================================================================== */
 /** --------------------------------------------------------------------------------------------- */
+
+/**
+ * Delete a SecuPress module option.
+ *
+ * @since 1.4.4
+ *
+ * @param (string) $module  The module slug (see array keys from `modules.php`).
+ */
+function secupress_delete_module_option( $module ) {
+	global $wpdb;
+	delete_site_option( "secupress_{$module}_settings" );
+	delete_site_transient( 'secupress_active_submodules' );
+	$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . $wpdb->options . ' WHERE option_name LIKE "secupress_active_submodule_%" AND option_value = %s', $module ) );
+}
 
 /**
  * Update a SecuPress module option.
@@ -49,23 +63,4 @@ function secupress_update_module_options( $values, $module = false ) {
 	$options = array_merge( $options, $values );
 
 	update_site_option( "secupress_{$module}_settings", $options );
-}
-
-
-/**
- * Get the current module.
- *
- * @since 1.0
- *
- * @return (string).
- */
-function secupress_get_current_module() {
-	if ( ! class_exists( 'SecuPress_Settings' ) ) {
-		secupress_require_class( 'settings' );
-	}
-	if ( ! class_exists( 'SecuPress_Settings_Modules' ) ) {
-		secupress_require_class( 'settings', 'modules' );
-	}
-
-	return SecuPress_Settings_Modules::get_instance()->get_current_module();
 }

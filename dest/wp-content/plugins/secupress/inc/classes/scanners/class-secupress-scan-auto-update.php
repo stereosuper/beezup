@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /**
  * Auto Update scan class.
@@ -17,7 +17,7 @@ class SecuPress_Scan_Auto_Update extends SecuPress_Scan implements SecuPress_Sca
 	 *
 	 * @var (string)
 	 */
-	const VERSION = '1.1';
+	const VERSION = '1.2';
 
 
 	/** Properties. ============================================================================= */
@@ -90,20 +90,13 @@ class SecuPress_Scan_Auto_Update extends SecuPress_Scan implements SecuPress_Sca
 			),
 			// "cantfix"
 			/** Translators: 1 is a file name, 2 is some code. */
-			300 => sprintf( __( 'The %1$s file is not writable. Please remove the following code from the file: %2$s', 'secupress' ), '<code>wp-config.php</code>', '%s' ),
+			300 => sprintf( __( 'The %1$s file is not writable. Please remove the following code from the file: %2$s', 'secupress' ), '<code>' . secupress_get_wpconfig_filename() . '</code>', '%s' ),
 			301 => _n_noop(
 				/** Translators: 1 is the plugin name, 2 is a file name, 3 is some code. */
 				'%1$s could not remove a constant definition from the %2$s file. Please remove the following line from the file: %3$s',
 				'%1$s could not remove some constant definitions from the %2$s file. Please remove the following lines from the file: %3$s',
 				'secupress'
 			),
-			// DEPRECATED, NOT IN USE ANYMORE.
-			201 => __( '<code>DISALLOW_FILE_MODS</code> should be set to <code>FALSE</code>.', 'secupress' ),
-			202 => __( '<code>AUTOMATIC_UPDATER_DISABLED</code> should be set to <code>FALSE</code>.', 'secupress' ),
-			203 => __( '<code>DISALLOW_FILE_MODS</code> and <code>AUTOMATIC_UPDATER_DISABLED</code> should be set to <code>FALSE</code>.', 'secupress' ),
-			204 => __( 'The filter <code>automatic_updater_disabled</code> should not be used or set to return <code>FALSE</code>.', 'secupress' ),
-			205 => __( 'The filter <code>allow_minor_auto_core_updates</code> should not be used or set to return <code>TRUE</code>.', 'secupress' ),
-			206 => __( 'The filters <code>automatic_updater_disabled</code> and <code>allow_minor_auto_core_updates</code> should not be used or set to return respectively <code>FALSE</code> and <code>TRUE</code>.', 'secupress' ),
 		);
 
 		if ( isset( $message_id ) ) {
@@ -124,7 +117,7 @@ class SecuPress_Scan_Auto_Update extends SecuPress_Scan implements SecuPress_Sca
 	 * @return (string)
 	 */
 	public static function get_docs_url() {
-		return __( 'http://docs.secupress.me/article/98-automatic-updates-scan', 'secupress' );
+		return __( 'https://docs.secupress.me/article/98-automatic-updates-scan', 'secupress' );
 	}
 
 
@@ -138,6 +131,13 @@ class SecuPress_Scan_Auto_Update extends SecuPress_Scan implements SecuPress_Sca
 	 * @return (array) The scan results.
 	 */
 	public function scan() {
+
+		$activated = $this->filter_scanner( __CLASS__ );
+		if ( true === $activated ) {
+			$this->add_message( 0 );
+			return parent::scan();
+		}
+
 		$constants_false = array();
 		$constants_true  = array();
 		$constants       = array(
@@ -205,6 +205,44 @@ class SecuPress_Scan_Auto_Update extends SecuPress_Scan implements SecuPress_Sca
 	/**
 	 * Try to fix the flaw(s).
 	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function need_manual_fix() {
+		return [ 'fix' => 'fix' ];
+	}
+
+	/**
+	 * Get an array containing ALL the forms that would fix the scan if it requires user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) An array of HTML templates (form contents most of the time).
+	 */
+	protected function get_fix_action_template_parts() {
+		return [ 'fix' => '&nbsp;' ];
+	}
+
+	/**
+	 * Try to fix the flaw(s) after requiring user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function manual_fix() {
+		if ( $this->has_fix_action_part( 'fix' ) ) {
+			$this->fix();
+		}
+		// "good"
+		$this->add_fix_message( 1 );
+		return parent::manual_fix();
+	}
+
+	/**
+	 * Try to fix the flaw(s).
+	 *
 	 * @since 1.0
 	 *
 	 * @return (array) The fix results.
@@ -230,7 +268,7 @@ class SecuPress_Scan_Auto_Update extends SecuPress_Scan implements SecuPress_Sca
 				$rules = static::get_rules_from_error( $last_error );
 				$count = substr_count( $rules, "\n" ) + 1;
 				// "cantfix"
-				$this->add_fix_message( 301, array( $count, SECUPRESS_PLUGIN_NAME, '<code>wp-config.php</code>', $rules ) );
+				$this->add_fix_message( 301, array( $count, SECUPRESS_PLUGIN_NAME, '<code>' . secupress_get_wpconfig_filename() . '</code>', $rules ) );
 				array_pop( $wp_settings_errors );
 			}
 		}

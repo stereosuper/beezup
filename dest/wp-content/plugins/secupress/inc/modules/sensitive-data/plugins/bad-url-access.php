@@ -7,13 +7,13 @@
  * Version: 1.1.1
  */
 
-defined( 'SECUPRESS_VERSION' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'SECUPRESS_VERSION' ) or die( 'Something went wrong.' );
 
 /** --------------------------------------------------------------------------------------------- */
 /** ACTIVATION / DEACTIVATION =================================================================== */
 /** --------------------------------------------------------------------------------------------- */
 
-add_action( 'secupress.modules.activate_submodule_' . basename( __FILE__, '.php' ), 'secupress_bad_url_access_activation' );
+add_action( 'secupress.modules.activation', 'secupress_bad_url_access_activation' );
 /**
  * On module activation, maybe write the rules.
  *
@@ -51,6 +51,18 @@ function secupress_bad_url_access_activation() {
 }
 
 
+add_action( 'secupress.modules.activate_submodule_' . basename( __FILE__, '.php' ), 'secupress_bad_url_access_activate_file' );
+/**
+ * On module de/activation, rescan.
+ *
+ * @since 2.0
+ */
+function secupress_bad_url_access_activate_file() {
+	secupress_bad_url_access_activation();
+	secupress_scanit( 'Bad_URL_Access', 3 );
+}
+
+
 add_action( 'secupress.modules.deactivate_submodule_' . basename( __FILE__, '.php' ), 'secupress_bad_url_access_deactivate' );
 /**
  * On module deactivation, maybe remove rewrite rules from the `.htaccess`/`web.config` file.
@@ -60,6 +72,7 @@ add_action( 'secupress.modules.deactivate_submodule_' . basename( __FILE__, '.ph
  */
 function secupress_bad_url_access_deactivate() {
 	secupress_remove_module_rules_or_notice( 'bad_url_access', __( 'Bad URL Access', 'secupress' ) );
+	secupress_scanit( 'Bad_URL_Access', 3 );
 }
 
 
@@ -139,7 +152,7 @@ function secupress_bad_url_access_upgrade( $new_version, $actual_version ) {
 				'<code># END SecuPress</code>',
 				"<pre># BEGIN SecuPress $marker\n$rules# END SecuPress</pre>"
 			);
-			add_settings_error( 'general', 'apache_manual_edit', $message, 'error' );
+			secupress_add_settings_error( 'general', 'apache_manual_edit', $message, 'error' );
 		}
 
 		if ( $is_iis7 && 'iis7_manual_edit' === $last_error['code'] ) {
@@ -159,7 +172,7 @@ function secupress_bad_url_access_upgrade( $new_version, $actual_version ) {
 				'<code class="secupress-iis7-path">' . $path . '</code>',
 				"<pre>{$spaces}{$rules}</pre>"
 			);
-			add_settings_error( 'general', 'iis7_manual_edit', $message, 'error' );
+			secupress_add_settings_error( 'general', 'iis7_manual_edit', $message, 'error' );
 		}
 	}
 }

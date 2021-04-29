@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /**
  * Bad File Extensions scan class.
@@ -17,7 +17,7 @@ class SecuPress_Scan_Bad_File_Extensions extends SecuPress_Scan implements SecuP
 	 *
 	 * @var (string)
 	 */
-	const VERSION = '1.0.3';
+	const VERSION = '1.2';
 
 
 	/** Properties. ============================================================================= */
@@ -134,7 +134,7 @@ class SecuPress_Scan_Bad_File_Extensions extends SecuPress_Scan implements SecuP
 	 * @return (string)
 	 */
 	public static function get_docs_url() {
-		return __( 'http://docs.secupress.me/article/124-bad-file-extension-scan', 'secupress' );
+		return __( 'https://docs.secupress.me/article/124-bad-file-extension-scan', 'secupress' );
 	}
 
 
@@ -148,6 +148,13 @@ class SecuPress_Scan_Bad_File_Extensions extends SecuPress_Scan implements SecuP
 	 * @return (array) The scan results.
 	 */
 	public function scan() {
+
+		$activated = $this->filter_scanner( __CLASS__ );
+		if ( true === $activated ) {
+			$this->add_message( 0 );
+			return parent::scan();
+		}
+
 		// Create the temporary file.
 		$this->create_file();
 
@@ -160,8 +167,8 @@ class SecuPress_Scan_Bad_File_Extensions extends SecuPress_Scan implements SecuP
 		$response = wp_remote_get( $this->file_url, $this->get_default_request_args() );
 
 		if ( is_wp_error( $response ) ) {
-			// "warning"
-			$this->add_message( 100 );
+			// "good"
+			$this->add_message( 0 );
 
 		} elseif ( 200 === wp_remote_retrieve_response_code( $response ) ) {
 			// "bad"
@@ -179,6 +186,44 @@ class SecuPress_Scan_Bad_File_Extensions extends SecuPress_Scan implements SecuP
 
 
 	/** Fix. ==================================================================================== */
+
+	/**
+	 * Try to fix the flaw(s).
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function need_manual_fix() {
+		return [ 'fix' => 'fix' ];
+	}
+
+	/**
+	 * Get an array containing ALL the forms that would fix the scan if it requires user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) An array of HTML templates (form contents most of the time).
+	 */
+	protected function get_fix_action_template_parts() {
+		return [ 'fix' => '&nbsp;' ];
+	}
+
+	/**
+	 * Try to fix the flaw(s) after requiring user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function manual_fix() {
+		if ( $this->has_fix_action_part( 'fix' ) ) {
+			$this->fix();
+		}
+		// "good"
+		$this->add_fix_message( 1 );
+		return parent::manual_fix();
+	}
 
 	/**
 	 * Try to fix the flaw(s).
@@ -297,7 +342,7 @@ class SecuPress_Scan_Bad_File_Extensions extends SecuPress_Scan implements SecuP
 		// Get the file name.
 		$file_ext  = mt_rand( 0, count( $extensions ) - 1 );
 		$file_ext  = $extensions[ $file_ext ];
-		$file_name = 'secupress-' . secupress_generate_hash( 'file_name', 2, 6 ) . '.' . $file_ext;
+		$file_name = 'secupress-temporary-file-' . secupress_generate_hash( 'file_name', 2, 6 ) . '.' . $file_ext;
 		$file_path = $basedir . '/' . $file_name;
 
 		// Create the file.

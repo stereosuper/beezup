@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /**
  * Bad Vulnerable Plugins scan class.
@@ -17,7 +17,7 @@ class SecuPress_Scan_Bad_Vuln_Plugins extends SecuPress_Scan implements SecuPres
 	 *
 	 * @var (string)
 	 */
-	const VERSION = '1.0.1';
+	const VERSION = '1.2';
 
 
 	/** Properties. ============================================================================= */
@@ -50,7 +50,7 @@ class SecuPress_Scan_Bad_Vuln_Plugins extends SecuPress_Scan implements SecuPres
 
 		if ( is_network_admin() ) {
 			$this->more_fix  = __( 'Select and delete vulnerable plugins.', 'secupress' );
-			$this->more_fix .= '<br/>' . __( 'Will be fixable soon.', 'secupress' ); // RC2 ////.
+			$this->more_fix .= '<br/>' . __( 'Not fixable on Multisite.', 'secupress' );
 			$this->fixable   = false;
 		} elseif ( ! is_multisite() ) {
 			$this->more_fix = __( 'Delete vulnerable plugins.', 'secupress' );
@@ -72,8 +72,8 @@ class SecuPress_Scan_Bad_Vuln_Plugins extends SecuPress_Scan implements SecuPres
 	public static function get_messages( $message_id = null ) {
 		$messages = array(
 			// "good"
-			0   => __( 'You don\'t use plugins known to be vulnerable.', 'secupress' ),
-			1   => __( 'You don\'t use plugins known to be vulnerable anymore.', 'secupress' ),
+			0   => __( 'You don’t use plugins known to be vulnerable.', 'secupress' ),
+			1   => __( 'You don’t use plugins known to be vulnerable anymore.', 'secupress' ),
 			2   => __( 'All plugins known to be vulnerable have been deleted.', 'secupress' ),
 			3   => __( 'All plugins known to be vulnerable have been deleted.', 'secupress' ),
 			4   => __( 'All plugins known to be vulnerable have been deactivated.', 'secupress' ),
@@ -92,7 +92,7 @@ class SecuPress_Scan_Bad_Vuln_Plugins extends SecuPress_Scan implements SecuPres
 			/** Translators: %s is a plugin name. */
 			202 => __( 'You should delete the plugin %s.', 'secupress' ),
 			203 => _n_noop( 'Sorry, this plugin could not be deleted.', 'Sorry, those plugins could not be deleted.', 'secupress' ),
-			204 => _n_noop( 'The following plugin should be deactivated if you don\'t need it: %s.', 'The following plugins should be deactivated if you don\'t need them: %s.', 'secupress' ),
+			204 => _n_noop( 'The following plugin should be deactivated if you don’t need it: %s.', 'The following plugins should be deactivated if you don’t need them: %s.', 'secupress' ),
 			205 => _n_noop( 'Sorry, this plugin could not be deactivated.', 'Sorry, those plugins could not be deactivated.', 'secupress' ),
 			206 => __( 'Your installation contains some plugins known to be vulnerable. The PRO version will be more accurate.', 'secupress' ),
 			// "cantfix"
@@ -100,9 +100,9 @@ class SecuPress_Scan_Bad_Vuln_Plugins extends SecuPress_Scan implements SecuPres
 			300 => _n_noop( '<strong>%d</strong> plugin can be <strong>deleted</strong>.', '<strong>%d</strong> plugins can be <strong>deleted</strong>.', 'secupress' ),
 			/** Translators: %d is a number. */
 			301 => _n_noop( '<strong>%d</strong> plugin can be <strong>deactivated</strong>.', '<strong>%d</strong> plugins can be <strong>deactivated</strong>.', 'secupress' ),
-			302 => __( 'Unable to locate WordPress Plugin directory.' ), // WP i18n.
+			302 => __( 'Unable to locate WordPress Plugin directory.', 'secupress' ),
 			/** Translators: %s is the plugin name. */
-			303 => sprintf( __( 'A new %s menu item has been activated in the relevant site\'s administration area to let Administrators know which plugins to deactivate.', 'secupress' ), '<strong>' . SECUPRESS_PLUGIN_NAME . '</strong>' ),
+			303 => sprintf( __( 'A new %s menu item has been activated in the relevant site’s administration area to let Administrators know which plugins to deactivate.', 'secupress' ), '<strong>' . SECUPRESS_PLUGIN_NAME . '</strong>' ),
 			304 => __( 'No plugins selected.', 'secupress' ),
 		);
 
@@ -124,7 +124,7 @@ class SecuPress_Scan_Bad_Vuln_Plugins extends SecuPress_Scan implements SecuPres
 	 * @return (string)
 	 */
 	public static function get_docs_url() {
-		return __( 'http://docs.secupress.me/article/121-vulnerable-plugins-check', 'secupress' );
+		return __( 'https://docs.secupress.me/article/121-vulnerable-plugins-check', 'secupress' );
 	}
 
 
@@ -138,26 +138,14 @@ class SecuPress_Scan_Bad_Vuln_Plugins extends SecuPress_Scan implements SecuPres
 	 * @return (array) The scan results.
 	 */
 	public function scan() {
-		// Multisite, for the current site.
-		if ( $this->is_for_current_site() ) {
-			// Plugins vulnerables.
-			/*
-			$bad_plugins = $this->get_installed_plugins_to_remove(); ////
 
-			if ( is_numeric( $bad_plugins ) ) {
-				$this->add_message( 206 );
-			} else {
-				$bad_plugins = $bad_plugins['to_deactivate'];
-
-				if ( $count = count( $bad_plugins ) ) {
-					// "bad"
-					$this->add_message( 204, array( $count, $bad_plugins ) );
-				}
-			}
-			*/
+		$activated = $this->filter_scanner( __CLASS__ );
+		if ( true === $activated ) {
+			$this->add_message( 0 );
+			return parent::scan();
 		}
-		// Network admin or not Multisite.
-		else {
+
+		if ( ! $this->is_for_current_site() ) {
 			// If we're in a sub-site, don't list the plugins enabled in the network.
 			$to_keep = array();
 			// Plugins vulnerables.
@@ -178,6 +166,44 @@ class SecuPress_Scan_Bad_Vuln_Plugins extends SecuPress_Scan implements SecuPres
 
 
 	/** Fix. ==================================================================================== */
+
+	/**
+	 * Try to fix the flaw(s).
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function need_manual_fix() {
+		return [ 'fix' => 'fix' ];
+	}
+
+	/**
+	 * Get an array containing ALL the forms that would fix the scan if it requires user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) An array of HTML templates (form contents most of the time).
+	 */
+	protected function get_fix_action_template_parts() {
+		return [ 'fix' => '&nbsp;' ];
+	}
+
+	/**
+	 * Try to fix the flaw(s) after requiring user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function manual_fix() {
+		if ( $this->has_fix_action_part( 'fix' ) ) {
+			$this->fix();
+		}
+		// "good"
+		$this->add_fix_message( 1 );
+		return parent::manual_fix();
+	}
 
 	/**
 	 * Try to fix the flaw(s).

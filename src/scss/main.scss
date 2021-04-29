@@ -1,57 +1,26 @@
 @charset 'utf-8';
 
-@import
-    'abstracts/variables',
-    'abstracts/functions',
-    'abstracts/mixins';
+@import 'abstracts/variables', 'abstracts/functions', 'abstracts/mixins';
 
-@import
-    'base/reset',
-    'base/fonts',
-    'base/base';
+@import 'base/reset', 'base/fonts', 'base/base';
 
 //@import
 //  'vendors/';
 
-@import
-    'abstracts/placeholders';
+@import 'abstracts/placeholders';
 
-@import
-    'components/buttons',
-    'components/side-links',
-    'components/list-menu',    
-    'components/wrapper-video',    
-    'components/members',
-    'components/galery',
-    'components/loader',
-    'components/demo',
-    'components/dropdown',
-    'components/slider',
-    'components/benefits',
-    'components/cookies',
-    'components/contact-modules';
+@import 'components/buttons', 'components/side-links', 'components/list-menu',
+    'components/wrapper-video', 'components/members', 'components/galery',
+    'components/loader', 'components/demo', 'components/dropdown',
+    'components/slider', 'components/benefits', 'components/cookies',
+    'components/contact-modules', 'components/modifs-hellocode';
 
-@import
-    'layout/grid',
-    'layout/landing',
-    'layout/contact-us',
-    'layout/forms',
-    'layout/header',
-    'layout/footer',
-    'layout/tarifs',
-    'layout/list',
-    'layout/blocks-half',
-    'layout/intro',
-    'layout/blog',
-    'layout/section',
-    'layout/channels',
-    'layout/partners',
-    'layout/animFonctionnalites',
+@import 'layout/grid', 'layout/landing', 'layout/contact-us', 'layout/forms',
+    'layout/header', 'layout/footer', 'layout/tarifs', 'layout/list',
+    'layout/blocks-half', 'layout/intro', 'layout/blog', 'layout/section',
+    'layout/channels', 'layout/partners', 'layout/animFonctionnalites',
     'layout/schema';
 
-@import
-    'pages/home',
-    'pages/recruitment';
+@import 'pages/home', 'pages/recruitment';
 
-@import
-    'base/print';
+@import 'base/print';

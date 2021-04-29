@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /** --------------------------------------------------------------------------------------------- */
 /** ADMIN POST / AJAX CALLBACKS ================================================================= */
@@ -21,7 +21,7 @@ function secupress_scanit_ajax_post_cb() {
 		secupress_admin_die();
 	}
 
-	$test_name        = esc_attr( $_GET['test'] );
+	$test_name        = $_GET['test']; // WPCS: XSS ok.
 	$for_current_site = ! empty( $_GET['for-current-site'] );
 	$site_id          = $for_current_site && ! empty( $_GET['site'] ) ? '-' . absint( $_GET['site'] ) : '';
 
@@ -29,8 +29,11 @@ function secupress_scanit_ajax_post_cb() {
 	secupress_check_admin_referer( 'secupress_scanner_' . $test_name . $site_id );
 
 	$doing_ajax = defined( 'DOING_AJAX' ) && DOING_AJAX;
+	if ( isset( $_GET['delay'] ) ) {
+		$delay  = max( min( 5, (int) $_GET['delay'] ), 0 );
+		sleep( $delay );
+	}
 	$response   = secupress_scanit( $test_name, $doing_ajax, $for_current_site );
-
 	secupress_admin_send_response_or_redirect( $response );
 }
 
@@ -168,7 +171,214 @@ function secupress_update_oneclick_scan_date_ajax_cb() {
 	wp_send_json_success( secupress_formate_latest_scans_list_item( $item, $last_percent ) );
 }
 
+// WHITELIST IPs
+add_action( 'admin_post_secupress-whitelist-ip', 'secupress_whitelist_ip_ajax_post_cb' );
+add_action( 'wp_ajax_secupress-whitelist-ip',    'secupress_whitelist_ip_ajax_post_cb' );
+/**
+ * Whitelist an IP address.
+ *
+ * @since 1.4.9
+ */
+function secupress_whitelist_ip_ajax_post_cb() {
+	// Make all security tests.
+	secupress_check_admin_referer( 'secupress-whitelist-ip' );
+	secupress_check_user_capability();
 
+	if ( empty( $_REQUEST['ip'] ) ) {
+		secupress_admin_send_message_die( array(
+			'message' => __( 'IP address not provided.', 'secupress' ),
+			'code'    => 'no_ip',
+			'type'    => 'error',
+		) );
+	}
+
+	// Test the IP.
+	$ip          = trim( urldecode( $_REQUEST['ip'] ) );
+	$original_ip = $ip;
+	$is_list     = false;
+	$sep         = "\n";
+	if ( strpos( $ip, ', ' ) > 0 ) {
+		$sep = ', ';
+	} elseif ( strpos( $ip, ',' ) > 0 ) {
+		$sep = ',';
+	} elseif ( strpos( $ip, ';' ) > 0 ) {
+		$sep = ';';
+	} elseif ( strpos( $ip, ' ' ) > 0 ) {
+		$sep = ' ';
+	}
+	if ( strpos( $ip, $sep ) > 0 ) {
+		$is_list = true;
+		$ip      = explode( $sep, $ip );
+		$count_1 = count( $ip );
+		$ip      = array_filter( $ip , function( $_ip ) {
+			return secupress_ip_is_valid( $_ip, true );
+		} );
+		$count_2 = count( $ip );
+	}
+
+	if ( ! $is_list && ! secupress_ip_is_valid( $ip, true ) ) {
+		secupress_admin_send_message_die( array(
+			'message' => __( 'This is not a valid IP address.', 'secupress' ),
+			'code'    => 'invalid_ip',
+			'type'    => 'error',
+		) );
+	}
+
+	if ( ! $is_list && ( secupress_ip_is_whitelisted( $ip ) ) ) {
+		secupress_admin_send_message_die( [
+			'message' => __( 'This IP address is already allowed.', 'secupress' ),
+			'code'    => 'already_whitelisted',
+			'type'    => 'error',
+		] );
+	}
+
+	if ( $is_list && 0 === $count_2 ) {
+		secupress_admin_send_message_die( [
+			'message' => __( 'The list does not contains any valid IP address.', 'secupress' ),
+			'code'    => 'invalid_ip',
+			'type'    => 'error',
+		] );
+	}
+
+	// Add the IP to the option.
+	$white_ips = get_site_option( SECUPRESS_WHITE_IP );
+	$white_ips = is_array( $white_ips ) ? $white_ips : [];
+	if ( ! is_array( $ip ) ) {
+		$ip    = [ $ip ];
+	}
+	$ip        = array_flip( $ip );
+	$white_ips = array_merge( $white_ips, $ip );
+
+	update_site_option( SECUPRESS_WHITE_IP, $white_ips );
+
+	/* This hook is documented in /inc/functions/admin.php */
+	do_action( 'secupress.ip_allowed', $ip, $white_ips );
+
+	$referer_arg  = '&_wp_http_referer=' . urlencode( esc_url_raw( secupress_admin_url( 'modules', 'logs' ) ) );
+	// Send a response.
+	if ( ! $is_list ) {
+		secupress_admin_send_message_die( [
+			'message'    => sprintf( __( 'The IP address %s has been allowed.', 'secupress' ), '<code>' . esc_html( $original_ip ) . '</code>' ),
+			'code'       => 'ip_whitelist',
+			'tmplValues' => [
+				[
+					'ip'              => $original_ip,
+					'unwhitelist_url' => esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=secupress-unwhitelist-ip&ip=' . esc_attr( $original_ip ) . $referer_arg ), 'secupress-unwhitelist-ip_' . $original_ip ) ),
+				],
+			] ]
+		);
+	} else {
+		$tmplValues = [];
+		foreach ( $white_ips as $_ip => $time ) {
+			$tmplValues[] = [   'ip'              => $_ip,
+								'unwhitelist_url' => esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=secupress-unwhitelist-ip&ip=' . esc_attr( $_ip ) . $referer_arg ), 'secupress-unwhitelist-ip_' . $_ip ) ),
+							];
+		}
+		if ( $count_1 === $count_2 ) {
+			secupress_admin_send_message_die( [
+				'message'    => __( 'The IP address list has been allowed.', 'secupress' ),
+				'code'       => 'ip_whitelist',
+				'tmplValues' => $tmplValues,
+			] );
+		} else {
+			secupress_admin_send_message_die( [
+				'message'    => __( 'Some of the IP address list has been allowed.', 'secupress' ),
+				'code'       => 'ip_whitelist',
+				'tmplValues' => $tmplValues,
+			] );
+		}
+	}
+}
+
+
+add_action( 'admin_post_secupress-unwhitelist-ip', 'secupress_unwhitelist_ip_ajax_post_cb' );
+add_action( 'wp_ajax_secupress-unwhitelist-ip',    'secupress_unwhitelist_ip_ajax_post_cb' );
+/**
+ * Unwhitelist an IP address.
+ *
+ * @since 1.4.9
+ */
+function secupress_unwhitelist_ip_ajax_post_cb() {
+	// Make all security tests.
+	if ( empty( $_REQUEST['ip'] ) ) {
+		secupress_admin_send_message_die( array(
+			'message' => __( 'IP address not provided.', 'secupress' ),
+			'code'    => 'no_ip',
+			'type'    => 'error',
+		) );
+	}
+
+	secupress_check_admin_referer( 'secupress-unwhitelist-ip_' . $_REQUEST['ip'] );
+	secupress_check_user_capability();
+
+	$ip = trim( urldecode( $_REQUEST['ip'] ) );
+
+	// Remove the IP from the option.
+	$white_ips = get_site_option( SECUPRESS_WHITE_IP );
+	$white_ips = is_array( $white_ips ) ? $white_ips : [];
+	if ( ! isset( $white_ips[ $ip ] ) ) {
+		secupress_admin_send_message_die( [
+			'message' => sprintf( __( 'The IP address %s is not allowed.', 'secupress' ), '<code>' . esc_html( $ip ) . '</code>' ),
+			'code'    => 'ip_not_whitelisted',
+		] );
+	}
+
+	unset( $white_ips[ $ip ] );
+
+	if ( $white_ips ) {
+		update_site_option( SECUPRESS_WHITE_IP, $white_ips );
+	} else {
+		delete_site_option( SECUPRESS_WHITE_IP );
+	}
+
+	/**
+	 * Fires once a IP is unbanned.
+	 *
+	 * @since 1.0
+	 *
+	 * @param (string) $ip      The IP unbanned.
+	 * @param (array)  $white_ips The list of IPs banned (keys) and the time they were banned (values).
+	 */
+	do_action( 'secupress.ip_unallowed', $ip, $white_ips );
+
+	// Send a response.
+	secupress_admin_send_message_die( array(
+		'message' => sprintf( __( 'The IP address %s has been remove from the list.', 'secupress' ), '<code>' . esc_html( $ip ) . '</code>' ),
+		'code'    => 'ip_unwhitelisted',
+	) );
+}
+
+
+add_action( 'admin_post_secupress-clear-whitelist-ips', 'secupress_clear_whitelist_ips_ajax_post_cb' );
+add_action( 'wp_ajax_secupress-clear-whitelist-ips',    'secupress_clear_whitelist_ips_ajax_post_cb' );
+/**
+ * Unwhitelist all IP addresses.
+ *
+ * @since 1.4.9
+ */
+function secupress_clear_whitelist_ips_ajax_post_cb() {
+	// Make all security tests.
+	secupress_check_admin_referer( 'secupress-clear-whitelist-ips' );
+	secupress_check_user_capability();
+
+	// Remove all IPs from the option.
+	delete_site_option( SECUPRESS_WHITE_IP );
+
+	/**
+	 * Fires once all IPs are unbanned.
+	 *
+	 * @since 1.0
+	 */
+	do_action( 'secupress.ips_cleared' );
+
+	// Send a response.
+	secupress_admin_send_message_die( [
+		'message' => __( 'All IP addresses have been removed from list.', 'secupress' ),
+		'code'    => 'whitelisted_ips_cleared',
+	] );
+}
+
+// BANNED IPs
 add_action( 'admin_post_secupress-ban-ip', 'secupress_ban_ip_ajax_post_cb' );
 add_action( 'wp_ajax_secupress-ban-ip',    'secupress_ban_ip_ajax_post_cb' );
 /**
@@ -182,62 +392,128 @@ function secupress_ban_ip_ajax_post_cb() {
 	secupress_check_user_capability();
 
 	if ( empty( $_REQUEST['ip'] ) ) {
-		secupress_admin_send_message_die( array(
+		secupress_admin_send_message_die( [
 			'message' => __( 'IP address not provided.', 'secupress' ),
 			'code'    => 'no_ip',
 			'type'    => 'error',
-		) );
+		] );
 	}
 
 	// Test the IP.
-	$ip = urldecode( $_REQUEST['ip'] );
+	$ip          = trim( urldecode( $_REQUEST['ip'] ) );
+	$original_ip = $ip;
+	$is_list     = false;
+	$sep         = "\n";
+	$unbanned    = '';
+	if ( strpos( $ip, ', ' ) > 0 ) {
+		$sep = ', ';
+	} elseif ( strpos( $ip, ',' ) > 0 ) {
+		$sep = ',';
+	} elseif ( strpos( $ip, ';' ) > 0 ) {
+		$sep = ';';
+	} elseif ( strpos( $ip, ' ' ) > 0 ) {
+		$sep = ' ';
+	}
+	if ( strpos( $ip, $sep ) > 0 ) {
+		$is_list = true;
+		$ip      = explode( $sep, $ip );
+		$count_1 = count( $ip );
+		$ip      = array_filter( $ip , function( $_ip ) {
+			return secupress_ip_is_valid( $_ip, true );
+		} );
+		$count_2 = count( $ip );
+	}
 
-	if ( ! secupress_ip_is_valid( $ip ) ) {
+	if ( ! $is_list && ! secupress_ip_is_valid( $ip, true ) ) {
 		secupress_admin_send_message_die( array(
-			'message' => sprintf( __( '%s is not a valid IP address.', 'secupress' ), '<code>' . esc_html( $ip ) . '</code>' ),
+			'message' => __( 'This is not a valid IP address.', 'secupress' ),
 			'code'    => 'invalid_ip',
 			'type'    => 'error',
 		) );
 	}
 
-	if ( secupress_ip_is_whitelisted( $ip ) || secupress_get_ip() === $ip ) {
+	// Don't ban your IP
+	if ( secupress_get_ip() === $ip ) {
 		secupress_admin_send_message_die( array(
-			'message' => sprintf( __( 'The IP address %s is whitelisted.', 'secupress' ), '<code>' . esc_html( $ip ) . '</code>' ),
+			'message' => __( 'You cannot ban your own IP address.', 'secupress' ),
 			'code'    => 'own_ip',
 			'type'    => 'error',
 		) );
 	}
 
-	// Add the IP to the option.
-	$ban_ips = get_site_option( SECUPRESS_BAN_IP );
-	$ban_ips = is_array( $ban_ips ) ? $ban_ips : array();
-
-	$ban_ips[ $ip ] = time() + YEAR_IN_SECONDS * 100; // Now you got 100 years to think about your future, kiddo. In the meantime, go clean your room.
-
-	update_site_option( SECUPRESS_BAN_IP, $ban_ips );
-
-	// Add the IP to the `.htaccess` file.
-	if ( secupress_write_in_htaccess_on_ban() ) {
-		secupress_write_htaccess( 'ban_ip', secupress_get_htaccess_ban_ip() );
+	// No valid IP in a list
+	if ( $is_list && 0 === $count_2 ) {
+		secupress_admin_send_message_die( array(
+			'message' => __( 'The list does not contains any valid IP address.', 'secupress' ),
+			'code'    => 'invalid_ip',
+			'type'    => 'error',
+		) );
 	}
+
+	// Already banned
+	$ban_ips = get_site_option( SECUPRESS_BAN_IP );
+	$ban_ips = is_array( $ban_ips ) ? $ban_ips : [];
+	if ( ! $is_list && isset( $ban_ips[ $ip ] ) ) {
+		secupress_admin_send_message_die( array(
+			'message' => __( 'This IP is already banned.', 'secupress' ),
+			'code'    => 'already_banned',
+			'type'    => 'error',
+		) );
+	}
+	// Transform the non list as a list now
+	if ( ! is_array( $ip ) ) {
+		$ip  = [ $ip ];
+	}
+	$ip      = array_flip( $ip );
+	array_walk( $ip, function( &$_ip, $time ) {
+		$_ip = strtotime('+10 years');
+	});
+	$ban_ips = array_merge( $ban_ips, $ip );
+
+	// Update the ips now
+	update_site_option( SECUPRESS_BAN_IP, $ban_ips );
 
 	/* This hook is documented in /inc/functions/admin.php */
 	do_action( 'secupress.ban.ip_banned', $ip, $ban_ips );
 
-	$referer_arg = '&_wp_http_referer=' . urlencode( esc_url_raw( secupress_admin_url( 'modules', 'logs' ) ) );
-
+	$referer_arg  = '&_wp_http_referer=' . urlencode( esc_url_raw( secupress_admin_url( 'modules', 'logs' ) ) );
+	$format       = __( 'M jS Y', 'secupress' ) . ' ' . __( 'G:i', 'secupress' );
+	$_time        = date_i18n( $format, strtotime('+10 years'));
 	// Send a response.
-	secupress_admin_send_message_die( array(
-		'message'    => sprintf( __( 'The IP address %s has been banned.', 'secupress' ), '<code>' . esc_html( $ip ) . '</code>' ),
-		'code'       => 'ip_banned',
-		'tmplValues' => array(
-			array(
-				'ip'        => $ip,
-				'time'      => __( 'Forever', 'secupress' ),
-				'unban_url' => esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=secupress-unban-ip&ip=' . esc_attr( $ip ) . $referer_arg ), 'secupress-unban-ip_' . $ip ) ),
-			),
-		),
-	) );
+	if ( ! $is_list ) {
+		secupress_admin_send_message_die( [
+			'message'    => sprintf( __( 'The IP address %s has been banned.', 'secupress' ) . $unbanned, '<code>' . esc_html( $original_ip ) . '</code>' ),
+			'code'       => 'ip_banned',
+			'tmplValues' => [
+				[
+					'ip'        => $original_ip,
+					'time'      => $_time,
+					'unban_url' => esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=secupress-unban-ip&ip=' . esc_attr( $original_ip ) . $referer_arg ), 'secupress-unban-ip_' . $original_ip ) ),
+				],
+			] ]
+		);
+	} else {
+		$tmplValues = [];
+		foreach ( $ban_ips as $_ip => $time ) {
+			$tmplValues[] = [   'ip'        => $_ip,
+								'time'      => $_time,
+								'unban_url' => esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=secupress-unban-ip&ip=' . esc_attr( $_ip ) . $referer_arg ), 'secupress-unban-ip_' . $_ip ) ),
+							];
+		}
+		if ( $count_1 === $count_2 ) {
+			secupress_admin_send_message_die( [
+				'message'    => __( 'The IP address list has been banned.' . $unbanned, 'secupress' ),
+				'code'       => 'ip_banned',
+				'tmplValues' => $tmplValues,
+			] );
+		} else {
+			secupress_admin_send_message_die( [
+				'message'    => __( 'Some of the IP address list has been banned.' . $unbanned, 'secupress' ),
+				'code'       => 'ip_banned',
+				'tmplValues' => $tmplValues,
+			] );
+		}
+	}
 }
 
 
@@ -261,16 +537,7 @@ function secupress_unban_ip_ajax_post_cb() {
 	secupress_check_admin_referer( 'secupress-unban-ip_' . $_REQUEST['ip'] );
 	secupress_check_user_capability();
 
-	// Test the IP.
 	$ip = urldecode( $_REQUEST['ip'] );
-
-	if ( ! secupress_ip_is_valid( $ip ) ) {
-		secupress_admin_send_message_die( array(
-			'message' => sprintf( __( '%s is not a valid IP address.', 'secupress' ), '<code>' . esc_html( $ip ) . '</code>' ),
-			'code'    => 'invalid_ip',
-			'type'    => 'error',
-		) );
-	}
 
 	// Remove the IP from the option.
 	$ban_ips = get_site_option( SECUPRESS_BAN_IP );
@@ -289,11 +556,6 @@ function secupress_unban_ip_ajax_post_cb() {
 		update_site_option( SECUPRESS_BAN_IP, $ban_ips );
 	} else {
 		delete_site_option( SECUPRESS_BAN_IP );
-	}
-
-	// Remove the IP from the `.htaccess` file.
-	if ( secupress_write_in_htaccess_on_ban() ) {
-		secupress_write_htaccess( 'ban_ip', secupress_get_htaccess_ban_ip() );
 	}
 
 	/**
@@ -329,11 +591,6 @@ function secupress_clear_ips_ajax_post_cb() {
 	// Remove all IPs from the option.
 	delete_site_option( SECUPRESS_BAN_IP );
 
-	// Remove all IPs from the `.htaccess` file.
-	if ( secupress_write_in_htaccess_on_ban() ) {
-		secupress_write_htaccess( 'ban_ip' );
-	}
-
 	/**
 	 * Fires once all IPs are unbanned.
 	 *
@@ -353,37 +610,35 @@ add_action( 'admin_post_secupress_reset_settings', 'secupress_admin_post_reset_s
 /**
  * Reset SecuPress settings or module settings.
  *
+ * @since 1.4.4 Params $module & $bypass.
  * @since 1.0
- */
-function secupress_admin_post_reset_settings_post_cb() {
-	if ( empty( $_GET['module'] ) ) {
-		secupress_admin_die();
-	}
-	// Make all security tests.
-	secupress_check_admin_referer( 'secupress_reset_' . $_GET['module'] );
-	secupress_check_user_capability();
-
-	/** This action is documented in inc/admin/upgrader.php */
-	do_action( 'secupress.first_install', $_GET['module'] );
-
-	wp_safe_redirect( esc_url_raw( secupress_admin_url( 'modules', $_GET['module'] ) ) );
-	die();
-}
-
-
-add_action( 'wp_ajax_secupress_recovery_email', 'secupress_recovery_email_ajax_post_cb' );
-/**
- * Set the recovery email via notice, if possible
  *
  * @author Julio Potier
- * @since 1.0
+ * @param (string) $module Empty by default, the module to be reset if $_GET is not defined.
+ * @param (bool)   $bypass False by default, if true, the security will not be checked, already done by the caller.
  */
-function secupress_recovery_email_ajax_post_cb() {
-	secupress_callback_update_user_contactmethods( get_current_user_id() );
-	$user  = wp_get_current_user();
-	$dummy = new stdClass();
+function secupress_admin_post_reset_settings_post_cb( $module = '', $bypass = false ) {
+	if ( empty( $_GET['module'] ) && ! $module ) {
+		secupress_admin_die();
+	}
 
-	secupress_user_profile_update_errors( $dummy, false, $user );
+	$module = isset( $_GET['module'] ) ? $_GET['module'] : $module;
+	if ( ! $bypass ) {
+		// Make all security tests.
+		secupress_check_admin_referer( 'secupress_reset_' . $module );
+		secupress_check_user_capability();
+	}
+
+	secupress_delete_module_option( $module );
+	/** This action is documented in inc/admin/upgrader.php */
+	do_action( 'secupress.first_install', $module );
+
+	if ( ! $bypass ) {
+		secupress_add_transient_notice( __( 'Module settings reset.', 'secupress' ), 'updated', 'module-reset' );
+
+		wp_safe_redirect( esc_url_raw( secupress_admin_url( 'modules', $module ) ) );
+		die();
+	}
 }
 
 
@@ -480,384 +735,239 @@ function secupress_sanitize_move_login_slug_ajax_post_cb() {
 }
 
 
-/** --------------------------------------------------------------------------------------------- */
-/** ADMIN POST / AJAX CALLBACKS FOR THE MAIN SETTINGS =========================================== */
-/** --------------------------------------------------------------------------------------------- */
-
-add_action( 'admin_post_secupress_update_global_settings_api-key', 'secupress_global_settings_api_key_ajax_post_cb' );
+add_action( 'admin_post_nopriv_secupress_unlock_admin', 'secupress_unlock_admin_ajax_post_cb' );
 /**
- * Deal with the license.
+ * Send an unlock email if the provided address is from an admin
  *
- * @since 1.1.4
- * @author Grégory Viguier
- */
-function secupress_global_settings_api_key_ajax_post_cb() {
-	// Make all security tests.
+ * @author Julio Potier
+ * @since 1.3.2
+ **/
+function secupress_unlock_admin_ajax_post_cb() {
+	if ( ! isset( $_POST['_wpnonce'], $_POST['email'] ) || ! is_email( $_POST['email'] ) || ! check_ajax_referer( 'secupress-unban-ip-admin', '_wpnonce' ) ) { // WPCS: CSRF ok.
+		wp_die( 'Something went wrong.' );
+	}
+	$_CLEAN          = [];
+	$_CLEAN['email'] = $_POST['email'];
+	$user            = get_user_by( 'email', $_CLEAN['email'] );
+	if ( ! secupress_is_user( $user ) || ! user_can( $user, 'manage_options' ) ) {
+		wp_die( 'Something went wrong.' );
+	}
+	$url_remember = wp_login_url();
+	$token        = strtolower( wp_generate_password( 10, false ) );
+	set_transient( 'secupress_unlock_admin_key', $token, DAY_IN_SECONDS );
+	$url_remove   = add_query_arg( '_wpnonce', $token, admin_url( 'admin-post.php?action=secupress_deactivate_module&module=move-login' ) );
+
+	$subject      = __( '###SITENAME### – Unlock an administrator', 'secupress' );
+	$message      = sprintf( __( 'Hello %1$s,
+It seems you are locked out from the website ###SITENAME###.
+
+You can now follow this link to your new login page (remember it!):
+%2$s
+
+Have a nice day !
+
+Regards,
+All at ###SITENAME###
+###SITEURL###
+
+ps: you can also deactivate the Move Login module:
+%3$s', 'secupress' ),
+							$user->display_name,
+							'<a href="' . $url_remember . '">' . $url_remember . '</a>',
+							'<a href="' . $url_remove . '">' . $url_remove . '</a> ' . __( '(Valid 1 day)', 'secupress' )
+					);
+	$sent = secupress_send_mail( $_CLEAN['email'], $subject, $message );
+	secupress_die( $sent ? __( 'Email sent, check your mailbox.', 'secupress' ) : __( 'Email not sent, please contact the support.', 'secupress' ), __( 'Email', 'secupress' ), array( 'force_die' => true ) );
+}
+
+add_action( 'admin_post_nopriv_secupress_deactivate_module', 'secupress_deactivate_module_admin_post_cb' );
+/**
+ * Can deactivate a module from a link sent by secupress_unlock_admin_ajax_post_cb()
+ *
+ * @author Julio Potier
+ * @since 1.3.2
+ **/
+function secupress_deactivate_module_admin_post_cb() {
+	if ( ! isset( $_GET['_wpnonce'], $_GET['module'] ) || empty( $_GET['_wpnonce'] ) || ! get_transient( 'secupress_unlock_admin_key' ) || ! hash_equals( get_transient( 'secupress_unlock_admin_key' ), $_GET['_wpnonce'] ) ) {
+		wp_die( 'Something went wrong.' );
+	}
+	delete_transient( 'secupress_unlock_admin_key' );
+	secupress_deactivate_submodule( 'users-login', array( 'move-login' ) );
+	wp_redirect( wp_login_url( secupress_admin_url( 'modules', 'users-login' ) ) );
+	die();
+}
+
+add_action( 'admin_post_secupress_reset_all_settings', 'secupress_reset_all_settings_admin_post_cb' );
+/**
+ * Will reset the settings like a fresh install
+ *
+ * @since 1.4.4
+ * @author Julio Potier
+ **/
+function secupress_reset_all_settings_admin_post_cb() {
+	if ( ! isset( $_GET['_wpnonce'] ) ) {
+		wp_die( 'Something went wrong.' );
+	}
+
+	secupress_check_admin_referer( 'secupress_reset_all_settings' );
 	secupress_check_user_capability();
-	secupress_check_admin_referer( 'secupress_update_global_settings_api-key' );
 
-	// Previous values.
-	$old_values = get_site_option( SECUPRESS_SETTINGS_SLUG );
-	$old_values = is_array( $old_values ) ? $old_values : array();
-	$old_email  = ! empty( $old_values['consumer_email'] ) ? sanitize_email( $old_values['consumer_email'] )    : '';
-	$old_key    = ! empty( $old_values['consumer_key'] )   ? sanitize_text_field( $old_values['consumer_key'] ) : '';
-	$old_is_pro = ! empty( $old_values['site_is_pro'] )    ? 1 : 0;
-	$has_old    = $old_email && $old_key;
-	$old_email  = $has_old ? $old_email  : '';
-	$old_key    = $has_old ? $old_key    : '';
-	$old_is_pro = $has_old ? $old_is_pro : 0;
-	unset( $old_values['sanitized'] ); // Back compat'.
-	// New values.
-	$values     = ! empty( $_POST['secupress_settings'] ) && is_array( $_POST['secupress_settings'] ) ? $_POST['secupress_settings'] : array();
-	$values     = secupress_array_merge_intersect( $values, array(
-		'consumer_email' => '',
-		'consumer_key'   => '',
-	) );
-	$values['install_time'] = ! empty( $old_values['install_time'] ) ? (int) $old_values['install_time'] : time();
-	$new_email  = $values['consumer_email'] ? sanitize_email( $values['consumer_email'] )    : '';
-	$new_key    = $values['consumer_key']   ? sanitize_text_field( $values['consumer_key'] ) : '';
-	$has_new    = $new_email && $new_key;
-	$new_email  = $has_new ? $new_email : '';
-	$new_key    = $has_new ? $new_key   : '';
-	// Action.
-	$action     = $has_old && $old_is_pro ? 'deactivate' : 'activate';
+	$modules = secupress_get_modules();
+	foreach ( $modules as $key => $module ) {
 
-	if ( ! secupress_has_pro() ) {
-		// The Pro version is not activated.
-		$action = false;
-
-		if ( $has_old ) {
-			// Send the previous values back.
-			$values['consumer_email'] = $old_email;
-			$values['consumer_key']   = $old_key;
-
-			if ( $old_is_pro ) {
-				$values['site_is_pro'] = 1;
-			}
-		} else {
-			// Empty the new values.
-			unset( $values['consumer_email'], $values['consumer_key'] );
+		if ( isset( $module['with_reset_box'] ) && false === $module['with_reset_box'] ) {
+			continue;
 		}
-
-		add_settings_error( 'general', 'response_error', __( 'You must install and activate the Pro version first.', 'secupress' ) );
-	}
-	elseif ( 'deactivate' === $action ) {
-		// To deactivate, use old values.
-		$values['consumer_email'] = $old_email;
-		$values['consumer_key']   = $old_key;
-	}
-	elseif ( $has_new ) {
-		// To activate, use new values.
-		$values['consumer_email'] = $new_email;
-		$values['consumer_key']   = $new_key;
-	}
-	else {
-		// PEBCAK, new values are not good.
-		$action = false;
-
-		if ( ! $values['consumer_email'] && ! $values['consumer_key'] ) {
-			add_settings_error( 'general', 'response_error', __( 'Please provide a valid email address and your license key.', 'secupress' ) );
-		} elseif ( ! $values['consumer_email'] ) {
-			add_settings_error( 'general', 'response_error', __( 'Please provide a valid email address.', 'secupress' ) );
-		} else {
-			add_settings_error( 'general', 'response_error', __( 'Please provide your license key.', 'secupress' ) );
-		}
-
-		if ( $has_old ) {
-			// Send the previous values back.
-			$values['consumer_email'] = $old_email;
-			$values['consumer_key']   = $old_key;
-
-			if ( $old_is_pro ) {
-				$values['site_is_pro'] = 1;
-			}
-		} else {
-			// Empty the new values.
-			unset( $values['consumer_email'], $values['consumer_key'] );
-		}
+		secupress_admin_post_reset_settings_post_cb( $key, true );
 	}
 
-	if ( 'deactivate' === $action ) {
-		$values = secupress_global_settings_deactivate_pro_license( $values );
-	} else {
-		$values = secupress_global_settings_activate_pro_license( $values, $old_values );
+	secupress_add_transient_notice( __( 'All modules settings reset', 'secupress' ), 'updated', 'module-reset' );
 
-		if ( empty( $values['site_is_pro'] ) && ! get_settings_errors( 'general' ) ) {
-			add_settings_error( 'general', 'response_error', __( 'Your license key seems invalid.', 'secupress' ) );
-		}
-	}
+	wp_safe_redirect( wp_get_referer() );
+	die();
+}
 
-	// Remove previous values.
-	unset( $old_values['consumer_email'], $old_values['consumer_key'], $old_values['site_is_pro'] );
+add_action( 'wp_ajax_secupress_set_scan_speed', 'secupress_set_scan_speed_admin_post_cb' );
+/**
+ * Set scanner speed
+ *
+ * @since 1.4.4
+ * @author Julio Potier
+ **/
+function secupress_set_scan_speed_admin_post_cb() {
+	$old_value       = secupress_get_option( 'scan-speed', 0 );
+	$allowed_values  = [ 'max' => 0, 'normal' => 250, 'low' => 1000 ];
+	$_clean          = [];
+	$_clean['text']  = isset( $allowed_values[ $_GET['value'] ] ) ? $_GET['value'] : 'max';
+	$_clean['value'] = isset( $allowed_values[ $_GET['value'] ] ) ? $allowed_values[ $_GET['value'] ] : 0;
 
-	// Add other previous values.
-	$values = array_merge( $old_values, $values );
-
-	// Some cleanup.
-	if ( empty( $old_values['wl_plugin_name'] ) || 'SecuPress' === $old_values['wl_plugin_name'] ) {
-		unset( $old_values['wl_plugin_name'] );
-	}
-	if ( empty( $values['wl_plugin_name'] ) || 'SecuPress' === $values['wl_plugin_name'] ) {
-		unset( $values['wl_plugin_name'] );
-	}
-
-	// Finally, save.
-	secupress_update_options( $values );
-
-	// White Label: trick the referrer for the redirection.
-	if ( ! empty( $values['wl_plugin_name'] ) ) {
-		if ( empty( $values['site_is_pro'] ) ) {
-			// Pro deactivation.
-			$old_slug = ! empty( $old_values['wl_plugin_name'] ) ? sanitize_title( $old_values['wl_plugin_name'] ) : 'secupress';
-			$old_slug = 'page=' . $old_slug . '_settings';
-			$new_slug = 'page=secupress_settings';
-		} else {
-			// Pro activation.
-			$old_slug = 'page=secupress_settings';
-			$new_slug = 'page=' . sanitize_title( $values['wl_plugin_name'] ) . '_settings';
-		}
-
-		if ( $old_slug !== $new_slug ) {
-			$_REQUEST['_wp_http_referer'] = str_replace( $old_slug, $new_slug, wp_get_raw_referer() );
-		}
+	if ( ! isset( $_GET['_wpnonce'], $_GET['value'] ) || ! check_ajax_referer( 'secupress-set-scan-speed', '_wpnonce', false ) ) {
+		$allowed_values = array_flip( $allowed_values );
+		wp_send_json_error( [ 'val' => $old_value, 'text' => $allowed_values[ $old_value ] ] );
 	}
 
 	/**
-	 * Handle settings errors and return to settings page.
-	 */
-	// If no settings errors were registered add a general 'updated' message.
-	if ( ! get_settings_errors( 'general' ) ) {
-		if ( 'deactivate' === $action ) {
-			add_settings_error( 'general', 'settings_updated', __( 'Your license has been successfully deactivated.', 'secupress' ), 'updated' );
-		} else {
-			add_settings_error( 'general', 'settings_updated', __( 'Your license has been successfully activated.', 'secupress' ), 'updated' );
-		}
-	}
-	set_transient( 'settings_errors', get_settings_errors(), 30 );
-
-	/**
-	 * Redirect back to the settings page that was submitted.
-	 */
-	$goback = add_query_arg( 'settings-updated', 'true',  wp_get_referer() );
-	wp_redirect( esc_url_raw( $goback ) );
-	exit;
+	* Filter the milliseconds between scans.
+	*
+	* @param (int) $value Defaults values are 0, 250 (1/4 sec), 1000 (1 sec)
+	* @since 1.4.5
+	* @author Julio Potier
+	*/
+	$value = apply_filters( 'secupress.scanner.scan-speed', $_clean['value'] );
+	secupress_set_option( 'scan-speed', $value );
+	wp_send_json_success( [ 'val' => $_clean['value'], 'text' => $_clean['text'] ] );
 }
 
 
+add_action( 'wp_ajax_secupress_send_deactivation_info', 'secupress_send_deactivation_info_admin_post_cb' );
 /**
- * Call our server to activate the Pro license.
+ * Send the deactivation reason on secupress.me
  *
- * @since 1.0
- * @author Grégory Viguier
+ * @since 2.0
+ * @author Julio Potier
  *
- * @param (array) $new_values The new settings.
- * @param (array) $old_values The old settings.
- *
- * @return (array) $new_values The new settings, some values may have changed.
- */
-function secupress_global_settings_activate_pro_license( $new_values, $old_values ) {
-	$api_old_values = secupress_array_merge_intersect( $old_values, array(
-		'consumer_email' => '',
-		'consumer_key'   => '',
-		'site_is_pro'    => 0,
-		'install_time'   => 0,
-	) );
-
-	if ( $new_values['install_time'] > 1 ) {
-		$install_time = time() - $new_values['install_time'];
-	} elseif ( -1 !== $new_values['install_time'] ) {
-		$install_time = 0;
-	} else {
-		$install_time = -1;
+ * @return (string) json
+ **/
+function secupress_send_deactivation_info_admin_post_cb() {
+	if ( ! isset( $_GET['nonce'], $_GET['reason'] ) || ! wp_verify_nonce( $_GET['nonce'], 'deactivation-info' ) ) {
+		wp_send_json_error();
 	}
+	set_site_transient( 'secupress-deactivation-form', 1, HOUR_IN_SECONDS );
+	$args = [
+		'timeout'    => 0.01,
+		'blocking'   => false,
+		'body'       => esc_html( $_GET['reason'] )
+	];
+	wp_remote_post( SECUPRESS_WEB_MAIN . 'api/reason.php', $args );
+	wp_send_json_success();
+}
 
-	$url = SECUPRESS_WEB_MAIN . 'key-api/1.0/?' . http_build_query( array(
-		'sp_action'    => 'activate_pro_license',
-		'user_email'   => $new_values['consumer_email'],
-		'user_key'     => $new_values['consumer_key'],
-		'install_time' => $install_time,
-	) );
-
-	$response = wp_remote_get( $url, array( 'timeout' => 10 ) );
-
-	if ( $body = secupress_global_settings_api_request_succeeded( $response ) ) {
-		// Success!
-		$new_values['install_time'] = -1;
-		$new_values['consumer_key'] = sanitize_text_field( $body->data->user_key );
-
-		if ( ! empty( $body->data->site_is_pro ) ) {
-			$new_values['site_is_pro'] = 1;
-		} else {
-			unset( $new_values['site_is_pro'] );
-		}
-	} else {
-		// Keep old values.
-		$new_values['consumer_email'] = $api_old_values['consumer_email'];
-		$new_values['consumer_key']   = $api_old_values['consumer_key'];
-
-		if ( ! $new_values['consumer_email'] || ! $new_values['consumer_key'] ) {
-			unset( $new_values['consumer_email'], $new_values['consumer_key'], $new_values['site_is_pro'] );
-		} elseif ( $api_old_values['site_is_pro'] ) {
-			// Don't invalid the license because we couldn't reach our server or things like that.
-			$new_values['site_is_pro'] = 1;
-		} else {
-			unset( $new_values['site_is_pro'] );
-		}
+add_action( 'wp_ajax_secupress_malwareScanStatus', 'secupress_get_malwarescastatus_admin_post_cb' );
+/**
+ * Return the current scanned folders
+ *
+ * @since 2.0
+ * @author Julio Potier
+ *
+ * @return (string)
+ **/
+function secupress_get_malwarescastatus_admin_post_cb() {
+	$response                      = [];
+	if ( ! isset( $_GET['_wpnonce'] ) || ! check_ajax_referer( 'secupress_malwareScanStatus', '_wpnonce', false ) ) {
+		$response['malwareScanStatus'] = false;
+		wp_send_json_error( $response );
 	}
+	$response                      = [];
+	$response['malwareScanStatus'] = ! secupress_file_monitoring_get_instance()->is_monitoring_running();
+	$response['currentItems']      = array_map( function( $val ) { return str_replace( ABSPATH, '/', $val ); }, get_site_transient( SECUPRESS_FULL_FILETREE ) );
+	wp_send_json_success( $response );
+}
 
-	return $new_values;
+add_action( 'admin_post_secupress-regen-keys', 'secupress_regen_hash_key_admin_post_cb' );
+/**
+ * Set a new has_key, this will reset the salt keys too
+ *
+ * @since 2.0
+ * @author Julio Potier
+ **/
+function secupress_regen_hash_key_admin_post_cb() {
+	global $current_user;
+	if ( ! isset( $_GET['_wpnonce'] ) || ! check_ajax_referer( 'secupress-regen-keys', '_wpnonce', false ) ) {
+		wp_die( 'Something went wrong.' );
+	}
+	// Do not use secupress_get_option() here.
+	$options             = get_site_option( SECUPRESS_SETTINGS_SLUG );
+	$options['hash_key'] = secupress_generate_key( 64 );
+	secupress_update_options( $options );
+
+	secupress_auto_login( 'Admin_User' );
+}
+
+add_action( 'admin_post_secupress_accept_notification', 'secupress_accept_notification_admin_post_cb' );
+/**
+ * Validate the Slack Notification
+ *
+ * @since 2.0
+ * @author Julio Potier
+ *
+ **/
+function secupress_accept_notification_admin_post_cb() {
+	if ( ! isset( $_GET['_wpnonce'], $_GET['type'] ) || ! check_ajax_referer( 'secupress_accept_notification-type-' . $_GET['type'] ) ) {
+		wp_die( 'Something went wrong.' );
+	}
+	secupress_set_option( 'notification-types_' . $_GET['type'], secupress_get_module_option( 'notification-types_slack', false, 'alerts' ) ); // WPCS: XSS Ok.
+	wp_redirect( secupress_admin_url( 'modules', 'alerts#row-notification-types_slack' ) );
+	die();
 }
 
 
+add_action( 'wp_ajax_dismiss-sp-pointer', 'secupress_dismiss_pointer_admin_post_cb' );
 /**
- * Trigger a settings error if the given API request failed.
+ * Dismiss our pointers
  *
- * @since 1.0
- * @author Grégory Viguier
+ * @since 2.0
+ * @author Julio Potier
  *
- * @param (mixed) $response The request response.
- *
- * @return (object|bool) The response body on success. False otherwise.
- */
-function secupress_global_settings_api_request_succeeded( $response ) {
+ * @return (string) JSON
+ **/
+function secupress_dismiss_pointer_admin_post_cb( $_pointer = '' ) {
+	$pointer = isset( $_POST['pointer'] ) ? sanitize_key( $_POST['pointer'] ) : $_pointer;
 
-	if ( is_wp_error( $response ) ) {
-		// The request couldn't be sent.
-		add_settings_error( 'general', 'request_error', __( 'Something on your website is preventing the request to be sent.', 'secupress' ) );
-		return false;
+	if ( ! $_pointer && ( ! $pointer || ! check_ajax_referer( 'dismiss-pointer_' . $pointer, '_ajaxnonce', false ) ) ) {
+		wp_send_json_error();
 	}
 
-	if ( 200 !== wp_remote_retrieve_response_code( $response ) ) {
-		// The server couldn't be reached. Maybe a server error or something.
-		add_settings_error( 'general', 'server_error', __( 'Our server is not accessible at the moment, please try again later.', 'secupress' ) );
-		return false;
+	$dismissed = array_filter( explode( ',', (string) get_user_meta( get_current_user_id(), 'dismissed_wp_pointers', true ) ) );
+
+	if ( ! $_pointer && in_array( $pointer, $dismissed, true ) ) {
+		wp_send_json_error();
 	}
 
-	$body = wp_remote_retrieve_body( $response );
-	$body = @json_decode( $body );
+	$dismissed[] = $pointer;
+	$dismissed   = implode( ',', $dismissed );
 
-	if ( ! is_object( $body ) ) {
-		// The response is not a json.
-		add_settings_error( 'general', 'server_bad_response', __( 'Our server returned an unexpected response and might be in error, please try again later or contact our support team.', 'secupress' ) );
-		return false;
+	update_user_meta( get_current_user_id(), 'dismissed_wp_pointers', $dismissed );
+	if ( ! $_pointer ) {
+		wp_send_json_success();
 	}
-
-	if ( empty( $body->success ) ) {
-		// The response is an error.
-		if ( ! empty( $body->data->code ) && 'invalid_api_credential' === $body->data->code ) {
-
-			add_settings_error( 'general', 'response_error', __( 'There is a problem with your license key, please contact our support team.', 'secupress' ) );
-
-		} elseif ( ! empty( $body->data->code ) && 'invalid_email' === $body->data->code ) {
-
-			add_settings_error( 'general', 'response_error', __( 'The email address is invalid.', 'secupress' ) );
-
-		} elseif ( ! empty( $body->data->code ) && 'invalid_customer' === $body->data->code ) {
-
-			add_settings_error( 'general', 'response_error', __( 'This email address is not in our database.', 'secupress' ) );
-
-		} elseif ( ! empty( $body->data->code ) && 'no_activations_left' === $body->data->code ) {
-
-			add_settings_error( 'general', 'response_error', __( 'You\'ve used as many as your license allows, you may want to upgrade your license to add more sites.', 'secupress' ) );
-
-		} else {
-			add_settings_error( 'general', 'response_error', __( 'Something may be wrong with your license, please take a look at your account or contact our support team.', 'secupress' ) );
-		}
-
-		return false;
-	}
-
-	return $body;
-}
-
-
-/**
- * Call our server to deactivate the Pro license.
- *
- * @since 1.1.4
- * @author Grégory Viguier
- *
- * @param (array) $new_values The new settings.
- *
- * @return (array) $new_values The new settings, the email and the key have been removed.
- */
-function secupress_global_settings_deactivate_pro_license( $new_values ) {
-
-	$url = SECUPRESS_WEB_MAIN . 'key-api/1.0/?' . http_build_query( array(
-		'sp_action'    => 'deactivate_pro_license',
-		'user_email'   => $new_values['consumer_email'],
-		'user_key'     => $new_values['consumer_key'],
-	) );
-
-	unset( $new_values['consumer_email'], $new_values['consumer_key'] );
-
-	$response = wp_remote_get( $url, array( 'timeout' => 10 ) );
-
-	if ( is_wp_error( $response ) ) {
-		// The request couldn't be sent.
-		$message = __( 'Something on your website is preventing the request to be sent.', 'secupress' );
-		$message = secupress_global_settings_pro_license_deactivation_error_message( $message );
-		add_settings_error( 'general', 'request_error', $message );
-		return $new_values;
-	}
-
-	if ( 200 !== wp_remote_retrieve_response_code( $response ) ) {
-		// The server couldn't be reached. Maybe a server error or something.
-		$message = __( 'Our server is not accessible at the moment.', 'secupress' );
-		$message = secupress_global_settings_pro_license_deactivation_error_message( $message );
-		add_settings_error( 'general', 'server_error', $message );
-		return $new_values;
-	}
-
-	$body = wp_remote_retrieve_body( $response );
-	$body = @json_decode( $body );
-
-	if ( ! is_object( $body ) ) {
-		// The response is not a json.
-		$message = __( 'Our server returned an unexpected response and might be in error.', 'secupress' );
-		$message = secupress_global_settings_pro_license_deactivation_error_message( $message );
-		add_settings_error( 'general', 'server_bad_response', $message );
-		return $new_values;
-	}
-
-	if ( empty( $body->success ) ) {
-		// Didn't succeed.
-		$message = __( 'Our server returned an error.', 'secupress' );
-		$message = secupress_global_settings_pro_license_deactivation_error_message( $message );
-		add_settings_error( 'general', 'response_error', $message );
-	}
-
-	return $new_values;
-}
-
-
-/**
- * Given a message, add a sentense to it with a link to the user account on our website.
- *
- * @since 1.1.4
- * @author Grégory Viguier
- *
- * @param (string) $message The message with a link to our website appended.
- */
-function secupress_global_settings_pro_license_deactivation_error_message( $message ) {
-	if ( secupress_is_white_label() ) {
-		// White-labelled, don't add a link to our website.
-		return $message;
-	}
-
-	/** Translators: this is the slug (part of the URL) of the account page on secupress.me, like in https://secupress.me/account/, it must not be translated if the page doesn't exist. */
-	$secupress_message = esc_url( SECUPRESS_WEB_MAIN . _x( 'account', 'URL slug', 'secupress' ) . '/' );
-	$secupress_message = sprintf(
-		/** Translators: %s is a link to the "SecuPress account". */
-		__( 'Please deactivate this site from your %s (the "Manage Sites" link in your license details).', 'secupress' ),
-		'<a target="_blank" href="' . $secupress_message . '">' . __( 'SecuPress account', 'secupress' ) . '</a>'
-	);
-
-	if ( is_rtl() ) {
-		$message = $secupress_message . ' ' . $message;
-	} else {
-		$message .= ' ' . $secupress_message;
-	}
-
-	return $message;
 }

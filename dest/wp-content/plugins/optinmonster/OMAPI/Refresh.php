@@ -7,153 +7,271 @@
  * @package OMAPI
  * @author  Thomas Griffin
  */
+
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Refresh class.
+ *
+ * @since 1.0.0
+ */
 class OMAPI_Refresh {
 
 	/**
-     * Holds the class object.
-     *
-     * @since 1.0.0
-     *
-     * @var object
-     */
-    public static $instance;
+	 * Holds the class object.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var object
+	 */
+	public static $instance;
 
 	/**
-     * Path to the file.
-     *
-     * @since 1.0.0
-     *
-     * @var string
-     */
-    public $file = __FILE__;
+	 * Path to the file.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var string
+	 */
+	public $file = __FILE__;
 
-    /**
-     * Holds the base class object.
-     *
-     * @since 1.0.0
-     *
-     * @var object
-     */
-    public $base;
+	/**
+	 * Holds the base class object.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var object
+	 */
+	public $base;
 
-    /**
-     * Primary class constructor.
-     *
-     * @since 1.0.0
-     */
-    public function __construct() {
+	/**
+	 * Arguments for the API requests.
+	 *
+	 * @since 1.6.5
+	 *
+	 * @var array
+	 */
+	protected $api_args = array(
+		'limit'  => 100,
+		'status' => 'all',
+	);
 
-	    // Set our object.
-	    $this->set();
+	/**
+	 * OMAPI_Api object
+	 *
+	 * @var null|OMAPI_Api
+	 */
+	public $api = null;
 
-		// Possibly refresh optins.
-		$this->maybe_refresh();
+	/**
+	 * WP_Error object if refresh fails.
+	 *
+	 * @var null|WP_Error
+	 */
+	public $error = null;
 
-    }
+	/**
+	 * Primary class constructor.
+	 *
+	 * @since 1.0.0
+	 */
+	public function __construct() {
 
-    /**
-     * Sets our object instance and base class instance.
-     *
-     * @since 1.0.0
-     */
-    public function set() {
+		// Set our object.
+		$this->set();
+	}
 
-        self::$instance = $this;
-        $this->base 	= OMAPI::get_instance();
-        $this->view     = isset( $_GET['optin_monster_api_view'] ) ? stripslashes( $_GET['optin_monster_api_view'] ) : $this->base->get_view();
+	/**
+	 * Sets our object instance and base class instance.
+	 *
+	 * @since 1.0.0
+	 */
+	public function set() {
+		self::$instance = $this;
+		$this->base     = OMAPI::get_instance();
+	}
 
-    }
+	/**
+	 * Refresh the optins.
+	 *
+	 * @since  1.0.0
+	 *
+	 * @param  string $api_key API key.
+	 *
+	 * @return WP_Error|bool True if successful.
+	 */
+	public function refresh( $api_key = null ) {
+		$this->api = OMAPI_Api::build( 'v1', 'optins', 'GET', $api_key ? array( 'apikey' => $api_key ) : $api_key );
+		$args      = $this->setup_api( $api_key, $this->api_args );
 
-    /**
-     * Maybe refresh optins if the action has been requested.
-     *
-     * @since 1.0.0
-     */
-    public function maybe_refresh() {
+		$results = array();
+		$body    = $this->api->request( $args );
 
-	    // If we are missing our save action, return early.
-	    if ( empty( $_POST['omapi_refresh'] ) ) {
-		    return;
-	    }
+		// Loop through paginated requests until we have fetched all the campaigns.
+		while ( ! is_wp_error( $body ) || empty( $body ) ) {
+			$limit       = absint( wp_remote_retrieve_header( $this->api->response, 'limit' ) );
+			$page        = absint( wp_remote_retrieve_header( $this->api->response, 'page' ) );
+			$total       = absint( wp_remote_retrieve_header( $this->api->response, 'total' ) );
+			$total_pages = ceil( $total / $limit );
+			$results     = array_merge( $results, (array) $body );
 
-	    // Verify the nonce field.
-	    check_admin_referer( 'omapi_nonce_' . $this->view, 'omapi_nonce_' . $this->view );
-
-	    // Refresh the optins.
-	    $this->refresh();
-
-	    // Provide action to refresh optins.
-	    do_action( 'optin_monster_api_refresh_optins', $this->view );
-
-    }
-
-    /**
-     * Refresh the optins.
-     *
-     * @since 1.0.0
-     */
-    public function refresh() {
-
-		$creds = $this->base->get_api_credentials();
-
-		// Check if we have the new API and if so only use it
-        if ( $creds['apikey'] ){
-            $api   = new OMAPI_Api('optins', array( 'apikey' => $creds['apikey']), 'GET' );
-        } else {
-            $api   = new OMAPI_Api( 'optins', array( 'user' => $creds['user'], 'key' => $creds['key'] ), 'GET' );
-        }
-
-		$ret   = $api->request();
-		if ( is_wp_error( $ret ) ) {
-			// If no optins available, make sure they get deleted.
-			if ( 'optins' == $ret->get_error_code() ) {
-				$this->base->save->store_optins( array() );
+			// If we've reached the end, prevent any further requests.
+			if ( $page >= $total_pages || $limit === 0 ) {
+				break;
 			}
 
-			// Set an error message.
-			$this->error = $ret->get_error_message();
-			add_action( 'optin_monster_api_messages_' . $this->view, array( $this, 'error' ) );
+			$args['page'] = $page + 1;
+
+			// Request the next page.
+			$body = $this->api->request( $args );
+		}
+
+		if ( is_wp_error( $body ) ) {
+			$this->handle_error( $body );
 		} else {
 			// Store the optin data.
-			$this->base->save->store_optins( $ret );
+			$this->base->save->store_optins( $results );
+
+			// Update our sites as well
+			$result = $this->base->sites->fetch( $api_key );
 
 			// Update the option to remove stale error messages.
-			$option = $this->base->get_option();
+			$option                = $this->base->get_option();
 			$option['is_invalid']  = false;
 			$option['is_expired']  = false;
 			$option['is_disabled'] = false;
-			update_option( 'optin_monster_api', $option );
+			$option['connected']   = time();
+			if ( is_wp_error( $result ) ) {
+				$this->error = $result;
+			} else {
+				$option = array_merge( $option, $result );
+			}
 
-			// Set a message.
-			add_action( 'optin_monster_api_messages_' . $this->view, array( $this, 'message' ) );
+			$this->base->save->update_option( $option );
 		}
 
-    }
+		return $this->error ? $this->error : true;
+	}
 
-    /**
-     * Output an error message.
-     *
-     * @since 1.0.0
-     */
-    public function error() {
+	/**
+	 * Trigger a refresh for given campaign.
+	 *
+	 * @since  1.9.10
+	 *
+	 * @param  string $campaign_id The campaign id (slug).
+	 * @param  mixed  $is_legacy   Whether campaign is legacy.
+	 *
+	 * @return WP_Error|bool True if successful.
+	 */
+	public function sync( $campaign_id, $is_legacy = false ) {
+		$time = time();
+		$path = "for-wp/{$campaign_id}?t={$time}";
+		if ( $is_legacy ) {
+			$path .= '&legacy=true';
+		}
 
-	    ?>
-	    <div class="updated error"><p><?php echo $this->error; ?></p></div>
-	    <?php
+		$this->api = OMAPI_Api::build( 'v1', $path, 'GET' );
 
-    }
+		$body = $this->api->request( $this->setup_api() );
 
-    /**
-     * Output a refresh message.
-     *
-     * @since 1.0.0
-     */
-    public function message() {
+		if ( is_wp_error( $body ) ) {
 
-	    ?>
-	    <div class="updated"><p><?php _e( 'Your optins have been refreshed successfully.', 'optin-monster-api' ); ?></p></div>
-	    <?php
+			// If campaign is gone, delete the optin.
+			if (
+				'campaign-error' === $body->get_error_code()
+				&& (string) '404' === (string) $body->get_error_data()
+			) {
+				$result = $this->base->save->delete_optin( $campaign_id, true );
+			}
 
-    }
+			$this->handle_error( $body );
+		} else {
+
+			// Store the optin data.
+			$this->base->save->add_optins( (array) $body, false );
+		}
+
+		return $this->error ? $this->error : true;
+	}
+
+	/**
+	 * Gets contextual info for API requests.
+	 *
+	 * @since  1.9.10
+	 *
+	 * @param  array $args Array of args.
+	 *
+	 * @return arry        Modified array of args.
+	 */
+	public function get_info_args( $args = array() ) {
+
+		// Set additional flags.
+		$args['wp']      = $GLOBALS['wp_version'];
+		$args['v']       = $this->base->asset_version();
+		$args['restUrl'] = esc_url_raw( get_rest_url() );
+		$args['homeUrl'] = esc_url_raw( home_url() );
+
+		if ( OMAPI::is_woocommerce_active() ) {
+			$args['wc'] = OMAPI_WooCommerce::version();
+		}
+
+		return $args;
+	}
+
+	/**
+	 * Handles setting up the API request.
+	 *
+	 * @since  1.9.10
+	 *
+	 * @param  string $api_key API key.
+	 * @param  array  $args    Array of request args.
+	 *
+	 * @return arry             Modified array of request args.
+	 */
+	protected function setup_api( $api_key = null, $args = array() ) {
+		if ( $api_key ) {
+			$this->api->set( 'apikey', $api_key );
+		}
+
+		$this->api->clear_additional_data();
+
+		// Set additional flags.
+		return $this->get_info_args( $args );
+	}
+
+	/**
+	 * Handles errors occurring during refresh.
+	 *
+	 * @since  1.9.10
+	 *
+	 * @param  WP_Error $error WP_Error object.
+	 *
+	 * @return OMAPI_Refresh
+	 */
+	protected function handle_error( $error ) {
+		switch ( $error->get_error_code() ) {
+			// If no optins available, make sure they get deleted.
+			case 'optins':
+			case 'no-campaigns-error':
+				$this->base->save->store_optins( array() );
+				break;
+
+			case 'referrer-error':
+				$api    = OMAPI_Api::instance();
+				$result = $this->base->sites->check_existing_site( $api->get_creds() );
+				if ( is_wp_error( $result ) ) {
+					$error = $result;
+				}
+				break;
+		}
+
+		// Set an error message.
+		$this->error = $error;
+
+		return $this;
+	}
 
 }

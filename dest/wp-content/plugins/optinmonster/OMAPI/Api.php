@@ -7,7 +7,25 @@
  * @package OMAPI
  * @author  Thomas Griffin
  */
+
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Api class.
+ *
+ * @since 1.0.0
+ */
 class OMAPI_Api {
+
+	/**
+	 * Holds the last instantiated instance of this class.
+	 *
+	 * @var OMAPI_Api
+	 */
+	protected static $instance = null;
 
 	/**
 	 * Base API route.
@@ -16,7 +34,7 @@ class OMAPI_Api {
 	 *
 	 * @var string
 	 */
-	public $base = 'app.optinmonster.com/v1/';
+	public $base = OPTINMONSTER_APP_URL;
 
 	/**
 	 * Current API route.
@@ -64,6 +82,15 @@ class OMAPI_Api {
 	public $key = false;
 
 	/**
+	 * New API Key.
+	 *
+	 * @since 1.3.4
+	 *
+	 * @var bool|string
+	 */
+	public $apikey = false;
+
+	/**
 	 * Plugin slug.
 	 *
 	 * @since 1.0.0
@@ -71,6 +98,15 @@ class OMAPI_Api {
 	 * @var bool|string
 	 */
 	public $plugin = false;
+
+	/**
+	 * The Api Version (v1 or v2) for this request.
+	 *
+	 * @since 1.8.0
+	 *
+	 * @var string
+	 */
+	public $version = 'v1';
 
 	/**
 	 * Additional data to add to request body
@@ -82,24 +118,84 @@ class OMAPI_Api {
 	protected $additional_data = array();
 
 	/**
+	 * The HTTP response array.
+	 *
+	 * @since 1.6.5
+	 *
+	 * @var null|array
+	 */
+	public $response = null;
+
+	/**
+	 * The HTTP response code.
+	 *
+	 * @since 1.6.5
+	 *
+	 * @var int
+	 */
+	public $response_code = 0;
+
+	/**
+	 * The parsed HTTP response body.
+	 *
+	 * @since 1.6.5
+	 *
+	 * @var mixed
+	 */
+	public $response_body = null;
+
+	/**
+	 * Builds the API Object
+	 *
+	 * @since 1.8.0
+	 *
+	 * @param string $version The Api Version (v1 or v2).
+	 * @param string $route   The Api Endpoint/route.
+	 * @param string $method  The Request method.
+	 * @param array  $creds   Array of API credentials.
+	 *
+	 * @return self
+	 */
+	public static function build( $version, $route, $method = 'POST', $creds = array() ) {
+		if ( empty( $creds ) ) {
+			$creds = OMAPI::get_instance()->get_api_credentials();
+
+			if ( ! empty( $creds ) ) {
+
+				// Check if we have the new API and if so only use it.
+				$creds = ! empty( $creds['apikey'] )
+					? array( 'apikey' => $creds['apikey'] )
+					: array(
+						'user' => ! empty( $creds['user'] ) ? $creds['user'] : '',
+						'key'  => ! empty( $creds['key'] ) ? $creds['key'] : '',
+					);
+			}
+		}
+
+		return new self( $route, $creds, $method, $version );
+	}
+
+	/**
 	 * Primary class constructor.
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string $route  The API route to target.
-	 * @param array $creds   Array of API credentials.
-	 * @param string $method The API method.
+	 * @param string $route   The API route to target.
+	 * @param array  $creds    Array of API credentials.
+	 * @param string $method  The API method.
+	 * @param string $version The version number of our API.
 	 */
-	public function __construct( $route, $creds, $method = 'POST' ) {
+	public function __construct( $route, $creds, $method = 'POST', $version = 'v1' ) {
 		// Set class properties.
-		$this->route    = $route;
-		$this->protocol = $this->is_ssl() ? 'https://' : 'http://';
-		$this->url      = $this->protocol . $this->base . $this->route . '/';
-		$this->method   = $method;
-		$this->user     = ! empty( $creds['user'] ) ? $creds['user'] : '';
-		$this->key      = ! empty( $creds['key'] ) ? $creds['key'] : '';
-		$this->apikey   = ! empty( $creds['apikey'] ) ? $creds['apikey'] : '';
-		$this->plugin   = OMAPI::get_instance()->plugin_slug;
+		$this->route   = $route;
+		$this->version = $version;
+		$this->method  = $method;
+		$this->user    = ! empty( $creds['user'] ) ? $creds['user'] : '';
+		$this->key     = ! empty( $creds['key'] ) ? $creds['key'] : '';
+		$this->apikey  = ! empty( $creds['apikey'] ) ? $creds['apikey'] : '';
+		$this->plugin  = OMAPI::get_instance()->plugin_slug;
+
+		self::$instance = $this;
 	}
 
 	/**
@@ -107,17 +203,20 @@ class OMAPI_Api {
 	 *
 	 * @since 1.0.0
 	 *
+	 * @param array $args Request args.
+	 *
 	 * @return mixed $value The response to the API call.
 	 */
-	public function request() {
+	public function request( $args = array() ) {
 		// Build the body of the request.
 		$body = array(
 			'omapi-user' => $this->user,
-			'omapi-key'  => $this->key
+			'omapi-key'  => $this->key,
 		);
+		$body = array_filter( $body );
 
 		// If a plugin API request, add the data.
-		if ( 'info' == $this->route || 'update' == $this->route ) {
+		if ( 'info' === $this->route || 'update' === $this->route ) {
 			$body['omapi-plugin'] = $this->plugin;
 		}
 
@@ -126,50 +225,88 @@ class OMAPI_Api {
 			$body['omapi-data'] = maybe_serialize( $this->additional_data );
 		}
 
-		$string = http_build_query( $body, '', '&' );
+		$body = wp_parse_args( $args, $body );
+		$url  = in_array( $this->method, array( 'GET', 'DELETE' ), true )
+			? add_query_arg( array_map( 'urlencode', $body ), $this->get_url() )
+			: $this->get_url();
+
+		$url = esc_url_raw( $url );
 
 		// Build the headers of the request.
 		$headers = array(
-			'Content-Type'          => 'application/x-www-form-urlencoded',
-			'Cache-Control'         => 'no-store, no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0',
-			'Pragma'		        => 'no-cache',
-			'Expires'		        => 0,
-			'OMAPI-Referer'         => site_url(),
-			'OMAPI-Sender'          => 'WordPress',
+			'Content-Type'  => 'application/x-www-form-urlencoded',
+			'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0',
+			'Pragma'        => 'no-cache',
+			'Expires'       => 0,
+			'Origin'        => site_url(),
+			'OMAPI-Referer' => site_url(),
+			'OMAPI-Sender'  => 'WordPress',
+			'OMAPI-Site'    => esc_attr( get_option( 'blogname' ) ),
 		);
 
 		if ( $this->apikey ) {
 			$headers['X-OptinMonster-ApiKey'] = $this->apikey;
 		}
-
 		// Setup data to be sent to the API.
 		$data = array(
 			'headers'   => $headers,
 			'body'      => $body,
 			'timeout'   => 3000,
-			'sslverify' => false
+			'sslverify' => false,
+			'method'    => $this->method,
 		);
 
 		// Perform the query and retrieve the response.
-		$response      = 'GET' == $this->method ? wp_remote_get( esc_url_raw( $this->url ) . '?' . $string, $data ) : wp_remote_post( esc_url_raw( $this->url ), $data );
-		$response_code = wp_remote_retrieve_response_code( $response );
-		$response_body = json_decode( wp_remote_retrieve_body( $response ) );
-		//return new WP_Error( 'debug', '<pre>' . var_export( $response, true ) . '</pre>' );
+		$this->response = wp_remote_request( $url, $data );
 
 		// Bail out early if there are any errors.
-		if ( is_wp_error( $response_body ) ) {
-			return $response_body;
+		if ( is_wp_error( $this->response ) ) {
+			return $this->response;
 		}
 
+		// Get the response code and response body.
+		$this->response_code = wp_remote_retrieve_response_code( $this->response );
+		$this->response_body = json_decode( wp_remote_retrieve_body( $this->response ) );
+
+		// If we used the legacy api-creds, we'll get back a new api key.
+		if (
+			empty( $this->apikey )
+			&& ! empty( $this->response['headers']['x-optinmonster-apikey'] )
+		) {
+			$this->apikey = sanitize_text_field( $this->response['headers']['x-optinmonster-apikey'] );
+		}
+
+		// Get the correct success response code to check against.
+		$success_code = 'DELETE' === $this->method ? 204 : 200;
+
 		// If not a 200 status header, send back error.
-		if ( 200 != $response_code ) {
-			$type  = ! empty( $response_body->type ) ? $response_body->type : 'api-error';
-			$error = ! empty( $response_body->error ) ? stripslashes( $response_body->message ) : '';
-			return new WP_Error( $type, sprintf( __( 'The API returned a <strong>%s</strong> response with this message: <strong>%s</strong>', 'optin-monster-api' ), $response_code, $error ) );
+		if ( (int) $success_code !== (int) $this->response_code ) {
+			$type  = ! empty( $this->response_body->type ) ? $this->response_body->type : 'api-error';
+			$error = ! empty( $this->response_body->message ) ? stripslashes( $this->response_body->message ) : '';
+			if ( empty( $error ) ) {
+				$error = ! empty( $this->response_body->status_message ) ? stripslashes( $this->response_body->status_message ) : '';
+			}
+			if ( empty( $error ) ) {
+				$error = ! empty( $this->response_body->error ) ? stripslashes( $this->response_body->error ) : 'unknown';
+			}
+
+			/* translators: %1$s - API response code, %2$s - returned error from API. */
+			return new WP_Error( $type, sprintf( __( 'The API returned a <strong>%1$s</strong> response with this message: <strong>%2$s</strong>', 'optin-monster-api' ), $this->response_code, $error ), $this->response_code );
 		}
 
 		// Return the json decoded content.
-		return $response_body;
+		return $this->response_body;
+	}
+
+	/**
+	 * The gets the URL based on our base, endpoint and version
+	 *
+	 * @since 1.8.0
+	 *
+	 * @return string The API url.
+	 */
+	public function get_url() {
+		return $this->base . '/' . $this->version . '/' . $this->route;
 	}
 
 	/**
@@ -190,33 +327,116 @@ class OMAPI_Api {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param array $data
-	 * return void
+	 * @param array $data The data to set.
+	 *
+	 * @return void
 	 */
 	public function set_additional_data( array $data ) {
 		$this->additional_data = array_merge( $this->additional_data, $data );
 	}
 
 	/**
-	 * Checks for SSL for making API requests.
+	 * Clear additional data
 	 *
-	 * @since 1.0.0
+	 * @since 1.9.0
 	 *
-	 * return bool True if SSL is enabled, false otherwise.
+	 * return void
 	 */
-	public function is_ssl() {
-		// Use the base is_ssl check first.
-		if ( is_ssl() ) {
-			return true;
-		} else if ( isset( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) && 'https' == $_SERVER['HTTP_X_FORWARDED_PROTO'] ) {
-			// Also catch proxies and load balancers.
-			return true;
-		} else if ( defined( 'FORCE_SSL_ADMIN' ) && FORCE_SSL_ADMIN ) {
-			return true;
+	public function clear_additional_data() {
+		$this->additional_data = null;
+
+		return $this;
+	}
+
+	/**
+	 * Get the request credentials for this API object.
+	 *
+	 * @since 2.3.0
+	 *
+	 * @return array Array containing API credentials.
+	 */
+	public function get_creds() {
+		return ! empty( $this->apikey )
+			? array( 'apikey' => $this->apikey )
+			: array(
+				'user' => $this->user,
+				'key'  => $this->key,
+			);
+	}
+
+	/**
+	 * Returns the last instantiated instance of this class.
+	 *
+	 * @since 1.9.10
+	 *
+	 * @return  A single instance of this class.
+	 */
+	public static function instance() {
+		return self::$instance;
+	}
+
+	/**
+	 * Fetch from the OM /me route, and store data to our options.
+	 *
+	 * @since  2.0.0
+	 *
+	 * @param  array $option Existing options array.
+	 * @param  array $creds  Existing credentials array.
+	 *
+	 * @return array           Updated options array.
+	 */
+	public static function fetch_me( $option = array(), $creds = array() ) {
+		$api    = self::build( 'v2', 'me', 'GET', $creds );
+		$result = $api->request();
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
 		}
 
-		// Otherwise, return false.
-		return false;
+		$update = empty( $option );
+		if ( $update ) {
+			$option = OMAPI::get_instance()->get_option();
+		}
+
+		// Make sure to set the new api key, if we have it.
+		if ( empty( $option['api']['apikey'] ) && ! empty( $api->apikey ) ) {
+			$option['api'] = array( 'apikey' => $api->apikey );
+
+			if ( $api->user && $api->key ) {
+
+				// Notifiy user of credentials replacement.
+				OMAPI::get_instance()->notifications->add_event(
+					array(
+						'type'    => 'success',
+						'title'   => 'Your API Access Credentials have been updated',
+						'content' => 'We have automatically replaced your deprecated user/key OptinMonster connection credentials with a new API key.',
+						'btns'    => array(
+							'main' => array(
+								'text' => 'Manage API Keys',
+								'url'  => esc_url_raw( OPTINMONSTER_APP_URL . '/account/api/' ),
+							),
+						),
+					)
+				);
+			}
+		}
+
+		if ( isset( $result->id ) ) {
+			$option['userId'] = $result->id;
+		}
+
+		$to_store = array( 'accountId', 'currentLevel', 'plan' );
+		foreach ( $to_store as $key ) {
+			if ( isset( $result->{$key} ) ) {
+				$option[ $key ] = $result->{$key};
+			}
+		}
+
+		if ( $update ) {
+			OMAPI::get_instance()->save->update_option( $option, $creds );
+		}
+
+		return $option;
 	}
 
 }

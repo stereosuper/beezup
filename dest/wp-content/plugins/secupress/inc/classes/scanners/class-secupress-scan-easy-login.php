@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /**
  * Easy Login scan class.
@@ -17,7 +17,7 @@ class SecuPress_Scan_Easy_Login extends SecuPress_Scan implements SecuPress_Scan
 	 *
 	 * @var (string)
 	 */
-	const VERSION = '1.0.1';
+	const VERSION = '1.2';
 
 
 	/** Properties. ============================================================================= */
@@ -67,7 +67,7 @@ class SecuPress_Scan_Easy_Login extends SecuPress_Scan implements SecuPress_Scan
 	public static function get_messages( $message_id = null ) {
 		$messages = array(
 			// "good"
-			0   => __( 'The login page seems to be protected by double authentication.', 'secupress' ),
+			0   => __( 'The login page is protected by double authentication with %s.', 'secupress' ),
 			1   => __( 'The <strong>PasswordLess Double Authentication</strong> module has been activated for every role. Users will receive an email to log-in now.', 'secupress' ),
 			// "bad"
 			200 => __( 'Your login system is <strong>not strong enough</strong>, you need a <strong>double authentication system</strong>.', 'secupress' ),
@@ -92,7 +92,7 @@ class SecuPress_Scan_Easy_Login extends SecuPress_Scan implements SecuPress_Scan
 	 * @return (string)
 	 */
 	public static function get_docs_url() {
-		return __( 'http://docs.secupress.me/article/128-two-factor-authentication-scan', 'secupress' );
+		return __( 'https://docs.secupress.me/article/128-two-factor-authentication-scan', 'secupress' );
 	}
 
 
@@ -106,7 +106,24 @@ class SecuPress_Scan_Easy_Login extends SecuPress_Scan implements SecuPress_Scan
 	 * @return (array) The scan results.
 	 */
 	public function scan() {
-		$activated = secupress_is_submodule_active( 'users-login', 'passwordless' );
+
+		$activated = $this->filter_scanner( __CLASS__ );
+		if ( true === $activated ) {
+			$this->add_message( 0 );
+			return parent::scan();
+		}
+
+		$activated = secupress_is_submodule_active( 'users-login', 'passwordless' ) ? 'PasswordLess' : false;
+
+		/**
+		 * Overwrite the activated bool to force a good information
+		 *
+		 * @since 1.4
+		 *
+		 * @param (bool|string) False if not activated, string containing the plugin/system name than activate the feature
+		 */
+
+		$activated = apply_filters( 'secupress.scan.' . __CLASS__ . '.activated', $activated );
 
 		if ( ! $activated ) {
 			// "bad"
@@ -114,7 +131,7 @@ class SecuPress_Scan_Easy_Login extends SecuPress_Scan implements SecuPress_Scan
 			$this->add_pre_fix_message( 201 );
 		} else {
 			// "good"
-			$this->add_message( 0 );
+			$this->add_message( 0, array( '<strong>' . $activated . '</strong>' ) );
 		}
 
 		return parent::scan();
@@ -122,6 +139,44 @@ class SecuPress_Scan_Easy_Login extends SecuPress_Scan implements SecuPress_Scan
 
 
 	/** Fix. ==================================================================================== */
+
+	/**
+	 * Try to fix the flaw(s).
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function need_manual_fix() {
+		return [ 'fix' => 'fix' ];
+	}
+
+	/**
+	 * Get an array containing ALL the forms that would fix the scan if it requires user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) An array of HTML templates (form contents most of the time).
+	 */
+	protected function get_fix_action_template_parts() {
+		return [ 'fix' => '&nbsp;' ];
+	}
+
+	/**
+	 * Try to fix the flaw(s) after requiring user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function manual_fix() {
+		if ( $this->has_fix_action_part( 'fix' ) ) {
+			$this->fix();
+		}
+		// "good"
+		$this->add_fix_message( 1 );
+		return parent::manual_fix();
+	}
 
 	/**
 	 * Try to fix the flaw(s).

@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 // Keep only scans with "bad" status.
 $this_step_scans  = $bad_scans;	// `array( $class_name_part_lower => $status )`
@@ -33,7 +33,7 @@ foreach ( $secupress_tests as $module_name => $class_name_parts ) {
 		$is_fixable       = $current_test->is_fixable();
 
 		// Remove those that are not fixable automatically.
-		if ( false === $is_fixable || is_array( $current_test->need_manual_fix() ) ) {
+		if ( false === $is_fixable ) {
 			unset( $secupress_tests[ $module_name ][ $class_name_part_lower ] );
 		}
 		// Tell if the module has fixable items.
@@ -67,25 +67,53 @@ if ( ! $secupress_tests ) {
 <div class="secupress-step-content-header secupress-flex secupress-flex-spaced">
 	<?php
 	$has_fixes   = (bool) array_filter( $fixable_modules );
-	$main_button =
+	if ( $secupress_is_pro ) {
+		$main_button =
 		'<button class="secupress-button secupress-button-tertiary secupress-button-autofix shadow' . ( $has_fixes ? '' : ' hidden' ) . '" type="button">
 			<span class="icon">
 				<i class="secupress-icon-wrench" aria-hidden="true"></i>
 			</span>
 			<span class="text">' . __( 'Fix it', 'secupress' ) . '</span>
-		</button>
-		<a href="' . esc_url( secupress_admin_url( 'scanners' ) ) . '&amp;step=3" class="secupress-button shadow light' . ( $has_fixes ? ' hidden' : '' ) . '">
+		</button>';
+	} else {
+		$main_button =
+		'
+		<a href="' . esc_url( secupress_admin_url( 'scanners' ) ) . '&amp;step=3" class="secupress-button secupress-button-tertiary shadow">
+			<span class="icon">
+				<i class="secupress-icon-wrench" aria-hidden="true"></i>
+			</span>
+			<span class="text">' . __( 'Next step', 'secupress' ) . '</span>
+		</a>';
+	}
+	$main_button .=
+		'<a href="' . esc_url( secupress_admin_url( 'scanners' ) ) . '&amp;step=3" class="secupress-button shadow light' . ( $has_fixes ? ' hidden' : '' ) . '">
 			<span class="icon">
 				<i class="secupress-icon-cross" aria-hidden="true"></i>
 			</span>
 			<span class="text">' . __( 'Ignore this step', 'secupress' ) . '</span>
 		</a>';
+	if ( ! $secupress_is_pro ) {
 	?>
-
+	<span><?php // Flex col placeholder. ?></span>
+	<div class="secupress-step-content-header secupress-flex secupress-flex-spaced">
+		<p class="secupress-step-title"> </p>
+		<p class="secupress-flex">
+			<a href="<?php echo esc_url( secupress_admin_url( 'scanners' ) ); ?>&amp;step=3" class="secupress-button secupress-button-tertiary shadow">
+				<span class="icon">
+					<i class="secupress-icon-wrench" aria-hidden="true"></i>
+				</span>
+				<span class="text"><?php _e( 'Next step', 'secupress' ); ?></span>
+			</a>
+		</p>
+	</div>
+	<?php
+	} else {
+	?>
 	<p class="secupress-step-title"><?php _e( 'Only checked items will be automatically fixed', 'secupress' ); ?></p>
 	<p>
 		<?php echo $main_button; ?>
 	</p>
+<?php } ?>
 </div>
 
 <div id="secupress-tests" class="secupress-tests">
@@ -108,7 +136,7 @@ if ( ! $secupress_tests ) {
 				</div>
 
 				<div class="secupress-sgh-actions secupress-flex">
-					<?php if ( $fixable_modules[ $module_name ] ) : ?>
+					<?php if ( $fixable_modules[ $module_name ] && $secupress_is_pro ) : ?>
 						<label class="text hide-if-no-js" for="secupress-toggle-check-<?php echo $module_name; ?>">
 							<span class="label-before-text"><?php _e( 'Toggle group check', 'secupress' ); ?></span>
 							<input type="checkbox" id="secupress-toggle-check-<?php echo $module_name; ?>" class="secupress-checkbox secupress-toggle-check" checked="checked"/>
@@ -118,6 +146,14 @@ if ( ! $secupress_tests ) {
 				</div>
 
 			</div><!-- .secupress-sg-header -->
+
+			<?php if ( ! secupress_is_pro() ) { ?>
+			<div class="secupress-get-pro-version-div">
+				<span class="secupress-get-pro-version">
+					<?php printf( __( 'The <a href="%s" target="_blank">Pro Version</a> is required to autofix issues, fix it manually on next step.', 'secupress' ), esc_url( secupress_admin_url( 'get-pro' ) ) ); ?>
+				</span>
+			</div>
+			<?php } ?>
 
 			<div id="secupress-group-content-<?php echo $module_name; ?>" class="secupress-sg-content">
 				<?php
@@ -140,6 +176,7 @@ if ( ! $secupress_tests ) {
 					$row_css_class  = 'secupress-item-' . $class_name_part;
 					$row_css_class .= ' status-' . sanitize_html_class( $scan_status );
 					$row_css_class .= $needs_pro ? ' secupress-only-pro not-fixable' : '';
+					$row_css_class .= ! secupress_is_pro() ? ' disabled' : '';
 					?>
 					<div class="secupress-item-all <?php echo $row_css_class; ?>" id="<?php echo $class_name_part; ?>" data-scan-url="<?php echo esc_url( $scan_nonce_url ); ?>">
 						<div class="secupress-flex">
@@ -156,13 +193,15 @@ if ( ! $secupress_tests ) {
 									// It is fixable with the pro version but the free version is used.
 									?>
 									<span class="secupress-get-pro-version">
-										<?php printf( __( 'Available in <a href="%s" target="_blank">Pro Version</a>', 'secupress' ), esc_url( secupress_admin_url( 'get_pro' ) ) ); ?>
+										<?php printf( __( 'This feature and its fix are available in <a href="%s" target="_blank">Pro Version</a>', 'secupress' ), esc_url( secupress_admin_url( 'get-pro' ) ) ); ?>
 									</span>
 									<?php
 								} else {
 									// It can be fixed.
+									if ( $secupress_is_pro ) {
 									?>
 									<input type="checkbox" id="secupress-item-<?php echo $class_name_part; ?>" class="secupress-checkbox secupress-row-check hide-if-no-js" checked="checked"/>
+									<?php } ?>
 									<label for="secupress-item-<?php echo $class_name_part; ?>" class="label-text hide-if-no-js">
 										<span class="screen-reader-text"><?php _e( 'Auto-fix this item', 'secupress' ); ?></span>
 									</label>
@@ -201,15 +240,15 @@ if ( ! $secupress_tests ) {
 <div id="secupress-spinner" class="secupress-scans-group secupress-group-spinner hidden" aria-hidden="true">
 	<div class="secupress-sg-header">
 		<div class="secupress-sgh-name">
-			<p class="secupress-sgh-title"><?php esc_html_e( 'Currently fixing…', 'secupress' ); ?></p>
-			<p class="secupress-sgh-description"><?php esc_html_e( 'Please wait until fixing is complete.', 'secupress' ); ?></p>
+			<p class="secupress-sgh-title"><?php esc_html_e( 'Currently fixing&hellip;', 'secupress' ); ?></p>
+			<p class="secupress-sgh-description"><?php esc_html_e( 'Please grab a cup of water, open a book and just wait a few minutes.', 'secupress' ); ?></p>
 		</div>
 	</div>
 	<div class="secupress-spinner-content secupress-text-center secupress-p3">
 
 		<img class="secupress-big-spinner secupress-mb1" src="<?php echo SECUPRESS_ADMIN_IMAGES_URL; ?>spinner-big.png" srcset="<?php echo SECUPRESS_ADMIN_IMAGES_URL; ?>spinner-big2x.png 2x" alt="<?php esc_attr_e( 'Fixing…', 'secupress' ); ?>" width="128" height="128">
 
-		<p class="secupress-text-basup"><?php _e( 'You’ll be automatically redirected to the next step,<br>please don’t close this window.', 'secupress' ); ?></p>
+		<p class="secupress-text-basup"><?php _e( 'You’ll be automatically redirected to the next step,<br>if you are not within 5 minutes, please reload the page or ignore this step.', 'secupress' ); ?></p>
 
 	</div>
 </div>

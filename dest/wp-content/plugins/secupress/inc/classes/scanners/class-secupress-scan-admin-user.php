@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /**
  * Admin User scan class.
@@ -98,7 +98,7 @@ class SecuPress_Scan_Admin_User extends SecuPress_Scan implements SecuPress_Scan
 	 * @return (string)
 	 */
 	public static function get_docs_url() {
-		return __( 'http://docs.secupress.me/article/132-admin-user-account-scan', 'secupress' );
+		return __( 'https://docs.secupress.me/article/132-admin-user-account-scan', 'secupress' );
 	}
 
 
@@ -112,12 +112,20 @@ class SecuPress_Scan_Admin_User extends SecuPress_Scan implements SecuPress_Scan
 	 * @return (array) The scan results.
 	 */
 	public function scan() {
+
+		$username = 'admin';
+
+		$activated = $this->filter_scanner( __CLASS__ );
+		if ( true === $activated ) {
+			$this->add_message( 0, array( '<em>' . $username . '</em>' ) );
+			return parent::scan();
+		}
+
 		if ( secupress_get_site_transient( 'secupress-rename-admin-username' ) ) {
 			$this->add_message( 100 );
 			return parent::scan();
 		}
 
-		$username = 'admin';
 		$user_id  = username_exists( $username );
 
 		// The "admin" account exists and has a role or capabilities: it should have no role.

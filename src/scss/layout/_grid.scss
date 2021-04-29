@@ -1,40 +1,40 @@
 /* Grid */
 
-.wrapper{
+.wrapper {
     overflow: hidden;
 }
 
-.main{
+.main {
     padding: 3.5em 0 6em;
 }
 
-.container{
+.container {
     max-width: 1210px;
-    padding: 0 $gutter*2;
+    padding: 0 $gutter * 2;
     margin: 0 auto;
 }
 
-.container-medium{
+.container-medium {
     max-width: 1010px;
-    padding: 0 $gutter*2;
+    padding: 0 $gutter * 2;
     margin: 0 auto;
 }
 
-.container-small{
-    max-width: 810px;
-    padding: 0 $gutter*2;
+.container-small {
+    //max-width: 810px;
+    max-width: 950px;
+    padding: 0 $gutter * 2;
     margin: 0 auto;
 }
 
-
-@media (max-width: $desktop-small){
-    .main{
+@media (max-width: $desktop-small) {
+    .main {
         padding: 4em 0 2em;
     }
 }
 
-@media (max-width: $phone){
-    .main{
+@media (max-width: $phone) {
+    .main {
         padding: 3em 0 2em;
     }
 }

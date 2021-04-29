@@ -63,7 +63,7 @@
 					<p class="secupress-item-title"><?php echo $scan_message; ?></p>
 
 					<p class="secupress-row-actions">
-						<a class="secupress-button secupress-button-mini secupress-scanit hide-if-js" href="<?php echo esc_url( $scan_nonce_url ); ?>">
+						<a class="secupress-button secupress-button-mini secupress-scanit light hide-if-js" href="<?php echo esc_url( $scan_nonce_url ); ?>">
 							<span class="icon" aria-hidden="true">
 								<i class="secupress-icon-refresh"></i>
 							</span>
@@ -79,6 +79,7 @@
 						 * data-target instead of data-test
 						 * data-target === .secupress-item-details' ID
 						 */
+						if ( apply_filters( 'secupress.settings.help', true ) ) {
 						?>
 						<button data-trigger="slidetoggle" data-target="details-<?php echo $class_name_part; ?>" class="secupress-details link-like hide-if-no-js" type="button">
 							<span class="secupress-toggle-button">
@@ -94,6 +95,7 @@
 								<span class="text"><?php _e( 'Close' ); ?></span>
 							</span>
 						</button>
+						<?php } ?>
 					</p>
 				</div><!-- .secupress-flex -->
 

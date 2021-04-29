@@ -1,101 +1,125 @@
 /* Footer */
 
-.footer{
-    h3{
+.footer {
+    h3 {
         color: $black;
     }
-    .link-arrow{
-        &:after{
+    .link-arrow {
+        &:after {
             background-image: url('../layoutImg/arrow-right-white.svg');
         }
     }
-    .wrapper-about, .wrapper-links{
-        a{
+    .wrapper-about,
+    .wrapper-links {
+        a {
             font-family: $fira-bold;
             color: $white;
-            &:hover, &:focus{
+            &:hover,
+            &:focus {
                 color: $white;
                 opacity: 0.6;
             }
         }
     }
-    .wrapper-about{
+    .wrapper-about {
         margin: 0 125px 0 0;
         font-size: 1.4rem;
-        p{
+        p {
             margin-bottom: 0;
         }
     }
-    .wrapper-links{
+    .wrapper-links {
         flex: 0 0 150px;
         margin: 0 50px 0 0;
-        li{
-            &:before, &:after{
+        li {
+            &:before,
+            &:after {
                 display: none;
             }
         }
-        a{
+        a {
             text-decoration: none;
         }
     }
 }
 
-.top-footer{
+.top-footer {
     padding: 20px 0 45px;
     background: $primary;
     color: $white;
-    .container{
+    .container {
         display: flex;
     }
 }
 
-.bottom-footer{
+.bottom-footer {
     padding: 30px 0;
-    background: $purple-dark;
+    background: #01324a;
     text-align: center;
     font-size: 1rem;
-    > .container{
+    > .container {
         display: flex;
         align-items: center;
         justify-content: center;
     }
-    li{
+    li {
         display: inline-block;
         padding: 0;
         margin: 0 8px;
-        &:before, &:after{
+        &:before,
+        &:after {
             display: none;
         }
     }
-    p, a{
+    p,
+    a {
         color: rgba($white, 0.5);
     }
-    a{
+    a {
         text-decoration: none;
-        &:hover, &:focus{
+        &:hover,
+        &:focus {
             color: $white;
+        }
+    }
+    .social-buttons {
+        a {
+            display: inline-block;
+            width: 24px;
+            padding-top: 4px;
+            height: 24px;
+            border-radius: 12px;
+            &:hover,
+            &:focus {
+                background-color: #29a5ed;
+            }
         }
     }
 }
 
-.wrapper-social-newsletter{
+.wrapper-social-newsletter {
     flex: 0 0 270px;
+    margin-top: 0;
+    form {
+        padding: 0;
+    }
 }
 
-.wrapper-social{
+.wrapper-social {
     display: inline-block;
     position: relative;
-    > .bees-top, > .bees-bottom{
+    > .bees-top,
+    > .bees-bottom {
         position: absolute;
         fill: $white;
     }
-    > .bees-top{
+    > .bees-top {
         width: 26px;
         height: 22px;
         bottom: -10px;
         left: -32px;
     }
-    > .bees-bottom{
+    > .bees-bottom {
         width: 30px;
         height: 18px;
         top: -14px;
@@ -103,24 +127,25 @@
     }
 }
 
-.social{
+.social {
     display: inline-block;
     position: relative;
     margin: 0;
     z-index: 1;
-    > li{
+    > li {
         display: inline-block;
         padding: 0;
         vertical-align: top;
         margin: 0 10px 0 0;
-        &:before, &:after{
+        &:before,
+        &:after {
             display: none;
         }
-        &:last-child{
+        &:last-child {
             margin-right: 0;
         }
     }
-    .icon{
+    .icon {
         width: 20px;
         height: 18px;
         position: absolute;
@@ -128,58 +153,57 @@
         left: 50%;
         transform: translate3d(-50%, -50%, 0);
     }
-    span{
+    span {
         width: 0;
         height: 0;
         overflow: hidden;
         position: absolute;
     }
-    a{
+    a {
         position: relative;
     }
 }
 
-
-@media (max-width: $desktop){
-    .footer{
-        .wrapper-about{
+@media (max-width: $desktop) {
+    .footer {
+        .wrapper-about {
             margin-right: 50px;
         }
     }
 }
 
-@media (max-width: $desktop-small){
-    .footer{
-        .wrapper-about{
+@media (max-width: $desktop-small) {
+    .footer {
+        .wrapper-about {
             width: 100%;
             margin-right: 0;
         }
     }
 
-    .top-footer{
-        .container{
+    .top-footer {
+        .container {
             flex-wrap: wrap;
         }
     }
 }
 
-@media (max-width: $tablet){
-    .bottom-footer{
-        > .container{
+@media (max-width: $tablet) {
+    .bottom-footer {
+        > .container {
             flex-direction: column;
         }
     }
 }
 
-@media (max-width: $phone){
-    .footer{
-        .wrapper-links{
+@media (max-width: $phone) {
+    .footer {
+        .wrapper-links {
             margin-right: 0;
         }
     }
 
-    .top-footer{
-        .container{
+    .top-footer {
+        .container {
             display: block;
         }
     }

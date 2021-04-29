@@ -9,7 +9,7 @@
  * RedDark		: #CB234F;
  * Green		: #2BCDC1;
  * GreenDark	: #26B3A9;
- * Dark			: #222831;
+ * Dark			: #23282d;
  * GrayLight	: #F2F2F6;
  * GrayMidLight	: #ECF0F1;
  * GrayMidLight2: #B6B7BB;
@@ -17,6 +17,10 @@
  * GrayDark		: #393E46;
  *
  */
+ ::placeholder {
+	font-style: italic;
+	color: #ccc;
+}
 /**
  * === Main navigation between modules
  */
@@ -35,7 +39,7 @@
 	padding: 0;
 	border: none;
 	border-radius: 3px;
-	background: #222831;
+	background: #23282d;
 	color: #F2F2F6;
 	margin-right: -2px;
 }
@@ -65,7 +69,11 @@
 	color: #ECF0F1;
 }
 .secupress-sh-title {
-	font-size: 18px;
+	font-size: 24px;
+	font-family: "Arial Narrow";
+	font-weight: 800;
+	letter-spacing: 0.5px;
+	text-align: right;
 }
 p.secupress-sh-subtitle {
 	margin-bottom: 5px;
@@ -91,6 +99,7 @@ p.secupress-sh-subtitle {
 	font-weight: 500;
 	text-decoration: none;
 	transition: all .275s;
+	border-left: 5px solid transparent;
 }
 .secupress-modules-list-links li:last-child a {
 	border-bottom: 1px solid rgba(255, 255, 255, 0.15);
@@ -161,6 +170,7 @@ p.secupress-sh-subtitle {
 .secupress-modules-sidebar a:hover,
 .secupress-modules-sidebar a:focus {
 	background: rgba(255, 255, 255, 0.075);
+	border-left: 5px solid;
 }
 
 /* Get pro link */
@@ -177,7 +187,16 @@ p.secupress-sh-subtitle {
 /**
  * === Main content of a module
  */
-
+.secupress-tab-content-welcome .secupress-setting-row + .secupress-setting-row {
+    margin-top: 0px;
+    border-top: 0px;
+}
+.secupress-tab-content-welcome .secupress-setting-row {
+	max-width: 400px;
+}
+.secupress-setting-row_wl_description {
+	flex-basis: calc(100% - 282px);
+}
 .secupress-tab-content {
 	width: 800px;
 	position: relative;
@@ -185,34 +204,30 @@ p.secupress-sh-subtitle {
 	border-radius: 0 3px 3px 0;
 	border: 1px solid #CCC;
 }
-.secupress-tab-content-welcome {
-	width: 100%;
-	border-radius: 0;
-	border: 0 none;
-}
-
 .secupress-tab-content-header {
 	position: relative;
-	padding: 15px 175px 25px 20px;
+	padding: 15px 175px 18px 20px;
 	background: #F2F2F6;
 	color: #5A626F; /*#393E46*/
+	border-bottom: 2px solid #393E46;
 }
 .secupress-tab-content-header p {
 	position: relative;
 	z-index: 2;
 }
 .secupress-tab-content-header i {
-	position: absolute;
-	z-index: 1;
-	right: 45px;
-	top: 50%;
-	margin-top: -40px;
-	font-size: 80px;
+	margin-right: 10px;
+	font-size: 30px;
+	background-color: #393E46;
 	color: #DFE3E8;
+	padding: 8px 8px 14px 10px;
+	border-radius: 5px;
+	display: inline;
 }
 .secupress-tc-title {
 	margin-top: .5em;
-	font-size: 23px;
+	font-size: 25px;
+	margin-left: 0;
 	font-weight: 600;
 	color: #393E46;
 }
@@ -235,10 +250,13 @@ p.secupress-sh-subtitle {
 
 .secupress-setting-row .secupress-checkbox:not(:checked) + label:before,
 .secupress-setting-row .secupress-checkbox:checked + label:before,
+
 .secupress-setting-row .secupress-checkbox:not(:checked) + .label-text:before,
 .secupress-setting-row .secupress-checkbox:checked + .label-text:before,
+
 .secupress-setting-row .secupress-radio:not(:checked) + label:before,
 .secupress-setting-row .secupress-radio:checked + label:before,
+
 .secupress-setting-row .secupress-radio:not(:checked) + .label-text:before,
 .secupress-setting-row .secupress-radio:checked + .label-text:before {
 	top: -2px;
@@ -265,6 +283,12 @@ p.secupress-sh-subtitle {
 .secupress-setting-row .secupress-radio:not(:checked):disabled + .label-text:before,
 .secupress-setting-row .secupress-radio:checked:disabled + .label-text:before {
 	border-color: #bbb;
+}
+.secupress-checkbox:focus + label:before,
+.secupress-checkbox:focus + .label-text:before,
+.secupress-radio:focus + label:before,
+.secupress-radio:focus + .label-text:before {
+	border-color: #555 !important;
 }
 
 /* Text fields that display a spinner as background image (like autocomplete) */
@@ -324,17 +348,17 @@ input[type="text"]:required:invalid {
 }
 
 /* Dashboard (Welcome Page) */
+.secupress-tab-content-welcome .secupress-form-table {
+	display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
 .secupress-modules-dashboard {
 	border-radius: 0 0 3px 3px;
 }
-.secupress-modules-container {
-	width: 880px;
-	max-width: 100%;
-	margin: 4em auto;
-}
 .secupress-dashboard-header {
 	padding: 0 20px;
-	background: #222831;
+	background: #23282d;
 	color: #FFF;
 }
 .secupress-dh-titles p:first-child {
@@ -538,12 +562,27 @@ input[type="text"]:required:invalid {
 	left: 16px;
 }
 
+.secupress-show-pro {
+	background: url("../images/logo-pro-mini.png") top right no-repeat transparent;
+}
+
 /**
  * Module User Agent List
  * &
  * Expandable textareas
  */
+#secupress-ban-ip, #secupress-whitelist-ip {
+	height: 150px;
+	margin-top: 5px;
+}
 
+#secupress-banned-ips-list a, #secupress-whitelist-ips-list a{
+	display:none;
+}
+
+#secupress-banned-ips-list li:hover a, #secupress-whitelist-ips-list li:hover a{
+	display: inline;
+}
 .secupress-expand-trigger-container {
 	text-align: center;
 }
@@ -609,12 +648,11 @@ label.secupress-textarea-label {
 .secupress-textarea-container,
 .secupress-boxed-group {
 	width: 100%;
-	height: 200px;
+	min-height: 20px;
 	margin: .75em auto 1.5em;
 	padding: 10px;
-	background: #ECF0F1;
-	border: 1px solid #ECF0F1;
-	overflow: hidden;
+	border: 2px solid #ECF0F1;
+	overflow: scroll;
 	transition: all .275s;
 }
 .secupress-setting-row .secupress-boxed-group {
@@ -641,28 +679,26 @@ fieldset.secupress-boxed-group > b {
 }
 .secupress-textarea-container textarea {
 	width: 100%;
-	height: 100%;
+	min-height: 20px;
 	padding: 0;
 	margin: 0;
 	border: 0;
 	font-size: 1em;
 	line-height: 1.7;
-	background: #ECF0F1;
 	color: #5A626F;
 	font-family: Consolas, Monaco, "Andale Mono", monospace;
 	box-shadow: none;
 	transition: all .275s;
 	resize: none;
 }
-.secupress-textarea-container textarea:focus {
-	background: #FFF;
-}
 
 .secupress-textarea-container + .description.desc {
 	padding-left: 0;
 	margin-top: 1.5em;
 }
-
+.wp-core-ui label.secupress-text-label button.button {
+	vertical-align: inherit;
+}
 /**
  * Schedule specific styles
  */
@@ -761,7 +797,7 @@ fieldset.secupress-boxed-group > b {
 		margin: 0 15px 10px 0;
 		border: 1px solid #ddd;
 		background: #FFF none 50% 50% no-repeat;
-		border-radiu: 3px;
+		border-radius: 3px;
 	}
 	.fieldname-schedules-backups_type .secupress-fieldset-item-checkboxes label.is-checked:before {
 		background-color: #2BCDC1;
@@ -936,7 +972,7 @@ fieldset.secupress-boxed-group > b {
 	margin: 1em 0 0 0;
 	padding: 15px 20px;
 	font-size: 16px;
-	color: #222831;
+	color: #23282d;
 	font-style: normal;
 	font-weight: 600;
 	overflow: hidden;
@@ -974,7 +1010,7 @@ fieldset.secupress-boxed-group > b {
 	flex-direction: row;
 	margin: 25px 15px;
 	border-top: 0;
-	background: #222831 url("../images/bg-logo-sp.png") 50% 50% no-repeat;
+	background: #23282d url("../images/bg-logo-sp.png") 50% 50% no-repeat;
 	text-align: center;
 }
 [id="secupress-settings-module_services--"] .secupress-setting-row:first-child {
@@ -1023,7 +1059,29 @@ fieldset.secupress-boxed-group > b {
 [id="secupress-settings-module_services--support"] .secupress-setting-row.secupress-setting-row_support_submit {
 	padding-bottom: 20px;
 }
-
+/*database prefix */
+.secupress-setting-row.secupress-setting-row_database_db_prefix {
+	float: left;
+	width: 50%;
+}
+.secupress-setting-row.secupress-setting-row_database_db_prefix.secupress-pro-row {
+	float: none;
+	width: 100%;
+}
+.secupress-setting-row.secupress-setting-row_database_tables_selection {
+	float: right;
+	display: contents;
+}
+.secupress-setting-row + .secupress-setting-row.secupress-setting-row_database_tables_selection {
+	margin: 0;
+	border: none;
+}
+.secupress-setting-row.secupress-setting-row_database_tables_selection fieldset {
+	background: #FFF;
+}
+[name='secupress_wordpress-core_settings[database_db_prefix]'] {
+	text-transform: lowercase;
+}
 /**
  * Get Pro "module"
  */
@@ -1062,7 +1120,7 @@ fieldset.secupress-boxed-group > b {
 	min-width: 115px;
 	letter-spacing: 0.05em;
 	padding: 6px 20px;
-	background: #222831;
+	background: #23282d;
 	color: #5A626F;
 }
 .secupress-inline-options button.secupress-button + button {
@@ -1085,7 +1143,7 @@ fieldset.secupress-boxed-group > b {
 	font-size: 11px;
 	letter-spacing: 0;
 	color: #FFF;
-	background: #222831;
+	background: #23282d;
 	border-radius: 2px;
 }
 .secupress-inline-options .secupress-tip:after {
@@ -1094,7 +1152,7 @@ fieldset.secupress-boxed-group > b {
 	left: -5px;
 	top: 50%;
 	margin-top: -6px;
-	border-right: 6px solid #222831;
+	border-right: 6px solid #23282d;
 	border-top: 6px solid transparent;
 	border-bottom: 6px solid transparent;
 }
@@ -1120,7 +1178,7 @@ fieldset.secupress-boxed-group > b {
 	position: relative;
 	padding-bottom: 2em;
 	color: #FFF;
-	background: #222831;
+	background: #23282d;
 	overflow: hidden;
 }
 .secupress-price-header > * {
@@ -1436,4 +1494,15 @@ p > .secupress-inline-alert:before {
 .secupress-files-list-item .secupress-button-primary:hover {
 	background: transparent;
 	color: #26B3A9;
+}
+/** addons */
+.secupress-flex .plugin-card {
+    width: 100%;
+    box-shadow: 7px 7px 0px rgba( 0, 0, 0, 0.4 );
+}
+.secupress-flex .plugin-card a:not(.button) {
+	color: #0073aa;
+}
+.secupress-flex .plugin-card .button {
+	font-weight: 400;
 }

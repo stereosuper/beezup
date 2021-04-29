@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 
 $this->set_current_section( 'bbq_url_contents' );
@@ -41,34 +41,11 @@ $this->add_field( array(
 
 
 $this->add_field( array(
-	'title'             => __( 'Block Long URLs', 'secupress' ),
-	'description'       => sprintf( __( 'Block any URL containing more than %d characters.', 'secupress' ), apply_filters( 'secupress.plugin.bad-url-length.len', 300 ) ),
-	'label_for'         => $this->get_field_name( 'bad-url-length' ),
+	'title'             => __( 'Block 404 requests on PHP files', 'secupress' ),
+	'description'       => __( 'When someone is tring to find a hidden or malicious PHP file, they could just get a 404 error, page not found. Block them.', 'secupress' ),
+	'label_for'         => $this->get_field_name( 'ban-404-php' ),
 	'plugin_activation' => true,
 	'type'              => 'checkbox',
-	'value'             => (int) secupress_is_submodule_active( 'firewall', 'bad-url-length' ),
-	'label'             => __( 'Yes, protect my site from excessively long URLs', 'secupress' ),
-	'helpers'           => array(
-		array(
-			'type'        => 'description',
-			'description' => __( 'Excessively long URLs are suspicious, there is no need to load a website with such a long URL, this is usually done by scanner to test exploits.', 'secupress' ),
-		),
-	),
-) );
-
-
-$this->add_field( array(
-	'title'             => __( 'Block SQLi Scan Attempts', 'secupress' ),
-	'description'       => __( 'Fool SQLi scanner/scripts to always give them different content on each reload of the same page.', 'secupress' ),
-	'label_for'         => $this->get_field_name( 'bad-sqli-scan' ),
-	'plugin_activation' => true,
-	'type'              => 'checkbox',
-	'value'             => (int) secupress_is_submodule_active( 'firewall', 'bad-sqli-scan' ),
-	'label'             => __( 'Yes, protect my site from SQL injection scanners', 'secupress' ),
-	'helpers'           => array(
-		array(
-			'type'        => 'description',
-			'description' => __( 'To determine if a URL is vulnerable to an SQL Injection flaw, automated scanner requires a triple page reload to be identical. By giving them a different content for each request, it will not be possible for it to work properly.', 'secupress' ),
-		),
-	),
+	'value'             => (int) secupress_is_submodule_active( 'firewall', 'ban-404-php' ),
+	'label'             => __( 'Yes, protect my site from 404 on .php files', 'secupress' ),
 ) );

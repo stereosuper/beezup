@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /**
  * Discloses scan class.
@@ -17,7 +17,7 @@ class SecuPress_Scan_Discloses extends SecuPress_Scan implements SecuPress_Scan_
 	 *
 	 * @var (string)
 	 */
-	const VERSION = '1.1.1';
+	const VERSION = '1.2';
 
 
 	/** Properties. ============================================================================= */
@@ -41,8 +41,8 @@ class SecuPress_Scan_Discloses extends SecuPress_Scan implements SecuPress_Scan_
 		global $is_apache, $is_nginx, $is_iis7;
 
 		$module_url     = esc_url( secupress_admin_url( 'modules', 'sensitive-data' ) );
-		$this->title    = __( 'Check if your site discloses your WordPress version and your server\'s PHP version.', 'secupress' );
-		$this->more     = __( 'When an attacker wants to hack into a WordPress site, (s)he will search for all available informations. The goal is to find something useful that will help him penetrate your site. Don\'t let them easily find any informations.', 'secupress' );
+		$this->title    = __( 'Check if your site discloses your WordPress version and your server’s PHP version.', 'secupress' );
+		$this->more     = __( 'When an attacker wants to hack into a WordPress site, they will search for all available informations. The goal is to find something useful that will help him penetrate your site. Don’t let them easily find any informations.', 'secupress' );
 		$this->more_fix = sprintf(
 			__( 'Activate the %1$s protection and/or the %2$s protection from the module %3$s.', 'secupress' ),
 			'<a href="' . $module_url . '#row-content-protect_wp-version">' . __( 'WordPress Version Disclosure', 'secupress' ) . '</a>',
@@ -134,7 +134,7 @@ class SecuPress_Scan_Discloses extends SecuPress_Scan implements SecuPress_Scan_
 	 * @return (string)
 	 */
 	public static function get_docs_url() {
-		return __( 'http://docs.secupress.me/article/101-php-and-wordpress-version-disclosure-scan', 'secupress' );
+		return __( 'https://docs.secupress.me/article/101-php-and-wordpress-version-disclosure-scan', 'secupress' );
 	}
 
 
@@ -148,6 +148,13 @@ class SecuPress_Scan_Discloses extends SecuPress_Scan implements SecuPress_Scan_
 	 * @return (array) The scan results.
 	 */
 	public function scan() {
+
+		$activated = $this->filter_scanner( __CLASS__ );
+		if ( true === $activated ) {
+			$this->add_message( 0 );
+			return parent::scan();
+		}
+
 		global $is_nginx;
 
 		$wp_version   = get_bloginfo( 'version' );
@@ -161,9 +168,6 @@ class SecuPress_Scan_Discloses extends SecuPress_Scan implements SecuPress_Scan_
 		if ( $has_response ) {
 			$powered_by = wp_remote_retrieve_header( $response, 'x-powered-by' );
 			$body       = wp_remote_retrieve_body( $response );
-		} else {
-			// "warning"
-			$this->add_message( 100 );
 		}
 
 		// WordPress version in generator meta tag. =========.
@@ -210,9 +214,6 @@ class SecuPress_Scan_Discloses extends SecuPress_Scan implements SecuPress_Scan_
 				// "bad"
 				$this->add_message( 202 );
 			}
-		} else {
-			// "warning"
-			$this->add_message( 101 );
 		}
 
 		// PHP version in headers. ==========================.
@@ -229,6 +230,44 @@ class SecuPress_Scan_Discloses extends SecuPress_Scan implements SecuPress_Scan_
 
 
 	/** Fix. ==================================================================================== */
+
+	/**
+	 * Try to fix the flaw(s).
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function need_manual_fix() {
+		return [ 'fix' => 'fix' ];
+	}
+
+	/**
+	 * Get an array containing ALL the forms that would fix the scan if it requires user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) An array of HTML templates (form contents most of the time).
+	 */
+	protected function get_fix_action_template_parts() {
+		return [ 'fix' => '&nbsp;' ];
+	}
+
+	/**
+	 * Try to fix the flaw(s) after requiring user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function manual_fix() {
+		if ( $this->has_fix_action_part( 'fix' ) ) {
+			$this->fix();
+		}
+		// "good"
+		$this->add_fix_message( 1 );
+		return parent::manual_fix();
+	}
 
 	/**
 	 * Try to fix the flaw(s).
@@ -251,9 +290,6 @@ class SecuPress_Scan_Discloses extends SecuPress_Scan implements SecuPress_Scan_
 		if ( $has_response ) {
 			$powered_by = wp_remote_retrieve_header( $response, 'x-powered-by' );
 			$body       = wp_remote_retrieve_body( $response );
-		} else {
-			// "warning"
-			$this->add_fix_message( 100 );
 		}
 
 		// WordPress version in generator meta tag. =========.

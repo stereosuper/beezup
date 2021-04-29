@@ -59,7 +59,7 @@
     font-family: $fira-medium;
     text-align: center;
     &:after {
-        content: "";
+        content: '';
         display: none;
         width: 200px;
         height: 1px;
@@ -85,6 +85,7 @@
     div {
         align-items: center;
         justify-content: center;
+        border-radius: 20px;
         background: $white;
     }
     img {
@@ -127,7 +128,7 @@
             &:first-child {
                 &:before {
                     display: inline-block;
-                    content: "—";
+                    content: '—';
                     width: auto;
                     height: auto;
                     position: static;

@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /**
  * Directory Listing scan class.
@@ -17,7 +17,7 @@ class SecuPress_Scan_Directory_Listing extends SecuPress_Scan implements SecuPre
 	 *
 	 * @var (string)
 	 */
-	const VERSION = '1.0.3';
+	const VERSION = '1.2';
 
 
 	/** Properties. ============================================================================= */
@@ -41,7 +41,7 @@ class SecuPress_Scan_Directory_Listing extends SecuPress_Scan implements SecuPre
 		global $is_apache, $is_nginx, $is_iis7;
 
 		$this->title = __( 'Check if your server lists the files in a directory (known as Directory Listing).', 'secupress' );
-		$this->more  = __( 'Without the appropriate protection anybody could browse your site\'s files. While browsing some of your files might not be a security risk, most of them are sensitive.', 'secupress' );
+		$this->more  = __( 'Without the appropriate protection anybody could browse your site’s files. While browsing some of your files might not be a security risk, most of them are sensitive.', 'secupress' );
 		$this->more_fix = sprintf(
 			__( 'Activate the %1$s protection from the module %2$s.', 'secupress' ),
 			'<strong>' . __( 'Directory Listing', 'secupress' ) . '</strong>',
@@ -113,7 +113,7 @@ class SecuPress_Scan_Directory_Listing extends SecuPress_Scan implements SecuPre
 	 * @return (string)
 	 */
 	public static function get_docs_url() {
-		return __( 'http://docs.secupress.me/article/126-index-listing-scan', 'secupress' );
+		return __( 'https://docs.secupress.me/article/126-index-listing-scan', 'secupress' );
 	}
 
 
@@ -127,6 +127,13 @@ class SecuPress_Scan_Directory_Listing extends SecuPress_Scan implements SecuPre
 	 * @return (array) The scan results.
 	 */
 	public function scan() {
+
+		$activated = $this->filter_scanner( __CLASS__ );
+		if ( true === $activated ) {
+			$this->add_message( 0 );
+			return parent::scan();
+		}
+
 		$upload_dir = wp_upload_dir();
 		$base_url   = user_trailingslashit( $upload_dir['baseurl'] );
 		$response   = wp_remote_get( $base_url, $this->get_default_request_args() );
@@ -145,9 +152,6 @@ class SecuPress_Scan_Directory_Listing extends SecuPress_Scan implements SecuPre
 					}
 				}
 			}
-		} else {
-			// "warning"
-			$this->add_message( 100, array( '<code>' . $base_url . '</code>' ) );
 		}
 
 		// "good"
@@ -158,6 +162,44 @@ class SecuPress_Scan_Directory_Listing extends SecuPress_Scan implements SecuPre
 
 
 	/** Fix. ==================================================================================== */
+
+	/**
+	 * Try to fix the flaw(s).
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function need_manual_fix() {
+		return [ 'fix' => 'fix' ];
+	}
+
+	/**
+	 * Get an array containing ALL the forms that would fix the scan if it requires user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) An array of HTML templates (form contents most of the time).
+	 */
+	protected function get_fix_action_template_parts() {
+		return [ 'fix' => '&nbsp;' ];
+	}
+
+	/**
+	 * Try to fix the flaw(s) after requiring user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function manual_fix() {
+		if ( $this->has_fix_action_part( 'fix' ) ) {
+			$this->fix();
+		}
+		// "good"
+		$this->add_fix_message( 1 );
+		return parent::manual_fix();
+	}
 
 	/**
 	 * Try to fix the flaw(s).

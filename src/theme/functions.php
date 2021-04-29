@@ -605,9 +605,9 @@ function beezup_mlp_navigation(){
     $otherLangItems = array();
 
     foreach( $items as $site_id => $item ){
-        $text = $item[ 'name' ];
+        $text = '';//$item[ 'name' ];
 
-        $img = '';
+        $img = '<img class="switcher-flag" src="'.$item['icon'].'" />';///'';
 
         if( get_current_blog_id() === $site_id ){
             $currentLangItem = '<span id="current-language" class="current-language-nav-item"><span class="current-language-item">' . $img . esc_html( $text ) . '</span><svg class="icon icon-arrow-down"><use xlink:href="#icon-arrow-down"></use></svg></span>';

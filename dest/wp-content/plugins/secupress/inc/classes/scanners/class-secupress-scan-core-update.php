@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin\' uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /**
  * Core Update scan class.
@@ -17,7 +17,7 @@ class SecuPress_Scan_Core_Update extends SecuPress_Scan implements SecuPress_Sca
 	 *
 	 * @var (string)
 	 */
-	const VERSION = '1.0.1';
+	const VERSION = '1.2';
 
 
 	/** Properties. ============================================================================= */
@@ -46,7 +46,7 @@ class SecuPress_Scan_Core_Update extends SecuPress_Scan implements SecuPress_Sca
 	 */
 	protected function init() {
 		$this->title    = __( 'Check if your WordPress core is up to date.', 'secupress' );
-		$this->more     = __( 'It\'s very important to keep your WordPress installation up to date. If you cannot update for any reason, contact your hosting provider as soon as possible.', 'secupress' );
+		$this->more     = __( 'It’s very important to keep your WordPress installation up to date. If you cannot update for any reason, contact your hosting provider as soon as possible.', 'secupress' );
 		$this->more_fix = __( 'Update your WordPress installation right away.', 'secupress' );
 	}
 
@@ -70,7 +70,7 @@ class SecuPress_Scan_Core_Update extends SecuPress_Scan implements SecuPress_Sca
 			200 => __( 'WordPress core is <strong>not up to date</strong>.', 'secupress' ),
 			// "cantfix"
 			300 => '%s', // Already translated.
-			301 => __( 'You have the latest version of WordPress.' ), // WP i18n.
+			301 => __( 'You have the latest version of WordPress.', 'secupress' ),
 		);
 
 		if ( isset( $message_id ) ) {
@@ -91,7 +91,7 @@ class SecuPress_Scan_Core_Update extends SecuPress_Scan implements SecuPress_Sca
 	 * @return (string)
 	 */
 	public static function get_docs_url() {
-		return __( 'http://docs.secupress.me/article/95-wordpress-core-update-scan', 'secupress' );
+		return __( 'https://docs.secupress.me/article/95-wordpress-core-update-scan', 'secupress' );
 	}
 
 
@@ -105,6 +105,13 @@ class SecuPress_Scan_Core_Update extends SecuPress_Scan implements SecuPress_Sca
 	 * @return (array) The scan results.
 	 */
 	public function scan() {
+
+		$activated = $this->filter_scanner( __CLASS__ );
+		if ( true === $activated ) {
+			$this->add_message( 0 );
+			return parent::scan();
+		}
+
 		ob_start();
 
 		if ( ! function_exists( 'get_preferred_from_update_core' ) ) {
@@ -130,6 +137,44 @@ class SecuPress_Scan_Core_Update extends SecuPress_Scan implements SecuPress_Sca
 
 
 	/** Fix. ==================================================================================== */
+
+	/**
+	 * Try to fix the flaw(s).
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function need_manual_fix() {
+		return [ 'fix' => 'fix' ];
+	}
+
+	/**
+	 * Get an array containing ALL the forms that would fix the scan if it requires user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) An array of HTML templates (form contents most of the time).
+	 */
+	protected function get_fix_action_template_parts() {
+		return [ 'fix' => '&nbsp;' ];
+	}
+
+	/**
+	 * Try to fix the flaw(s) after requiring user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function manual_fix() {
+		if ( $this->has_fix_action_part( 'fix' ) ) {
+			$this->fix();
+		}
+		// "good"
+		$this->add_fix_message( 1 );
+		return parent::manual_fix();
+	}
 
 	/**
 	 * Try to fix the flaw(s).

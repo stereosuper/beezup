@@ -1,0 +1,146 @@
+/* .btn{
+    border-radius:30px!important;
+}
+
+h1{
+    color:#01324a;
+} */
+
+/* .list-small-posts a .link-arrow{
+    text-decoration: none;
+} */
+
+.related-posts-top {
+    margin-top: 2.8em;
+}
+
+/* .side-links li, .side-links a{
+    border-radius: 30px;
+} */
+
+/* .wrapper-social-newsletter form {
+    padding: 0 !important;
+} */
+
+/* .blog-newsletter label {
+    color: #01324a !important;
+} */
+
+/* .wrapper-social-newsletter label {
+    margin-top: 0px !important;
+} */
+
+/* .bottom-footer .social-buttons li a {
+    display: inline-block;
+    width: 24px;
+    padding-top: 4px;
+    height: 24px;
+    border-radius: 12px;
+}
+
+.bottom-footer .social-buttons li a:hover {
+    background-color: #29a5ed;
+} */
+
+/* ul.list-cat {
+    justify-content: center;
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 auto 60px;
+    max-width: 100%;
+} */
+
+.mb80 {
+    margin-bottom: 80px;
+}
+
+.inline-list {
+    display: flex;
+    width: 100%;
+}
+
+.inline-list li {
+    list-style: none;
+    background: #01324a;
+}
+
+.inline-list li:before,
+.inline-list li:after {
+    display: none;
+}
+
+li.cat-item a {
+    border-radius: 10px;
+    margin: 10px 10px;
+}
+
+/* .list-small-posts > li {
+    margin-top: 45px;
+} */
+
+/* a.link-arrow {
+    text-decoration: none;
+} */
+
+/* .container-small {
+    max-width: 950px;
+    padding: 0 30px;
+    margin: 0 auto;
+} */
+
+/* @media screen and (max-width: 480px) {
+    ul.list-cat {
+        display: none;
+    }
+} */
+
+/* .channels-list li div {
+    border-radius: 20px;
+} */
+
+#customers {
+    background: #01324a;
+}
+
+/* blockquote::after {
+    background: none;
+} */
+
+/* .list-quotes .bq-author {
+    color: #fff;
+} */
+
+.switcher-flag {
+    width: 20px;
+    height: auto;
+    margin: 3px 3px;
+    display: inline-block;
+}
+
+.footer-languages li {
+    list-style: none;
+}
+
+/* .channels-list li a {
+    border-radius: 20px;
+} */
+
+.sttop {
+    position: fixed;
+    display: block;
+    bottom: 20px;
+    right: 20px;
+    width: 36px;
+    height: 36px;
+}
+
+@media screen and (max-width: 640px) {
+    .sttop {
+        display: none;
+    }
+}
+@media screen and (min-width: 1200px) {
+    ul.list-cat {
+        width: 950px;
+    }
+}

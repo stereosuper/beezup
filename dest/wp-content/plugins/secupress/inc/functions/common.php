@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /** --------------------------------------------------------------------------------------------- */
 /** REQUIRE FILES =============================================================================== */
@@ -17,10 +17,12 @@ defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
  */
 function secupress_class_path( $prefix, $class_name_part = '' ) {
 	$folders = array(
-		'scan'      => 'scanners',
-		'singleton' => 'common',
-		'logs'      => 'common',
-		'log'       => 'common',
+		'scan'              => 'scanners',
+		'singleton'         => 'common',
+		'logs'              => 'common',
+		'log'               => 'common',
+		'cleanup-leftovers' => 'common',
+		'scanner-results'   => 'common',
 	);
 
 	$prefix = strtolower( str_replace( '_', '-', $prefix ) );
@@ -76,66 +78,68 @@ function secupress_require_class_async() {
 function secupress_get_scanners() {
 	$tests = array(
 		'users-login' => array(
-			'Admin_User',
-			'Easy_Login',
-			'Subscription',
-			'Passwords_Strength',
-			'Bad_Usernames',
-			'Login_Errors_Disclose',
+			0 => 'Admin_User',
+			1 => 'Easy_Login',
+			2 => 'Subscription',
+			3 => 'Passwords_Strength',
+			4 => 'Bad_Usernames',
+			5 => 'Login_Errors_Disclose',
 		),
 		'plugins-themes' => array(
-			'Plugins_Update',
-			'Themes_Update',
-			'Bad_Old_Plugins',
-			'Bad_Vuln_Plugins',
-			'Inactive_Plugins_Themes',
+			0 => 'Plugins_Update',
+			1 => 'Themes_Update',
+			2 => 'Bad_Old_Plugins',
+			3 => 'Bad_Vuln_Plugins',
+			4 => 'Inactive_Plugins_Themes',
 		),
 		'wordpress-core' => array(
-			'Core_Update',
-			'Auto_Update',
-			'Bad_Old_Files',
-			'Bad_Config_Files',
-			'WP_Config',
-			'DB_Prefix',
-			'Salt_Keys',
+			0 => 'Core_Update',
+			1 => 'Auto_Update',
+			2 => 'Bad_Old_Files',
+			3 => 'Bad_Config_Files',
+			4 => 'WP_Config',
+			5 => 'DB_Prefix',
+			6 => 'Salt_Keys',
+			7 => 'WPOrg',
 		),
 		'sensitive-data' => array(
-			'Discloses',
-			'Readme_Discloses',
-			'PHP_Disclosure',
+			0 => 'Discloses',
+			1 => 'Readme_Discloses',
+			2 => 'PHP_Disclosure',
+			3 => 'HTTPS',
 		),
 		'file-system' => array(
-			'Chmods',
-			'Directory_Listing',
-			'Bad_File_Extensions',
-			'DirectoryIndex',
+			0 => 'Chmods',
+			1 => 'Directory_Listing',
+			2 => 'Bad_File_Extensions',
 		),
 		'firewall' => array(
-			'Shellshock',
-			'Bad_User_Agent',
-			'SQLi',
-			'Anti_Scanner',
-			'Anti_Front_Brute_Force',
-			'Bad_Request_Methods',
-			'Block_Long_URL',
-			'Bad_Url_Access',
-			'PhpVersion',
+			0 => 'Shellshock',
+			1 => 'Bad_User_Agent',
+			// 2 => 'SQLi',
+			// 3 => 'Anti_Scanner',
+			// 4 => 'Anti_Front_Brute_Force',
+			5 => 'Bad_Request_Methods',
+			6 => 'Bad_Url_Access',
+			7 => 'PhpVersion',
+			8 => 'Php_404',
 		),
 	);
 
-	if ( ! secupress_users_can_register() ) {
-		$tests['users-login'][] = 'Non_Login_Time_Slot';
-	}
-
+	// 3rd party.
 	if ( class_exists( 'SitePress' ) ) {
-		$tests['sensitive-data'][] = 'Wpml_Discloses';
+		$tests['sensitive-data'][3] = 'Wpml_Discloses';
 	}
 
 	if ( class_exists( 'WooCommerce' ) ) {
-		$tests['sensitive-data'][] = 'Woocommerce_Discloses';
+		$tests['sensitive-data'][4] = 'Woocommerce_Discloses';
+		/**
+		* @since 2.0 Do not remove login errors when WooC is active.
+		**/
+		unset( $tests['users-login'][5] );
 	}
 
-	return $tests;
+	return apply_filters( 'secupress.scanner.tests', $tests );
 }
 
 
@@ -164,102 +168,125 @@ function secupress_get_tests_for_ms_scanner_fixes() {
  * @return (string|array) The desired counter info if `$type` is provided and the info exists. An array of all counters otherwise.
  */
 function secupress_get_scanner_counts( $type = '' ) {
-	$tests_by_status = secupress_get_scanners();
-	$scanners        = secupress_get_scan_results();
-	$fixes           = secupress_get_fix_results();
-	$empty_statuses  = array( 'good' => 0, 'warning' => 0, 'bad' => 0 );
-	$scanners_count  = $scanners ? array_count_values( wp_list_pluck( $scanners, 'status' ) ) : array();
-	$counts          = array_merge( $empty_statuses, $scanners_count );
-	$total           = array_sum( array_map( 'count', $tests_by_status ) );
+	static $counts;
+	if ( ! isset( $counts ) ) {
+		$tests_by_status = secupress_get_scanners();
+		$scanners        = secupress_get_scan_results();
+		$fixes           = secupress_get_fix_results();
+		unset( $tests_by_status['users-login'][1] ); // 2FA
+		unset( $tests_by_status['firewall'][7] ); // PHP Version
 
-	$counts['notscannedyet'] = $total - array_sum( $counts );
-	$counts['total']         = $total;
-	$counts['percent']       = (int) floor( $counts['good'] * 100 / $counts['total'] );
-	$counts['hasaction']     = 0;
+		$empty_statuses  = array( 'good' => 0, 'warning' => 0, 'bad' => 0 );
+		$scanners_count  = $scanners ? array_count_values( wp_list_pluck( $scanners, 'status' ) ) : array();
+		$counts          = array_merge( $empty_statuses, $scanners_count );
+		$total           = array_sum( array_map( 'count', $tests_by_status ) );
 
-	if ( $fixes ) {
-		foreach ( $fixes as $test_name => $fix ) {
-			if ( ! empty( $fix['has_action'] ) ) {
-				++$counts['hasaction'];
+		$counts['notscannedyet'] = $total - array_sum( $counts );
+		$counts['total']         = $total;
+		$counts['percent']       = (int) floor( $counts['good'] * 100 / $counts['total'] );
+		$counts['hasaction']     = 0;
+
+		if ( $fixes ) {
+			foreach ( $fixes as $test_name => $fix ) {
+				if ( ! empty( $fix['has_action'] ) ) {
+					++$counts['hasaction'];
+				}
 			}
 		}
+
+		if ( 100 <= $counts['percent'] ) {
+			$counts['grade'] = 'A';
+		} elseif ( $counts['percent'] >= 80 ) { // 20 less
+			$counts['grade'] = 'B';
+		} elseif ( $counts['percent'] >= 65 ) { // 15 less
+			$counts['grade'] = 'C';
+		} elseif ( $counts['percent'] >= 52 ) { // 13 less
+			$counts['grade'] = 'D';
+		} elseif ( $counts['percent'] >= 42 ) { // 10 less
+			$counts['grade'] = 'E';
+		} elseif ( $counts['percent'] >= 34 ) { // 8 less
+			$counts['grade'] = 'F';
+		} elseif ( $counts['percent'] >= 28 ) { // 6 less
+			$counts['grade'] = 'G';
+		} elseif ( $counts['percent'] >= 22 ) { // 6 less
+			$counts['grade'] = 'H';
+		} elseif ( $counts['percent'] >= 16 ) { // 6 less
+			$counts['grade'] = 'I';
+		} elseif ( $counts['percent'] >= 10 ) { // 6 less
+			$counts['grade'] = 'J';
+		} elseif ( 0 === $counts['percent'] ) { // (ᕗ‶⇀︹↼)ᕗ彡┻━┻
+			$counts['grade'] = '∅';
+		} else {
+			$counts['grade'] = 'K'; // < 10 %
+		}
+		$label = $counts['grade'];
+		$counts['temp_grade'] = $counts['grade'];
+		if ( ( isset( $scanners['easy_login']['status'] ) && 'good' === $scanners['easy_login']['status'] ) ||
+		   ( isset( $scanners['phpversion']['status'] ) && 'good' === $scanners['phpversion']['status'] ) ) {
+			$counts['temp_grade'] .= '+';
+			$label .= '+';
+		}
+		switch ( strlen( $label ) ) {
+			case 3:
+				$css_class = ' secupress-grade-plus-plus';
+			break;
+			case 2:
+				$css_class = ' secupress-grade-plus';
+			break;
+			default:
+				$css_class = '';
+			break;
+		}
+
+		$counts['letter']  = '<span class="letter l' . $counts['grade'][0] . $css_class . '">' . $label . '</span>';
+		$counts['color']   = '195,34,34';
+
+		switch ( $counts['grade'] ) {
+			case 'A':
+				$counts['text']  = __( 'Congratulations! 🎉', 'secupress' );
+				$counts['color'] = '43,205,193';
+				break;
+			case 'B':
+				$counts['text']  = __( 'Almost perfect!', 'secupress' );
+				$counts['color'] = '241,196,15';
+				break;
+			case 'C':
+				$counts['text']  = __( 'Not bad, but try to fix more items.', 'secupress' );
+				$counts['color'] = '247,171,19';
+				break;
+			case 'D':
+				$counts['text']  = __( 'Well, it’s not good yet.', 'secupress' );
+				$counts['color'] = '242,41,94';
+				break;
+			case 'E':
+				$counts['text']  = __( 'Better than nothing, but still not good.', 'secupress' );
+				$counts['color'] = '203,35,79';
+				break;
+			case 'F':
+				$counts['text'] = __( 'Not good at all, fix more issues.', 'secupress' );
+				break;
+			case 'G':
+				$counts['text'] = __( 'Bad, fix issues right away!', 'secupress' );
+				break;
+			case 'H':
+				$counts['text'] = __( 'Still very bad, start fixing things!', 'secupress' );
+				break;
+			case 'I':
+				$counts['text'] = __( 'Very bad. You should take some actions.', 'secupress' );
+				break;
+			case 'J':
+				$counts['text'] = __( 'Very very bad, please fix something!', 'secupress' );
+				break;
+			case 'K':
+				$counts['text'] = __( 'Very very, really very bad.', 'secupress' );
+				break;
+			case '∅':
+				$counts['text'] = '(ᕗ‶⇀︹↼)ᕗ彡┻━┻'; // Easter egg if you got 0% (how is this possible oO).
+				break;
+		}
+		$counts['subtext'] = sprintf( _n( 'Your grade is %1$s with %2$d good scanned item.', 'Your grade is %1$s with %2$d good scanned items.', $counts['good'], 'secupress' ), $counts['letter'], $counts['good'] );
 	}
-
-	if ( 100 === $counts['percent'] ) {
-		$counts['grade'] = 'A';
-	} elseif ( $counts['percent'] >= 80 ) { // 20 less
-		$counts['grade'] = 'B';
-	} elseif ( $counts['percent'] >= 65 ) { // 15 less
-		$counts['grade'] = 'C';
-	} elseif ( $counts['percent'] >= 52 ) { // 13 less
-		$counts['grade'] = 'D';
-	} elseif ( $counts['percent'] >= 42 ) { // 10 less
-		$counts['grade'] = 'E';
-	} elseif ( $counts['percent'] >= 34 ) { // 8 less
-		$counts['grade'] = 'F';
-	} elseif ( $counts['percent'] >= 28 ) { // 6 less
-		$counts['grade'] = 'G';
-	} elseif ( $counts['percent'] >= 22 ) { // 6 less
-		$counts['grade'] = 'H';
-	} elseif ( $counts['percent'] >= 16 ) { // 6 less
-		$counts['grade'] = 'I';
-	} elseif ( $counts['percent'] >= 10 ) { // 6 less
-		$counts['grade'] = 'J';
-	} elseif ( 0 === $counts['percent'] ) { // (ᕗ‶⇀︹↼)ᕗ彡┻━┻
-		$counts['grade'] = '∅';
-	} else {
-		$counts['grade'] = 'K'; // < 10 %
-	}
-
-	$counts['letter'] = '<span class="letter l' . $counts['grade'] . '">' . $counts['grade'] . '</span>';
-	$counts['color']  = '195,34,34';
-
-	switch ( $counts['grade'] ) {
-		case 'A':
-			$counts['text']  = __( 'Congratulations! 🎉', 'secupress' );
-			$counts['color'] = '43,205,193';
-			break;
-		case 'B':
-			$counts['text']  = __( 'Almost perfect!', 'secupress' );
-			$counts['color'] = '241,196,15';
-			break;
-		case 'C':
-			$counts['text']  = __( 'Not bad, but try to fix more items.', 'secupress' );
-			$counts['color'] = '247,171,19';
-			break;
-		case 'D':
-			$counts['text']  = __( 'Well, it\'s not good yet.', 'secupress' );
-			$counts['color'] = '242,41,94';
-			break;
-		case 'E':
-			$counts['text']  = __( 'Better than nothing, but still not good.', 'secupress' );
-			$counts['color'] = '203,35,79';
-			break;
-		case 'F':
-			$counts['text'] = __( 'Not good at all, fix more issues.', 'secupress' );
-			break;
-		case 'G':
-			$counts['text'] = __( 'Bad, fix issues right away!', 'secupress' );
-			break;
-		case 'H':
-			$counts['text'] = __( 'Still very bad, start fixing things!', 'secupress' );
-			break;
-		case 'I':
-			$counts['text'] = __( 'Very bad. You should take some actions.', 'secupress' );
-			break;
-		case 'J':
-			$counts['text'] = __( 'Very very bad, please fix something!', 'secupress' );
-			break;
-		case 'K':
-			$counts['text'] = __( 'Very very, really very bad.', 'secupress' );
-			break;
-		case '∅':
-			$counts['text'] = '(ᕗ‶⇀︹↼)ᕗ彡┻━┻'; // Easter egg if you got 0% (how is this possible oO).
-			break;
-	}
-
-	$counts['subtext'] = sprintf( _n( 'Your grade is %1$s — %2$d scanned item is good.', 'Your grade is %1$s — %2$d scanned items are good.', $counts['good'], 'secupress' ), $counts['letter'], $counts['good'] );
-
+	$counts['grade'] = $counts['temp_grade'];
 	if ( $type ) {
 		// Make sure to not return the whole array if a type is given, even if it isn't set.
 		return isset( $counts[ $type ] ) ? $counts[ $type ] : '';
@@ -329,6 +356,7 @@ function secupress_is_plugin_active_for_network( $plugin ) {
 /**
  * Die with SecuPress format.
  *
+ * @since 2.0 Add the response code
  * @since 1.0
  *
  * @param (string) $message Guess what.
@@ -341,7 +369,6 @@ function secupress_die( $message = '', $title = '', $args = array() ) {
 	$message         = '<h1>' . SECUPRESS_PLUGIN_NAME . '</h1>' . $message;
 	$url             = secupress_get_current_url( 'raw' );
 	$force_die       = ! empty( $args['force_die'] );
-	$whitelisted     = secupress_ip_is_whitelisted();
 	$is_scan_request = secupress_is_scan_request(); // Used to bypass the whitelist for scans.
 
 	/**
@@ -352,10 +379,9 @@ function secupress_die( $message = '', $title = '', $args = array() ) {
 	 * @param (string) $message         The message displayed.
 	 * @param (string) $url             The current URL.
 	 * @param (array)  $args            Facultative arguments.
-	 * @param (bool)   $whitelisted     Is the current user IP whitelisted or not.
 	 * @param (bool)   $is_scan_request Tell if the request comes from one of our scans.
 	 */
-	$message = apply_filters( 'secupress.die.message', $message, $url, $args, $whitelisted, $is_scan_request );
+	$message = apply_filters( 'secupress.die.message', $message, $url, $args, $is_scan_request );
 
 	/**
 	 * Fires right before `wp_die()`.
@@ -365,16 +391,18 @@ function secupress_die( $message = '', $title = '', $args = array() ) {
 	 * @param (string) $message         The message displayed.
 	 * @param (string) $url             The current URL.
 	 * @param (array)  $args            Facultative arguments.
-	 * @param (bool)   $whitelisted Is the current user IP whitelisted or not.
 	 * @param (bool)   $is_scan_request Tell if the request comes from one of our scans.
 	 */
-	do_action( 'secupress.before.die', $message, $url, $args, $whitelisted, $is_scan_request );
+	do_action( 'secupress.before.die', $message, $url, $args, $is_scan_request );
 
-	if ( $force_die || ! $whitelisted || $is_scan_request ) {
+	if ( $force_die || $is_scan_request ) {
 		// Die.
 		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
 			// Tell cache plugins not to cache our error message.
 			define( 'DONOTCACHEPAGE', true );
+		}
+		if ( ! empty( $args['response'] ) ) {
+			http_response_code( absint( $args['response'] ) );
 		}
 		wp_die( $message, $title, $args );
 	}
@@ -391,15 +419,7 @@ function secupress_die( $message = '', $title = '', $args = array() ) {
  *                                   $args can be used only for the "code" or "content" or both using an array.
  */
 function secupress_block( $module, $args = array( 'code' => 403 ) ) {
-
-	if ( is_int( $args ) ) {
-		$args = array( 'code' => (int) $args ); // Cast to prevent recursion.
-	} elseif ( is_string( $args ) ) {
-		$args = array( 'content' => (string) $args ); // Cast to prevent recursion.
-	}
-
-	$ip   = secupress_get_ip();
-	$args = wp_parse_args( $args, array( 'code' => 403, 'content' => '' ) );
+	$ip = secupress_get_ip();
 
 	/**
 	 * Allow to give a proper name to the block ID.
@@ -414,6 +434,28 @@ function secupress_block( $module, $args = array( 'code' => 403 ) ) {
 		$block_id = ucwords( str_replace( '-', ' ', $block_id ) );
 		$block_id = preg_replace( '/[^0-9A-Z]/', '', $block_id );
 	}
+
+	if ( is_int( $args ) ) {
+		$args = array( 'code' => (int) $args ); // Cast to prevent recursion.
+	} elseif ( is_string( $args ) ) {
+		$args = array( 'content' => (string) $args ); // Cast to prevent recursion.
+	}
+	$args     = wp_parse_args( $args, array( 'code' => 403, 'content' => '', 'b64' => [] ) );
+
+	$data     = var_export(
+			[   '$_REQUEST' => array_map( 'secupress_code_me', $_REQUEST ),
+				'$_GET'     => array_map( 'secupress_code_me', $_GET ),
+				'$_POST'    => array_map( 'secupress_code_me', $_POST ),
+				'$_COOKIE'  => array_map( 'secupress_code_me', $_COOKIE ),
+				'$_FILES'   => array_map( 'secupress_code_me', $_FILES ),
+			], true );
+
+	// Add some hardcoded b64 args to be printed for support help.
+	$args['b64']['URL']  = secupress_get_current_url( 'raw' );
+	$args['b64']['SP']   = secupress_has_pro() ? 'Pro v' . SECUPRESS_PRO_VERSION : 'Free v' . SECUPRESS_VERSION;
+	$args['b64']['ID']   = $module;
+	$args['b64']['data'] = $data;
+	$args['b64']['user'] = is_user_logged_in() ? var_export( wp_get_current_user()->user_login, true ) : false;
 
 	/**
 	 * Fires before a user is blocked by a certain module.
@@ -441,20 +483,22 @@ function secupress_block( $module, $args = array( 'code' => 403 ) ) {
 	do_action( 'secupress.block', $module, $ip, $args, $block_id );
 
 	$title   = $args['code'] . ' ' . get_status_header_desc( $args['code'] );
-	$content = '<h4>' . $title . '</h4>';
-
+	$content = '<h2>' . $title . '</h2>';
 	if ( ! $args['content'] ) {
 		$content .= '<p>' . __( 'You are not allowed to access the requested page.', 'secupress' ) . '</p>';
 	} else {
 		$content .= '<p>' . $args['content'] . '</p>';
 	}
 
-	$content  = '<h4>' . __( 'Logged Details:', 'secupress' ) . '</h4><p>';
+	$content .= '<h3>' . __( 'Logged Details:', 'secupress' ) . '</h3>';
+	$content .= '<p>';
 	$content .= sprintf( __( 'Your IP: %s', 'secupress' ), $ip ) . '<br>';
 	$content .= sprintf( __( 'Time: %s', 'secupress' ), date_i18n( __( 'F j, Y g:i a', 'secupress' ) ) ) . '<br>';
-	$content .= sprintf( __( 'Block ID: %s', 'secupress' ), $block_id ) . '</p>';
+	$content .= sprintf( __( 'Reason: %s', 'secupress' ), $block_id ) . '<br>';
+	$content .= sprintf( __( 'Support ID: %s', 'secupress' ), '<textarea style="width:100%;height:27px;vertical-align:text-top">' . base64_encode( json_encode( $args['b64'] ) ) . '</textarea>' ) . '<br>';
+	$content .= '</p>';
 
-	secupress_die( $content, $title, array( 'response' => $args['code'] ) );
+	secupress_die( $content, $title, array( 'response' => $args['code'], 'force_die' => true ) );
 }
 
 
@@ -479,6 +523,7 @@ function secupress_is_scan_request() {
 /**
  * Create a URL to easily access to our pages.
  *
+ * @since 1.4.4 'get-pro' $page is now returning the external URL
  * @since 1.0
  *
  * @param (string) $page   The last word of the secupress page slug.
@@ -487,9 +532,8 @@ function secupress_is_scan_request() {
  * @return (string) The URL.
  */
 function secupress_admin_url( $page, $module = '' ) {
-	if ( 'get_pro' === $page ) {
-		$page   = 'modules';
-		$module = 'get-pro';
+	if ( 'get-pro' === $page ) {
+		return SECUPRESS_WEB_MAIN . __( 'pricing', 'secupress' );
 	}
 
 	$module = $module ? '&module=' . $module : '';
@@ -529,8 +573,9 @@ function secupress_get_capability( $force_mono = false ) {
 /**
  * Add SecuPress informations into USER_AGENT.
  *
- * @since 1.0
+ * @since 2.0 Remove "do_beta", we don’t do that.
  * @since 1.1.4 Available in global scope.
+ * @since 1.0
  *
  * @param (string) $user_agent A User Agent.
  *
@@ -538,7 +583,6 @@ function secupress_get_capability( $force_mono = false ) {
  */
 function secupress_user_agent( $user_agent ) {
 	$bonus  = secupress_is_white_label()        ? '*' : '';
-	$bonus .= secupress_get_option( 'do_beta' ) ? '+' : '';
 	$new_ua = sprintf( '%s;SecuPress|%s%s|%s|;', $user_agent, SECUPRESS_VERSION, $bonus, esc_url( secupress_get_main_url() ) );
 
 	return $new_ua;
@@ -563,7 +607,13 @@ function secupress_get_main_url() {
 	}
 
 	if ( ! $current_network ) {
-		return get_option( 'siteurl' );
+		if ( function_exists( '__get_option' ) ) {
+			if ( __get_option( 'siteurl' ) ) {
+				return __get_option( 'siteurl' );
+			}
+		} else {
+			return get_option( 'siteurl' );
+		}
 	}
 
 	$scheme   = is_ssl() ? 'https' : 'http';
@@ -571,7 +621,6 @@ function secupress_get_main_url() {
 
 	return untrailingslashit( $main_url );
 }
-
 
 /**
  * Is this version White Labeled?
@@ -610,6 +659,17 @@ function secupress_is_white_label() {
  * @return (string) The HTML tag.
  */
 function secupress_get_logo( $atts = array() ) {
+	if ( secupress_is_white_label() ) {
+		/**
+		 * If white label is activated, no SecuPress logo is retrieve, let the filter do the job.
+		 *
+		 * @since 1.4.2
+		 *
+		 * @param (string) Should return a <img> or dashicon span tag.
+		 * @param (array) $atts Attributes, contains logo size.
+		 */
+		return apply_filters( 'secupress.white_label.logo', '<span class="dashicons dashicons-shield-alt"></span>', $atts );
+	}
 	$base_url = SECUPRESS_ADMIN_IMAGES_URL . 'logo';
 
 	$atts = array_merge( array(
@@ -630,6 +690,7 @@ function secupress_get_logo( $atts = array() ) {
 /**
  * Get SecuPress logo word.
  *
+ * @since 2.0 Set as test to print the version
  * @since 1.0
  *
  * @param (array) $atts An array of HTML attributes.
@@ -637,7 +698,8 @@ function secupress_get_logo( $atts = array() ) {
  * @return (string) The HTML tag.
  */
 function secupress_get_logo_word( $atts = array() ) {
-
+	return sprintf( '%s v%s', SECUPRESS_PLUGIN_NAME, SECUPRESS_VERSION );
+/*
 	if ( SECUPRESS_PLUGIN_NAME !== 'SecuPress' ) {
 		return SECUPRESS_PLUGIN_NAME;
 	}
@@ -657,6 +719,7 @@ function secupress_get_logo_word( $atts = array() ) {
 	}
 
 	return "<img{$attributes}/>";
+	*/
 }
 
 
@@ -694,7 +757,17 @@ function secupress_get_email( $from_header = false ) {
 		$sitename = substr( $sitename, 4 );
 	}
 
-	$email = 'noreply@' . $sitename;
+	/**
+	 * Give the possibility to replace the "from" email address
+	 *
+	 * @since 2.0.1 Change the order to let SP have priority, but can also use the default WP one with new context param
+	 * @since 1.0
+	 *
+	 * @param (string)
+	 */
+	$email = apply_filters( 'secupress.get_email', 'noreply@' . $sitename );
+	$email = apply_filters( 'wp_mail_from', $email );
+
 
 	return $from_header ? 'from: ' . SECUPRESS_PLUGIN_NAME . ' <' . $email . '>' : $email;
 }
@@ -703,6 +776,8 @@ function secupress_get_email( $from_header = false ) {
 /**
  * Send mail.
  *
+ * @since 2.0 Can also replace SITEURL, ADMIN_EMAIL, default plain/text instead of html.
+ * @author Julio Potier
  * @since 1.2.4
  * @author Grégory Viguier
  *
@@ -715,28 +790,48 @@ function secupress_get_email( $from_header = false ) {
  * @return (bool) Whether the email contents were sent successfully.
  */
 function secupress_send_mail( $to, $subject, $message, $headers = array(), $attachments = array() ) {
-	$blogname = wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES );
-
-	// Subject.
-	$subject = str_replace( '###SITENAME###', $blogname, $subject );
-	$subject = wp_specialchars_decode( $subject );
-
-	// Message.
-	$message = str_replace( '###SITENAME###', $blogname, $message );
-
-	// Headers.
-	$headers = array_merge( array(
+	$replacement = [ '###SITENAME###', '###ADMIN_EMAIL###', '###SITEURL###' ];
+	$replaced    = [ secupress_get_blogname(), get_option( 'admin_email' ), home_url() ];
+	$subject     = str_replace( $replacement, $replaced, $subject );
+	$subject     = wp_specialchars_decode( $subject );
+	$message     = str_replace( $replacement, $replaced, $message );
+	$headers     = array_merge( [
 		'from'         => secupress_get_email( true ),
-		'content-type' => 'content-type: text/html',
-	), $headers );
+	], $headers );
+
+	// 'content-type' => 'content-type: text/html' ?
+	$header = apply_filters( 'secupress.mail.headers', $headers );
 
 	return wp_mail( $to, $subject, $message, $headers, $attachments );
 }
 
 
 /**
+ * Get the blog name or host if empty.
+ *
+ * @since 1.4.9
+ *
+ * @return (string)
+ */
+function secupress_get_blogname() {
+	static $blogname;
+
+	if ( ! isset( $blogname ) ) {
+		/**
+		 * The blogname option is escaped with esc_html on the way into the database in sanitize_option
+		 * we want to reverse this for the plain text arena of emails.
+		 */
+		$blogname = wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES );
+		$blogname = $blogname ?: parse_url( home_url(), PHP_URL_HOST );
+	}
+
+	return $blogname;
+}
+
+/**
  * Return the current URL.
  *
+ * @since 2.0 Remove usage of HTTP_HOST and $port
  * @since 1.0
  *
  * @param (string) $mode What to return: raw (all), base (before '?'), uri (before '?', without the domain).
@@ -744,11 +839,11 @@ function secupress_send_mail( $to, $subject, $message, $headers = array(), $atta
  * @return (string)
  */
 function secupress_get_current_url( $mode = 'base' ) {
-	$mode = (string) $mode;
-	$port = (int) $_SERVER['SERVER_PORT'];
-	$port = 80 !== $port && 443 !== $port ? ( ':' . $port ) : '';
+	$host = str_replace( [ 'http://', 'https://', '/' ], '', home_url() );
+	// $port = isset( $_SERVER['SERVER_PORT'] ) ? (int) $_SERVER['SERVER_PORT'] : 80;
+	// $port = 80 !== $port && 443 !== $port ? ( ':' . $port ) : '';
 	$url  = ! empty( $GLOBALS['HTTP_SERVER_VARS']['REQUEST_URI'] ) ? $GLOBALS['HTTP_SERVER_VARS']['REQUEST_URI'] : ( ! empty( $_SERVER['REQUEST_URI'] ) ? $_SERVER['REQUEST_URI'] : '' );
-	$url  = 'http' . ( is_ssl() ? 's' : '' ) . '://' . $_SERVER['HTTP_HOST'] . $port . $url;
+	$url  = 'http' . ( is_ssl() ? 's' : '' ) . '://' . $host . /*$port . */$url;
 
 	switch ( $mode ) :
 		case 'raw' :
@@ -957,7 +1052,7 @@ function secupress_get_consumer_key() {
 
 
 /**
- * Return true if secupress pro is installed.
+ * Return true if secupress pro is activated.
  *
  * @since 1.0
  *
@@ -969,6 +1064,25 @@ function secupress_has_pro() {
 
 
 /**
+ * Return true if the license is ok.
+ *
+ * @since 1.3
+ * @author Grégory Viguier
+ *
+ * @return (bool)
+ */
+function secupress_has_pro_license() {
+	static $has_pro;
+
+	if ( ! isset( $has_pro ) ) {
+		$has_pro = secupress_get_consumer_key() && 1 === secupress_get_option( 'site_is_pro' );
+	}
+
+	return $has_pro;
+}
+
+
+/**
  * Return true if secupress pro is installed and the license is ok.
  *
  * @since 1.0
@@ -976,13 +1090,7 @@ function secupress_has_pro() {
  * @return (bool)
  */
 function secupress_is_pro() {
-	static $is_pro;
-
-	if ( ! isset( $is_pro ) ) {
-		$is_pro = secupress_has_pro() && secupress_get_consumer_key() && (int) secupress_get_option( 'site_is_pro' );
-	}
-
-	return $is_pro;
+	return secupress_has_pro() && secupress_has_pro_license();
 }
 
 
@@ -1000,8 +1108,8 @@ function secupress_is_pro() {
 function secupress_feature_is_pro( $feature ) {
 	$features = array(
 		// Field names.
-		'login-protection_only-one-connection'   => 1,
 		'login-protection_sessions_control'      => 1,
+		'blacklist-logins_prevent-user-creation' => 1,
 		'double-auth_type'                       => 1,
 		'password-policy_password_expiration'    => 1,
 		'password-policy_strong_passwords'       => 1,
@@ -1016,6 +1124,7 @@ function secupress_feature_is_pro( $feature ) {
 		'page-protect_profile'                   => 1,
 		'page-protect_settings'                  => 1,
 		'content-protect_hotlink'                => 1,
+		'content-protect_404guess'               => 1,
 		'file-scanner_file-scanner'              => 1,
 		'bad-file-extensions_activated'          => 1,
 		'backup-files_backup-file'               => 1,
@@ -1024,7 +1133,6 @@ function secupress_feature_is_pro( $feature ) {
 		'import-export_export_settings'          => 1,
 		'import-export_import_settings'          => 1,
 		'geoip-system_type'                      => 1,
-		'bruteforce_activated'                   => 1,
 		'schedules-backups_type'                 => 1,
 		'schedules-backups_periodicity'          => 1,
 		'schedules-backups_email'                => 1,
@@ -1039,12 +1147,17 @@ function secupress_feature_is_pro( $feature ) {
 		'schedules-file-monitoring_scheduled'    => 1,
 		'notification-types_types'               => 1,
 		'alerts_activated'                       => 1,
-		'antispam_antispam'                      => 1,
 		'backups-storage_location'               => 1,
 		'event-alerts_activated'                 => 1,
+		'notification-types_emails'              => 1,
+		'notification-types_slack'               => 1,
 		'daily-reporting_activated'              => 1,
-		// Field values.
-		'login-protection_type|nonlogintimeslot' => 1,
+		'move-login_whattodo|custom_error'       => 1,
+		'move-login_whattodo|custom_page'        => 1,
+		'database_db_prefix'                     => 1,
+		'database_tables_selection'              => 1,
+		'bbq-headers_bad-referer'                => 1,
+		'bbq-headers_bad-referer-list'           => 1,
 	);
 
 	return isset( $features[ $feature ] );
@@ -1198,4 +1311,295 @@ function secupress_maybe_increase_memory_limit() {
 			return;
 		}
 	}
+}
+
+
+/**
+ * Register a settings error to be displayed to the user.
+ * This a clone of `add_settings_error()`, but available in the global scope.
+ *
+ * @since 1.3
+ * @author Grégory Viguier
+ *
+ * @param (string) $setting Slug title of the setting to which this error applies.
+ * @param (string) $code    Slug-name to identify the error. Used as part of 'id' attribute in HTML output.
+ * @param (string) $message The formatted message text to display to the user (will be shown inside styled
+ *                          `<div>` and `<p>` tags).
+ * @param (string) $type    Optional. Message type, controls HTML class. Accepts 'error' or 'updated'.
+ *                          Default 'error'.
+ */
+function secupress_add_settings_error( $setting, $code, $message, $type = 'error' ) {
+	global $wp_settings_errors;
+
+	$wp_settings_errors[] = array(
+		'setting' => $setting,
+		'code'    => $code,
+		'message' => $message,
+		'type'    => $type,
+	);
+}
+
+
+/**
+ * Fetch settings errors registered by `add_settings_error()` and `secupress_add_settings_error()`.
+ * This a clone of `get_settings_errors()`, but available in the global scope.
+ *
+ * @since 1.3
+ * @author Grégory Viguier
+ *
+ * @param (string)  $setting  Optional slug title of a specific setting who's errors you want.
+ * @param (boolean) $sanitize Whether to re-sanitize the setting value before returning errors.
+ *
+ * @return (array) Array of settings errors
+ */
+function secupress_get_settings_errors( $setting = '', $sanitize = false ) {
+	global $wp_settings_errors;
+
+	/**
+	 * If `$sanitize` is true, manually re-run the sanitization for this option.
+	 * This allows the $sanitize_callback from register_setting() to run, adding any settings errors you want to show by default.
+	 */
+	if ( $sanitize ) {
+		sanitize_option( $setting, get_option( $setting ) );
+	}
+
+	// If settings were passed back from options.php then use them.
+	if ( isset( $_GET['settings-updated'] ) && $_GET['settings-updated'] && get_transient( 'settings_errors' ) ) {
+		$wp_settings_errors = array_merge( (array) $wp_settings_errors, get_transient( 'settings_errors' ) ); // WPCS: override ok.
+		delete_transient( 'settings_errors' );
+	}
+
+	// Check global in case errors have been added on this pageload.
+	if ( is_array( $wp_settings_errors ) && ! count( $wp_settings_errors ) ) {
+		return array();
+	}
+
+	// Filter the results to those of a specific setting if one was set.
+	if ( $setting ) {
+		$setting_errors = array();
+
+		foreach ( (array) $wp_settings_errors as $key => $details ) {
+			if ( $setting === $details['setting'] ) {
+				$setting_errors[] = $wp_settings_errors[ $key ];
+			}
+		}
+
+		return $setting_errors;
+	}
+
+	return $wp_settings_errors;
+}
+
+/**
+ * Checks whether function is disabled.
+ *
+ * @since 1.4.5
+ * @author Grégory Viguier
+ *
+ * @param (string) $function Name of the function.
+ * @return (bool) Whether or not the function is disabled.
+ */
+function secupress_is_function_disabled( $function ) {
+	if ( ! function_exists( $function ) ) {
+		return true;
+	}
+
+	$disabled = explode( ',', @ini_get( 'disable_functions' ) );
+	$disabled = array_map( 'trim', $disabled );
+	$disabled = array_flip( $disabled );
+
+	return isset( $disabled[ $function ] );
+}
+
+/**
+ * Returns true if SECUPRESS_MODE is defined on "expert"
+ *
+ * @since 2.0.1 Read the new setting too
+ * @since 1.4.6
+ * @return (bool)
+ * @author Julio Potier
+ **/
+function secupress_is_expert_mode() {
+	return secupress_get_module_option( 'advanced-settings_expert-mode', false , 'welcome') || defined( 'SECUPRESS_MODE' ) && ( 'expert' === strtolower( SECUPRESS_MODE ) );
+}
+
+
+/**
+ * Set recursive chmod rights on a path
+ *
+ * @since 2.0
+ * @author Julio Potier
+ *
+ * @param (string) $path Default value ABSPATH
+ * @return (void)
+ **/
+function secupress_set_recursive_chmod_rights( $path = ABSPATH ) {
+	$dir  = new DirectoryIterator( $path );
+	$exts = [ 'php' => 1, 'js' => 1, 'css' => 1 ];
+	/**
+	* Filter the file extensions that will be chmoded
+	*
+	* @since 2.0
+	* @param (array) $exts
+	*/
+	$exts = apply_filters( 'secupress.chmod.file_types', $exts );
+	foreach ( $dir as $item ) {
+		if ( $item->isDot() ) {
+			continue;
+		}
+		if ( $item->isDir() ) {
+			@chmod( $item->getPathname(), 0755 );
+			secupress_set_recursive_chmod_rights( $item->getPathname() );
+		} elseif( isset( $exts[ pathinfo( $item->getPathname(), PATHINFO_EXTENSION ) ] ) ) {
+			@chmod( $item->getPathname(), 0644 );
+		}
+	}
+}
+
+/**
+ * Checks whether the website is using HTTPS.
+ * This is based on whether both the home and site URL are using HTTPS.
+ *
+ * @since 2.0
+ * @author Julio Potier
+ *
+ * @see wp_is_using_https()
+ *
+ * @param (string) 'both', 'site', 'home' accepted, anything else will return false;
+ * @return (bool) True if site is actually using HTTPS
+ **/
+function secupress_site_is_using_https( $type = 'both' ) {
+	if ( secupress_wp_version_is( '5.7' ) ) {
+		$home = wp_is_home_url_using_https();
+		$site = wp_is_site_url_using_https();
+	} else {
+		$home = 'https' === wp_parse_url( home_url(), PHP_URL_SCHEME );
+		$site = 'https' === wp_parse_url( apply_filters( 'site_url', get_option( 'siteurl' ), '', null, null ), PHP_URL_SCHEME );
+	}
+	$both = $home && $site;
+
+	return isset( $$type ) && $$type;
+}
+
+/**
+ * Check if https with ssl verify returns an error
+ *
+ * @since 2.0
+ * @author Julio Potier
+ *
+ * @see wp_is_https_supported()
+ *
+ * @return (bool) True if https/ssl is OK
+ **/
+function secupress_is_https_supported() {
+	if ( secupress_wp_version_is( '5.7' ) ) {
+		return wp_is_https_supported();
+	}
+	$response = get_transient( 'secupress_is_https_supported' );
+	if ( $response && ! is_wp_error( $response ) ) {
+		return true;
+	}
+	$response = wp_remote_get(
+		home_url( '/', 'https' ),
+		array(
+			'headers'   => array(
+				'Cache-Control' => 'no-cache',
+			),
+			'sslverify' => true,
+		)
+	);
+
+	set_transient( 'secupress_is_https_supported', $response, 6 * HOUR_IN_SECONDS );
+	return ! is_wp_error( $response );
+}
+
+/**
+ * Update home ans siteurl with HTTPS
+ *
+ * @since 2.0
+ * @author Julio Potier
+ *
+ * @see wp_update_urls_to_https()
+ * @return (bool) True if URL are updated
+ **/
+function secupress_update_urls_to_https() {
+	if ( secupress_wp_version_is( '5.7' ) ) {
+		return wp_update_urls_to_https();
+	}
+
+	$options                          = [ 'home', 'siteurl' ];
+	list( $orig_home, $orig_siteurl ) = array_map( 'get_option', $options );
+	list( $new_home, $new_siteurl )   = str_replace( 'http://', 'https://', [ $orig_home, $orig_siteurl ] );
+    array_map( 'update_option', $options, [ $new_home, $new_siteurl ] );
+
+    return true;
+}
+
+/**
+ * Before each usage of secupress_send_slack_notification(), maybe check if this is still correct
+ *
+ * @since 2.0
+ * @author Julio Potier
+ *
+ * @see secupress_send_slack_notification()
+ *
+ * @return (bool) True if still OK, false if not.
+ **/
+function secupress_maybe_reset_slack_notifs() {
+	$url      = secupress_get_module_option( 'notification-types_slack', false, 'alerts' );
+	$accepted = secupress_get_option( 'notification-types_slack', false );
+	if ( apply_filters( 'secupress.notifications.slack.bypass', false ) || ( ! empty( $accepted ) && $url === $accepted ) ) {
+		return true;
+	}
+	secupress_set_option( 'notification-types_slack', 0 );
+	return false;
+}
+
+
+/**
+ * Try to delete an old plugin file removed in a particular version, if not, will empty the file, if not, will rename it, if still not well… ¯\_(ツ)_/¯.
+ *
+ * @since 1.4.3
+ * @param (string) $file The file to be deleted.
+ * @author Julio Potier
+ **/
+function secupress_remove_old_plugin_file( $file ) {
+	// Is it a sym link ?
+	if ( is_link( $file ) ) {
+		$file = @readlink( $file );
+	}
+	// Try to delete.
+	if ( file_exists( $file ) && ! @unlink( $file ) ) {
+		// Or try to empty it.
+		$fh = @fopen( $file, 'w' );
+		$fw = @fwrite( $fh, '<?php // File removed by SecuPress' );
+		@fclose( $fh );
+		if ( ! $fw ) {
+			// Or try to rename it.
+			return @rename( $file, $file . '.old' );
+		}
+	}
+	return true;
+}
+
+/**
+ * Translate the WP role as we want to
+ *
+ * @since 2.0
+ * @author Julio Potier
+ *
+ * @return (string)
+ **/
+function secupress_translate_user_role( $role ) {
+	_x( 'Administrator', 'User role', 'secupress' );
+	_x( 'Editor',        'User role', 'secupress' );
+	_x( 'Author',        'User role', 'secupress' );
+	_x( 'Contributor',   'User role', 'secupress' );
+	_x( 'Subscriber',    'User role', 'secupress' );
+	$translation = translate_user_role( $role, 'secupress' );
+	// If a new role is added (even by a plugin etc), and we do not know it, backcompat with WP domain.
+	if ( 0 === strcmp( $translation, $role ) ) {
+		$translation = translate_user_role( $role );
+	}
+	return $translation;
 }

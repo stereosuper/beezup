@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /** --------------------------------------------------------------------------------------------- */
 /** ON MODULE SETTINGS SAVE ===================================================================== */
@@ -29,6 +29,9 @@ function secupress_users_login_settings_callback( $settings ) {
 	 * The `$settings` parameter is passed by reference.
 	 */
 
+	// Move Login.
+	secupress_move_login_settings_callback( $modulenow, $settings, $activate );
+
 	// Double authentication.
 	secupress_double_auth_settings_callback( $modulenow, $settings, $activate );
 
@@ -44,8 +47,31 @@ function secupress_users_login_settings_callback( $settings ) {
 	// Logins blacklist.
 	secupress_logins_blacklist_settings_callback( $modulenow, $activate );
 
-	// Move Login.
-	secupress_move_login_settings_callback( $modulenow, $settings, $activate );
+	// Stop User Enumeration.
+	secupress_stopuserenumeration_settings_callback( $modulenow, $activate );
+
+	// Prevent User Creation
+	secupress_preventusercreation_settings_callback( $modulenow, $activate );
+
+	// Lock Default Role
+	secupress_lock_default_role_settings_callback( $modulenow, $settings, $activate );
+
+	// Lock Membership
+	secupress_lock_membership_settings_callback( $modulenow, $activate );
+
+	// Lock Admin Email
+	secupress_lock_admin_email_settings_callback( $modulenow, $activate );
+
+
+	/**
+	 * Filter the settings before saving.
+	 *
+	 * @since 1.4.9
+	 *
+	 * @param (array)      $settings The module settings.
+	 * @param (array\bool) $activate Contains the activation rules for the different modules
+	 */
+	$settings = apply_filters( "secupress_{$modulenow}_settings_callback", $settings, $activate );
 
 	return $settings;
 }
@@ -61,10 +87,10 @@ function secupress_users_login_settings_callback( $settings ) {
  * @param (array|bool) $activate  An array containing the fields related to the sub-module being activated. False if not on this module page.
  */
 function secupress_double_auth_settings_callback( $modulenow, &$settings, $activate ) {
-	// (De)Activation.
-	if ( ! empty( $activate['double-auth_type'] ) ) {
+
+	if ( ! empty( $activate['double-auth_type'] ) && ! secupress_is_submodule_active( 'users-login', 'passwordless' ) ) {
 		secupress_manage_submodule( $modulenow, 'passwordless', '1' === $activate['double-auth_type'] && secupress_is_pro() );
-	} elseif ( false !== $activate ) {
+	} elseif ( ! isset( $activate['double-auth_type'] ) && secupress_is_submodule_active( 'users-login', 'passwordless' ) ) {
 		secupress_deactivate_submodule( $modulenow, array( 'passwordless' ) );
 	}
 
@@ -102,29 +128,19 @@ function secupress_login_protection_settings_callback( $modulenow, &$settings, $
 	// (De)Activation.
 	if ( ! empty( $activate['login-protection_type'] ) ) {
 		$activate['login-protection_type'] = array_flip( $activate['login-protection_type'] );
-
-		secupress_manage_submodule( $modulenow, 'limitloginattempts', isset( $activate['login-protection_type']['limitloginattempts'] ) );
-		secupress_manage_submodule( $modulenow, 'bannonexistsuser',   isset( $activate['login-protection_type']['bannonexistsuser'] ) );
-		secupress_manage_submodule( $modulenow, 'nonlogintimeslot',   isset( $activate['login-protection_type']['nonlogintimeslot'] ) );
-	} elseif ( false !== $activate ) {
-		secupress_deactivate_submodule( $modulenow, array( 'bannonexistsuser', 'limitloginattempts', 'nonlogintimeslot' ) );
 	}
+	secupress_manage_submodule( $modulenow, 'limitloginattempts', isset( $activate['login-protection_type']['limitloginattempts'] ) );
+	secupress_manage_submodule( $modulenow, 'bannonexistsuser',   isset( $activate['login-protection_type']['bannonexistsuser'] ) );
+	secupress_manage_submodule( 'discloses', 'login-errors-disclose', ! empty( $activate['login-protection_login_errors'] ) );
 
 	// Settings.
 	$settings['login-protection_number_attempts']  = ! empty( $settings['login-protection_number_attempts'] ) ? secupress_validate_range( $settings['login-protection_number_attempts'], 3, 99, 10 ) : 10;
 	$settings['login-protection_time_ban']         = ! empty( $settings['login-protection_time_ban'] )        ? secupress_validate_range( $settings['login-protection_time_ban'],        1, 60, 5 )  : 5;
-	$settings['login-protection_nonlogintimeslot'] = ! empty( $settings['login-protection_nonlogintimeslot'] ) && is_array( $settings['login-protection_nonlogintimeslot'] ) ? $settings['login-protection_nonlogintimeslot'] : array();
-
-	$settings['login-protection_nonlogintimeslot']['from_hour']   = ! empty( $settings['login-protection_nonlogintimeslot']['from_hour'] )   ? secupress_validate_range( (int) $settings['login-protection_nonlogintimeslot']['from_hour'],   0, 23, 0 ) : 0;
-	$settings['login-protection_nonlogintimeslot']['from_minute'] = ! empty( $settings['login-protection_nonlogintimeslot']['from_minute'] ) ? secupress_validate_range( (int) $settings['login-protection_nonlogintimeslot']['from_minute'], 0, 59, 0 ) : 0;
-	$settings['login-protection_nonlogintimeslot']['to_hour']     = ! empty( $settings['login-protection_nonlogintimeslot']['to_hour'] )     ? secupress_validate_range( (int) $settings['login-protection_nonlogintimeslot']['to_hour'],     0, 23, 0 ) : 0;
-	$settings['login-protection_nonlogintimeslot']['to_minute']   = ! empty( $settings['login-protection_nonlogintimeslot']['to_minute'] )   ? secupress_validate_range( (int) $settings['login-protection_nonlogintimeslot']['to_minute'],   0, 59, 0 ) : 0;
 
 	// (De)Activation.
 	if ( false !== $activate ) {
-		$available = secupress_wp_version_is( '4.0' ) && secupress_is_pro();
-		secupress_manage_submodule( $modulenow, 'only-one-connection', ! empty( $activate['login-protection_only-one-connection'] ) && $available );
-		secupress_manage_submodule( $modulenow, 'sessions-control', ! empty( $activate['login-protection_sessions_control'] ) && $available );
+		secupress_manage_submodule( $modulenow, 'only-one-connection', ! empty( $activate['login-protection_only-one-connection'] ) );
+		secupress_manage_submodule( $modulenow, 'sessions-control', ! empty( $activate['login-protection_sessions_control'] ) );
 	}
 }
 
@@ -153,7 +169,6 @@ function secupress_password_policy_settings_callback( $modulenow, &$settings, $a
 
 	// (De)Activation.
 	if ( false !== $activate ) {
-		secupress_manage_submodule( $modulenow, 'ask-old-password', ! empty( $activate['password-policy_ask-old-password'] ) );
 		secupress_manage_submodule( $modulenow, 'strong-passwords', ! empty( $activate['password-policy_strong_passwords'] ) && secupress_is_pro() );
 	}
 }
@@ -172,6 +187,96 @@ function secupress_logins_blacklist_settings_callback( $modulenow, $activate ) {
 	if ( false !== $activate ) {
 		secupress_manage_submodule( $modulenow, 'blacklist-logins', ! empty( $activate['blacklist-logins_activated'] ) );
 	}
+}
+
+
+
+/**
+ * (De)Activate stop user enumeration plugin.
+ *
+ * @since 1.3
+ *
+ * @param (string)     $modulenow Current module.
+ * @param (array|bool) $activate  An array containing the fields related to the sub-module being activated. False if not on this module page.
+ */
+function secupress_stopuserenumeration_settings_callback( $modulenow, $activate ) {
+	// (De)Activation.
+	if ( false !== $activate ) {
+		secupress_manage_submodule( $modulenow, 'stop-user-enumeration', ! empty( $activate['blacklist-logins_stop-user-enumeration'] ) );
+	}
+}
+
+/**
+ * (De)Activate prevent user creation plugin.
+ *
+ * @since 1.4.5.9
+ *
+ * @param (string)     $modulenow Current module.
+ * @param (array|bool) $activate  An array containing the fields related to the sub-module being activated. False if not on this module page.
+ */
+function secupress_preventusercreation_settings_callback( $modulenow, $activate ) {
+	// (De)Activation.
+	if ( false !== $activate && secupress_is_pro() ) {
+		secupress_manage_submodule( $modulenow, 'prevent-user-creation', ! empty( $activate['blacklist-logins_prevent-user-creation'] ) );
+	}
+}
+
+
+/**
+ * (De)Activate lock default role plugin.
+ *
+ * @since 2.0
+ *
+ * @param (string)     $modulenow Current module.
+ * @param (array|bool) $activate  An array containing the fields related to the sub-module being activated. False if not on this module page.
+ */
+function secupress_lock_default_role_settings_callback( $modulenow, $settings, $activate ) {
+	// (De)Activation.
+	if ( false !== $activate ) {
+		if ( isset( $settings['blacklist-logins_default-role'] ) ) {
+			$roles = new WP_Roles();
+			$roles = $roles->get_names();
+			$valid_role = ! empty( $activate['blacklist-logins_default-role-activated'] ) && in_array( $settings['blacklist-logins_default-role'], array_keys( $roles ) ) && ! isset( secupress_get_forbidden_default_roles()[ $settings['blacklist-logins_default-role'] ] );
+			secupress_manage_submodule( $modulenow, 'default-role', $valid_role );
+		} else {
+			secupress_manage_submodule( $modulenow, 'default-role', false );
+		}
+	}
+
+}
+
+
+/**
+ * (De)Activate lock membership plugin.
+ *
+ * @since 2.0
+ *
+ * @param (string)     $modulenow Current module.
+ * @param (array|bool) $activate  An array containing the fields related to the sub-module being activated. False if not on this module page.
+ */
+function secupress_lock_membership_settings_callback( $modulenow, $activate ) {
+	// (De)Activation.
+	if ( false !== $activate ) {
+		secupress_manage_submodule( $modulenow, 'membership', ! empty( $activate['blacklist-logins_membership-activated'] ) );
+	}
+
+}
+
+
+/**
+ * (De)Activate lock admin email plugin.
+ *
+ * @since 2.0
+ *
+ * @param (string)     $modulenow Current module.
+ * @param (array|bool) $activate  An array containing the fields related to the sub-module being activated. False if not on this module page.
+ */
+function secupress_lock_admin_email_settings_callback( $modulenow, $activate ) {
+	// (De)Activation.
+	if ( false !== $activate ) {
+		secupress_manage_submodule( $modulenow, 'admin-email', ! empty( $activate['blacklist-logins_admin-email-activated'] ) );
+	}
+
 }
 
 
@@ -243,33 +348,32 @@ function secupress_move_login_settings_callback( $modulenow, &$settings, $activa
 	}
 
 	// Access to `wp-login.php`.
-	$wp_login_actions = secupress_move_login_login_access_labels();
-	$settings['move-login_login-access'] = isset( $settings['move-login_login-access'], $wp_login_actions[ $settings['move-login_login-access'] ] ) ? $settings['move-login_login-access'] : 'error';
-
-	// Access to `wp-admin`.
-	$admin_actions = secupress_move_login_login_redirect_labels();
-	$settings['move-login_login-redirect'] = isset( $settings['move-login_login-redirect'], $wp_login_actions[ $settings['move-login_login-redirect'] ] ) ? $settings['move-login_login-redirect'] : 'redir-login';
+	if ( isset( $settings['move-login_login-access'] ) ) {
+		$settings['move-login_login-access'] = sanitize_text_field( $settings['move-login_login-access'] );
+	}
 
 	// Handle validation errors.
 	$errors['forbidden']  = array_unique( $errors['forbidden'] );
 	$errors['duplicates'] = array_unique( $errors['duplicates'] );
 
-	if ( empty( $settings['move-login_slug-login'] ) ) {
-		$message  = sprintf( __( '%s:', 'secupress' ), __( 'Move Login', 'secupress' ) ) . ' ';
-		$message .= __( 'Please choose your login URL.', 'secupress' );
-		add_settings_error( "secupress_{$modulenow}_settings", 'forbidden-slugs', $message, 'error' );
-	}
+	if ( false !== $activate && ! empty( $activate['move-login_activated'] ) ) {
+		if ( empty( $settings['move-login_slug-login'] ) ) {
+			$message  = sprintf( __( '%s:', 'secupress' ), __( 'Move Login', 'secupress' ) ) . ' ';
+			$message .= __( 'Please choose your login URL.', 'secupress' );
+			secupress_add_settings_error( "secupress_{$modulenow}_settings", 'forbidden-slugs', $message, 'error' );
+		}
 
-	if ( $nbr_forbidden = count( $errors['forbidden'] ) ) {
-		$message  = sprintf( __( '%s:', 'secupress' ), __( 'Move Login', 'secupress' ) ) . ' ';
-		$message .= sprintf( _n( 'The slug %s is forbidden.', 'The slugs %s are forbidden.', $nbr_forbidden, 'secupress' ), wp_sprintf( '<code>%l</code>', $errors['forbidden'] ) );
-		add_settings_error( "secupress_{$modulenow}_settings", 'forbidden-slugs', $message, 'error' );
-	}
+		if ( $nbr_forbidden = count( $errors['forbidden'] ) ) {
+			$message  = sprintf( __( '%s:', 'secupress' ), __( 'Move Login', 'secupress' ) ) . ' ';
+			$message .= sprintf( _n( 'The slug %s is forbidden.', 'The slugs %s are forbidden.', $nbr_forbidden, 'secupress' ), wp_sprintf( '<code>%l</code>', $errors['forbidden'] ) );
+			secupress_add_settings_error( "secupress_{$modulenow}_settings", 'forbidden-slugs', $message, 'error' );
+		}
 
-	if ( ! empty( $errors['duplicates'] ) ) {
-		$message  = sprintf( __( '%s:', 'secupress' ), __( 'Move Login', 'secupress' ) ) . ' ';
-		$message .= __( 'The links can\'t have the same slugs.', 'secupress' );
-		add_settings_error( "secupress_{$modulenow}_settings", 'duplicate-slugs', $message, 'error' );
+		if ( ! empty( $errors['duplicates'] ) ) {
+			$message  = sprintf( __( '%s:', 'secupress' ), __( 'Move Login', 'secupress' ) ) . ' ';
+			$message .= __( 'The links can’t have the same slugs.', 'secupress' );
+			secupress_add_settings_error( "secupress_{$modulenow}_settings", 'duplicate-slugs', $message, 'error' );
+		}
 	}
 
 	// (De)Activation.
@@ -280,60 +384,35 @@ function secupress_move_login_settings_callback( $modulenow, &$settings, $activa
 			secupress_manage_submodule( $modulenow, 'move-login', ! empty( $activate['move-login_activated'] ) );
 		}
 	}
-}
-
-
-/** --------------------------------------------------------------------------------------------- */
-/** NOTICES ===================================================================================== */
-/** --------------------------------------------------------------------------------------------- */
-
-add_filter( 'secupress.plugins.packed-plugins', 'secupress_move_login_add_packed_plugin' );
-/**
- * Display a notice if the standalone version of Move Login is used.
- *
- * @since 1.0
- *
- * @param (array) $plugins A list of plugin paths, relative to the plugins folder.
- */
-function secupress_move_login_add_packed_plugin( $plugins ) {
-	$plugins['move-login'] = 'sf-move-login/sf-move-login.php';
-	return $plugins;
+	if ( isset( $activate['move-login_activated'] ) ) {
+		$settings['move-login_whattodo'] = isset( $settings['move-login_whattodo'] ) ? $settings['move-login_whattodo'] : 'sperror';
+	} else {
+		unset( $settings['move-login_whattodo'] );
+	}
 }
 
 
 /** --------------------------------------------------------------------------------------------- */
 /** INSTALL/RESET =============================================================================== */
 /** --------------------------------------------------------------------------------------------- */
-
-add_action( 'secupress.first_install', 'secupress_install_users_login_module' );
+/*
+add_action( 'secupress.first_install', 'secupress_install_****_module' );
 /**
  * Create default option on install and reset.
  *
  * @since 1.0
  *
  * @param (string) $module The module(s) that will be reset to default. `all` means "all modules".
- */
+
 function secupress_install_users_login_module( $module ) {
 	// First install.
 	if ( 'all' === $module ) {
 		// Activate "Ask for old password" submodule.
-		secupress_activate_submodule_silently( 'users-login', 'ask-old-password' );
+		secupress_activate_submodule_silently( '****', '****' );
 	}
 
-	// First install or reset.
-	if ( 'all' === $module || 'users-login' === $module ) {
-		// Set default non-login time slot.
-		update_site_option( 'secupress_users-login_settings', array(
-			'login-protection_nonlogintimeslot' => array(
-				'from_hour'   => 19,
-				'from_minute' => 0,
-				'to_hour'     => 8,
-				'to_minute'   => 0,
-			),
-		) );
-	}
 }
-
+*/
 
 /** --------------------------------------------------------------------------------------------- */
 /** DEFAULT VALUES ============================================================================== */
@@ -343,68 +422,16 @@ function secupress_install_users_login_module( $module ) {
  * Move Login: return the list of customizable login actions.
  *
  * @since 1.0
+ * @since 1.3.1 Remove all other slugs than "login"
+ * @since 1.3.2 Remove SFML hook, not compatible anymore
  *
  * @return (array) Return an array with the action names as keys and field labels as values.
  */
 function secupress_move_login_slug_labels() {
-	$labels = array(
-		'login'        => __( 'Log in' ),
-		'logout'       => __( 'Log out' ),
-		'register'     => __( 'Register' ),
-		'lostpassword' => __( 'Lost Password' ),
-		'resetpass'    => __( 'Password Reset' ),
-	);
-
-	/**
-	 * Add custom actions to the list of customizable actions.
-	 *
-	 * @since 1.0
-	 *
-	 * @param (array) $new_slugs An array with the action names as keys and field labels as values. An empty array by default.
-	*/
-	$new_slugs = apply_filters( 'sfml_additional_slugs', array() );
-
-	if ( $new_slugs && is_array( $new_slugs ) ) {
-		$new_slugs = array_diff_key( $new_slugs, $labels );
-		$labels    = array_merge( $labels, $new_slugs );
+	$labels = [ 'login' => __( 'New login page', 'secupress' ) ];
+	if ( '1' === get_option( 'users_can_register' ) ) {
+		$labels['register'] = __( 'New registration page', 'secupress' );
 	}
 
 	return $labels;
-}
-
-
-/** --------------------------------------------------------------------------------------------- */
-/** TOOLS ======================================================================================= */
-/** --------------------------------------------------------------------------------------------- */
-
-/**
- * Move Login: return the list of available actions to perform when someone reaches the old login page.
- *
- * @since 1.0
- *
- * @return (array) Return an array with identifiers as keys and field labels as values.
- */
-function secupress_move_login_login_access_labels() {
-	return array(
-		'error'      => __( 'Display an error message', 'secupress' ),
-		'redir_404'  => __( 'Redirect to a "Page Not Found" error page', 'secupress' ),
-		'redir_home' => __( 'Redirect to the home page', 'secupress' ),
-	);
-}
-
-
-/**
- * Move Login: return the list of available actions to perform when a logged out user reaches the administration area.
- *
- * @since 1.0
- *
- * @return (array) Return an array with identifiers as keys and field labels as values.
- */
-function secupress_move_login_login_redirect_labels() {
-	return array(
-		'redir-login' => __( 'Do nothing, redirect to the new login page', 'secupress' ) . ' <span class="description">(' . __( 'not recommended', 'secupress' ) . ')</span>',
-		'error'       => __( 'Display an error message', 'secupress' ),
-		'redir_404'   => __( 'Redirect to a "Page Not Found" error page', 'secupress' ),
-		'redir_home'  => __( 'Redirect to the home page', 'secupress' ),
-	);
 }

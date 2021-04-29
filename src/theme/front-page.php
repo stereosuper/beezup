@@ -140,15 +140,6 @@ get_header(); ?>
 			<ul class='container list-quotes'>
 				<?php while( have_rows('quotes') ){ the_row(); ?>
 					<li>
-						<div class='wrapper-txt'>
-							<blockquote><?php the_sub_field('quote'); ?></blockquote>
-							<span class='bq-author'><?php the_sub_field('author'); ?></span>
-							<span class='bq-job'><?php the_sub_field('job'); ?></span>
-						</div>
-						
-						<div class='wrapper-logo'>
-							<?php echo apply_filters( 'bj_lazy_load_html', wp_get_attachment_image( get_sub_field('logo'), 'medium' )); ?>
-						</div>
 
 						<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 38 15' class='js-bees bees'>
 							<circle cx='25' cy='5' r='2' class='js-bee'/>
@@ -158,7 +149,18 @@ get_header(); ?>
 							<circle cx='37' cy='4' r='1' class='js-bee'/>
 							<circle cx='11' cy='1' r='1' class='js-bee'/>
 							<path d='M1,7c0.6,0,1,0.4,1,1c0,0.6-0.4,1-1,1S0,8.6,0,8C0,7.4,0.4,7,1,7z' class='js-bee'/>
+
 						</svg>
+						<div class='wrapper-txt'>
+							<blockquote><?php the_sub_field('quote'); ?></blockquote>
+							<span class='bq-author'><?php the_sub_field('author'); ?></span>
+							<span class='bq-job'><?php the_sub_field('job'); ?></span>
+						</div>
+
+						<div class='wrapper-logo'>
+							<?php echo apply_filters( 'bj_lazy_load_html', wp_get_attachment_image( get_sub_field('logo'), 'medium' )); ?>
+						</div>
+
 					</li>
 				<?php } ?>
 			</ul>

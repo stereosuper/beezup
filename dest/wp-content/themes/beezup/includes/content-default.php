@@ -89,7 +89,7 @@
                         <?php if( $images ){ ?>
                         <ul class='galery <?php if( !get_sub_field("photos") ) echo "channels-list"; ?>'>
                             <?php foreach( $images as $image ){ ?>
-                            <?php $img = "<img src='" . $image['sizes']['medium'] . "' alt='" . $image['alt'] . "'>"; ?>
+                            <?php $img = "<a href='".$image['description']."'><img src='" . $image['sizes']['medium'] . "' alt='" . $image['alt'] . "'></a>"; ?>
                             <li>
                                 <div><?php echo apply_filters( 'bj_lazy_load_html', $img); ?></div>
                             </li>

@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /** --------------------------------------------------------------------------------------------- */
 /** ON MODULE SETTINGS SAVE ===================================================================== */
@@ -28,18 +28,24 @@ function secupress_firewall_settings_callback( $settings ) {
 	 * Each submodule has its own sanitization function.
 	 * The `$settings` parameter is passed by reference.
 	 */
-
 	// Bad headers.
 	secupress_bad_headers_settings_callback( $modulenow, $settings, $activate );
 
 	// Bad contents.
 	secupress_bad_contents_settings_callback( $modulenow, $settings, $activate );
 
-	// Anti Bruteforce Management.
-	secupress_bruteforce_settings_callback( $modulenow, $settings, $activate );
-
 	// Country Management.
 	secupress_geoip_settings_callback( $modulenow, $settings, $activate );
+
+	/**
+	 * Filter the settings before saving.
+	 *
+	 * @since 1.4.9
+	 *
+	 * @param (array)      $settings The module settings.
+	 * @param (array\bool) $activate Contains the activation rules for the different modules
+	 */
+	$settings = apply_filters( "secupress_{$modulenow}_settings_callback", $settings, $activate );
 
 	return $settings;
 }
@@ -59,6 +65,10 @@ function secupress_bad_headers_settings_callback( $modulenow, &$settings, $activ
 	if ( false !== $activate ) {
 		secupress_manage_submodule( $modulenow, 'user-agents-header', ! empty( $activate['bbq-headers_user-agents-header'] ) );
 		secupress_manage_submodule( $modulenow, 'request-methods-header', ! empty( $activate['bbq-headers_request-methods-header'] ) );
+		if ( secupress_is_pro() ) {
+			secupress_manage_submodule( $modulenow, 'bad-referer', ! empty( $activate['bbq-headers_bad-referer'] ) );
+		}
+		secupress_manage_submodule( $modulenow, 'fake-google-bots', ! empty( $activate['bbq-headers_fake-google-bots'] ) );
 	}
 
 	// Settings.
@@ -70,6 +80,10 @@ function secupress_bad_headers_settings_callback( $modulenow, &$settings, $activ
 
 	if ( empty( $settings['bbq-headers_user-agents-list'] ) ) {
 		$settings['bbq-headers_user-agents-list'] = secupress_firewall_bbq_headers_user_agents_list_default();
+	}
+
+	if ( secupress_is_pro() && ! empty( $settings['bbq-headers_bad-referer-list'] ) ) {
+		$settings['bbq-headers_bad-referer-list'] = secupress_unique_sorted_list( $settings['bbq-headers_bad-referer-list'], ', ' );
 	}
 }
 
@@ -88,7 +102,7 @@ function secupress_bad_contents_settings_callback( $modulenow, &$settings, $acti
 	if ( false !== $activate ) {
 		secupress_manage_submodule( $modulenow, 'bad-url-contents', ! empty( $activate['bbq-url-content_bad-contents'] ) );
 		secupress_manage_submodule( $modulenow, 'bad-url-length', ! empty( $activate['bbq-url-content_bad-url-length'] ) );
-		secupress_manage_submodule( $modulenow, 'bad-sqli-scan', ! empty( $activate['bbq-url-content_bad-sqli-scan'] ) );
+		secupress_manage_submodule( $modulenow, 'ban-404-php', ! empty( $activate['bbq-url-content_ban-404-php'] ) );
 	}
 
 	// Settings.
@@ -101,27 +115,6 @@ function secupress_bad_contents_settings_callback( $modulenow, &$settings, $acti
 	if ( empty( $settings['bbq-url-content_bad-contents-list'] ) ) {
 		$settings['bbq-url-content_bad-contents-list'] = secupress_firewall_bbq_url_content_bad_contents_list_default();
 	}
-}
-
-
-/**
- * Anti Bruteforce Management plugin.
- *
- * @since 1.0
- *
- * @param (string)     $modulenow Current module.
- * @param (array)      $settings  The module settings, passed by reference.
- * @param (bool|array) $activate  Used to (de)activate plugins.
- */
-function secupress_bruteforce_settings_callback( $modulenow, &$settings, $activate ) {
-	// (De)Activation.
-	if ( false !== $activate ) {
-		secupress_manage_submodule( $modulenow, 'bruteforce', ! empty( $activate['bruteforce_activated'] ) );
-	}
-
-	// Settings.
-	$settings['bruteforce_request_number'] = ! empty( $settings['bruteforce_request_number'] ) ? (int) secupress_validate_range( $settings['bruteforce_request_number'], 3, 1000, 9 ) : 9;
-	$settings['bruteforce_time_ban']       = ! empty( $settings['bruteforce_time_ban'] )       ? (int) secupress_validate_range( $settings['bruteforce_time_ban'], 1, 60, 5 )         : 5;
 }
 
 
@@ -145,9 +138,7 @@ function secupress_geoip_settings_callback( $modulenow, &$settings, $activate ) 
 	}
 
 	// (De)Activation.
-	if ( false !== $activate ) {
-		secupress_manage_submodule( $modulenow, 'geoip-system', ( '-1' !== $settings['geoip-system_type'] ) );
-	}
+	secupress_manage_submodule( $modulenow, 'geoip-system', ( '-1' !== $settings['geoip-system_type'] ) );
 
 	// Make sure to not block the user.
 	if ( '-1' !== $settings['geoip-system_type'] && function_exists( 'secupress_geoip2country' ) ) {
@@ -159,12 +150,14 @@ function secupress_geoip_settings_callback( $modulenow, &$settings, $activate ) 
 			$countries    = array_flip( $settings['geoip-system_countries'] );
 
 			if ( isset( $countries[ $country_code ] ) && ! $is_whitelist ) {
+				secupress_add_transient_notice( __( 'You cannot block your own country, it has been removed from the disallowed list.', 'secupress' ) );
 				// Unblacklist the user country.
 				unset( $countries[ $country_code ] );
 				$settings['geoip-system_countries'] = array_flip( $countries );
 
 			} elseif ( ! isset( $countries[ $country_code ] ) && $is_whitelist ) {
 				// Whitelist the user country.
+				secupress_add_transient_notice( __( 'You cannot block your own country, it has been added to the allowed list.', 'secupress' ) );
 				$countries   = array_flip( $countries );
 				$countries[] = $country_code;
 				$settings['geoip-system_countries'] = $countries;

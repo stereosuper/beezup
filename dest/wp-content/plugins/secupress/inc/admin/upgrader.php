@@ -1,11 +1,10 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /** --------------------------------------------------------------------------------------------- */
 /** MIGRATE / UPGRADE =========================================================================== */
 /** --------------------------------------------------------------------------------------------- */
 
-add_action( 'admin_init', 'secupress_upgrader' );
 /**
  * Tell WP what to do when admin is loaded aka upgrader
  *
@@ -35,7 +34,6 @@ function secupress_upgrader() {
 			do_action( 'secupress.first_install', 'all' );
 		}
 
-		secupress_maybe_handle_license( 'activate' );
 	}
 	// Already installed but got updated.
 	elseif ( SECUPRESS_VERSION !== $actual_version ) {
@@ -51,7 +49,7 @@ function secupress_upgrader() {
 		do_action( 'secupress.upgrade', $new_version, $actual_version );
 	}
 
-	if ( defined( 'SECUPRESS_PRO_VERSION' ) && version_compare( SECUPRESS_VERSION, SECUPRESS_PRO_SECUPRESS_MIN ) >= 0 ) {
+	if ( defined( 'SECUPRESS_PRO_VERSION' ) && ( ! defined( 'SECUPRESS_PRO_SECUPRESS_MIN' ) || version_compare( SECUPRESS_VERSION, SECUPRESS_PRO_SECUPRESS_MIN ) >= 0 ) ) {
 		$actual_pro_version = secupress_get_option( 'pro_version' );
 
 		// You can hook the upgrader to trigger any action when SecuPress Pro is upgraded.
@@ -75,7 +73,6 @@ function secupress_upgrader() {
 				do_action( 'secupress_pro.first_install', 'all' );
 			}
 
-			secupress_maybe_handle_license( 'activate', true );
 		}
 		// Already installed but got updated.
 		elseif ( SECUPRESS_PRO_VERSION !== $actual_pro_version ) {
@@ -112,11 +109,57 @@ function secupress_upgrader() {
 			$options['hash_key']     = secupress_generate_key( 64 );
 			$options['install_time'] = time();
 		}
-
 		secupress_update_options( $options );
+
+		/**
+		* Fires when an updated has been done.
+		*
+		* @since 2.0
+		* @author Julio Potier
+		*
+		* @param (string) $actual_version
+		* @param (string) $new_version
+		* @param (array)  $options
+		*/
+		do_action( 'secupress.did_upgrade', $actual_version, SECUPRESS_VERSION, $options );
 	}
 }
 
+add_action( 'secupress.first_install', 'secupress_install_users_login_module' );
+/**
+ * Create default option on install and reset.
+ *
+ * @since 1.0
+ *
+ * @param (string) $module The module(s) that will be reset to default. `all` means "all modules".
+ */
+function secupress_install_users_login_module( $module ) {
+	// First install.
+	if ( 'all' === $module ) {
+		// Activate "Ask for old password" submodule.
+		// secupress_activate_submodule_silently( 'users-login', 'ask-old-password' );
+	}
+
+}
+
+add_action( 'secupress_pro.upgrade', 'secupress_new_pro_upgrade', 10, 2 );
+/**
+ * What to do when SecuPress Pro is updated, depending on versions.
+ *
+ * @since 2.0
+ *
+ * @param (string) $secupress_version The version being upgraded to.
+ * @param (string) $actual_version    The previous version.
+ */
+function secupress_new_pro_upgrade( $secupress_version, $actual_pro_version ) {
+	global $wpdb;
+
+	// < 2.0
+	if ( version_compare( $actual_pro_version, '2.0', '<' ) ) {
+		secupress_remove_old_plugin_file( SECUPRESS_PRO_MODULES_PATH . 'services/callbacks.php' );
+		delete_site_option( SECUPRESS_FULL_FILETREE );
+	}
+}
 
 add_action( 'secupress.upgrade', 'secupress_new_upgrade', 10, 2 );
 /**
@@ -128,178 +171,317 @@ add_action( 'secupress.upgrade', 'secupress_new_upgrade', 10, 2 );
  * @param (string) $actual_version    The previous version.
  */
 function secupress_new_upgrade( $secupress_version, $actual_version ) {
-	global $wpdb;
+	global $wpdb, $current_user;
 
-	// < 1.0
-	if ( version_compare( $actual_version, '1.0', '<' ) ) {
+	// < 1.4.3
+	if ( version_compare( $actual_version, '1.4.3', '<' ) ) {
 
-		secupress_deactivation();
+		secupress_deactivate_submodule( 'file-system', 'directory-index' );
+		secupress_remove_old_plugin_file( SECUPRESS_MODULES_PATH . 'file-system/plugins/directory-index.php' );
 
-		/**
-		 * From uninstall.php.
-		 */
+		secupress_deactivate_submodule( 'wordpress-core', 'wp-config-constant-unfiltered-html' );
+		secupress_remove_old_plugin_file( SECUPRESS_MODULES_PATH . 'wordpress-core/plugins/wp-config-constant-unfiltered-html.php' );
 
-		// Transients.
-		$transients = $wpdb->get_col( "SELECT option_name FROM $wpdb->options WHERE option_name LIKE '_transient_secupress_%' OR option_name LIKE '_transient_secupress-%'" );
-		array_map( 'delete_transient', $transients );
+		secupress_deactivate_submodule( 'sensitive-data', 'restapi' );
+		secupress_remove_old_plugin_file( SECUPRESS_MODULES_PATH . 'sensitive-data/plugins/restapi.php' );
 
-		// Site transients.
-		$transients = $wpdb->get_col( "SELECT option_name FROM $wpdb->options WHERE option_name LIKE '_site_transient_secupress_%' OR option_name LIKE '_site_transient_secupress-%'" );
-		array_map( 'delete_site_transient', $transients );
-
-		if ( is_multisite() ) {
-			$transients = $wpdb->get_col( "SELECT meta_key FROM $wpdb->sitemeta WHERE meta_key LIKE '_site_transient_secupress_%' OR meta_key LIKE '_site_transient_secupress-%'" );
-			array_map( 'delete_site_transient', $transients );
-		}
-
-		// Options.
-		$options = $wpdb->get_col( "SELECT option_name FROM $wpdb->options WHERE option_name LIKE 'secupress_%'" );
-		array_map( 'delete_option', $options );
-
-		if ( is_multisite() ) {
-			// Site options.
-			$options = $wpdb->get_col( "SELECT meta_key FROM $wpdb->sitemeta WHERE meta_key LIKE 'secupress_%'" );
-			array_map( 'delete_site_option', $options );
-		}
-
-		// User metas.
-		$wpdb->query( "DELETE FROM $wpdb->usermeta WHERE meta_key LIKE 'secupress_%' OR meta_key LIKE '%_secupress_%'" );
-
-		secupress_activation();
+		set_site_transient( 'secupress-common', time(), 2 * DAY_IN_SECONDS );
 	}
 
-	// < 1.0.3
-	if ( version_compare( $actual_version, '1.0.3', '<' ) ) {
-		// Remove some User Agents that are too generic from the settings.
-		$user_agents_options = get_option( 'secupress_firewall_settings' );
-
-		if ( is_array( $user_agents_options ) && ! empty( $user_agents_options['bbq-headers_user-agents-list'] ) ) {
-			$user_agents_options['bbq-headers_user-agents-list'] = secupress_sanitize_list( $user_agents_options['bbq-headers_user-agents-list'] );
-			$user_agents_options['bbq-headers_user-agents-list'] = explode( ', ', $user_agents_options['bbq-headers_user-agents-list'] );
-			$user_agents_options['bbq-headers_user-agents-list'] = array_diff( $user_agents_options['bbq-headers_user-agents-list'], array( 'attache', 'email', 'Fetch', 'Link', 'Ping', 'Proxy' ) );
-			$user_agents_options['bbq-headers_user-agents-list'] = implode( ', ', $user_agents_options['bbq-headers_user-agents-list'] );
-			update_option( 'secupress_firewall_settings', $user_agents_options );
-		}
+	// < 1.4.4
+	if ( version_compare( $actual_version, '1.4.4', '<' ) ) {
+		$value = secupress_get_module_option( 'bbq-headers_user-agents-list', secupress_firewall_bbq_headers_user_agents_list_default(), 'firewall' );
+		$value = str_replace( 'Wget, ', '', $value );
+		secupress_update_module_option( 'bbq-headers_user-agents-list', $value, 'firewall' );
 	}
 
-	// < 1.0.4
-	if ( version_compare( $actual_version, '1.0.4', '<' ) ) {
-		// Get post ids from logs.
-		$post_ids = $wpdb->get_col( "SELECT ID FROM $wpdb->posts WHERE post_type LIKE 'secupress_log_%'" );
-
-		if ( $post_ids ) {
-			// Delete Postmeta.
-			$wpdb->query( sprintf( "DELETE FROM $wpdb->postmeta WHERE post_id IN (%s)", implode( ',', $post_ids ) ) ); // WPCS: unprepared SQL ok.
-
-			// Delete Posts.
-			$wpdb->query( sprintf( "DELETE FROM $wpdb->posts WHERE ID IN (%s)", implode( ',', $post_ids ) ) ); // WPCS: unprepared SQL ok.
-		}
+	// < 1.4.9
+	if ( version_compare( $actual_version, '1.4.9', '<' ) ) {
+		secupress_remove_old_plugin_file( SECUPRESS_MODULES_PATH . 'users-login/plugins/inc/php/move-login/deprecated.php' );
+		secupress_remove_old_plugin_file( SECUPRESS_MODULES_PATH . 'users-login/plugins/inc/php/move-login/redirections-and-dies.php' );
+		secupress_remove_old_plugin_file( SECUPRESS_MODULES_PATH . 'users-login/plugins/inc/php/move-login/admin.php' );
+		secupress_remove_old_plugin_file( SECUPRESS_MODULES_PATH . 'users-login/plugins/inc/php/move-login/url-filters.php' );
 	}
 
-	// < 1.0.6
-	if ( version_compare( $actual_version, '1.0.6', '<' ) ) {
-		// Make sure affected roles are not empty (sanitization will do the job).
-		$users_login_settings = get_site_option( 'secupress_users-login_settings' );
-		update_site_option( 'secupress_users-login_settings', $users_login_settings );
+	// < 2.0
+	if ( version_compare( $actual_version, '2.0', '<' ) ) {
+		// Cannot use secupress_is_submodule_active() here because these are not modules yet (< 2.0...)
+		if ( defined( 'SECUPRESS_SALT_KEYS_ACTIVE' ) ) {
+			secupress_set_site_transient( 'secupress-add-salt-muplugin', array( 'ID' => $current_user->ID, 'username' => $current_user->user_login ) );
+		}
+		if ( defined( 'COOKIEHASH' ) && COOKIEHASH !== md5( get_site_option( 'siteurl' ) ) ) {
+			secupress_set_site_transient( 'secupress-add-cookiehash-muplugin', array( 'ID' => $current_user->ID, 'username' => $current_user->user_login ) );
+		}
+
+		secupress_remove_old_plugin_file( SECUPRESS_MODULES_PATH . 'firewall/plugins/bad-sqli-scan.php' );
+		secupress_remove_old_plugin_file( SECUPRESS_MODULES_PATH . 'users-login/plugins/ask-old-password.php' );
+		secupress_remove_old_plugin_file( SECUPRESS_CLASSES_PATH . 'class-secupress-admin-support.php.php' );
+		delete_site_option( 'secupress_scan_wp_config' );
+	}
+}
+
+
+add_action( 'admin_init', 'secupress_better_changelog' );
+/**
+ * If the plugin is secupress free or pro, let's add our changlog content
+ *
+ * @since 1.4.3
+ * @author Julio Potier
+ **/
+function secupress_better_changelog() {
+	if ( isset( $_GET['tab'], $_GET['plugin'], $_GET['section'] )
+	&& ( 'secupress' === $_GET['plugin'] || 'secupress-pro' === $_GET['plugin'] )
+	&& 'changelog' === $_GET['section'] && 'plugin-information' === $_GET['tab'] ) {
+		remove_action( 'install_plugins_pre_plugin-information', 'install_plugin_information' );
+		add_action( 'install_plugins_pre_plugin-information', 'secupress_hack_changelog' );
+	}
+}
+
+/**
+ * Will display our changelog content wiht our CSS
+ *
+ * @since 1.4.3
+ * @author Julio Potier
+ **/
+function secupress_hack_changelog() {
+	global $admin_body_class;
+
+	$api = plugins_api( 'plugin_information', array(
+		'slug' => 'secupress',
+		'is_ssl' => is_ssl(),
+		'fields' => [ 'short_description' => false,
+					'reviews' => false,
+					'downloaded' => false,
+					'downloadlink' => false,
+					'last_updated' => false,
+					'added' => false,
+					'tags' => false,
+					'homepage' => false,
+					'donate_link' => false,
+					'ratings' => false,
+					'active_installs' => true,
+					'banners' => true,
+					'sections' => true,
+				]
+	) );
+
+	if ( is_wp_error( $api ) ) {
+		wp_die( $api );
 	}
 
-	// < 1.1.4
-	if ( version_compare( $actual_version, '1.1.4', '<' ) ) {
-		// Lots of things have changed on the sub-modules side.
-		secupress_maybe_handle_license( 'activate' );
+	$changelog_content = $api->sections['changelog'];
+	$changelog_content = explode( "\n", $changelog_content );
+	$changelog_content = array_slice( $changelog_content, 0, array_search( '</ul>', $changelog_content, true ) );
+	$changelog_content = array_map( 'strip_tags', $changelog_content );
+	$changelog_version = array_shift( $changelog_content );
+	$changelog_content = array_filter( $changelog_content );
+	$changelog_date    = array_shift( $changelog_content );
+	$pro_suffix        = secupress_has_pro() ? 'Pro ' : 'Free ';
+	$banner            = secupress_has_pro() ? 'banner-secupress-pro.jpg' : 'banner-1544x500.png';
 
-		$options = get_site_option( SECUPRESS_SETTINGS_SLUG );
-		$options = is_array( $options ) ? $options : array();
-		$options['install_time'] = time();
-		secupress_update_options( $options );
-
-		// PHP version.
-		if ( secupress_is_submodule_active( 'discloses', 'php-version' ) && ! secupress_is_submodule_active( 'discloses', 'no-x-powered-by' ) ) {
-			secupress_activate_submodule( 'discloses', 'no-x-powered-by' );
+	iframe_header( __( 'Plugin Installation' ) );
+	?>
+	<style type="text/css">
+		body {
+			color: #333;
+			font-family: Helvetica, Arial, sans-serif;
+			margin: 0;
+			padding: 0;
+			background-color: #fff
 		}
 
-		// WP disclose.
-		$deactivate = array();
-
-		foreach ( array( 'generator', 'wp-version-css', 'wp-version-js' ) as $submodule ) {
-			if ( secupress_is_submodule_active( 'discloses', $submodule ) ) {
-				$deactivate[] = $submodule;
-			}
+		section {
+			margin: 20px 25px;
+			max-width: 830px
 		}
 
-		if ( $deactivate ) {
-			secupress_deactivate_submodule( 'discloses', $deactivate );
-			secupress_activate_submodule( 'discloses', 'wp-version' );
+		header {
+			position: relative;
+			margin-bottom: 20px;
+			width: 100%;
+			max-width: 830px;
+			height: 276px;
+			color: #fff;
 		}
 
-		// WooCommerce and WPML.
-		foreach ( array( 'woocommerce', 'wpml' ) as $wp_plugin ) {
-			$deactivate = array();
-
-			foreach ( array( 'generator', 'version-css', 'version-js' ) as $path_part ) {
-				if ( secupress_is_submodule_active( 'discloses', $wp_plugin . '-' . $path_part ) ) {
-					$deactivate[] = $wp_plugin . '-' . $path_part;
-				}
-			}
-
-			if ( $deactivate ) {
-				secupress_deactivate_submodule( 'discloses', $deactivate );
-				secupress_activate_submodule( 'discloses', $wp_plugin . '-version' );
-			}
+		#plugin-information-title.with-banner div.vignette {
+			background-image: url( 'https://plugins.svn.wordpress.org/secupress/assets/<?php echo $banner; ?>' );
+			background-size: contain;
 		}
 
-		// `wp-config.php` constants.
-		$wpconfig_filepath = secupress_is_wpconfig_writable();
-
-		if ( $wpconfig_filepath ) {
-			$wp_filesystem = secupress_get_filesystem();
-			$file_content  = $wp_filesystem->get_contents( $wpconfig_filepath );
-			$pattern       = '@# BEGIN SecuPress Correct Constants Values(.*)# END SecuPress\s*?@Us';
-
-			if ( preg_match( $pattern, $file_content, $matches ) ) {
-				$new_content = $matches[1];
-				$replaced    = array();
-				$constants   = array(
-					'DISALLOW_FILE_EDIT'       => 'file-edit',
-					'DISALLOW_UNFILTERED_HTML' => 'unfiltered-html',
-					'ALLOW_UNFILTERED_UPLOADS' => 'unfiltered-uploads',
-				);
-
-				foreach ( $constants as $constant => $submodule_part ) {
-					$pattern     = "@^\s*define\s*\(\s*[\"']{$constant}[\"'].*@m";
-					$tmp_content = preg_replace( $pattern, '', $new_content );
-
-					if ( null !== $tmp_content && $tmp_content !== $new_content ) {
-						// The constant was in the block and has been removed.
-						$replaced[]  = 'wp-config-constant-' . $submodule_part;
-						$new_content = $tmp_content;
-					}
-				}
-
-				if ( $replaced ) {
-					if ( trim( $new_content ) === '' ) {
-						// No constants left, remove the marker too.
-						$new_content = '';
-					} else {
-						$new_content = str_replace( $matches[1], $new_content, $matches[0] );
-					}
-
-					// Remove the old constants.
-					$new_content = str_replace( $matches[0], $new_content, $file_content );
-					$wp_filesystem->put_contents( $wpconfig_filepath, $new_content, FS_CHMOD_FILE );
-
-					// Activate the new sub-modules.
-					foreach ( $replaced as $submodule ) {
-						secupress_activate_submodule( 'wordpress-core', $submodule );
-					}
-				}
-			}
+		header h1,
+		header h2 {
+			font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", sans-serif;
+			font-size: 2em;
+			font-weight: normal;
+			margin: 0;
+			color: #fff;
+			line-height: 1em
 		}
+
+		header h2 {
+			font-size: 1.4em;
+			margin-bottom: 3px
+		}
+
+		hgroup {
+			float: right;
+			padding-right: 50px
+		}
+
+		h2 {
+			font-size: 1.2em
+		}
+
+		ul {
+			margin-bottom: 30px
+		}
+
+		li {
+			margin-bottom: 0.5em
+		}
+
+		.changelog tr {
+			line-height: 1.5em;
+		}
+
+		.changelog td {
+			padding: 3px;
+			font-size: 15px;
+			vertical-align: middle;
+		}
+
+		.changelog .type {
+			font-size: 12px;
+			text-transform: uppercase;
+			padding-right: 15px;
+			padding-top: 5px;
+			padding-left: 0;
+			text-align: left;
+			color: #999;
+			min-width: 100px;
+			border-right: 2px solid #eee;
+		}
+
+		.changelog .type, .changelog .description {
+			vertical-align: top;
+		}
+
+		code {
+			background-color: #EEE;
+			padding: 2px
+		}
+
+		.star-rating {
+			display: inline;
+		}
+
+		#plugin-information-footer {
+			text-align: center;
+			line-height: 1.7em;
+		}
+
+	</style>
+</head>
+
+<body class="$admin_body_class">
+
+<header id="plugin-information-title" class="with-banner">
+	<div class="vignette"></div>
+	<h2>SecuPress <?php echo $pro_suffix; ?> <?php echo esc_html( $changelog_version ); ?> – <?php echo esc_html( $changelog_date ); ?></h2>
+</header>
+
+<section id="plugin-information-scrollable">
+	<table class="changelog">
+	<?php
+	foreach ( $changelog_content as $content ) {
+		if ( ! $content ) {
+			continue;
+		}
+		$content = explode( ' ', $content, 2 );
+		?>
+		<tr>
+			<td class="type"><?php echo wp_kses_post( '<strong>' . str_replace( '#', '</strong>&nbsp;#', reset( $content ) ) ); ?></td>
+			<td class="description"><?php echo wp_kses_post( end( $content ) ); ?></td>
+		</tr>
+		<?php
 	}
+	?>
+		<tr>
+			<td class="type"><strong><?php _e( 'Full Changelog', 'secupress' ); ?></strong></td>
+			<td class="description"><a href="<?php echo SECUPRESS_WEB_MAIN; ?>changelog/" target="_blank"><?php echo SECUPRESS_WEB_MAIN; ?>changelog/</a></td>
+		</tr>
+	</table>
+	<hr>
+	<?php
+	$status = install_plugin_install_status( $api );
+	if ( $status['url'] ) {
+		echo '<p><a data-slug="' . esc_attr( $api->slug ) . '" data-plugin="' . esc_attr( $status['file'] ) . '" id="plugin_update_from_iframe" class="button button-primary right" href="' . esc_url( $status['url'] ) . '" target="_parent">' . __( 'Install Update Now' ) . '</a></p>';
+	}
+	if ( ! secupress_has_pro() ) {
+	?>
+	<p><a href="<?php echo SECUPRESS_WEB_MAIN; ?>pricing/" class="button button-secondary"><?php _e( 'Get SecuPress Pro Now!', 'secupress' ); ?></a></p>
+	<?php
+	}
+	?>
+</section>
 
-	// < 1.2.6.1
-	if ( version_compare( $actual_version, '1.2.6.1', '<' ) ) {
-		// New API route and response format.
-		delete_transient( 'secupress_pro_plans' );
+<div id="plugin-information-footer">
+	<strong><?php _e( 'Requires WordPress Version:' ); ?></strong>
+	<?php
+	printf( __( '%s or higher' ), $api->requires );
+
+	if ( ! empty( $api->requires_php ) ) {
+		echo '& PHP ' . printf( __( '%s or higher' ), $api->requires );
+	}
+	?> |
+	<strong><?php _e( 'Compatible up to:' ); ?></strong>
+	<?php echo $api->tested; ?>
+	<br>
+	<strong><?php _e( 'Active Installations:' ); ?></strong>
+	<?php
+	if ( $api->active_installs >= 1000000 ) {
+		_ex( '1+ Million', 'Active plugin installations' );
+	} elseif ( 0 === $api->active_installs ) {
+		_ex( 'Less Than 10', 'Active plugin installations' );
+	} else {
+		echo number_format_i18n( $api->active_installs ) . '+';
+	}
+	?> |
+	<strong><?php _e( 'Average Rating' ); ?>:</strong>
+	<?php wp_star_rating( [ 'type' => 'percent', 'rating' => $api->rating, 'number' => $api->num_ratings ] ); ?>
+	<p aria-hidden="true" class="fyi-description"><?php printf( _n( '(based on %s rating)', '(based on %s ratings)', $api->num_ratings ), number_format_i18n( $api->num_ratings ) ); ?></p>
+	<br>
+</div>
+<?php
+iframe_footer();
+exit;
+}
+
+if ( ! secupress_is_white_label() ) {
+	add_action( 'admin_notices', 'secupress_display_whats_new' );
+	/**
+	 * Display a "what's new" notice when not in WhiteLabel and user has the correct capa
+	 *
+	 * @since 2.0 secupress_add_transient_notice + SECUPRESS_MAJOR_VERSION
+	 * @since 1.4.10
+	 * @author Julio Potier
+	 *
+	 * @hook admin_notices
+	 * @return (void)
+	 **/
+	function secupress_display_whats_new() {
+		$notice_id = 'new-' . sanitize_key( SECUPRESS_MAJOR_VERSION );
+		if ( ! current_user_can( secupress_get_capability() ) || secupress_notice_is_dismissed( $notice_id ) ) {
+			return;
+		}
+
+		$title    = sprintf( '<strong>' . __( 'What’s new in SecuPress %s', 'secupress' ) . '</strong>', SECUPRESS_MAJOR_VERSION );
+		$readmore = '';//'<a href="https://secupress.me/changelog"><em>' . __( 'Or read full changelog on secupress.me', 'secupress' ) . '</em></a>';
+		$newitems = [
+						__( 'So many things have changed, read our blog post: <a href="https://secupress.me/blog/secupress-v2-0">SecuPress v2.0 aka Python</a>.', 'secupress' ),
+					];
+		$newitems = '<ul><li>• ' . implode( '</li><li>• ', $newitems ) . '</li></ul>';
+		secupress_add_transient_notice( $title . $newitems . $readmore, 'updated', $notice_id );
 	}
 }

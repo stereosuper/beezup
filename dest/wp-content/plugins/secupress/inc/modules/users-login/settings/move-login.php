@@ -1,31 +1,68 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 global $is_apache, $is_nginx, $is_iis7;
 
 $this->set_current_section( 'move-login' );
-$this->add_section( __( 'Move Login', 'secupress' ) );
+$this->add_section( __( 'Login Pages', 'secupress' ) );
 
 
 $main_field_name  = $this->get_field_name( 'activated' );
 $is_plugin_active = secupress_is_submodule_active( 'users-login', 'move-login' );
 
+/**
+* Allow some plugins to take over SecuPress settings if they are actually activated.
+* @param (array) The plugins list ; format 'plugins-path/plugin-file.php' => 'admin-page.php#for-settings'
+*/
+$override_plugins = apply_filters( 'secupress.move-login.override-plugins', [ 'wps-hide-login/wps-hide-login.php' => 'options-general.php#whl_page' ] );
+foreach ( $override_plugins as $plugin_path => $plugin_page) {
+	if ( is_plugin_active( $plugin_path ) ) {
+		$this->add_field( array(
+			'title'             => __( 'Move the login and admin pages', 'secupress' ),
+			'label_for'         => $main_field_name,
+			'plugin_activation' => true,
+			'type'              => 'checkbox',
+			'value'             => false,
+			'disabled'          => true,
+			'label'             => __( 'Yes, move the login and admin pages', 'secupress' ),
+			'helpers'           => array(
+				array(
+					'type'        => 'warning',
+					'description' => secupress_plugin_in_usage_string( $plugin_path, $plugin_page ),
+				),
+			),
+		) );
+
+		return;
+	}
+}
+
+
+
 $this->add_field( array(
-	'title'             => __( 'Move the login page', 'secupress' ),
-	'description'       => __( 'Hide the login form, not totally from humans, the main goal is to prevent bots hitting this URL.', 'secupress' ),
+	'title'             => __( 'Move the login and admin pages', 'secupress' ),
 	'label_for'         => $main_field_name,
 	'plugin_activation' => true,
 	'type'              => 'checkbox',
 	'value'             => (int) $is_plugin_active,
-	'label'             => __( 'Yes, move the login page to avoid bad login attempts', 'secupress' ),
-	'helpers'           => array(
-		array(
-			'type'        => 'warning',
-			'description' => secupress_get_deactivate_plugin_string( 'sf-move-login/sf-move-login.php' ),
-		),
-	),
+	'label'             => __( 'Yes, move the login and admin pages', 'secupress' ),
 ) );
 
+if ( defined( 'SECUPRESS_ALLOW_LOGIN_ACCESS' ) && SECUPRESS_ALLOW_LOGIN_ACCESS ) {
+	$this->add_field( array(
+		'title'             => __( 'Move the login and admin pages', 'secupress' ),
+		'label_for'         => $main_field_name,
+		'type'              => 'html',
+		'value'             => '',
+		'helpers'           => array(
+			array(
+				'type'        => 'warning',
+				'description' => sprintf( __( 'The %1$s constant is set, you cannot use the %2$s module.', 'secupress' ), '<code>SECUPRESS_ALLOW_LOGIN_ACCESS</code>', '<em>' . __( 'Move Login', 'secupress' ) . '</em>' ),
+			),
+		),
+	) );
+	return;
+}
 
 $labels    = secupress_move_login_slug_labels();
 $login_url = site_url( '%%slug%%', 'login' );
@@ -56,55 +93,68 @@ foreach ( $labels as $slug => $label ) {
 	) );
 }
 
-
-$this->add_field( array(
-	'title'        => sprintf( __( 'Access to %s', 'secupress' ), '<code>wp-login.php</code>' ),
-	'description'  => __( 'When a logged out user attempts to access the old login page.', 'secupress' ),
+$this->add_field( [
+	'title'        => __( 'What to do when the old page is triggered?', 'secupress' ),
 	'depends'      => $main_field_name,
-	'name'         => $this->get_field_name( 'login-access' ),
-	'type'         => 'radios',
-	'options'      => secupress_move_login_login_access_labels(),
-	'default'      => 'error',
-	'label_screen' => sprintf( __( 'Choose how to deny access to %s', 'secupress' ), '<code>wp-login.php</code>' ),
-) );
+	'label_for'    => $this->get_field_name( 'whattodo' ),
+	'type'         => 'radio',
+	'options'      => [
+		'sperror'      => __( 'Standard Error Message', 'secupress' ),
+		'custom_error' => __( 'Custom Error Message', 'secupress' ),
+		'custom_page'  => __( 'Custom Page', 'secupress' )
+	],
+] );
 
+add_action( 'admin_footer', 'add_thickbox' );
+$this->add_field( [
+	'title'        => __( 'Preview', 'secupress' ),
+	'type'         => 'html',
+	'value'        => sprintf( '<a href="%2$s%1$s" target="_blank" class="thickbox"><img src="%2$s%1$s" height="150"></a>', __( 'secupress-movelogin-error-preview-en_US.png', 'secupress' ), SECUPRESS_ADMIN_IMAGES_URL ),
+	'depends'      => $this->get_field_name( 'whattodo' ) . '_sperror',
+] );
 
-$this->add_field( array(
-	'title'        => __( 'Redirection to the login page', 'secupress' ),
-	'description'  => __( 'When a logged out user attempts to access the administration area or an URL that redirects to the login page.', 'secupress' ),
-	'depends'      => $main_field_name,
-	'name'         => $this->get_field_name( 'login-redirect' ),
-	'type'         => 'radios',
-	'options'      => secupress_move_login_login_redirect_labels(),
-	'default'      => 'redir-login',
-	'label_screen' => __( 'Choose how to deny access to the administration area', 'secupress' ),
-) );
+$this->add_field( [
+	'title'        => __( 'Custom Message', 'secupress' ),
+	'type'         => 'wpeditor',
+	'label_for'    => $this->get_field_name( 'custom_error_content' ),
+	'depends'      => $this->get_field_name( 'whattodo' ) . '_custom_error',
+	'default'      => __( 'This page does not exist, has moved or you are not allowed to access it.', 'secupress' ) . "\n" .
+					__( 'If you are Administrator and have been accidentally locked out, enter your email address here to unlock yourself.', 'secupress' ),
+	'helpers'           => array(
+		array(
+			'type'        => 'description',
+			'description' => __( 'Clean HTML allowed. The recovery form will be automatically added at the end of your content.', 'secupress' ),
+		),
+	),
+] );
 
+$this->add_field( [
+	'title'        => __( 'Custom Page', 'secupress' ),
+	'type'         => 'url',
+	'attributes'   => [ 'class' => [ 'regular-text', 'wp_link_dialog' ] ],
+	'label_for'    => $this->get_field_name( 'custom_page_url' ),
+	'depends'      => $this->get_field_name( 'whattodo' ) . '_custom_page',
+	'default'      => home_url(),
+	'value'        => '' !== secupress_get_module_option( 'move-login_custom_page_url', '', 'users-login' ) ? secupress_get_module_option( 'move-login_custom_page_url', '', 'users-login' ) : home_url(),
+	'helpers'      => array(
+		array(
+			'type'        => 'description',
+			'description' => __( 'A custom page from your site, only.', 'secupress' ),
+		),
+	),
+] );
 
 /**
  * If nginx or if `.htaccess`/`web.config` is not writable, display a textarea containing the rewrite rules for Move Login.
  */
-if ( $is_plugin_active && function_exists( 'secupress_move_login_get_rules' ) ) {
+if ( $is_plugin_active && function_exists( 'secupress_move_login_get_rules' ) && apply_filters( 'secupress.nginx.notice', true ) ) {
 	$message = false;
 
 	// Nginx.
 	if ( $is_nginx ) {
 		/** Translators: 1 is a file name, 2 is a tag name. */
-		$message = sprintf( __( 'You need to add the following code to your %1$s file, inside the %2$s block:', 'secupress' ), '<code>nginx.conf</code>', '<code>server</code>' );
+		$message = sprintf( __( 'You need to add the following code from your %1$s file, inside the %2$s block:', 'secupress' ), '<code>nginx.conf</code>', '<code>server</code>' );
 		$rules   = secupress_move_login_get_nginx_rules( secupress_move_login_get_rules() );
-	}
-	// Apache.
-	elseif ( $is_apache && ! secupress_root_file_is_writable( '.htaccess' ) ) {
-		/** Translators: %s is a file name. */
-		$message = sprintf( __( 'Your %s file is not writable, you need to add the following code to it:', 'secupress' ), '<code>.htaccess</code>' );
-		$rules   = secupress_move_login_get_apache_rules( secupress_move_login_get_rules() );
-		$rules   = "# BEGIN SecuPress move_login\n$rules\n# END SecuPress";
-	}
-	// IIS7.
-	elseif ( $is_iis7 && ! secupress_root_file_is_writable( 'web.config' ) ) {
-		/** Translators: %s is a file name. */
-		$message = sprintf( __( 'Your %s file is not writable, you need to add the following code to it:', 'secupress' ), '<code>web.config</code>' );
-		$rules   = secupress_move_login_get_iis7_rules( secupress_move_login_get_rules() );
 	}
 
 	if ( $message ) {

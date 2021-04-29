@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /**
  * Bad Request Methods scan class.
@@ -17,7 +17,7 @@ class SecuPress_Scan_Bad_Request_Methods extends SecuPress_Scan implements SecuP
 	 *
 	 * @var (string)
 	 */
-	const VERSION = '1.0.2';
+	const VERSION = '1.2';
 
 
 	/** Properties. ============================================================================= */
@@ -39,7 +39,7 @@ class SecuPress_Scan_Bad_Request_Methods extends SecuPress_Scan implements SecuP
 	 */
 	protected function init() {
 		$this->title    = __( 'Check if bad request methods can access your website.', 'secupress' );
-		$this->more     = __( 'There are malicious scripts and bots out there, hammering your site with bad HTTP GET requests. Let\'s check if your website can handle that.', 'secupress' );
+		$this->more     = __( 'There are malicious scripts and bots out there, hammering your site with bad HTTP GET requests. Let’s check if your website can handle that.', 'secupress' );
 		$this->more_fix = sprintf(
 			__( 'Activate the option %1$s in the %2$s module.', 'secupress' ),
 			'<em>' . __( 'Block Bad Request Methods', 'secupress' ) . '</em>',
@@ -92,7 +92,7 @@ class SecuPress_Scan_Bad_Request_Methods extends SecuPress_Scan implements SecuP
 	 * @return (string)
 	 */
 	public static function get_docs_url() {
-		return __( 'http://docs.secupress.me/article/112-bad-request-method-scan', 'secupress' );
+		return __( 'https://docs.secupress.me/article/112-bad-request-method-scan', 'secupress' );
 	}
 
 
@@ -101,18 +101,21 @@ class SecuPress_Scan_Bad_Request_Methods extends SecuPress_Scan implements SecuP
 	/**
 	 * Scan for flaw(s).
 	 *
+	 * @since 2.0.1 Block only TRACK and custom
 	 * @since 1.0
 	 *
 	 * @return (array) The scan results.
 	 */
 	public function scan() {
-		// These methods should be blocked.
-		$methods = array( 'TRACK', 'OPTIONS', 'CONNECT', 'SECUPRESS_TEST_' . time() );
 
-		if ( secupress_is_submodule_active( 'sensitive-data', 'restapi' ) ) {
-			// Sub-module activated === REST API disabled === these methods should also be blocked.
-			$methods = array_merge( $methods, array( 'PUT', 'PATCH', 'DELETE' ) );
+		$activated = $this->filter_scanner( __CLASS__ );
+		if ( true === $activated ) {
+			$this->add_message( 0 );
+			return parent::scan();
 		}
+
+		// These methods should be blocked.
+		$methods = array( 'TRACK', 'SECUPRESS_TEST_' . time() );
 
 		$bads         = array();
 		$warnings     = array();
@@ -123,27 +126,15 @@ class SecuPress_Scan_Bad_Request_Methods extends SecuPress_Scan implements SecuP
 			$request_args['method'] = $method;
 			$response = wp_remote_request( add_query_arg( secupress_generate_key( 6 ), secupress_generate_key( 8 ), user_trailingslashit( home_url() ) ), $request_args );
 
-			if ( ! is_wp_error( $response ) ) {
-
-				if ( 200 === wp_remote_retrieve_response_code( $response ) && '' !== wp_remote_retrieve_body( $response ) ) {
-					// "bad"
-					$bads[] = '<code>' . $method . '</code>';
-				}
-			} elseif ( 'http_request_failed' !== $response->get_error_code() ) {
-				// "warning"
-				$warnings[] = '<code>' . $method . '</code>';
+			if ( ! is_wp_error( $response ) && 200 === wp_remote_retrieve_response_code( $response ) && '' !== wp_remote_retrieve_body( $response ) ) {
+				// "bad"
+				$bads[] = '<code>' . $method . '</code>';
 			}
 		}
 
 		if ( $bads ) {
 			// "bad"
 			$this->add_message( 200, array( count( $bads ), $bads ) );
-		}
-
-		if ( $warnings ) {
-			// "warning"
-			$this->add_message( 100, array( count( $warnings ), $warnings ) );
-			$this->add_message( 101 );
 		}
 
 		// "good"
@@ -154,6 +145,44 @@ class SecuPress_Scan_Bad_Request_Methods extends SecuPress_Scan implements SecuP
 
 
 	/** Fix. ==================================================================================== */
+
+	/**
+	 * Try to fix the flaw(s).
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function need_manual_fix() {
+		return [ 'fix' => 'fix' ];
+	}
+
+	/**
+	 * Get an array containing ALL the forms that would fix the scan if it requires user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) An array of HTML templates (form contents most of the time).
+	 */
+	protected function get_fix_action_template_parts() {
+		return [ 'fix' => '&nbsp;' ];
+	}
+
+	/**
+	 * Try to fix the flaw(s) after requiring user action.
+	 *
+	 * @since 1.4.5
+	 *
+	 * @return (array) The fix results.
+	 */
+	public function manual_fix() {
+		if ( $this->has_fix_action_part( 'fix' ) ) {
+			$this->fix();
+		}
+		// "good"
+		$this->add_fix_message( 1 );
+		return parent::manual_fix();
+	}
 
 	/**
 	 * Try to fix the flaw(s).

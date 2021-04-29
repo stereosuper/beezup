@@ -1,9 +1,8 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 $modules          = secupress_get_modules();
-$scanned_items    = get_option( SECUPRESS_SCAN_SLUG );
-$scanned_items    = is_array( $scanned_items ) ? $scanned_items : array();
+$scanned_items    = secupress_get_scan_results();
 $nb_good_scans    = 0;
 $nb_bad_scans     = 0;
 $nb_warning_scans = 0;
@@ -13,7 +12,7 @@ $old_grade        = $old_report['grade'];
 $this_good_scans  = array();
 
 foreach ( $scanned_items as $class_name_part => $details ) {
-	if ( 'good' === $details['status'] && 'good' !== $old_report['report'][ $class_name_part ]['status'] ) {
+	if ( isset( $old_report['report'][ $class_name_part ] ) && 'good' === $details['status'] && 'good' !== $old_report['report'][ $class_name_part ]['status'] ) {
 		$this_good_scans[ $class_name_part ] = $details;
 		if ( 'bad' === $old_report['report'][ $class_name_part ]['status'] ) {
 			++$nb_bad_scans;
@@ -47,8 +46,8 @@ foreach ( $scanned_items as $class_name_part => $details ) {
 					<p class="secupress-text-medium secupress-mb0"><?php printf( __( 'Nothing fixed yet, %d left.', 'secupress' ), count( $scanned_items ) ); ?></p>
 					<?php
 				}
+				if ( secupress_get_module_option( 'advanced-settings_grade-system', true, 'welcome' ) ) {
 				?>
-
 				<p>
 					<?php
 					// Display a "grade ent from to" message only if it's better.
@@ -64,7 +63,7 @@ foreach ( $scanned_items as $class_name_part => $details ) {
 					}
 					?>
 				</p>
-
+				<?php } ?>
 				<div class="secupress-flex secupress-flex-spaced">
 					<div>
 						<?php
@@ -251,7 +250,7 @@ foreach ( $scanned_items as $class_name_part => $details ) {
 			<?php
 		}
 		?>
-		<div class="secupress-step-content-footer secupress-flex secupress-flex-top secupress-flex-spaced">
+		<div class="secupress-step-content-footer secupress-flex secupress-flex-top secupress-flex-spaced" id="secupress-step-content-footer">
 			<?php
 			$export_pdf_btn = '<span class="icon">
 					<i class="secupress-icon-file-pdf-o" aria-hidden="true"></i>
@@ -270,12 +269,12 @@ foreach ( $scanned_items as $class_name_part => $details ) {
 					<?php
 				} else {
 					?>
-					<a href="<?php echo esc_url( secupress_admin_url( 'get_pro' ) ) ?>" type="button" title="<?php esc_attr_e( 'Get the Pro Version to export this report as PDF file.', 'secupress' ); ?>" target="_blank" class="secupress-button disabled shadow">
+					<a href="<?php echo esc_url( secupress_admin_url( 'get-pro' ) ) ?>" type="button" title="<?php esc_attr_e( 'Get the Pro Version to export this report as PDF file.', 'secupress' ); ?>" target="_blank" class="secupress-button disabled shadow">
 						<?php echo $export_pdf_btn; ?>
 					</a>
 					<br>
 					<span class="secupress-get-pro-version">
-						<?php printf( __( 'Available in <a href="%s" target="_blank">Pro Version</a>', 'secupress' ), esc_url( secupress_admin_url( 'get_pro' ) ) ); ?>
+						<?php printf( __( 'Available in <a href="%s" target="_blank">Pro Version</a>', 'secupress' ), esc_url( secupress_admin_url( 'get-pro' ) ) ); ?>
 					</span>
 					<?php
 				}
@@ -336,7 +335,7 @@ foreach ( $scanned_items as $class_name_part => $details ) {
 						<?php _e( 'Get a better score and unlock all features', 'secupress' ); ?>
 					</p>
 					<p class="secupress-p1">
-						<a href="<?php echo esc_url( secupress_admin_url( 'get_pro' ) ); ?>" class="secupress-button secupress-button-tertiary secupress-button-getpro">
+						<a href="<?php echo esc_url( secupress_admin_url( 'get-pro' ) ); ?>" class="secupress-button secupress-button-tertiary secupress-button-getpro">
 							<span class="icon">
 								<i class="secupress-icon-secupress-simple" aria-hidden="true"></i>
 							</span>

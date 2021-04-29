@@ -1,55 +1,61 @@
 <?php
 /**
- * Plugin Name: SecuPress — WordPress Security
+ * Plugin Name: SecuPress Free — WordPress Security
  * Plugin URI: https://secupress.me
- * Description: Protect your WordPress with SecuPress, analyze and ensure the safety of your website daily.
- * Author: WP Media
- * Author URI: http://wp-media.me
- * Version: 1.2.7
- * Code Name: Heavy Duty
+ * Description: More than a plugin, the guarantee of a protected website by experts.
+ * Author: SecuPress
+ * Author URI: https://secupress.me
+ * Version: 2.0.3
+ * Code Name: Python (Mark XX)
  * Network: true
+ * Contributors: SecuPress, juliobox, GregLone
  * License: GPLv2
- * License URI: http://www.gnu.org/licenses/gpl-2.0.html
- *
- * Text Domain: secupress
  * Domain Path: /languages/
- *
- * Copyright 2012-2017 SecuPress
+ * Requires at least: 4.9
+ * Requires PHP: 5.6
+ * Copyright 2012-2021 SecuPress
  */
 
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
+
+
+/** --------------------------------------------------------------------------------------------- */
+/** DEFINES ===================================================================================== */
+/** ----------------------------------------------------------------------------------------------*/
+
+define( 'SECUPRESS_VERSION',                    '2.0.3' );
+// define( 'SECUPRESS_PRO_VERSION',                SECUPRESS_VERSION );
+define( 'SECUPRESS_MAJOR_VERSION',              '2.0' );
+define( 'SECUPRESS_FILE',                       __FILE__ );
+define( 'SECUPRESS_PATH',                       realpath( dirname( SECUPRESS_FILE ) ) . DIRECTORY_SEPARATOR );
+define( 'SECUPRESS_INC_PATH',                   SECUPRESS_PATH . 'inc' . DIRECTORY_SEPARATOR );
+define( 'SECUPRESS_PRO_INC_PATH',               SECUPRESS_PATH . 'pro' . DIRECTORY_SEPARATOR );
+define( 'SECUPRESS_PRO_ADMIN_PATH',             SECUPRESS_PRO_INC_PATH . 'admin' . DIRECTORY_SEPARATOR );
+define( 'SECUPRESS_PRO_CLASSES_PATH',           SECUPRESS_PRO_INC_PATH . 'classes' . DIRECTORY_SEPARATOR );
+define( 'SECUPRESS_PRO_MODULES_PATH',           SECUPRESS_PRO_INC_PATH . 'modules' . DIRECTORY_SEPARATOR );
+define( 'SECUPRESS_PRO_ADMIN_SETTINGS_MODULES', SECUPRESS_PRO_ADMIN_PATH . 'modules' . DIRECTORY_SEPARATOR );
+
 
 
 /** --------------------------------------------------------------------------------------------- */
 /** DEFINES ===================================================================================== */
 /** --------------------------------------------------------------------------------------------- */
 
-define( 'SECUPRESS_VERSION'               , '1.2.7' );
-define( 'SECUPRESS_PRIVATE_KEY'           , false );
 define( 'SECUPRESS_ACTIVE_SUBMODULES'     , 'secupress_active_submodules' );
 define( 'SECUPRESS_SETTINGS_SLUG'         , 'secupress_settings' );
-define( 'SECUPRESS_SCAN_SLUG'             , 'secupress_scanners' );
 define( 'SECUPRESS_SCAN_TIMES'            , 'secupress_scanners_times' );
-define( 'SECUPRESS_FIX_SLUG'              , 'secupress_fixes' );
-define( 'SECUPRESS_SCAN_FIX_SITES_SLUG'   , 'secupress_fix_sites' );
 define( 'SECUPRESS_WP_CORE_FILES_HASHES'  , 'secupress_wp_core_files_hashes' );
 define( 'SECUPRESS_FULL_FILETREE'         , 'secupress_full_filetree' );
+define( 'SECUPRESS_DATABASE_MALWARES'     , 'secupress_database_malwares' );
 define( 'SECUPRESS_FIX_DISTS'             , 'secupress_fix_dists' );
 define( 'SECUPRESS_BAN_IP'                , 'secupress_ban_ip' );
-define( 'SECUPRESS_SELF_WHITELIST'        , 'secupress_self_whitelist' );
+define( 'SECUPRESS_WHITE_IP'              , 'secupress_whitelist_ip' );
 define( 'SECUPRESS_RATE_URL'              , 'https://wordpress.org/support/view/plugin-reviews/secupress?filter=5#topic' );
-define( 'SECUPRESS_REPO_URL'              , 'https://wordpress.org/plugins/secupress/' );
 define( 'SECUPRESS_WEB_MAIN'              , 'https://secupress.me/' );
-define( 'SECUPRESS_BOT_URL'               , 'http://bot.secupress.me' );
-define( 'SECUPRESS_WEB_VALID'             , 'http://support.secupress.me/' );
-define( 'SECUPRESS_FILE'                  , __FILE__ );
-define( 'SECUPRESS_PLUGIN_FILE'           , 'secupress/secupress.php' );
-define( 'SECUPRESS_PATH'                  , realpath( plugin_dir_path( SECUPRESS_FILE ) ) . '/' );
-define( 'SECUPRESS_INC_PATH'              , realpath( SECUPRESS_PATH . 'inc/' ) . '/' );
-define( 'SECUPRESS_MODULES_PATH'          , realpath( SECUPRESS_INC_PATH . 'modules/' ) . '/' );
-define( 'SECUPRESS_ADMIN_PATH'            , realpath( SECUPRESS_INC_PATH . 'admin/' ) . '/' );
-define( 'SECUPRESS_CLASSES_PATH'          , realpath( SECUPRESS_INC_PATH . 'classes/' ) . '/' );
-define( 'SECUPRESS_ADMIN_SETTINGS_MODULES', SECUPRESS_ADMIN_PATH . 'modules/' );
+define( 'SECUPRESS_MODULES_PATH'          , SECUPRESS_INC_PATH . 'modules' . DIRECTORY_SEPARATOR );
+define( 'SECUPRESS_ADMIN_PATH'            , SECUPRESS_INC_PATH . 'admin' . DIRECTORY_SEPARATOR );
+define( 'SECUPRESS_CLASSES_PATH'          , SECUPRESS_INC_PATH . 'classes' . DIRECTORY_SEPARATOR );
+define( 'SECUPRESS_ADMIN_SETTINGS_MODULES', SECUPRESS_ADMIN_PATH . 'modules' . DIRECTORY_SEPARATOR );
 define( 'SECUPRESS_PLUGIN_URL'            , plugin_dir_url( SECUPRESS_FILE ) );
 define( 'SECUPRESS_INC_URL'               , SECUPRESS_PLUGIN_URL . 'inc/' );
 define( 'SECUPRESS_FRONT_URL'             , SECUPRESS_INC_URL . 'front/' );
@@ -58,14 +64,13 @@ define( 'SECUPRESS_ASSETS_URL'            , SECUPRESS_PLUGIN_URL . 'assets/' );
 define( 'SECUPRESS_ADMIN_CSS_URL'         , SECUPRESS_ASSETS_URL . 'admin/css/' );
 define( 'SECUPRESS_ADMIN_JS_URL'          , SECUPRESS_ASSETS_URL . 'admin/js/' );
 define( 'SECUPRESS_ADMIN_IMAGES_URL'      , SECUPRESS_ASSETS_URL . 'admin/images/' );
-define( 'SECUPRESS_PHP_MIN'               , '5.3' );
-define( 'SECUPRESS_WP_MIN'                , '3.7' );
+define( 'SECUPRESS_PHP_MIN'               , '5.6' );
+define( 'SECUPRESS_WP_MIN'                , '4.9' );
 define( 'SECUPRESS_INT_MAX'               , PHP_INT_MAX - 20 );
 
-if ( ! defined( 'SECUPRESS_LASTVERSION' ) ) {
-	define( 'SECUPRESS_LASTVERSION', '0' );
+if ( defined( 'SECUPRESS_API_EMAIL' ) && defined( 'SECUPRESS_API_KEY' ) && ! defined( 'SECUPRESS_HIDE_API_KEY' ) ) {
+	define( 'SECUPRESS_HIDE_API_KEY', true );
 }
-
 
 /** --------------------------------------------------------------------------------------------- */
 /** INIT ======================================================================================== */
@@ -74,9 +79,7 @@ if ( ! defined( 'SECUPRESS_LASTVERSION' ) ) {
 /**
  * All the stuff for the plugin activation and deactivation.
  */
-if ( is_admin() ) {
-	require_once( SECUPRESS_ADMIN_PATH . 'activation.php' );
-}
+require_once( SECUPRESS_INC_PATH . 'activation.php' );
 
 
 add_action( 'plugins_loaded', 'secupress_init', 0 );
@@ -108,7 +111,11 @@ function secupress_init() {
 	} else {
 		define( 'SECUPRESS_PLUGIN_NAME', 'SecuPress' );
 	}
+
 	define( 'SECUPRESS_PLUGIN_SLUG', sanitize_title( SECUPRESS_PLUGIN_NAME ) );
+
+	// Cleanup leftovers periodically.
+	SecuPress_Cleanup_Leftovers::get_instance();
 
 	if ( is_admin() ) {
 		if ( is_multisite() ) {
@@ -120,14 +127,15 @@ function secupress_init() {
 		// Notices.
 		SecuPress_Admin_Notices::get_instance();
 
+		// Pro upgrade.
+		SecuPress_Admin_Pro_Upgrade::get_instance();
+
 		// Hooks.
 		require_once( SECUPRESS_ADMIN_PATH . 'options.php' );
 		require_once( SECUPRESS_ADMIN_PATH . 'settings.php' );
 		require_once( SECUPRESS_ADMIN_PATH . 'admin.php' );
 		require_once( SECUPRESS_ADMIN_PATH . 'ajax-post-callbacks.php' );
 		require_once( SECUPRESS_ADMIN_PATH . 'notices.php' );
-		require_once( SECUPRESS_ADMIN_PATH . 'user-profile.php' );
-		require_once( SECUPRESS_ADMIN_PATH . 'upgrader.php' );
 	}
 
 	/**
@@ -136,6 +144,11 @@ function secupress_init() {
 	 * @since 1.0
 	 */
 	do_action( 'secupress.loaded' );
+	// Load the upgrader after the load of our plugins, SecuPress is still considered "loaded" even without this file since it's not usefull for security
+	if ( is_admin() ) {
+		require_once( SECUPRESS_ADMIN_PATH . 'upgrader.php' );
+		secupress_upgrader();
+	}
 }
 
 
@@ -196,9 +209,16 @@ function secupress_load_plugins() {
 			foreach ( $plugins as $plugin ) {
 				if ( secupress_is_pro() || ! secupress_submodule_is_pro( $module, $plugin ) ) {
 					$file_path = secupress_get_submodule_file_path( $module, $plugin );
-
-					if ( $file_path ) {
-						require_once( $file_path );
+					if ( is_array( $file_path ) ) {
+						foreach ( $file_path as $path ) {
+							if ( file_exists( $path ) ) {
+								require_once( $path );
+							}
+						}
+					} else {
+						if ( file_exists( $file_path ) ) {
+							require_once( $file_path );
+						}
 					}
 				}
 			}
@@ -242,6 +262,18 @@ function secupress_load_plugins() {
 		 * @since 1.1.4
 		 */
 		do_action( 'secupress.all.plugins.activation' );
+	}
+	// Autovalidate license if constants are set.
+	if ( ! secupress_has_pro_license() && defined( 'SECUPRESS_API_EMAIL' ) && defined( 'SECUPRESS_API_KEY' ) ) {
+		if ( ! function_exists( 'secupress_global_settings_activate_pro_license' ) ) {
+			include( SECUPRESS_MODULES_PATH . 'welcome/callbacks.php' );
+		}
+		$args                   = array();
+		$options                = get_site_option( SECUPRESS_SETTINGS_SLUG );
+		$args['install_time']   = isset( $options['install_time'] ) && -1 !== (int) $options['install_time'] ? $options['install_time'] : time();
+		$args['consumer_email'] = SECUPRESS_API_EMAIL;
+		$args['consumer_key']   = SECUPRESS_API_KEY;
+		secupress_global_settings_activate_pro_license( $args );
 	}
 
 	/**
@@ -306,6 +338,8 @@ function secupress_load_functions() {
 	require_once( SECUPRESS_INC_PATH . 'functions/compat.php' );
 	require_once( SECUPRESS_INC_PATH . 'functions/deprecated.php' );
 	require_once( SECUPRESS_INC_PATH . 'functions/common.php' );
+	require_once( SECUPRESS_INC_PATH . 'functions/3rdparty.php' );
+	require_once( SECUPRESS_INC_PATH . 'functions/hotfixes.php' );
 	require_once( SECUPRESS_INC_PATH . 'functions/formatting.php' );
 	require_once( SECUPRESS_INC_PATH . 'functions/options.php' );
 	require_once( SECUPRESS_INC_PATH . 'functions/modules.php' );
@@ -321,6 +355,14 @@ function secupress_load_functions() {
 	// The Singleton class.
 	secupress_require_class( 'Singleton' );
 
+	// Cleanup leftovers periodically.
+	secupress_require_class( 'Cleanup_Leftovers' );
+	// The Scanner results class.
+	secupress_require_class( 'Scanner_Results' );
+
+	// Admin side but need when running cron.
+	require_once( SECUPRESS_ADMIN_PATH . 'functions/scan-fix.php' );
+
 	if ( ! is_admin() ) {
 		return;
 	}
@@ -333,12 +375,16 @@ function secupress_load_functions() {
 	// The notices class.
 	secupress_require_class( 'Admin', 'Notices' );
 
+	// The Pro upgrade class.
+	secupress_require_class( 'Admin', 'Offer_Migration' );
+	secupress_require_class( 'Admin', 'Pro_Upgrade' );
+	secupress_require_class( 'Admin', 'Pointers' );
+
 	// Functions for the admin side.
 	require_once( SECUPRESS_ADMIN_PATH . 'functions/admin.php' );
 	require_once( SECUPRESS_ADMIN_PATH . 'functions/options.php' );
 	require_once( SECUPRESS_ADMIN_PATH . 'functions/settings.php' );
 	require_once( SECUPRESS_ADMIN_PATH . 'functions/ajax-post.php' );
-	require_once( SECUPRESS_ADMIN_PATH . 'functions/scan-fix.php' );
 	require_once( SECUPRESS_ADMIN_PATH . 'functions/modules.php' );
 	require_once( SECUPRESS_ADMIN_PATH . 'functions/notices.php' );
 }
@@ -348,6 +394,38 @@ function secupress_load_functions() {
 /** I18N ======================================================================================== */
 /** --------------------------------------------------------------------------------------------- */
 
+add_filter( 'load_textdomain_mofile', 'secupress_load_own_i18n', 10, 2 );
+/**
+ * Load our own i18n to prevent too long strings or spelling errors from voluteers at translate.wp.org, sorry guys.
+ *
+ * @since 2.0.3 fr_BE & fr_CA = fr_FR
+ * @since 2.0
+ * @author Julio Potier
+ *
+ * @hook load_textdomain_mofile
+ * @param (string)  $mofile The file to be loaded
+ * @param (string)  $domain The desired textdomain
+ * @return (string) $mofile
+ **/
+function secupress_load_own_i18n( $mofile, $domain ) {
+	if ( 'secupress' === $domain && false !== strpos( $mofile, WP_LANG_DIR . '/plugins/' ) ) {
+		$locale = apply_filters( 'plugin_locale', determine_locale(), $domain );
+		if ( ! function_exists( 'determine_locale' ) ) { // WP 5.0.
+			$determined_locale     = get_locale();
+			if ( is_admin() ) {
+				$determined_locale = get_user_locale();
+			}
+		} else {
+			$determined_locale = determine_locale();
+		}
+		$locale = apply_filters( 'plugin_locale', $determined_locale, $domain );
+		if ( 'fr_CA' === $locale || 'fr_BE' === $locale ) {
+			$locale = 'fr_FR';
+		}
+		$mofile = WP_PLUGIN_DIR . '/' . dirname( plugin_basename( SECUPRESS_FILE ) ) . '/languages/' . $domain . '-' . $locale . '.mo';
+	}
+	return $mofile;
+}
 /**
  * Translations for the plugin textdomain.
  *
@@ -371,20 +449,7 @@ function secupress_load_plugin_textdomain_translations() {
 
 	// Make sure Poedit keeps our plugin headers.
 	/** Translators: Plugin Name of the plugin/theme */
-	__( 'SecuPress — WordPress Security', 'secupress' );
+	__( 'SecuPress Free — WordPress Security', 'secupress' );
 	/** Translators: Description of the plugin/theme */
 	__( 'Protect your WordPress with SecuPress, analyze and ensure the safety of your website daily.', 'secupress' );
-}
-
-
-add_action( 'init', 'secupress_load_default_textdomain_translations' );
-/**
- * Translations for the default textdomain must be loaded on init, not before.
- *
- * @since 1.0
- */
-function secupress_load_default_textdomain_translations() {
-	if ( ! defined( 'DOING_AUTOSAVE' ) ) {
-		load_plugin_textdomain( 'default', false, dirname( plugin_basename( SECUPRESS_FILE ) ) . '/languages' );
-	}
 }

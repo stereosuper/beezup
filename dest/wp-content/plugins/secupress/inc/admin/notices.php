@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin\' uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 add_action( 'current_screen', 'secupress_http_block_external_notice' );
 /**
@@ -19,9 +19,9 @@ function secupress_http_block_external_notice() {
 
 	if ( $is_accessible || ! defined( 'WP_HTTP_BLOCK_EXTERNAL' ) || ( isset( $current_screen )
 		&& 'toplevel_page_' . SECUPRESS_PLUGIN_SLUG . '_scanners' !== $current_screen->base
-		&& 'secupress_page_' . SECUPRESS_PLUGIN_SLUG . '_modules' !== $current_screen->base
-		&& 'secupress_page_' . SECUPRESS_PLUGIN_SLUG . '_settings' !== $current_screen->base
-		&& 'secupress_page_' . SECUPRESS_PLUGIN_SLUG . '_logs' !== $current_screen->base )
+		&& SECUPRESS_PLUGIN_SLUG . '_page_' . SECUPRESS_PLUGIN_SLUG . '_modules' !== $current_screen->base
+		&& SECUPRESS_PLUGIN_SLUG . '_page_' . SECUPRESS_PLUGIN_SLUG . '_settings' !== $current_screen->base
+		&& SECUPRESS_PLUGIN_SLUG . '_page_' . SECUPRESS_PLUGIN_SLUG . '_logs' !== $current_screen->base )
 		|| SecuPress_Admin_Notices::is_dismissed( 'http-block-external' )
 		) {
 		return;
@@ -29,9 +29,9 @@ function secupress_http_block_external_notice() {
 
 	$message  = '<div>';
 		$message .= '<p><strong>' . sprintf( __( '%s: External HTTP requests are blocked!', 'secupress' ), SECUPRESS_PLUGIN_NAME ) . '</strong></p>';
-		$message .= '<p>' . __( 'You defined the <code>WP_HTTP_BLOCK_EXTERNAL</code> constant in the <code>wp-config.php</code> to block all external HTTP requests.', 'secupress' ) . '</p>';
+		$message .= '<p>' . sprintf( __( 'You defined the <code>WP_HTTP_BLOCK_EXTERNAL</code> constant in the <code>%s</code> to block all external HTTP requests.', 'secupress' ), secupress_get_wpconfig_filename() ) . '</p>';
 		$message .= '<p>';
-			$message .= sprintf( __( 'To make %s work well, you have to either remove the PHP constant, or add the following code in your <code>wp-config.php</code> file.', 'secupress' ), SECUPRESS_PLUGIN_NAME ) . '<br/>';
+			$message .= sprintf( __( 'To make %s work well, you have to either remove the PHP constant, or add the following code in your <code>%s</code> file.', 'secupress' ), SECUPRESS_PLUGIN_NAME, secupress_get_wpconfig_filename() ) . '<br/>';
 			$message .= __( 'Click on the field and press Ctrl+A or Cmd+A to select all.', 'secupress' );
 		$message .= '</p>';
 		$message .= '<p><textarea readonly="readonly" class="large-text readonly" rows="1">define( \'WP_ACCESSIBLE_HOSTS\', \'*.secupress.me\' );</textarea></p>';
@@ -52,34 +52,79 @@ function secupress_plugins_to_deactivate() {
 		return;
 	}
 
-	$plugins = array(
-		'wordfence/wordfence.php',
-		'better-wp-security/better-wp-security.php',
-		'all-in-one-wp-security-and-firewall/wp-security.php',
-		'bulletproof-security/bulletproof-security.php',
-		'sucuri-scanner/sucuri.php',
-	);
+	$plugins_to_deactivate = [ // Forced deactivation
+		'o2s-wp-tiger/o2s-wp-tiger.php' => true, // 2.0.1
+	];
 
-	$plugins_to_deactivate = array_filter( $plugins, 'is_plugin_active' );
+	add_filter( 'all_plugins', function( $all_plugins ) use ( $plugins_to_deactivate ) {
+		$all_plugins = array_diff_key( $all_plugins, $plugins_to_deactivate );
+		return $all_plugins;
+	});
 
-	if ( ! $plugins_to_deactivate ) {
-		return;
+	$plugins_to_deactivate = array_filter( array_keys( $plugins_to_deactivate ), 'is_plugin_active' );
+
+	if ( $plugins_to_deactivate ) {
+		$message = '<p>' . sprintf( __( '%s:', 'secupress' ), '<strong>' . SECUPRESS_PLUGIN_NAME . '</strong>' ) . ' ';
+		$message .= _n( 'The following plugin has been deactivated because we already included its features:', 'The following plugins has been deactivated because we already included its features:', count( $plugins_to_deactivate ), 'secupress' );
+		$message .= '</p><ul>';
+		foreach ( $plugins_to_deactivate as $plugin ) {
+			$plugin_data = get_plugin_data( WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . $plugin );
+			$context     = isset( $_GET['plugin_status'] ) ? '&amp;plugin_status=' . $_GET['plugin_status'] : '';
+			$page        = isset( $_GET['pages'] ) ? '&amp;paged=' . $_GET['paged'] : '';
+			$search      = isset( $_GET['s'] ) ? '&amp;s=' . $_GET['s'] : '';
+			$url         = wp_nonce_url( 'plugins.php?action=deactivate&amp;plugin=' . $plugin . $context . $page . $search, 'deactivate-plugin_' . $plugin );
+			$message    .= '<li>• ' . $plugin_data['Name'] . '</span></li>';
+			deactivate_plugins( $plugin, true );
+		}
+		$message .= '</ul>';
+
+		secupress_add_notice( $message, 'error', 'deactivate-plugin' );
 	}
 
-	$message  = '<p>' . sprintf( __( '%s:', 'secupress' ), '<strong>' . SECUPRESS_PLUGIN_NAME . '</strong>' ) . ' ';
-	$message .= __( 'The following plugins are not recommended with this plugin and may cause unexpected results:', 'secupress' );
-	$message .= '</p><ul>';
-	foreach ( $plugins_to_deactivate as $plugin ) {
-		$plugin_data = get_plugin_data( WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . $plugin );
-		$context     = isset( $_GET['plugin_status'] ) ? '&amp;plugin_status=' . $_GET['plugin_status'] : '';
-		$page        = isset( $_GET['pages'] ) ? '&amp;paged=' . $_GET['paged'] : '';
-		$search      = isset( $_GET['s'] ) ? '&amp;s=' . $_GET['s'] : '';
-		$url         = wp_nonce_url( 'plugins.php?action=deactivate&amp;plugin=' . $plugin . $context . $page . $search, 'deactivate-plugin_' . $plugin );
-		$message    .= '<li>' . $plugin_data['Name'] . '</span> <a href="' . esc_url( $url ) . '" class="button-secondary alignright">' . __( 'Deactivate' ) . '</a></li>';
-	}
-	$message .= '</ul>';
+	$plugins_to_warn = [ // deactivation not mandatory, dismissable
+		'all-in-one-wp-security-and-firewall/wp-security.php', // repo
+		'better-wp-security/better-wp-security.php', // iTheme Security Free repo
+		'bulletproof-security/bulletproof-security.php', // repo
+		'getastra/astra-security.php', // repo
+		'gotmls/index.php', // repo
+		'ithemes-security-pro/ithemes-security-pro.php',
+		'ninjafirewall/ninjafirewall.php', // repo
+		'malcare-security/malcare.php', // repo
+		'security-ninja/security-ninja.php', // repo
+		'security-ninja-pro/security-ninja.php', // not sure
+		'security-ninja-pro/security-ninja-pro.php', // not sure
+		'sucuri-scanner/sucuri.php', // repo
+		'wordfence/wordfence.php', // repo
+		'wp-cerber/wp-cerber.php', // repo
+		'wp-defender/wp-defender.php', // repo
+		'wp-simple-firewall/icwp-wpsf.php', // repo
+	];
 
-	secupress_add_notice( $message, 'error', 'deactivate-plugin' );
+	$plugins_to_warn = array_filter( $plugins_to_warn, 'is_plugin_active' );
+
+	if ( $plugins_to_warn ) {
+
+		$hash = md5( serialize( $plugins_to_warn ) );
+		if ( secupress_notice_is_dismissed( 'warn-plugin-' . $hash ) ) {
+			return;
+		}
+
+		$message = '<p>' . sprintf( __( '%s:', 'secupress' ), '<strong>' . SECUPRESS_PLUGIN_NAME . '</strong>' ) . ' ';
+		$message .= _n( 'The following plugin is not compatible with us and will lead to conflicts:', 'The following plugins are not compatible with us and will lead to conflicts:', count( $plugins_to_warn ), 'secupress' );
+		$message .= '</p><ul>';
+		foreach ( $plugins_to_warn as $plugin ) {
+			$plugin_data = get_plugin_data( WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . $plugin );
+			$context     = isset( $_GET['plugin_status'] ) ? '&amp;plugin_status=' . $_GET['plugin_status'] : '';
+			$page        = isset( $_GET['pages'] ) ? '&amp;paged=' . $_GET['paged'] : '';
+			$search      = isset( $_GET['s'] ) ? '&amp;s=' . $_GET['s'] : '';
+			$url         = wp_nonce_url( 'plugins.php?action=deactivate&amp;plugin=' . $plugin . $context . $page . $search, 'deactivate-plugin_' . $plugin );
+			$message    .= '<li>• ' . $plugin_data['Name'] . '</span> <a href="' . esc_url( $url ) . '" class="button-secondary alignright">' . __( 'Deactivate' ) . '</a></li>';
+		}
+		$message .= '</ul>';
+
+		secupress_add_transient_notice( $message, 'error', SECUPRESS_MAJOR_VERSION . '-warn-plugin-' . $hash );
+	}
+
 }
 
 
@@ -171,63 +216,6 @@ function secupress_deactivate_standalone_plugin_on_packed_plugin_activation( $pl
 	}
 }
 
-
-add_action( 'admin_init', 'secupress_warning_wp_config_permissions' );
-/**
- * This warning is displayed when the wp-config.php file isn't writable.
- *
- * @since 1.0
- */
-function secupress_warning_wp_config_permissions() {
-	global $pagenow;
-
-	if ( 'plugins.php' === $pagenow && isset( $_GET['activate'] ) ) {
-		return;
-	}
-
-	if ( ! current_user_can( secupress_get_capability() ) || secupress_is_wpconfig_writable() ) {
-		return;
-	}
-
-	$message  = sprintf( __( '%s:', 'secupress' ), '<strong>' . SECUPRESS_PLUGIN_NAME . '</strong>' ) . ' ';
-	$message .= sprintf( __( 'The %s file is not writable, read more about <a href="http://codex.wordpress.org/Changing_File_Permissions" target="_blank">writing permissions</a>.', 'secupress' ), '<code>wp-config.php</code>' );
-
-	secupress_add_notice( $message, 'error', 'wpconfig-not-writable' );
-}
-
-
-add_action( 'admin_init', 'secupress_warning_htaccess_permissions' );
-/**
- * This warning is displayed when the .htaccess file or the web.config file doesn't exist or isn't writable.
- *
- * @since 1.0
- */
-function secupress_warning_htaccess_permissions() {
-	global $is_apache, $is_iis7;
-
-	if ( ! current_user_can( secupress_get_capability() ) ) {
-		return;
-	}
-
-	if ( $is_apache ) {
-		$file = '.htaccess';
-	} elseif ( $is_iis7 ) {
-		$file = 'web.config';
-	} else {
-		return;
-	}
-
-	if ( secupress_root_file_is_writable( $file ) ) {
-		return;
-	}
-
-	$message  = sprintf( __( '%s:', 'secupress' ), '<strong>' . SECUPRESS_PLUGIN_NAME . '</strong>' ) . ' ';
-	$message .= sprintf( __( 'If you had <a href="%1$s" target="_blank">writing permissions</a> on %2$s file, %3$s could do more things automatically.', 'secupress' ), 'http://codex.wordpress.org/Changing_File_Permissions', '<code>' . $file . '</code>', '<strong>' . SECUPRESS_PLUGIN_NAME . '</strong>' );
-
-	secupress_add_notice( $message, 'error', 'htaccess-not-writable' );
-}
-
-
 add_action( 'admin_init', 'secupress_warning_module_activity' );
 /**
  * These warnings are displayed when a module has been activated/deactivated.
@@ -235,6 +223,10 @@ add_action( 'admin_init', 'secupress_warning_module_activity' );
  * @since 1.0
  */
 function secupress_warning_module_activity() {
+	if ( defined( 'DOING_AJAX' ) ) {
+		return;
+	}
+
 	$current_user_id = get_current_user_id();
 
 	if ( ! current_user_can( secupress_get_capability() ) ) {
@@ -264,37 +256,6 @@ function secupress_warning_module_activity() {
 }
 
 
-add_action( 'admin_init', 'secupress_warning_no_recovery_email' );
-/**
- * This warning is displayed when the recovery email is not set.
- *
- * @since 1.0
- */
-function secupress_warning_no_recovery_email() {
-	global $pagenow;
-
-	$scans = array_filter( (array) get_site_option( SECUPRESS_SCAN_TIMES ) );
-
-	if ( ! $scans || 'profile.php' === $pagenow || get_user_meta( get_current_user_id(), 'secupress_recovery_email', true ) ) {
-		return;
-	}
-
-	secupress_enqueue_sweet_alert();
-
-	$form  = '<span class="secupress-inline-form">';
-	$form .= '<img src="' . esc_url( admin_url( 'images/wpspin_light.gif' ) ) . '" alt="' . esc_attr__( 'Loading', 'secupress' ) . '" class="hidden" id="secupress_recovery_email_spinner"/>';
-	$form .= '<input type="text" name="secupress_recovery_email" id="secupress_recovery_email" placeholder="' . esc_attr__( 'Email address', 'secupress' ) . '"/>&nbsp;';
-	$form .= '<button type="button" class="button" id="secupress_recovery_email_submit">' . __( 'Submit', 'secupress' ) . '</button>&nbsp;';
-	$form .= '<span id="secupress_recovery_email_result"></span>&nbsp;';
-	$form .= '<button type="button" class="button hidden" id="secupress_recovery_email_retry">' . __( 'Retry', 'secupress' ) . '</button>';
-	$form .= '</span><!-- .secupress-inline-form -->';
-
-	$message  = sprintf( __( '%s:', 'secupress' ), '<strong>' . SECUPRESS_PLUGIN_NAME . '</strong>' ) . ' ';
-	$message .= sprintf( __( 'A <strong>Recovery E-mail</strong> is needed in case of hack, you can set it in your <a href="%1$s">profile</a><span id="secupress_recovery_email_parent" class="hide-if-no-js"> or here: %2$s</span>', 'secupress' ), esc_url( get_edit_profile_url( get_current_user_id() ) ) . '#secupress_recovery_email', $form );
-
-	secupress_add_notice( $message, 'error', 'recovery_email' );
-}
-
 
 add_action( 'all_admin_notices', 'secupress_warning_no_oneclick_scan_yet', 50 );
 /**
@@ -306,7 +267,7 @@ function secupress_warning_no_oneclick_scan_yet() {
 	$screen_id = get_current_screen();
 	$screen_id = $screen_id && ! empty( $screen_id->id ) ? $screen_id->id : false;
 
-	if ( ! ( 'secupress_page_' . SECUPRESS_PLUGIN_SLUG . '_settings' === $screen_id || ( 'plugins' === $screen_id && ! is_multisite() ) || 'plugins-network' === $screen_id ) ) {
+	if ( ! ( SECUPRESS_PLUGIN_SLUG . '_page_' . SECUPRESS_PLUGIN_SLUG . '_settings' === $screen_id || ( 'plugins' === $screen_id && ! is_multisite() ) || 'plugins-network' === $screen_id ) ) {
 		return;
 	}
 
@@ -330,7 +291,7 @@ function secupress_warning_no_oneclick_scan_yet() {
 			</div>
 		</div>
 		<div class="secupress-col-2-4 secupress-col-text">
-			<p class="secupress-text-medium"><?php printf( __( '%s is activated, let\'s improve the security of your website!', 'secupress' ), SECUPRESS_PLUGIN_NAME ); ?></p>
+			<p class="secupress-text-medium"><?php printf( __( '%s is activated, let’s improve the security of your website!', 'secupress' ), SECUPRESS_PLUGIN_NAME ); ?></p>
 			<p><?php esc_html_e( 'Scan your website for security issues, right now.', 'secupress' ); ?></p>
 		</div>
 		<div class="secupress-col-1-4 secupress-col-cta">
@@ -353,106 +314,41 @@ function secupress_warning_no_oneclick_scan_yet() {
 }
 
 
-add_action( 'current_screen', 'secupress_warning_no_license' );
-/**
- * This warning is displayed when the license is not valid.
- *
- * @since 1.0.6
- * @author Grégory Viguier
- */
-function secupress_warning_no_license() {
-	global $current_screen;
-
-	if ( 'secupress_page_' . SECUPRESS_PLUGIN_SLUG . '_settings' === $current_screen->base ) {
-		return;
-	}
-
-	if ( ! secupress_has_pro() || secupress_is_pro() ) {
-		return;
-	}
-
-	if ( ! current_user_can( secupress_get_capability() ) ) {
-		return;
-	}
-
-	$message  = sprintf( __( '%s:', 'secupress' ), '<strong>' . SECUPRESS_PLUGIN_NAME . '</strong>' ) . ' ';
-	/** Translators: %s is a link to the "plugin settings page". */
-	$message .= sprintf(
-		__( 'Your Pro license is not valid or is not set yet. If you want to activate all the Pro features, premium support and updates, take a look at %s.', 'secupress' ),
-		'<a href="' . esc_url( secupress_admin_url( 'settings' ) ) . '">' . __( 'the plugin settings page', 'secupress' ) . '</a>'
-	);
-
-	secupress_add_notice( $message, 'updated', false );
-}
-
-
-add_action( 'admin_menu', 'secupress_display_transient_notices' );
-/**
- * Will lately add admin notices added by `secupress_add_transient_notice()`.
- *
- * @since 1.0
- */
-function secupress_display_transient_notices() {
-	$notices = secupress_get_transient( 'secupress-notices-' . get_current_user_id() );
-
-	if ( ! $notices ) {
-		return;
-	}
-
-	foreach ( $notices as $notice ) {
-		secupress_add_notice( $notice['message'], $notice['error_code'], false );
-	}
-
-	delete_transient( 'secupress-notices-' . get_current_user_id() );
-}
-
-add_action( 'in_plugin_update_message-' . plugin_basename( SECUPRESS_FILE ), 'secupress_updates_message' );
-if ( defined( 'SECUPRESS_PRO_FILE' ) ) {
-	add_action( 'in_plugin_update_message-' . plugin_basename( SECUPRESS_PRO_FILE ), 'secupress_updates_message' );
-}
+add_action( 'in_plugin_update_message-' . plugin_basename( SECUPRESS_FILE ), 'secupress_updates_message', 10, 2 );
 /**
  * Display a message below our plugins to display the next update information if needed
  *
  * @since 1.1.1
  * @author Julio Potier
  *
- * @param (array) $plugin_data Contains the plugin data from EDD or repository.
+ * @param (array) $plugin_data Contains the old plugin data from EDD or repository.
+ * @param (array) $new_plugin_data Contains the new plugin data from EDD or repository.
  */
-function secupress_updates_message( $plugin_data ) {
+function secupress_updates_message( $plugin_data, $new_plugin_data ) {
 	// Get next version.
-	if ( isset( $plugin_data['version'] ) ) {
-		// SecuPress Free (repo).
-		$remote_version = $plugin_data['version'];
-	} elseif ( isset( $plugin_data['new_version'] ) ) {
-		// SecuPress Pro (EDD).
-		$remote_version = $plugin_data['new_version'];
+	if ( isset( $new_plugin_data->new_version ) ) {
+		$remote_version = $new_plugin_data->new_version;
 	}
 
 	if ( ! isset( $remote_version ) ) {
 		return;
 	}
 
-	$body = get_option( 'secupress_updates_message' );
-	$slug = $plugin_data['slug'] . '-' . $remote_version;
+	$body = get_transient( 'secupress_updates_message' );
 
-	if ( ! isset( $body[ $slug ] ) ) {
+	if ( ! isset( $body[ $remote_version ] ) ) {
+		$url = 'https://plugins.svn.wordpress.org/secupress/trunk/readme.txt';
+		$response = wp_remote_get( $url );
 
-		$urls = array(
-			'secupress'     => 'https://plugins.svn.wordpress.org/secupress/trunk/readme.txt',
-			'secupress-pro' => SECUPRESS_WEB_MAIN . '/api/plugin/readme-pro.php',
-		);
-		$response = wp_remote_get( $urls[ $plugin_data['slug'] ] );
-
-		if ( 200 !== wp_remote_retrieve_response_code( $response ) ) {
+		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
 			return;
 		}
 
 		$body = wp_remote_retrieve_body( $response );
 
-		update_option( 'secupress_updates_message' , array( $slug => $body ) );
-
+		set_transient( 'secupress_updates_message' , array( $remote_version => $body ) );
 	} else {
-		$body = $body[ $slug ];
+		$body = $body[ $remote_version ];
 	}
 
 	// Find the Notes for this version.
@@ -473,23 +369,4 @@ function secupress_updates_message( $plugin_data ) {
 		echo '</ul>';
 		echo '</div>';
 	}
-}
-
-
-add_action( 'admin_bar_menu', 'secupress_remove_all_notices_on_get_pro_page', SECUPRESS_INT_MAX );
-/**
- * Remove all admin notices from the "Get Pro" screen.
- *
- * @since 1.2.5
- */
-function secupress_remove_all_notices_on_get_pro_page() {
-	global $current_screen;
-
-	if ( empty( $current_screen->id ) || 'secupress_page_secupress_modules' !== $current_screen->id || empty( $_GET['module'] ) || 'get-pro' !== $_GET['module'] ) {
-		return;
-	}
-
-	$action = is_network_admin() ? 'network_admin_notices' : 'admin_notices';
-	remove_all_actions( $action );
-	remove_all_actions( 'all_admin_notices' );
 }

@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /** --------------------------------------------------------------------------------------------- */
 /** AJAX AND POST HELPERS ======================================================================= */
@@ -37,12 +37,12 @@ function secupress_admin_die( $data = null ) {
 			$data .= '</p><p>';
 			$data .= sprintf( '<a href="%s">%s</a>',
 				esc_url( wp_get_referer() ),
-				__( 'Please try again.' ) // WP i18n.
+				__( 'Please try again.', 'secupress' )
 			);
 		}
 	}
 
-	wp_die( $data, __( 'WordPress Failure Notice' ), 403 ); // WP i18n.
+	wp_die( $data, __( 'WordPress Failure Notice', 'secupress' ), 403 );
 }
 
 
@@ -56,7 +56,7 @@ function secupress_admin_die( $data = null ) {
  */
 function secupress_admin_send_response_or_redirect( $response = false, $redirect = false ) {
 	if ( ! $response ) {
-		secupress_admin_die();
+		secupress_admin_die( 'Missing $response in ' . __FUNCTION__ ); // Do not translate.
 	}
 
 	if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
@@ -83,7 +83,7 @@ function secupress_admin_send_response_or_redirect( $response = false, $redirect
  * @param (array) $args An array of arguments like:
  *                      (string)      $message     The message to return.
  *                      (string|bool) $redirect_to The URL to redirect to: false for the referer, or a complete URL, or the slug of one of our settings pages.
- *                      (string)      $code        An error code used by `add_settings_error()`.
+ *                      (string)      $code        An error code used by `secupress_add_settings_error()`.
  *                      (string)      $type        `success` (default) or `error`. Will decide to send a success or an error message.
  **/
 function secupress_admin_send_message_die( $args ) {
@@ -118,8 +118,8 @@ function secupress_admin_send_message_die( $args ) {
 
 	$args['type'] = 'success' === $args['type'] ? 'updated' : 'error';
 
-	add_settings_error( 'general', $args['code'], $args['message'], $args['type'] );
-	set_transient( 'settings_errors', get_settings_errors(), 30 );
+	secupress_add_settings_error( 'general', $args['code'], $args['message'], $args['type'] );
+	set_transient( 'settings_errors', secupress_get_settings_errors(), 30 );
 
 	$goback = add_query_arg( 'settings-updated', 'true', $args['redirect_to'] );
 	wp_redirect( esc_url_raw( $goback ) );
@@ -182,11 +182,15 @@ function secupress_format_message( $msgs, $test_name ) {
 
 	$output = array();
 
+	if ( empty( $msgs ) ) {
+		return implode( '<br/>', $output );
+	}
+
 	foreach ( $msgs as $id => $atts ) {
 
 		if ( ! isset( $messages[ $id ] ) ) {
 
-			$string = __( 'Unknown message', 'secupress' );
+			$string = __( 'Fix done.', 'secupress' );
 
 		} elseif ( is_array( $messages[ $id ] ) ) {
 

@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'Cheatin&#8217; uh?' );
+defined( 'ABSPATH' ) or die( 'Something went wrong.' );
 
 /**
  * Used to write in a `.htaccess` file
@@ -60,28 +60,4 @@ function secupress_get_htaccess_marker( $function ) {
 	$marker = apply_filters( 'secupress.htaccess.marker_' . $function, $marker );
 
 	return $marker;
-}
-
-
-/**
- * Get contents to put in the `.htaccess` file to ban IPs.
- *
- * @since 1.0
- *
- * @return (string)
- */
-function secupress_get_htaccess_ban_ip() {
-	$ban_ips = get_site_option( SECUPRESS_BAN_IP );
-
-	if ( ! $ban_ips || ! is_array( $ban_ips ) ) {
-		return '';
-	}
-
-	$content = 'Order Deny,Allow' . PHP_EOL;
-
-	foreach ( $ban_ips as $ip => $time ) {
-		$content .= 'Deny from ' . $ip . PHP_EOL;
-	}
-
-	return $content;
 }
