@@ -18,8 +18,8 @@ get_header(); ?>
                 <div>
                     <h3><?php the_field('form_title'); ?></h3>
                     <?php
-                    $landing_form_script_id = get_field('landingFormId', 'options');
-                    $landing_form_script_src = get_field('landingFormSrc', 'options');
+                    $landing_form_script_id = get_field('landingFormId');
+                    $landing_form_script_src = get_field('landingFormSrc');
                     if($landing_form_script_id && $landing_form_script_src):
                     ?>
                     <form id="<?php echo $landing_form_script_id ?>"></form>
