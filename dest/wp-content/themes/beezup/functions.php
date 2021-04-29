@@ -751,11 +751,11 @@ function beezup_mlp_href_US(){
 /*-----------------------------------------------------------------------------------*/
 /* WP Rocket
 /*-----------------------------------------------------------------------------------*/
-function beez_cookies($cookies){
-    $cookies[] = 'beez-cookies';
-    return $cookies;
-}
-add_filter( 'rocket_cache_dynamic_cookies', 'beez_cookies' );
+// function beez_cookies($cookies){
+//     $cookies[] = 'beez-cookies';
+//     return $cookies;
+// }
+// add_filter( 'rocket_cache_dynamic_cookies', 'beez_cookies' );
 
 
 /*-----------------------------------------------------------------------------------*/
@@ -787,7 +787,7 @@ function beezup_scripts(){
 
 
 	// JS
-	wp_deregister_script( 'jquery' );
+	//wp_deregister_script( 'jquery' );
     wp_deregister_script( 'wp-embed' );
 	
     wp_register_script( 'beezup-scripts', get_template_directory_uri() . '/js/main.js', array(), BEEZUP_VERSION, true );

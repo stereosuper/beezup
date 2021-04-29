@@ -1,6 +1,6 @@
             </main>
 
-            <?php $cookie = isset($_COOKIE['beez-cookies']) ? true : false; ?>
+            <?php //$cookie = isset($_COOKIE['beez-cookies']) ? true : false; ?>
 
             <footer role='contentinfo' class='footer'>
                 <div class='top-footer'>
@@ -184,14 +184,14 @@
                     </div>
                 </div>
 
-                <?php if(!$cookie){ ?>
-                    <div class='cookies' id='cookies'>
+                <?php //if(!$cookie){ ?>
+                   <!-- <div class='cookies' id='cookies'>
                         <div class='container'>
-                            <p><?php the_field('cookies', 'options'); ?></p>
+                            <p><?php //the_field('cookies', 'options'); ?></p>
                             <button type='button' class='btn-cookies' id='btnCookies'>OK</button>
                         </div>
-                    </div>
-                <?php } ?>
+                    </div>-->
+                <?php //} ?>
             </footer>
 
         </div>
